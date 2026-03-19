@@ -1,0 +1,498 @@
+import { db } from '@/db';
+import { products, categories, DbProduct } from '@/db/schema';
+import { eq, desc, asc, and, ilike, or, gte, lt, sql, SQL } from '@repo/db/orm';
+import type { Product } from '@/types';
+import type { SortOption, ProductFilters, FilteredProductsResult, WineFilterOptions, WineFilterOption } from '@/types/filters';
+
+// Re-export shared types for backwards compatibility
+export type { SortOption, PriceRange, ProductFilters, FilteredProductsResult, WineFilterOptions, WineFilterOption } from '@/types/filters';
+
+// ============================================
+// HELPERS
+// ============================================
+
+function mapDbProductToProduct(dbProduct: DbProduct, categorySlug?: string): Product {
+  return {
+    sku: dbProduct.sku,
+    name: dbProduct.name,
+    description: dbProduct.description || undefined,
+    price: parseFloat(dbProduct.price),
+    category: categorySlug || 'all',
+    imageUrl: dbProduct.imageUrl || undefined,
+    image: dbProduct.imageUrl || undefined,
+    stock: dbProduct.stock,
+    isNew: dbProduct.isNew,
+    isArchived: !dbProduct.isActive,
+    origin: dbProduct.origin || undefined,
+    year: dbProduct.year || undefined,
+    slug: dbProduct.slug,
+    // Wine cascading fields
+    originCountry: dbProduct.originCountry || undefined,
+    originRegion: dbProduct.originRegion || undefined,
+    grapeVariety: dbProduct.grapeVariety || undefined,
+    // Static content override (Electron admin, partial JSONB)
+    wineDetails: (dbProduct.wineDetails as Record<string, unknown>) || undefined,
+  };
+}
+
+// ============================================
+// PRODUCT SERVICE
+// ============================================
+
+export const productService = {
+  /**
+   * Advanced filtered query — all filtering happens in PostgreSQL
+   * Uses pg_trgm indexes for text search, composite indexes for category+price
+   * Supports cascading wine filters: country → region → grape
+   */
+  async getFiltered(filters: ProductFilters = {}): Promise<FilteredProductsResult> {
+    const {
+      category,
+      search,
+      sort = 'featured',
+      priceRanges,
+      origins,
+      originCountry,
+      originRegion,
+      grapeVariety,
+      limit = 100,
+      offset = 0,
+    } = filters;
+
+    try {
+      // ── Build WHERE conditions ──────────────────────
+      const conditions: SQL[] = [eq(products.isActive, true)];
+
+      // Category filter (uses products_active_category_price_idx)
+      let categoryId: number | null = null;
+      if (category && category !== 'all') {
+        const categoryRecord = await db
+          .select({ id: categories.id })
+          .from(categories)
+          .where(eq(categories.slug, category))
+          .limit(1);
+
+        if (categoryRecord.length > 0) {
+          categoryId = categoryRecord[0].id;
+          conditions.push(eq(products.categoryId, categoryId));
+        } else {
+          // Category not found → return empty
+          return { products: [], totalCount: 0, availableOrigins: [], priceRange: { min: 0, max: 0 } };
+        }
+      }
+
+      // Text search (uses products_name_trgm_idx, products_description_trgm_idx, products_origin_trgm_idx)
+      if (search && search.trim()) {
+        const searchTerm = `%${search.trim()}%`;
+        conditions.push(
+          or(
+            ilike(products.name, searchTerm),
+            ilike(products.description, searchTerm),
+            ilike(products.origin, searchTerm),
+            ilike(products.originCountry, searchTerm),
+            ilike(products.originRegion, searchTerm),
+            ilike(products.grapeVariety, searchTerm)
+          )!
+        );
+      }
+
+      // Price range filter (uses products_price_idx / products_active_category_price_idx)
+      if (priceRanges && priceRanges.length > 0) {
+        const priceConditions = priceRanges.map(range => {
+          if (range.max === Infinity || range.max >= 999999) {
+            return gte(products.price, range.min.toString());
+          }
+          return and(
+            gte(products.price, range.min.toString()),
+            lt(products.price, range.max.toString())
+          )!;
+        });
+
+        if (priceConditions.length === 1) {
+          conditions.push(priceConditions[0]!);
+        } else {
+          conditions.push(or(...priceConditions)!);
+        }
+      }
+
+      // Origin filter — legacy (uses products_origin_idx)
+      if (origins && origins.length > 0) {
+        const originConditions = origins.map(origin =>
+          ilike(products.origin, `${origin}%`)
+        );
+        conditions.push(or(...originConditions)!);
+      }
+
+      // ── Wine Cascading Filters ──────────────────────
+      // Country filter (level 1)
+      if (originCountry) {
+        conditions.push(eq(products.originCountry, originCountry));
+      }
+      // Region filter (level 2)
+      if (originRegion) {
+        conditions.push(eq(products.originRegion, originRegion));
+      }
+      // Grape variety filter (level 3 — uses ILIKE for comma-separated matching)
+      if (grapeVariety) {
+        conditions.push(ilike(products.grapeVariety, `%${grapeVariety}%`));
+      }
+
+      // ── Determine ORDER BY ──────────────────────
+      let orderBy;
+      switch (sort) {
+        case 'price-asc':
+          orderBy = asc(products.price);
+          break;
+        case 'price-desc':
+          orderBy = desc(products.price);
+          break;
+        case 'newest':
+          orderBy = desc(products.createdAt);
+          break;
+        case 'featured':
+        default:
+          orderBy = desc(products.isFeatured);
+          break;
+      }
+
+      const whereClause = and(...conditions)!;
+
+      // ── Build base conditions for wine filter options (without wine filters applied) ──
+      const baseWineConditions: SQL[] = [eq(products.isActive, true)];
+      if (categoryId) {
+        baseWineConditions.push(eq(products.categoryId, categoryId));
+      }
+
+      // ── Execute main query ──────────────────────
+      const [mainResults, countResult, originsResult, priceResult, wineFilterOpts] = await Promise.all([
+        // 1. Filtered + sorted + paginated products
+        db
+          .select({
+            product: products,
+            categorySlug: categories.slug,
+          })
+          .from(products)
+          .leftJoin(categories, eq(products.categoryId, categories.id))
+          .where(whereClause)
+          .orderBy(orderBy)
+          .limit(limit)
+          .offset(offset),
+
+        // 2. Total count for pagination
+        db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(products)
+          .where(whereClause),
+
+        // 3. Available origins with counts (for sidebar filter)
+        // This uses base conditions WITHOUT origin filter so user sees all available origins
+        db
+          .select({
+            origin: sql<string>`split_part(${products.origin}, ',', 1)`,
+            count: sql<number>`count(*)::int`,
+          })
+          .from(products)
+          .where(and(
+            eq(products.isActive, true),
+            ...(categoryId ? [eq(products.categoryId, categoryId)] : []),
+            sql`${products.origin} IS NOT NULL AND ${products.origin} != ''`
+          ))
+          .groupBy(sql`split_part(${products.origin}, ',', 1)`)
+          .orderBy(sql`split_part(${products.origin}, ',', 1)`),
+
+        // 4. Price range for active products (for slider / info)
+        db
+          .select({
+            minPrice: sql<number>`min(${products.price})::numeric`,
+            maxPrice: sql<number>`max(${products.price})::numeric`,
+          })
+          .from(products)
+          .where(and(
+            eq(products.isActive, true),
+            ...(categoryId ? [eq(products.categoryId, categoryId)] : []),
+          )),
+
+        // 5. Wine cascading filter options
+        this._getWineFilterOptions(categoryId, originCountry, originRegion),
+      ]);
+
+      return {
+        products: mainResults.map(r => mapDbProductToProduct(r.product, r.categorySlug || undefined)),
+        totalCount: countResult[0]?.count ?? 0,
+        availableOrigins: originsResult
+          .filter(r => r.origin && r.origin.trim())
+          .map(r => ({ origin: r.origin.trim(), count: r.count })),
+        priceRange: {
+          min: priceResult[0]?.minPrice ?? 0,
+          max: priceResult[0]?.maxPrice ?? 0,
+        },
+        wineFilterOptions: wineFilterOpts,
+      };
+    } catch (error) {
+      console.error('[productService.getFiltered]', error);
+      return { products: [], totalCount: 0, availableOrigins: [], priceRange: { min: 0, max: 0 } };
+    }
+  },
+
+  /**
+   * Get cascading wine filter options.
+   * Each level only shows options that exist given the parent selection.
+   * 
+   * Level 1 (countries): all distinct countries for active wines
+   * Level 2 (regions): distinct regions WHERE country = selected country
+   * Level 3 (grapes): distinct grapes WHERE country + region match
+   */
+  async _getWineFilterOptions(
+    categoryId: number | null,
+    selectedCountry?: string,
+    selectedRegion?: string,
+  ): Promise<WineFilterOptions> {
+    try {
+      // Base condition: active products, optionally wine category
+      const baseConds: SQL[] = [
+        eq(products.isActive, true),
+        sql`${products.originCountry} IS NOT NULL AND ${products.originCountry} != ''`,
+      ];
+      if (categoryId) {
+        baseConds.push(eq(products.categoryId, categoryId));
+      }
+
+      // Level 1: Countries (always show all available countries)
+      const countriesQuery = db
+        .select({
+          value: products.originCountry,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(products)
+        .where(and(...baseConds))
+        .groupBy(products.originCountry)
+        .orderBy(products.originCountry);
+
+      // Level 2: Regions (filtered by selected country)
+      const regionConds = [...baseConds];
+      if (selectedCountry) {
+        regionConds.push(eq(products.originCountry, selectedCountry));
+      }
+      regionConds.push(sql`${products.originRegion} IS NOT NULL AND ${products.originRegion} != ''`);
+      
+      const regionsQuery = db
+        .select({
+          value: products.originRegion,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(products)
+        .where(and(...regionConds))
+        .groupBy(products.originRegion)
+        .orderBy(products.originRegion);
+
+      // Level 3: Grape varieties — using parameterized SQL with CROSS JOIN for proper unnest
+      // Each grape in a comma-separated list gets its own row for accurate counting
+
+      // Build WHERE conditions as parameterized SQL fragments
+      const grapeConds: SQL[] = [
+        sql`p.is_active = true`,
+        sql`p.grape_variety IS NOT NULL AND p.grape_variety != ''`,
+      ];
+      if (categoryId) {
+        grapeConds.push(sql`p.category_id = ${categoryId}`);
+      }
+      if (selectedCountry) {
+        grapeConds.push(sql`p.origin_country = ${selectedCountry}`);
+      }
+      if (selectedRegion) {
+        grapeConds.push(sql`p.origin_region = ${selectedRegion}`);
+      }
+
+      // Combine conditions with AND
+      const grapeWhereClause = grapeConds.reduce((acc, cond, idx) =>
+        idx === 0 ? cond : sql`${acc} AND ${cond}`
+      );
+
+      // Proper unnest via CROSS JOIN — each grape gets its own row,
+      // so "Monastrell, Syrah" becomes two rows and count is accurate per grape
+      const grapesRawQuery = sql`
+        SELECT trim(g.grape) AS value, count(*)::int AS count
+        FROM products p
+        CROSS JOIN unnest(string_to_array(p.grape_variety, ',')) AS g(grape)
+        WHERE ${grapeWhereClause}
+        GROUP BY trim(g.grape)
+        HAVING trim(g.grape) != ''
+        ORDER BY trim(g.grape)
+      `;
+
+      const [countriesResult, regionsResult, grapesRawResult] = await Promise.all([
+        countriesQuery,
+        regionsQuery,
+        db.execute(grapesRawQuery),
+      ]);
+
+      // Parse raw SQL result for grapes — handle both NeonQueryResult and array shapes
+      const rawRows = (grapesRawResult as any).rows ?? grapesRawResult;
+      const grapesResult = (Array.isArray(rawRows) ? rawRows : []) as { value: string; count: number }[];
+
+      return {
+        countries: countriesResult
+          .filter(r => r.value && r.value.trim())
+          .map(r => ({ value: r.value!.trim(), count: r.count })),
+        regions: regionsResult
+          .filter(r => r.value && r.value.trim())
+          .map(r => ({ value: r.value!.trim(), count: r.count })),
+        grapes: grapesResult
+          .filter(r => r.value && r.value.trim())
+          .map(r => ({ value: r.value.trim(), count: Number(r.count) })),
+      };
+    } catch (error) {
+      console.error('[productService._getWineFilterOptions]', error);
+      return { countries: [], regions: [], grapes: [] };
+    }
+  },
+
+  /**
+   * Fetch all active products (backwards compatible)
+   */
+  async getAll(options: { category?: string; search?: string; sort?: SortOption; limit?: number; offset?: number } = {}): Promise<Product[]> {
+    const result = await this.getFiltered(options);
+    return result.products;
+  },
+
+  /**
+   * Fetch products by category
+   */
+  async getByCategory(categorySlug: string): Promise<Product[]> {
+    return this.getAll({ category: categorySlug });
+  },
+
+  /**
+   * Fetch single product by SKU
+   */
+  async getBySku(sku: string): Promise<Product | null> {
+    try {
+      const results = await db
+        .select({
+          product: products,
+          categorySlug: categories.slug,
+        })
+        .from(products)
+        .leftJoin(categories, eq(products.categoryId, categories.id))
+        .where(eq(products.sku, sku))
+        .limit(1);
+
+      if (results.length === 0) return null;
+
+      return mapDbProductToProduct(results[0].product, results[0].categorySlug || undefined);
+    } catch (error) {
+      console.error('[productService.getBySku]', error);
+      return null;
+    }
+  },
+
+  /**
+   * Fetch single product by slug
+   * Supports both exact match and suffix match (ignoring SKU prefix)
+   */
+  async getBySlug(slug: string): Promise<Product | null> {
+    try {
+      // 1. Try exact match first
+      let results = await db
+        .select({
+          product: products,
+          categorySlug: categories.slug,
+        })
+        .from(products)
+        .leftJoin(categories, eq(products.categoryId, categories.id))
+        .where(eq(products.slug, slug))
+        .limit(1);
+
+      // 2. If not found, try finding by suffix (e.g. "coffee" matches "001-coffee")
+      if (results.length === 0) {
+        results = await db
+          .select({
+            product: products,
+            categorySlug: categories.slug,
+          })
+          .from(products)
+          .leftJoin(categories, eq(products.categoryId, categories.id))
+          .where(ilike(products.slug, `%${slug}`)) // Suffix match
+          .limit(1);
+      }
+
+      if (results.length === 0) return null;
+
+      return mapDbProductToProduct(results[0].product, results[0].categorySlug || undefined);
+    } catch (error) {
+      console.error('[productService.getBySlug]', error);
+      return null;
+    }
+  },
+
+  /**
+   * Fetch all categories
+   */
+  async getCategories() {
+    try {
+      const results = await db
+        .select()
+        .from(categories)
+        .where(eq(categories.isActive, true))
+        .orderBy(asc(categories.sortOrder));
+
+      return results;
+    } catch (error) {
+      console.error('[productService.getCategories]', error);
+      return [];
+    }
+  },
+
+  /**
+   * Search products
+   */
+  async search(query: string): Promise<Product[]> {
+    return this.getAll({ search: query });
+  },
+
+  /**
+   * Get featured products
+   */
+  async getFeatured(limit = 6): Promise<Product[]> {
+    try {
+      const results = await db
+        .select({
+          product: products,
+          categorySlug: categories.slug,
+        })
+        .from(products)
+        .leftJoin(categories, eq(products.categoryId, categories.id))
+        .where(and(eq(products.isActive, true), eq(products.isFeatured, true)))
+        .orderBy(desc(products.createdAt))
+        .limit(limit);
+
+      return results.map(r => mapDbProductToProduct(r.product, r.categorySlug || undefined));
+    } catch (error) {
+      console.error('[productService.getFeatured]', error);
+      return [];
+    }
+  },
+
+  /**
+   * Get new products
+   */
+  async getNew(limit = 6): Promise<Product[]> {
+    try {
+      const results = await db
+        .select({
+          product: products,
+          categorySlug: categories.slug,
+        })
+        .from(products)
+        .leftJoin(categories, eq(products.categoryId, categories.id))
+        .where(and(eq(products.isActive, true), eq(products.isNew, true)))
+        .orderBy(desc(products.createdAt))
+        .limit(limit);
+
+      return results.map(r => mapDbProductToProduct(r.product, r.categorySlug || undefined));
+    } catch (error) {
+      console.error('[productService.getNew]', error);
+      return [];
+    }
+  },
+};

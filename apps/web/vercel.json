@@ -1,0 +1,4 @@
+{
+  "installCommand": "echo \"Using existing workspace dependencies\"",
+  "buildCommand": "next build"
+}

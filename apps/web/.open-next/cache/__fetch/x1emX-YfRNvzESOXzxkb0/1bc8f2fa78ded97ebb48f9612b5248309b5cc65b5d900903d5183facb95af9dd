@@ -1,0 +1,1 @@
+{"kind":"FETCH","data":{"headers":{},"body":"{\"products\":[],\"totalCount\":0,\"availableOrigins\":[],\"priceRange\":{\"min\":0,\"max\":0}}","status":200,"url":""},"revalidate":60,"tags":["products"]}
