@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p 'C:/Users/User/Documents/1PROJEKTY/Il Buon Caffe/.claude/commands')",
+      "Bash(for f:*)",
+      "Bash(do unzip:*)",
+      "Bash(done)",
+      "Read(//tmp/**)",
+      "Bash(mkdir:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(rm:*)",
+      "Bash(cd:*)",
+      "Bash(npx wrangler:*)",
+      "Bash(npx tsc:*)",
+      "Bash(python3:*)",
+      "Bash(node:*)"
+    ]
+  }
+}

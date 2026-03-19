@@ -1,0 +1,20 @@
+{
+  "name": "api",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev --remote src/index.ts",
+    "deploy": "wrangler deploy --minify src/index.ts"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "hono": "^4.11.7",
+    "jose": "^6.1.3"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260130.0",
+    "@types/bcryptjs": "^2.4.6",
+    "typescript": "^5.9.3",
+    "wrangler": "^4.61.1"
+  }
+}

@@ -1,0 +1,143 @@
+graph TB
+    %% ========== IL BUON CAFFÈ — Architecture v2.1 (WebAdmin) ==========
+    %% Updated: 2026-02 | Electron → WebAdmin (/admin/* routes)
+
+    classDef free fill:#d4edda,stroke:#155724,stroke-width:2px
+    classDef paid fill:#fff3cd,stroke:#856404,stroke-width:2px
+    classDef cold_start fill:#cce5ff,stroke:#004085,stroke-width:3px,stroke-dasharray: 10 5
+    classDef external fill:#f8d7da,stroke:#721c24,stroke-width:2px
+    classDef critical fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    classDef note fill:#f8f9fa,stroke:#6c757d,stroke-width:1px,stroke-dasharray: 5 5
+    classDef webadmin fill:#e8d5f5,stroke:#6a1b9a,stroke-width:3px
+
+    %% ========== AKTORZY ==========
+    BROWSER["🌍 Klient (Browser / Mobile)<br/>• Cart (Context + localStorage)<br/>• motion animations<br/>• Lazy loading"]
+
+    ADMIN_USER["👨‍💼 Admin (Browser)<br/>• /admin/* routes<br/>• httpOnly JWT cookie<br/>• IP whitelisted"]
+
+    %% ========== WEBADMIN (wewnątrz Next.js) ==========
+    subgraph WEBADMIN["🔐 WebAdmin (/admin/* — ten sam Next.js deploy)"]
+        direction TB
+        WA_MW["Edge Middleware<br/>🛡️ JWT + role: admin<br/>🌐 IP Whitelist<br/>📍 matcher: /admin/:path*"]
+        WA_LAYOUT["Admin Layout<br/>📐 Sidebar + Shell<br/>🚫 robots: noindex"]
+
+        subgraph WA_MODULES["📋 Moduły Admina"]
+            direction LR
+            WA_DASH["Dashboard<br/>📊 KPI & alerty"]
+            WA_ORD["Zamówienia<br/>📦 Shop + Allegro"]
+            WA_PROD["Produkty<br/>🍷 + Wine Editor"]
+            WA_ALLEG["Allegro<br/>🔄 Sync & mapping"]
+            WA_FIN["Finanse<br/>💰 P24 + raporty"]
+            WA_CUST["Klienci<br/>👥 RODO"]
+            WA_CMS["Treści<br/>📝 CMS + legal"]
+            WA_AUDIT["Audyt<br/>📜 Art. 30 RODO"]
+            WA_SET["Ustawienia<br/>⚙️ Config"]
+        end
+
+        WA_SA["Server Actions<br/>🗃️ Direct DB access (Drizzle)<br/>Bez API roundtrip"]
+
+        WA_MW --> WA_LAYOUT
+        WA_LAYOUT --> WA_MODULES
+        WA_MODULES --> WA_SA
+    end
+
+    %% ========== CLOUDFLARE EDGE ==========
+    subgraph EDGE_NETWORK["🌐 Cloudflare Edge Network"]
+        direction TB
+
+        subgraph EDGE_COMPUTE["⚡ Compute Layer"]
+            PAGES["Cloudflare Pages<br/>Next.js 16 (SSR/SSG/ISR)<br/>💰 $0 Bandwidth"]
+
+            subgraph WORKERS["🛡️ API Workers (Hono)"]
+                API_PUBLIC["Public REST API<br/>• /api/products, /cart, /orders<br/>• JWT auth (customer)<br/>• Rate limiting (KV)"]
+                API_WEBHOOKS["Webhook Workers<br/>• Przelewy24 (SHA384 CRC)<br/>• Allegro events"]
+                API_CRON["Cron Workers<br/>• Allegro polling (60s)<br/>• RODO anonymization (weekly)<br/>• Stock sync (debounce + batch)"]
+            end
+
+            IMG_WORKER["Image Worker<br/>🖼️ WebP/AVIF auto<br/>📐 Resize on-the-fly"]
+        end
+
+        subgraph CACHE_LAYER["💾 Caching"]
+            KV_SESSION["KV: SESSION<br/>• Cart state<br/>• Rate limits<br/>TTL: 24h"]
+            KV_CATALOG["KV: CATALOG<br/>• Products JSON<br/>• Categories<br/>TTL: 1h"]
+            CACHE_API["Cache API<br/>Stale-while-revalidate"]
+        end
+
+        R2["R2 Object Storage<br/>📁 /originals, /optimized, /exports<br/>🔒 Signed URLs (5min TTL)<br/>💰 $0 Egress"]
+    end
+
+    %% ========== BAZA DANYCH ==========
+    subgraph DATA_LAYER["🐘 Neon PostgreSQL (Serverless)"]
+        direction TB
+
+        HYPER["Hyperdrive<br/>🔄 Connection Pool<br/>📊 1000 connections"]
+
+        subgraph NEON["Neon Branches"]
+            MAIN_PROD[("Production<br/>🟢 Scale-to-Zero<br/>⚡ 0.25-2 CU")]
+            DEV_BRANCH[("Dev Branch<br/>🟡 Ephemeral<br/>🔬 Migrations")]
+        end
+    end
+
+    %% ========== ZEWNĘTRZNE USŁUGI ==========
+    subgraph EXTERNAL["🔗 Zewnętrzne API"]
+        P24["Przelewy24<br/>💳 Płatności<br/>🔒 SHA384 CRC"]
+        ALLEGRO["Allegro REST API<br/>🛒 1:1 SKU↔offerId<br/>📦 Stock sync<br/>⚡ Circuit breaker"]
+        RESEND["Resend<br/>📧 Transactional email"]
+    end
+
+    %% ========== PRZEPŁYWY DANYCH ==========
+
+    %% Klient → Sklep WWW
+    BROWSER -->|"HTTP/2"| PAGES
+    PAGES -->|"Client fetch"| API_PUBLIC
+
+    %% Admin → WebAdmin (ten sam Next.js!)
+    ADMIN_USER -->|"HTTPS (IP verified)"| WA_MW
+
+    %% WebAdmin → DB (Server Actions — BEZ API roundtrip)
+    WA_SA ==>|"Direct SQL (Drizzle)"| HYPER
+
+    %% Public API → Cache → DB
+    API_PUBLIC -->|"Check"| CACHE_API
+    API_PUBLIC -->|"R/W"| KV_SESSION
+    API_PUBLIC -.->|"Miss"| KV_CATALOG
+    API_PUBLIC -->|"SQL over TLS"| HYPER
+
+    %% Hyperdrive → Neon
+    HYPER -->|"Pooled conn"| MAIN_PROD
+
+    %% Webhooks (external → Workers)
+    P24 -->|"Webhook + CRC"| API_WEBHOOKS
+    ALLEGRO -.->|"Events"| API_WEBHOOKS
+    API_WEBHOOKS -->|"Update order"| HYPER
+
+    %% Cron jobs
+    API_CRON -.->|"Poll orders (60s)"| ALLEGRO
+    API_CRON -->|"Sync stock / RODO cleanup"| HYPER
+
+    %% Email
+    API_WEBHOOKS -.->|"Order confirm"| RESEND
+
+    %% Images
+    BROWSER -->|"Request img"| IMG_WORKER
+    IMG_WORKER -->|"Fetch & transform"| R2
+    IMG_WORKER -->|"Cache"| CACHE_API
+
+    %% Admin → R2 (image uploads via signed URL)
+    WA_SA -.->|"Signed URL upload"| R2
+
+    %% ========== NOTATKI ARCHITEKTONICZNE ==========
+    NOTE_DOMAIN["🌐 <b>Domena & Routing</b><br/><br/>Nowa domena NIE jest potrzebna.<br/>• Sklep: ilbuoncaffe.pl/*<br/>• Admin: ilbuoncaffe.pl/admin/*<br/>• API: api.ilbuoncaffe.pl (Worker)<br/><br/>Edge middleware chroni /admin/*<br/>robots: noindex, nofollow"]
+
+    NOTE_API_ROLE["⚡ <b>Rola apps/api (Hono Workers)</b><br/><br/><b>ZOSTAJE</b> — ale tylko dla:<br/>1. Public REST (products, cart, orders)<br/>2. Webhooks (P24 + Allegro callbacks)<br/>3. Cron triggers (polling, cleanup)<br/><br/><b>Admin NIE używa API</b><br/>→ Server Actions = Direct DB"]
+
+    NOTE_SAVINGS["💰 <b>Oszczędności vs Electron</b><br/><br/>• Zero buildu .exe / code signing<br/>• Zero auto-update infrastruktury<br/>• Zero node-keytar / BroadcastChannel<br/>• Zero dodatkowego bundlera (Vite)<br/>• Ten sam deploy co sklep<br/>• Działa z telefonu admina"]
+
+    %% ========== PRZYPISANIE KLAS ==========
+    class API_PUBLIC,IMG_WORKER,API_WEBHOOKS,API_CRON,HYPER paid
+    class PAGES,R2 free
+    class MAIN_PROD,DEV_BRANCH cold_start
+    class P24,ALLEGRO,RESEND external
+    class WA_MW,WA_SA critical
+    class WEBADMIN,WA_MODULES,WA_LAYOUT webadmin
+    class NOTE_DOMAIN,NOTE_API_ROLE,NOTE_SAVINGS note

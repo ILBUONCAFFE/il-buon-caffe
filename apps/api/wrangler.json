@@ -1,0 +1,49 @@
+{
+	"name": "il-buon-caffe-api",
+	"main": "src/index.ts",
+	"compatibility_date": "2024-09-23",
+	"observability": {
+		"enabled": true
+	},
+	"r2_buckets": [
+		{
+			"binding": "IMAGES_BUCKET",
+			"bucket_name": "il-buon-caffe-images",
+			"preview_bucket_name": "il-buon-caffe-images-dev"
+		}
+	],
+	"kv_namespaces": [
+		{
+			"binding": "AUTH_RATE_LIMIT",
+			"id": "c135c5a50ae44c5782630709051dab96",
+			"preview_id": "49ba6ded3bb84635bb111ea13db1ad5e"
+		},
+		{
+			"binding": "ALLEGRO_KV",
+			"id": "2dbf90378fb8442fb5f32b63251cd27a",
+			"preview_id": "d6770812f0f54e248fdfa607b8732542"
+		}
+	],
+	"triggers": {
+		"crons": [
+			"0 * * * *",
+			"*/5 * * * *"
+		]
+	},
+	"vars": {
+		"NODE_ENV": "production",
+		"ALLEGRO_ENVIRONMENT": "production",
+		"ALLEGRO_REDIRECT_URI": "https://il-buon-caffe-api.ilbuoncaffe19.workers.dev/api/admin/allegro/callback",
+		"ALLEGRO_ADMIN_REDIRECT_URL": "https://il-buon-caffe-web.ilbuoncaffe19.workers.dev/admin/settings",
+		"PUBLIC_URL": "https://il-buon-caffe-api.ilbuoncaffe19.workers.dev",
+		"FRONTEND_URL": "https://il-buon-caffe-web.ilbuoncaffe19.workers.dev",
+		"P24_SANDBOX": "false"
+	},
+	"hyperdrive": [
+		{
+			"binding": "HYPERDRIVE",
+			"id": "5da53fb3a9764d479e5107328b830e2d",
+			"localConnectionString": "postgresql://neondb_owner:npg_vgnsrPJum3G0@ep-sweet-bread-agnmmphi-pooler.c-2.eu-central-1.aws.neon.tech/neondb?sslmode=require"
+		}
+	]
+}
