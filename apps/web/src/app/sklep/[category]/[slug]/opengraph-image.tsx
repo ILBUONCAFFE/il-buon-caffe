@@ -2,8 +2,6 @@ import { ImageResponse } from 'next/og'
 import { getProductBySlug } from '@/actions/products'
 import { getWineDetailsForProduct } from '@/content/products/wineData'
 
-export const runtime = 'edge'
-
 export const alt = 'Wino z oferty Il Buon Caffe'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
