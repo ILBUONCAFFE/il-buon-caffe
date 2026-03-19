@@ -45,8 +45,7 @@ jobs:
         run: npm ci
 
       - name: Build web app (OpenNext)
-        run: npm run cf:build
-        working-directory: apps/web
+        run: npm run cf:build --workspace=apps/web
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
           NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
