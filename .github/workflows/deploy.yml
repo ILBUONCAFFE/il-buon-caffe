@@ -44,7 +44,7 @@ jobs:
         run: npm ci
 
       - name: Install Linux native bindings
-        run: npm install --no-save @ast-grep/napi-linux-x64-gnu
+        run: npm install --no-save @ast-grep/napi-linux-x64-gnu lightningcss-linux-x64-gnu
 
       - name: Build web app (OpenNext)
         run: cd apps/web && npm run cf:build
