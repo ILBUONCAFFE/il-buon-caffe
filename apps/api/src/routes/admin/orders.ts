@@ -1,12 +1,14 @@
 import { Hono } from 'hono'
 import { createDb } from '@repo/db/client'
 import {
-  orders, orderItems, products, users, stockChanges, auditLog,
+  orders, orderItems, products, users, stockChanges,
 } from '@repo/db/schema'
+import { logAdminAction } from '../../lib/audit'
 import { eq, and, desc, sql, gte, lte } from 'drizzle-orm'
 import { requireAdminOrProxy } from '../../middleware/auth'
 import { auditLogMiddleware } from '../../middleware/auditLog'
 import type { Env } from '../../index'
+import { checkContentLength, parsePagination, getClientIp, serverError } from '../../lib/request'
 
 export const adminOrdersRouter = new Hono<{ Bindings: Env }>()
 
@@ -19,9 +21,8 @@ adminOrdersRouter.use('*', requireAdminOrProxy())
 // ============================================
 adminOrdersRouter.get('/', auditLogMiddleware('view_order'), async (c) => {
   try {
-    const db       = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
-    const page     = Math.max(1, parseInt(c.req.query('page')  || '1', 10))
-    const limit    = Math.min(100, Math.max(1, parseInt(c.req.query('limit') || '50', 10)))
+    const db               = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const { page, limit } = parsePagination(c)
     const source   = c.req.query('source')   || ''
     const status   = c.req.query('status')   || ''
     const from     = c.req.query('from')     || ''
@@ -83,8 +84,7 @@ adminOrdersRouter.get('/', auditLogMiddleware('view_order'), async (c) => {
 
     return c.json({ success: true, data, meta: { total, page, limit, totalPages } })
   } catch (err) {
-    console.error('GET /admin/orders error:', err)
-    return c.json({ error: 'Błąd serwera' }, 500)
+    return serverError(c, 'GET /admin/orders', err)
   }
 })
 
@@ -121,8 +121,7 @@ adminOrdersRouter.get('/:id', auditLogMiddleware('view_order'), async (c) => {
       },
     })
   } catch (err) {
-    console.error('GET /admin/orders/:id error:', err)
-    return c.json({ error: 'Błąd serwera' }, 500)
+    return serverError(c, 'GET /admin/orders/:id', err)
   }
 })
 
@@ -137,6 +136,9 @@ adminOrdersRouter.patch('/:id/status', async (c) => {
     const orderId   = parseInt(c.req.param('id'))
 
     if (isNaN(orderId)) return c.json({ error: 'Nieprawidłowe ID zamówienia' }, 400)
+
+    const sizeErr = checkContentLength(c, 2_000)
+    if (sizeErr) return sizeErr
 
     const body = await c.req.json<{
       status: string
@@ -229,12 +231,11 @@ adminOrdersRouter.patch('/:id/status', async (c) => {
     await db.update(orders).set(setCols as any).where(eq(orders.id, orderId))
 
     // Audit
-    const ip = c.req.header('CF-Connecting-IP') || 'unknown'
-    await db.insert(auditLog).values({
-      adminId:       parseInt(adminUser.sub),
+    await logAdminAction(db, {
+      adminSub:      adminUser.sub,
       action:        'admin_action',
       targetOrderId: orderId,
-      ipAddress:     ip,
+      ipAddress:     getClientIp(c),
       details: {
         event:          'status_change',
         previousStatus,
@@ -246,7 +247,6 @@ adminOrdersRouter.patch('/:id/status', async (c) => {
 
     return c.json({ success: true, message: `Status zamówienia zmieniony na '${body.status}'` })
   } catch (err) {
-    console.error('PATCH /admin/orders/:id/status error:', err)
-    return c.json({ error: 'Błąd serwera' }, 500)
+    return serverError(c, 'PATCH /admin/orders/:id/status', err)
   }
 })

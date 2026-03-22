@@ -43,7 +43,7 @@
 		{
 			"binding": "HYPERDRIVE",
 			"id": "5da53fb3a9764d479e5107328b830e2d",
-			"localConnectionString": "postgresql://neondb_owner:npg_vgnsrPJum3G0@ep-sweet-bread-agnmmphi-pooler.c-2.eu-central-1.aws.neon.tech/neondb?sslmode=require"
+			"localConnectionString": "postgresql://neondb_owner:npg_vgnsrPJum3G0@ep-sweet-bread-agnmmphi-pooler.c-2.eu-central-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
 		}
 	]
 }

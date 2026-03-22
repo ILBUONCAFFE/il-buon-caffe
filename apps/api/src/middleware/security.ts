@@ -30,7 +30,8 @@ export function securityHeaders() {
     c.header('Cross-Origin-Opener-Policy', 'same-origin')
     c.header('Cross-Origin-Resource-Policy', 'same-origin')
     
-    // Content Security Policy (API responds JSON, so strict CSP)
+    // Content Security Policy — API returns JSON only, so 'none' for everything is correct.
+    // The web app (middleware.ts) uses a richer CSP with per-request nonces for scripts/styles.
     c.header('Content-Security-Policy', [
       "default-src 'none'",
       "frame-ancestors 'none'",
@@ -69,7 +70,9 @@ export function secFetchGuard() {
     }
 
     // Allow same-origin and same-site requests
-    if (secFetchSite === 'same-origin' || secFetchSite === 'same-site' || secFetchSite === 'none') {
+    // Note: 'none' is intentionally excluded — it's sent by direct navigation (bookmarks, address bar)
+    // which never legitimately triggers a mutating request in our flows.
+    if (secFetchSite === 'same-origin' || secFetchSite === 'same-site') {
       return next()
     }
 

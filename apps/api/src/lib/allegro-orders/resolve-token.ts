@@ -1,0 +1,74 @@
+/**
+ * Allegro Order Sync — Deduplicated token resolution
+ *
+ * Used by both syncAllegroOrders and backfillAllegroOrders.
+ * Tries KV first, falls back to DB credentials, handles token refresh.
+ */
+
+import { createDb } from '@repo/db/client'
+import { allegroCredentials } from '@repo/db/schema'
+import { eq, desc } from 'drizzle-orm'
+import { KV_KEYS, refreshAllegroToken, AllegroInvalidGrantError, type AllegroEnvironment } from '../allegro'
+import { decryptText } from '../crypto'
+import type { Env } from '../../index'
+
+export interface ResolveTokenResult {
+  accessToken: string
+}
+
+/**
+ * Resolve Allegro access token: KV first, then DB fallback with refresh if expired.
+ *
+ * @param kv - Cloudflare KV namespace for token cache
+ * @param db - Drizzle DB instance (can be HTTP or WebSocket pool)
+ * @param env - Worker environment bindings
+ * @returns access token string, or null if unavailable
+ */
+export async function resolveAccessToken(
+  kv: KVNamespace,
+  db: ReturnType<typeof createDb>,
+  env: Env,
+): Promise<string | null> {
+  // Try KV first (fast path)
+  let accessToken = await kv.get(KV_KEYS.ACCESS_TOKEN)
+  if (accessToken) return accessToken
+
+  // KV TTL may have expired — restore from DB
+  let credRows: (typeof allegroCredentials.$inferSelect)[] = []
+  try {
+    credRows = await db
+      .select()
+      .from(allegroCredentials)
+      .where(eq(allegroCredentials.isActive, true))
+      .orderBy(desc(allegroCredentials.updatedAt))
+      .limit(1)
+  } catch { /* DB unavailable */ }
+
+  const cred = credRows[0]
+  if (!cred) return null
+
+  const encKey = env.ALLEGRO_TOKEN_ENCRYPTION_KEY
+  const allegroEnvCred = cred.environment as AllegroEnvironment
+
+  if (cred.expiresAt <= new Date()) {
+    // Token expired — try refresh
+    const rawRefresh = encKey ? await decryptText(cred.refreshToken, encKey) : cred.refreshToken
+    const tokens = await refreshAllegroToken({
+      refreshToken: rawRefresh,
+      clientId:     env.ALLEGRO_CLIENT_ID,
+      clientSecret: env.ALLEGRO_CLIENT_SECRET,
+      environment:  allegroEnvCred,
+    })
+    accessToken = tokens.access_token
+    const expiresAt = new Date(Date.now() + tokens.expires_in * 1000)
+    const ttl = Math.max(Math.floor((expiresAt.getTime() - Date.now()) / 1000), 60)
+    await kv.put(KV_KEYS.ACCESS_TOKEN, accessToken, { expirationTtl: ttl }).catch(() => {})
+  } else {
+    // Token still valid in DB — restore to KV
+    accessToken = encKey ? await decryptText(cred.accessToken, encKey) : cred.accessToken
+    const ttl = Math.max(Math.floor((cred.expiresAt.getTime() - Date.now()) / 1000), 60)
+    await kv.put(KV_KEYS.ACCESS_TOKEN, accessToken, { expirationTtl: ttl }).catch(() => {})
+  }
+
+  return accessToken
+}

@@ -1,32 +1,35 @@
 import { Hono } from 'hono'
 import { createDb } from '@repo/db/client'
 import {
-  orders, orderItems, products, users, stockChanges, auditLog,
+  orders, orderItems, orderSequences, products, users, stockChanges, auditLog,
 } from '@repo/db/schema'
 import { eq, and, sql, desc, lte, gt } from 'drizzle-orm'
 import { requireAuth } from '../middleware/auth'
 import type { Env } from '../index'
 import type { CustomerData, ShippingAddress } from '@repo/db/schema'
+import { sanitize } from '../lib/sanitize'
+import { checkContentLength, parsePagination, errMsg } from '../lib/request'
 
 const MAX_REQUEST_BODY_SIZE = 20_000
-
-/** Sanitize a string — trim and limit length */
-function sanitizeStr(raw: unknown, max = 255): string {
-  if (typeof raw !== 'string') return ''
-  return raw.trim().slice(0, max)
-}
 
 /** Polish postal-code regex: NN-NNN */
 const postalCodeRegex = /^\d{2}-\d{3}$/
 
-/** Generate order number: IBC-YYYY-NNNNN */
+/** Generate order number: IBC-YYYY-NNNNN
+ *  Atomic upsert on order_sequences — O(1), index-only, safe under concurrent inserts.
+ *  Returns the sequence number that was just claimed (nextSeq before increment).
+ */
 async function generateOrderNumber(db: ReturnType<typeof createDb>): Promise<string> {
   const year = new Date().getFullYear()
-  const result = await db
-    .select({ count: sql<number>`COUNT(*)` })
-    .from(orders)
-    .where(sql`EXTRACT(YEAR FROM (${orders.createdAt} AT TIME ZONE 'Europe/Warsaw')) = ${year}`)
-  const seq = (Number(result[0]?.count ?? 0) + 1).toString().padStart(5, '0')
+  const [row] = await db
+    .insert(orderSequences)
+    .values({ year, nextSeq: 2 })
+    .onConflictDoUpdate({
+      target: orderSequences.year,
+      set: { nextSeq: sql`${orderSequences.nextSeq} + 1` },
+    })
+    .returning({ seq: sql<number>`${orderSequences.nextSeq} - 1` })
+  const seq = Number(row.seq).toString().padStart(5, '0')
   return `IBC-${year}-${seq}`
 }
 
@@ -38,12 +41,10 @@ export const ordersRouter = new Hono<{ Bindings: Env }>()
 // ============================================
 ordersRouter.post('/', requireAuth(), async (c) => {
   try {
-    const contentLength = parseInt(c.req.header('Content-Length') || '0', 10)
-    if (contentLength > MAX_REQUEST_BODY_SIZE) {
-      return c.json({ error: 'Zbyt duży rozmiar żądania' }, 413)
-    }
+    const sizeErr = checkContentLength(c, MAX_REQUEST_BODY_SIZE)
+    if (sizeErr) return sizeErr
 
-    const idempotencyKey = sanitizeStr(c.req.header('Idempotency-Key') || '', 100)
+    const idempotencyKey = sanitize(c.req.header('Idempotency-Key') || '', 100)
     if (!idempotencyKey) {
       return c.json({ error: 'Nagłówek Idempotency-Key jest wymagany' }, 400)
     }
@@ -80,9 +81,9 @@ ordersRouter.post('/', requireAuth(), async (c) => {
 
     const items         = body.items
     const shippingAddr  = body.shippingAddress
-    const paymentMethod = sanitizeStr(body.paymentMethod || 'p24', 50)
-    const shippingMethod = sanitizeStr(body.shippingMethod || 'inpost', 50)
-    const notes         = sanitizeStr(body.notes || '', 1000)
+    const paymentMethod = sanitize(body.paymentMethod || 'p24', 50)
+    const shippingMethod = sanitize(body.shippingMethod || 'inpost', 50)
+    const notes         = sanitize(body.notes || '', 1000)
 
     if (!Array.isArray(items) || items.length === 0) {
       return c.json({ error: 'Brak produktów w zamówieniu' }, 400)
@@ -102,13 +103,19 @@ ordersRouter.post('/', requireAuth(), async (c) => {
 
     // Validate items
     for (const item of items) {
-      if (!item.sku || typeof item.quantity !== 'number' || item.quantity < 1 || item.quantity > 999) {
-        return c.json({ error: `Nieprawidłowa pozycja zamówienia: ${item.sku}` }, 400)
+      if (!item.sku || typeof item.sku !== 'string' || item.sku.trim().length === 0) {
+        return c.json({ error: 'Nieprawidłowe SKU produktu' }, 400)
+      }
+      if (item.sku.trim().length > 50) {
+        return c.json({ error: `SKU produktu jest za długie (max 50 znaków): ${item.sku.slice(0, 20)}…` }, 400)
+      }
+      if (typeof item.quantity !== 'number' || item.quantity < 1 || item.quantity > 999) {
+        return c.json({ error: `Nieprawidłowa ilość dla produktu: ${item.sku}` }, 400)
       }
     }
 
     // ── Verify SKUs and check stock ──────────────────────────────────────
-    const uniqueSkus = [...new Set(items.map(i => sanitizeStr(i.sku, 50)))]
+    const uniqueSkus = [...new Set(items.map(i => i.sku.trim()))]
     const productRows = await db.query.products.findMany({
       columns: { sku: true, name: true, price: true, stock: true, reserved: true, isActive: true, imageUrl: true },
       where: and(
@@ -127,7 +134,7 @@ ordersRouter.post('/', requireAuth(), async (c) => {
     }[] = []
 
     for (const item of items) {
-      const p = productMap.get(sanitizeStr(item.sku, 50))
+      const p = productMap.get(item.sku.trim())
       if (!p) {
         return c.json({ error: `Produkt nie znaleziony lub niedostępny: ${item.sku}` }, 404)
       }
@@ -243,7 +250,7 @@ ordersRouter.post('/', requireAuth(), async (c) => {
     }, 201)
 
   } catch (error) {
-    console.error('POST /orders error:', error)
+    console.error('POST /orders error:', errMsg(error))
     return c.json({ error: 'Błąd serwera podczas tworzenia zamówienia' }, 500)
   }
 })
@@ -258,12 +265,8 @@ ordersRouter.get('/', requireAuth(), async (c) => {
     const userId = parseInt(user.sub)
     const db     = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
 
-    const pageRaw  = parseInt(c.req.query('page')   || '1',  10)
-    const limitRaw = parseInt(c.req.query('limit')  || '20', 10)
+    const { page, limit } = parsePagination(c, { maxLimit: 50, defaultLimit: 20 })
     const statusQ  = c.req.query('status') || ''
-
-    const page  = Math.max(1, isNaN(pageRaw)  ? 1  : pageRaw)
-    const limit = Math.min(50, Math.max(1, isNaN(limitRaw) ? 20 : limitRaw))
 
     const validStatuses = ['pending', 'paid', 'processing', 'shipped', 'delivered', 'cancelled']
 
@@ -307,7 +310,7 @@ ordersRouter.get('/', requireAuth(), async (c) => {
       meta: { total, page, limit, totalPages },
     })
   } catch (error) {
-    console.error('GET /orders error:', error)
+    console.error('GET /orders error:', errMsg(error))
     return c.json({ error: 'Błąd serwera' }, 500)
   }
 })
@@ -353,7 +356,7 @@ ordersRouter.get('/:id', requireAuth(), async (c) => {
       },
     })
   } catch (error) {
-    console.error('GET /orders/:id error:', error)
+    console.error('GET /orders/:id error:', errMsg(error))
     return c.json({ error: 'Błąd serwera' }, 500)
   }
 })

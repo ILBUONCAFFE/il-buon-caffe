@@ -1,4 +1,5 @@
 import type { Context, Next } from 'hono'
+import { getClientIp } from '../lib/request'
 
 interface RateLimitConfig {
   limit: number           // Max requests
@@ -21,11 +22,7 @@ const memoryStore = new Map<string, RateLimitRecord>()
 
 export function rateLimit(config: RateLimitConfig) {
   return async (c: Context, next: Next) => {
-    const ip = c.req.header('CF-Connecting-IP') 
-      || c.req.header('X-Real-IP') 
-      || c.req.header('X-Forwarded-For')?.split(',')[0]
-      || 'unknown'
-    
+    const ip = getClientIp(c)
     const keyGenerator = config.keyGenerator || ((ctx: Context) => `${ctx.req.path}:${ip}`)
     const key = `ratelimit:${keyGenerator(c)}`
     const now = Date.now()
@@ -121,10 +118,7 @@ export const loginRateLimiter = rateLimit({
   limit: 5,
   windowMs: 15 * 60 * 1000, // 15 minutes
   blockDurationMs: 60 * 60 * 1000, // 1 hour block
-  keyGenerator: (c) => {
-    const ip = c.req.header('CF-Connecting-IP') || 'unknown'
-    return `login:${ip}`
-  }
+  keyGenerator: (c) => `login:${getClientIp(c)}`
 })
 
 /**
@@ -135,10 +129,7 @@ export const registerRateLimiter = rateLimit({
   limit: 3,
   windowMs: 60 * 60 * 1000, // 1 hour
   blockDurationMs: 60 * 60 * 1000, // 1 hour block
-  keyGenerator: (c) => {
-    const ip = c.req.header('CF-Connecting-IP') || 'unknown'
-    return `register:${ip}`
-  }
+  keyGenerator: (c) => `register:${getClientIp(c)}`
 })
 
 /**
@@ -149,10 +140,7 @@ export const passwordResetRateLimiter = rateLimit({
   limit: 3,
   windowMs: 60 * 60 * 1000, // 1 hour
   blockDurationMs: 60 * 60 * 1000, // 1 hour block
-  keyGenerator: (c) => {
-    const ip = c.req.header('CF-Connecting-IP') || c.req.header('X-Real-IP') || 'unknown'
-    return `reset:${ip}`
-  }
+  keyGenerator: (c) => `reset:${getClientIp(c)}`
 })
 
 /**
@@ -164,3 +152,58 @@ export const apiRateLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   blockDurationMs: 5 * 60 * 1000 // 5 minutes block
 })
+
+/**
+ * Programmatically apply rate limiting for an arbitrary key.
+ * Use when the key is only available after parsing the request body (e.g. email).
+ * Returns null if not limited; returns a ready-to-return Response if the caller is over limit.
+ */
+export async function checkRateLimitByKey(
+  c: Context,
+  key: string,
+  config: { limit: number; windowMs: number; blockDurationMs: number }
+): Promise<Response | null> {
+  const fullKey = `ratelimit:${key}`
+  const now = Date.now()
+  const kv = (c.env as { AUTH_RATE_LIMIT?: KVNamespace }).AUTH_RATE_LIMIT
+
+  let record: RateLimitRecord | null = null
+  if (kv) {
+    try { record = await kv.get<RateLimitRecord>(fullKey, 'json') } catch { /* KV unavailable */ }
+  } else {
+    record = memoryStore.get(fullKey) || null
+  }
+
+  if (record?.blockedUntil && record.blockedUntil > now) {
+    const retryAfter = Math.ceil((record.blockedUntil - now) / 1000)
+    c.header('Retry-After', retryAfter.toString())
+    c.header('X-RateLimit-Remaining', '0')
+    return c.json({ error: 'Zbyt wiele żądań. Spróbuj ponownie później.' }, 429)
+  }
+
+  if (!record || now - record.firstAttempt > config.windowMs) {
+    record = { attempts: 1, firstAttempt: now }
+  } else {
+    record.attempts += 1
+  }
+
+  if (record.attempts > config.limit) {
+    record.blockedUntil = now + config.blockDurationMs
+    if (kv) {
+      await kv.put(fullKey, JSON.stringify(record), { expirationTtl: Math.ceil(config.blockDurationMs / 1000) + 60 })
+    } else {
+      memoryStore.set(fullKey, record)
+    }
+    const retryAfter = Math.ceil(config.blockDurationMs / 1000)
+    c.header('Retry-After', retryAfter.toString())
+    c.header('X-RateLimit-Remaining', '0')
+    return c.json({ error: 'Zbyt wiele żądań. Spróbuj ponownie później.' }, 429)
+  }
+
+  if (kv) {
+    await kv.put(fullKey, JSON.stringify(record), { expirationTtl: Math.ceil(config.windowMs / 1000) + 60 })
+  } else {
+    memoryStore.set(fullKey, record)
+  }
+  return null
+}

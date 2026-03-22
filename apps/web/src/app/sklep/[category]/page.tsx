@@ -43,6 +43,9 @@ export async function generateMetadata({ params }: { params: Promise<{ category:
   };
 }
 
+// ISR: rebuild category pages every 5 minutes
+export const revalidate = 300;
+
 export async function generateStaticParams() {
   return [
     { category: 'coffee' },

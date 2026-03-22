@@ -4,6 +4,7 @@ import { auditLog, users } from '@repo/db/schema'
 import { eq, and, desc, gte, lte, sql } from 'drizzle-orm'
 import { requireAdminOrProxy } from '../../middleware/auth'
 import type { Env } from '../../index'
+import { parsePagination, serverError } from '../../lib/request'
 
 export const adminAuditRouter = new Hono<{ Bindings: Env }>()
 adminAuditRouter.use('*', requireAdminOrProxy())
@@ -14,9 +15,8 @@ adminAuditRouter.use('*', requireAdminOrProxy())
 // ============================================
 adminAuditRouter.get('/', async (c) => {
   try {
-    const db    = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
-    const page  = Math.max(1, parseInt(c.req.query('page')  || '1',  10))
-    const limit = Math.min(100, Math.max(1, parseInt(c.req.query('limit') || '50', 10)))
+    const db               = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const { page, limit } = parsePagination(c)
     const action    = c.req.query('action')  || ''
     const adminIdQ  = c.req.query('adminId') || ''
     const from      = c.req.query('from')    || ''
@@ -54,8 +54,7 @@ adminAuditRouter.get('/', async (c) => {
 
     return c.json({ success: true, data: rows, meta: { total, page, limit, totalPages } })
   } catch (err) {
-    console.error('GET /admin/audit error:', err)
-    return c.json({ error: 'Błąd serwera' }, 500)
+    return serverError(c, 'GET /admin/audit', err)
   }
 })
 
@@ -81,7 +80,6 @@ adminAuditRouter.get('/stats', async (c) => {
 
     return c.json({ success: true, data: { period: { days, from }, byAction } })
   } catch (err) {
-    console.error('GET /admin/audit/stats error:', err)
-    return c.json({ error: 'Błąd serwera' }, 500)
+    return serverError(c, 'GET /admin/audit/stats', err)
   }
 })

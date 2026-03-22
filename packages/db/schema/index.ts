@@ -450,6 +450,15 @@ export const orders = pgTable('orders', {
 }));
 
 // ============================================
+// TABLES: ORDER SEQUENCES (atomic per-year counter)
+// ============================================
+
+export const orderSequences = pgTable('order_sequences', {
+  year: integer('year').primaryKey(),
+  nextSeq: integer('next_seq').notNull().default(1),
+});
+
+// ============================================
 // TABLES: ORDER ITEMS
 // ============================================
 

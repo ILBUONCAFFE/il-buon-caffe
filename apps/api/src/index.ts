@@ -136,7 +136,7 @@ app.notFound((c) => c.json({ error: 'Endpoint nie znaleziony' }, 404))
 
 // ── Global error handler ─────────────────────────────────────────────────
 app.onError((err, c) => {
-  console.error('[Unhandled error]', err)
+  console.error('[Unhandled error]', err instanceof Error ? err.message : String(err))
   return c.json({ error: 'Wewnętrzny błąd serwera' }, 500)
 })
 
@@ -240,7 +240,7 @@ async function autoRefreshAllegroToken(env: Env): Promise<void> {
       await end()
     }
   } catch (err) {
-    console.error('[Allegro Cron] Błąd auto-odświeżania:', err)
+    console.error('[Allegro Cron] Błąd auto-odświeżania:', err instanceof Error ? err.message : String(err))
     if (err != null && typeof err === 'object' && 'sourceError' in err) {
       console.error('[Allegro Cron] Źródłowy błąd DB:', (err as Record<string, unknown>).sourceError)
     }
@@ -283,7 +283,7 @@ async function dataRetentionCleanup(env: Env): Promise<void> {
     await kv.put('retention:last_cleanup', new Date().toISOString())
     console.log(`[Retention] Cleanup done — sync logs, audit logs, old credentials pruned`)
   } catch (err) {
-    console.error('[Retention] Cleanup error:', err)
+    console.error('[Retention] Cleanup error:', err instanceof Error ? err.message : String(err))
   } finally {
     await end()
   }

@@ -140,6 +140,8 @@ export async function middleware(request: NextRequest) {
     .map((s) => s.trim())
     .filter(Boolean);
 
+  // When ADMIN_ALLOWED_IPS is set, enforce the allowlist.
+  // When absent the guard is disabled — acceptable for local dev, but must be set in production.
   if (allowedIPs.length > 0) {
     const clientIP =
       request.headers.get('cf-connecting-ip') ??

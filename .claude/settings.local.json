@@ -14,7 +14,8 @@
       "Bash(npx wrangler:*)",
       "Bash(npx tsc:*)",
       "Bash(python3:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "mcp__Neon__run_sql"
     ]
   }
 }

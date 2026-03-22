@@ -1,7 +1,18 @@
 import { ProductClient } from "@/components/Product/ProductClient";
 
-import { getProductBySlug } from "@/actions/products";
+import { getProductBySlug, getProducts } from "@/actions/products";
 import { Metadata } from "next";
+
+// ISR: rebuild product pages at most every hour
+export const revalidate = 3600;
+
+export async function generateStaticParams() {
+  const allProducts = await getProducts();
+  return allProducts.map(p => ({
+    category: p.category,
+    slug: p.slug,
+  }));
+}
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;

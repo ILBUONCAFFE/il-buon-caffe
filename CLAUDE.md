@@ -43,7 +43,7 @@ turbo type-check                       # Type-check all
 
 # API (Cloudflare Workers)
 cd apps/api && wrangler dev            # Local Workers dev
-cd apps/api && wrangler deploy --env production  # Deploy API
+cd apps/api && wrangler deploy                    # Deploy API
 
 # Web (OpenNext + Cloudflare)
 cd apps/web && npm run cf:build        # Build for CF Workers

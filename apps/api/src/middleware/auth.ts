@@ -1,11 +1,15 @@
 import type { Context, Next } from 'hono'
 import { verifyAccessToken, TokenPayload } from '../lib/jwt'
 import { getAccessTokenFromCookie } from '../lib/cookies'
+import { createDb } from '@repo/db/client'
+import { users } from '@repo/db/schema'
+import { eq } from 'drizzle-orm'
 
 // Extend Hono context with user
 declare module 'hono' {
   interface ContextVariableMap {
     user: TokenPayload
+    db: ReturnType<typeof createDb>
   }
 }
 
@@ -44,7 +48,7 @@ export function requireAuth(allowedRoles?: ('customer' | 'admin')[]) {
       
       await next()
     } catch (error) {
-      console.error('Auth middleware error:', error)
+      console.error('Auth middleware error:', error instanceof Error ? error.message : String(error))
       return c.json({ error: 'Nieprawidłowy lub wygasły token' }, 401)
     }
   }
@@ -80,11 +84,31 @@ export function requireAdminOrProxy() {
     const requestSecret = c.req.header('X-Admin-Internal-Secret')
 
     // Accept internal proxy request if secret matches and is non-empty
+    if (requestSecret && !internalSecret) {
+      // INTERNAL_API_SECRET not set in Worker env — likely missing from .dev.vars or wrangler secrets
+      console.warn('[auth] requireAdminOrProxy: X-Admin-Internal-Secret header present but INTERNAL_API_SECRET is not configured in Worker env. Add it to .dev.vars (local) or via wrangler secret put (prod).')
+    }
     if (internalSecret && requestSecret && requestSecret === internalSecret) {
-      // Use the real admin user ID forwarded by the Next.js proxy (X-Admin-User-Id)
-      const proxyUserId = c.req.header('X-Admin-User-Id') ?? '0'
+      // Verify the forwarded admin user ID against the database — never trust it blindly
+      const proxyUserIdRaw = c.req.header('X-Admin-User-Id')
+      const proxyUserId = proxyUserIdRaw ? parseInt(proxyUserIdRaw, 10) : NaN
+      if (!proxyUserIdRaw || isNaN(proxyUserId) || proxyUserId <= 0) {
+        return c.json({ error: 'Nieautoryzowany dostęp' }, 401)
+      }
+
+      const env = c.env as { HYPERDRIVE?: { connectionString: string }; DATABASE_URL?: string }
+      const db = createDb(env.HYPERDRIVE?.connectionString ?? env.DATABASE_URL ?? '')
+      const userRow = await db.query.users.findFirst({
+        columns: { id: true, role: true, anonymized: true },
+        where: eq(users.id, proxyUserId),
+      })
+
+      if (!userRow || userRow.role !== 'admin' || userRow.anonymized) {
+        return c.json({ error: 'Nieautoryzowany dostęp' }, 403)
+      }
+
       c.set('user', {
-        sub: proxyUserId,
+        sub: String(proxyUserId),
         email: 'internal@proxy',
         role: 'admin' as const,
         sessionId: 'internal-proxy',

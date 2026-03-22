@@ -1,5 +1,4 @@
 import { Hono } from 'hono'
-import { createDb } from '@repo/db/client'
 import { users, sessions, userConsents, passwordResetTokens, emailVerificationTokens, auditLog } from '@repo/db/schema'
 import { eq, and, gt } from 'drizzle-orm'
 import type { Env } from '../index'
@@ -8,10 +7,11 @@ import { hashPassword, verifyPassword, isPasswordStrong } from '../lib/password'
 import { generateTokenPair, verifyRefreshToken, TokenPayload, RefreshTokenPayload } from '../lib/jwt'
 import { setAuthCookies, clearAuthCookies, getRefreshTokenFromCookie } from '../lib/cookies'
 import { hashToken, generateSecureToken } from '../lib/token'
-import { loginRateLimiter, registerRateLimiter, passwordResetRateLimiter } from '../middleware/rateLimit'
+import { loginRateLimiter, registerRateLimiter, passwordResetRateLimiter, checkRateLimitByKey } from '../middleware/rateLimit'
 import { requireAuth } from '../middleware/auth'
+import { sanitize } from '../lib/sanitize'
+import { errMsg } from '../lib/request'
 
-// ── Input sanitization helpers ──────────────────────────────────────────────
 const MAX_REQUEST_BODY_SIZE = 10_000 // 10 KB — generous for auth payloads
 
 /**
@@ -21,14 +21,6 @@ const MAX_REQUEST_BODY_SIZE = 10_000 // 10 KB — generous for auth payloads
 function normalizeEmail(raw: unknown): string {
   if (typeof raw !== 'string') return ''
   return raw.trim().toLowerCase().replace(/\s+/g, '')
-}
-
-/**
- * Trim a string input, returning empty string for non-strings.
- */
-function sanitizeString(raw: unknown, maxLen = 255): string {
-  if (typeof raw !== 'string') return ''
-  return raw.trim().slice(0, maxLen)
 }
 
 // Types
@@ -86,17 +78,17 @@ export const authRouter = new Hono<{ Bindings: Env }>()
 authRouter.post('/register', registerRateLimiter, async (c) => {
   try {
     // ── Body size guard ────────────────────────────────────────────────────
-    const contentLength = parseInt(c.req.header('Content-Length') || '0', 10)
-    if (contentLength > MAX_REQUEST_BODY_SIZE) {
+    const rawBody = await c.req.text()
+    if (rawBody.length > MAX_REQUEST_BODY_SIZE) {
       return c.json({ error: 'Zbyt duży rozmiar żądania' }, 413)
     }
 
-    const body = await c.req.json<RegisterBody>()
+    const body = JSON.parse(rawBody) as RegisterBody
     
     // ── Sanitize inputs ────────────────────────────────────────────────────
     const email = normalizeEmail(body.email)
     const password = typeof body.password === 'string' ? body.password : ''
-    const name = sanitizeString(body.name, 100)
+    const name = sanitize(body.name, 100)
     const consents = body.consents
     
     // Validate email format (stricter regex)
@@ -116,7 +108,7 @@ authRouter.post('/register', registerRateLimiter, async (c) => {
       return c.json({ error: passwordCheck.errors[0], errors: passwordCheck.errors }, 400)
     }
     
-    const db = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db = c.get('db')
     
     // ── Timing-safe: always hash even if user exists ─────────────────────
     // This prevents timing attacks that enumerate existing emails.
@@ -140,7 +132,7 @@ authRouter.post('/register', registerRateLimiter, async (c) => {
     
     // Get IP and User-Agent
     const ipAddress = c.req.header('CF-Connecting-IP') || c.req.header('X-Real-IP') || 'unknown'
-    const userAgent = sanitizeString(c.req.header('User-Agent'), 500) || 'unknown'
+    const userAgent = sanitize(c.req.header('User-Agent'), 500) || 'unknown'
     
     // Create user
     const [newUser] = await db.insert(users).values({
@@ -193,7 +185,7 @@ authRouter.post('/register', registerRateLimiter, async (c) => {
     }, 201)
     
   } catch (error) {
-    console.error('Register error:', error)
+    console.error('Register error:', errMsg(error))
     return c.json({ error: 'Wystąpił błąd podczas rejestracji' }, 500)
   }
 })
@@ -204,33 +196,33 @@ authRouter.post('/register', registerRateLimiter, async (c) => {
 authRouter.post('/login', loginRateLimiter, async (c) => {
   try {
     // ── Body size guard ────────────────────────────────────────────────────
-    const contentLength = parseInt(c.req.header('Content-Length') || '0', 10)
-    if (contentLength > MAX_REQUEST_BODY_SIZE) {
+    const rawBody = await c.req.text()
+    if (rawBody.length > MAX_REQUEST_BODY_SIZE) {
       return c.json({ error: 'Zbyt duży rozmiar żądania' }, 413)
     }
 
-    const body = await c.req.json<LoginBody>()
+    const body = JSON.parse(rawBody) as LoginBody
     const email = normalizeEmail(body.email)
     const password = typeof body.password === 'string' ? body.password : ''
     const rememberMe = body.rememberMe === true
-    
+
     if (!email || !password) {
       return c.json({ error: 'Email i hasło są wymagane' }, 400)
     }
-    
-    const db = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+
+    const db = c.get('db')
     const ipAddress = c.req.header('CF-Connecting-IP') || c.req.header('X-Real-IP') || 'unknown'
-    const userAgent = sanitizeString(c.req.header('User-Agent'), 500) || 'unknown'
-    
+    const userAgent = sanitize(c.req.header('User-Agent'), 500) || 'unknown'
+
     // Find user
     const user = await db.query.users.findFirst({
       where: eq(users.email, email)
     })
-    
+
     if (!user) {
-      // Timing-safe: always hash so response time is constant
+      // Timing-safe: run a real bcrypt compare so response time is constant
       // regardless of whether user exists
-      await verifyPassword(password, '$2a$12$invalidhashpaddingtomatchbcryptoutputlengthxx')
+      await verifyPassword(password, '$2b$12$3OrMR3Gssjf39D8Pu4SZKeBWQTpVpH3N38c.ZkH3N3ox3Vo5J2SBe')
       return c.json({ error: 'Nieprawidłowy email lub hasło' }, 401)
     }
     
@@ -245,7 +237,7 @@ authRouter.post('/login', loginRateLimiter, async (c) => {
     
     // Verify password
     const isValidPassword = await verifyPassword(password, user.passwordHash)
-    
+
     if (!isValidPassword) {
       // Increment failed attempts
       const newAttempts = user.failedLoginAttempts + 1
@@ -343,7 +335,7 @@ authRouter.post('/login', loginRateLimiter, async (c) => {
     })
     
   } catch (error) {
-    console.error('Login error:', error)
+    console.error('Login error:', errMsg(error))
     return c.json({ error: 'Wystąpił błąd podczas logowania' }, 500)
   }
 })
@@ -368,7 +360,7 @@ authRouter.post('/refresh', async (c) => {
       return c.json({ error: 'Nieprawidłowy token odświeżania' }, 401)
     }
     
-    const db = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db = c.get('db')
     const refreshTokenHash = await hashToken(refreshToken)
     
     // Find session by token hash
@@ -425,7 +417,7 @@ authRouter.post('/refresh', async (c) => {
     
     // Generate new tokens
     const ipAddress = c.req.header('CF-Connecting-IP') || c.req.header('X-Real-IP') || 'unknown'
-    const userAgent = c.req.header('User-Agent') || 'unknown'
+    const userAgent = sanitize(c.req.header('User-Agent'), 500) || 'unknown'
     
     const { accessToken, refreshToken: newRefreshToken } = await generateTokenPair(
       { id: session.user.id.toString(), email: session.user.email, role: session.user.role },
@@ -454,7 +446,7 @@ authRouter.post('/refresh', async (c) => {
     return c.json({ success: true })
     
   } catch (error) {
-    console.error('Refresh error:', error)
+    console.error('Refresh error:', errMsg(error))
     return c.json({ error: 'Wystąpił błąd podczas odświeżania sesji' }, 500)
   }
 })
@@ -467,7 +459,7 @@ authRouter.post('/logout', async (c) => {
     const refreshToken = getRefreshTokenFromCookie(c)
     
     if (refreshToken) {
-      const db = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+      const db = c.get('db')
       const refreshTokenHash = await hashToken(refreshToken)
       
       // Deactivate session
@@ -481,7 +473,7 @@ authRouter.post('/logout', async (c) => {
     return c.json({ success: true })
     
   } catch (error) {
-    console.error('Logout error:', error)
+    console.error('Logout error:', errMsg(error))
     clearAuthCookies(c)
     return c.json({ success: true })
   }
@@ -507,7 +499,7 @@ authRouter.post('/logout-all', async (c) => {
       return c.json({ error: 'Nieprawidłowy token' }, 401)
     }
     
-    const db = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db = c.get('db')
     const userId = parseInt(tokenPayload.sub)
     
     // Deactivate ALL sessions for this user
@@ -529,7 +521,7 @@ authRouter.post('/logout-all', async (c) => {
     return c.json({ success: true, message: 'Wylogowano ze wszystkich urządzeń' })
     
   } catch (error) {
-    console.error('Logout-all error:', error)
+    console.error('Logout-all error:', errMsg(error))
     return c.json({ error: 'Wystąpił błąd' }, 500)
   }
 })
@@ -546,7 +538,7 @@ authRouter.post('/verify-email', async (c) => {
       return c.json({ error: 'Token weryfikacyjny jest wymagany' }, 400)
     }
     
-    const db = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db = c.get('db')
     const tokenHash = await hashToken(token)
     
     // Find token
@@ -586,7 +578,7 @@ authRouter.post('/verify-email', async (c) => {
     })
     
   } catch (error) {
-    console.error('Verify email error:', error)
+    console.error('Verify email error:', errMsg(error))
     return c.json({ error: 'Wystąpił błąd podczas weryfikacji email' }, 500)
   }
 })
@@ -596,20 +588,28 @@ authRouter.post('/verify-email', async (c) => {
 // ============================================
 authRouter.post('/forgot-password', passwordResetRateLimiter, async (c) => {
   try {
-    const contentLength = parseInt(c.req.header('Content-Length') || '0', 10)
-    if (contentLength > MAX_REQUEST_BODY_SIZE) {
+    const rawBody = await c.req.text()
+    if (rawBody.length > MAX_REQUEST_BODY_SIZE) {
       return c.json({ error: 'Zbyt duży rozmiar żądania' }, 413)
     }
 
-    const body = await c.req.json<ResetPasswordRequestBody>()
+    const body = JSON.parse(rawBody) as ResetPasswordRequestBody
     const email = normalizeEmail(body.email)
     
     if (!email) {
       return c.json({ error: 'Email jest wymagany' }, 400)
     }
-    
-    const db = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
-    
+
+    // Dual rate-limit: per-email prevents enumeration from rotating IPs
+    const emailRateLimit = await checkRateLimitByKey(
+      c,
+      `reset:email:${email}`,
+      { limit: 3, windowMs: 60 * 60 * 1000, blockDurationMs: 60 * 60 * 1000 }
+    )
+    if (emailRateLimit) return emailRateLimit
+
+    const db = c.get('db')
+
     // Always return success for security (don't reveal if email exists)
     const user = await db.query.users.findFirst({
       where: eq(users.email, email)
@@ -635,7 +635,7 @@ authRouter.post('/forgot-password', passwordResetRateLimiter, async (c) => {
     })
     
   } catch (error) {
-    console.error('Forgot password error:', error)
+    console.error('Forgot password error:', errMsg(error))
     return c.json({ error: 'Wystąpił błąd' }, 500)
   }
 })
@@ -645,13 +645,13 @@ authRouter.post('/forgot-password', passwordResetRateLimiter, async (c) => {
 // ============================================
 authRouter.post('/reset-password', async (c) => {
   try {
-    const contentLength = parseInt(c.req.header('Content-Length') || '0', 10)
-    if (contentLength > MAX_REQUEST_BODY_SIZE) {
+    const rawBody = await c.req.text()
+    if (rawBody.length > MAX_REQUEST_BODY_SIZE) {
       return c.json({ error: 'Zbyt duży rozmiar żądania' }, 413)
     }
 
-    const body = await c.req.json<ResetPasswordConfirmBody>()
-    const token = sanitizeString(body.token, 256)
+    const body = JSON.parse(rawBody) as ResetPasswordConfirmBody
+    const token = sanitize(body.token, 256)
     const newPassword = typeof body.newPassword === 'string' ? body.newPassword : ''
     
     if (!token || !newPassword) {
@@ -664,7 +664,7 @@ authRouter.post('/reset-password', async (c) => {
       return c.json({ error: passwordCheck.errors[0], errors: passwordCheck.errors }, 400)
     }
     
-    const db = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db = c.get('db')
     const tokenHash = await hashToken(token)
     
     // Find token
@@ -724,7 +724,7 @@ authRouter.post('/reset-password', async (c) => {
     })
     
   } catch (error) {
-    console.error('Reset password error:', error)
+    console.error('Reset password error:', errMsg(error))
     return c.json({ error: 'Wystąpił błąd podczas resetowania hasła' }, 500)
   }
 })
@@ -734,19 +734,19 @@ authRouter.post('/reset-password', async (c) => {
 // ============================================
 authRouter.post('/resend-verification', passwordResetRateLimiter, async (c) => {
   try {
-    const contentLength = parseInt(c.req.header('Content-Length') || '0', 10)
-    if (contentLength > MAX_REQUEST_BODY_SIZE) {
+    const rawBody = await c.req.text()
+    if (rawBody.length > MAX_REQUEST_BODY_SIZE) {
       return c.json({ error: 'Zbyt duży rozmiar żądania' }, 413)
     }
 
-    const body = await c.req.json<{ email: string }>()
+    const body = JSON.parse(rawBody) as { email: string }
     const email = normalizeEmail(body.email)
     
     if (!email) {
       return c.json({ error: 'Email jest wymagany' }, 400)
     }
     
-    const db = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db = c.get('db')
     
     const user = await db.query.users.findFirst({
       where: eq(users.email, email)
@@ -773,7 +773,7 @@ authRouter.post('/resend-verification', passwordResetRateLimiter, async (c) => {
     })
     
   } catch (error) {
-    console.error('Resend verification error:', error)
+    console.error('Resend verification error:', errMsg(error))
     return c.json({ error: 'Wystąpił błąd' }, 500)
   }
 })
@@ -784,7 +784,7 @@ authRouter.post('/resend-verification', passwordResetRateLimiter, async (c) => {
 authRouter.get('/me', requireAuth(), async (c) => {
   try {
     const payload = c.get('user')
-    const db = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db = c.get('db')
     
     const user = await db.query.users.findFirst({
       where: eq(users.id, parseInt(payload.sub))
@@ -819,12 +819,12 @@ authRouter.get('/me', requireAuth(), async (c) => {
 // ============================================
 authRouter.post('/change-password', requireAuth(), async (c) => {
   try {
-    const contentLength = parseInt(c.req.header('Content-Length') || '0', 10)
-    if (contentLength > MAX_REQUEST_BODY_SIZE) {
+    const rawBody = await c.req.text()
+    if (rawBody.length > MAX_REQUEST_BODY_SIZE) {
       return c.json({ error: 'Zbyt duży rozmiar żądania' }, 413)
     }
 
-    const body = await c.req.json<ChangePasswordBody>()
+    const body = JSON.parse(rawBody) as ChangePasswordBody
     const currentPassword = typeof body.currentPassword === 'string' ? body.currentPassword : ''
     const newPassword = typeof body.newPassword === 'string' ? body.newPassword : ''
 
@@ -839,9 +839,9 @@ authRouter.post('/change-password', requireAuth(), async (c) => {
     }
 
     const payload = c.get('user')
-    const db = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db = c.get('db')
     const ipAddress = c.req.header('CF-Connecting-IP') || c.req.header('X-Real-IP') || 'unknown'
-    const userAgent = sanitizeString(c.req.header('User-Agent'), 500) || 'unknown'
+    const userAgent = sanitize(c.req.header('User-Agent'), 500) || 'unknown'
 
     const user = await db.query.users.findFirst({
       where: eq(users.id, parseInt(payload.sub))
@@ -899,7 +899,7 @@ authRouter.post('/change-password', requireAuth(), async (c) => {
     })
 
   } catch (error) {
-    console.error('Change password error:', error)
+    console.error('Change password error:', errMsg(error))
     return c.json({ error: 'Wystąpił błąd podczas zmiany hasła' }, 500)
   }
 })

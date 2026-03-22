@@ -142,6 +142,7 @@ paymentsRouter.post('/p24/initiate', requireAuth(), async (c) => {
     }
 
     const p24Res = await fetch(`${p24BaseUrl(c.env)}/api/v1/transaction/register`, {
+      signal:  AbortSignal.timeout(10_000),
       method:  'POST',
       headers: {
         'Content-Type':  'application/json',
@@ -180,7 +181,7 @@ paymentsRouter.post('/p24/initiate', requireAuth(), async (c) => {
       },
     })
   } catch (err) {
-    console.error('POST /payments/p24/initiate error:', err)
+    console.error('POST /payments/p24/initiate error:', err instanceof Error ? err.message : String(err))
     return c.json({ error: 'Błąd serwera' }, 500)
   }
 })
@@ -216,7 +217,7 @@ paymentsRouter.get('/p24/status/:orderId', requireAuth(), async (c) => {
       },
     })
   } catch (err) {
-    console.error('GET /payments/p24/status error:', err)
+    console.error('GET /payments/p24/status error:', err instanceof Error ? err.message : String(err))
     return c.json({ error: 'Błąd serwera' }, 500)
   }
 })

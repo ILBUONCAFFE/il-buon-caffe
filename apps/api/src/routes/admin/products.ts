@@ -1,25 +1,15 @@
 import { Hono } from 'hono'
 import { createDb } from '@repo/db/client'
-import { products, productImages, categories, stockChanges, auditLog } from '@repo/db/schema'
+import { products, productImages, categories, stockChanges } from '@repo/db/schema'
+import { logAdminAction } from '../../lib/audit'
 import { eq, and, asc, desc, sql, count, ilike } from 'drizzle-orm'
 import { requireAdminOrProxy } from '../../middleware/auth'
 import type { Env } from '../../index'
+import { sanitize } from '../../lib/sanitize'
+import { slugify } from '../../lib/slugify'
+import { checkContentLength, parsePagination, getClientIp, serverError } from '../../lib/request'
 
 const MAX_BODY = 50_000
-
-function sanitize(raw: unknown, max = 255): string {
-  if (typeof raw !== 'string') return ''
-  return raw.trim().slice(0, max)
-}
-
-/** Slugify a product name */
-function slugify(str: string): string {
-  return str
-    .toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-}
 
 export const adminProductsRouter = new Hono<{ Bindings: Env }>()
 adminProductsRouter.use('*', requireAdminOrProxy())
@@ -30,9 +20,8 @@ adminProductsRouter.use('*', requireAdminOrProxy())
 // ============================================
 adminProductsRouter.get('/', async (c) => {
   try {
-    const db       = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
-    const page     = Math.max(1, parseInt(c.req.query('page')  || '1',  10))
-    const limit    = Math.min(200, Math.max(1, parseInt(c.req.query('limit') || '50', 10)))
+    const db               = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const { page, limit } = parsePagination(c, { maxLimit: 200 })
     const search   = sanitize(c.req.query('search') || '', 100)
     const activeQ  = c.req.query('active')
     const category = c.req.query('category') || ''
@@ -73,8 +62,7 @@ adminProductsRouter.get('/', async (c) => {
       meta: { total, page, limit, totalPages },
     })
   } catch (err) {
-    console.error('GET /admin/products error:', err)
-    return c.json({ error: 'Błąd serwera' }, 500)
+    return serverError(c, 'GET /admin/products', err)
   }
 })
 
@@ -107,8 +95,7 @@ adminProductsRouter.get('/:sku', async (c) => {
       },
     })
   } catch (err) {
-    console.error('GET /admin/products/:sku error:', err)
-    return c.json({ error: 'Błąd serwera' }, 500)
+    return serverError(c, 'GET /admin/products/:sku', err)
   }
 })
 
@@ -118,8 +105,8 @@ adminProductsRouter.get('/:sku', async (c) => {
 // ============================================
 adminProductsRouter.post('/', async (c) => {
   try {
-    const contentLength = parseInt(c.req.header('Content-Length') || '0', 10)
-    if (contentLength > MAX_BODY) return c.json({ error: 'Zbyt duży rozmiar żądania' }, 413)
+    const sizeErr = checkContentLength(c, MAX_BODY)
+    if (sizeErr) return sizeErr
 
     const db   = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
     const body = await c.req.json<{
@@ -144,7 +131,7 @@ adminProductsRouter.post('/', async (c) => {
     if (existing) return c.json({ error: `SKU '${sku}' już istnieje` }, 409)
 
     const slug    = slugify(name)
-    const adminIp = c.req.header('CF-Connecting-IP') || 'unknown'
+    const adminIp = getClientIp(c)
     const admin   = c.get('user')
 
     const [product] = await db.insert(products).values({
@@ -168,18 +155,17 @@ adminProductsRouter.post('/', async (c) => {
       allegroOfferId:  sanitize(body.allegroOfferId || '', 50) || null,
     }).returning()
 
-    await db.insert(auditLog).values({
-      adminId:  parseInt(admin.sub),
-      action:   'admin_action',
+    await logAdminAction(db, {
+      adminSub:  admin.sub,
+      action:    'admin_action',
       ipAddress: adminIp,
-      details:  { event: 'product_created', sku, name },
+      details:   { event: 'product_created', sku, name },
     })
 
     return c.json({ success: true, data: product }, 201)
   } catch (err: any) {
     if (err?.code === '23505') return c.json({ error: 'SKU lub slug już istnieje' }, 409)
-    console.error('POST /admin/products error:', err)
-    return c.json({ error: 'Błąd serwera' }, 500)
+    return serverError(c, 'POST /admin/products', err)
   }
 })
 
@@ -189,8 +175,8 @@ adminProductsRouter.post('/', async (c) => {
 // ============================================
 adminProductsRouter.put('/:sku', async (c) => {
   try {
-    const contentLength = parseInt(c.req.header('Content-Length') || '0', 10)
-    if (contentLength > MAX_BODY) return c.json({ error: 'Zbyt duży rozmiar żądania' }, 413)
+    const sizeErr = checkContentLength(c, MAX_BODY)
+    if (sizeErr) return sizeErr
 
     const db  = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
     const sku = sanitize(c.req.param('sku'), 50).toUpperCase()
@@ -231,11 +217,10 @@ adminProductsRouter.put('/:sku', async (c) => {
     const [updated] = await db.update(products).set(setCols as any).where(eq(products.sku, sku)).returning()
 
     const admin   = c.get('user')
-    const adminIp = c.req.header('CF-Connecting-IP') || 'unknown'
-    await db.insert(auditLog).values({
-      adminId:   parseInt(admin.sub),
+    await logAdminAction(db, {
+      adminSub:  admin.sub,
       action:    'admin_action',
-      ipAddress: adminIp,
+      ipAddress: getClientIp(c),
       details:   { event: 'product_updated', sku, fields: Object.keys(setCols) },
     })
 
@@ -249,8 +234,7 @@ adminProductsRouter.put('/:sku', async (c) => {
     })
   } catch (err: any) {
     if (err?.code === '23505') return c.json({ error: 'SKU lub slug już istnieje' }, 409)
-    console.error('PUT /admin/products/:sku error:', err)
-    return c.json({ error: 'Błąd serwera' }, 500)
+    return serverError(c, 'PUT /admin/products/:sku', err)
   }
 })
 
@@ -260,13 +244,13 @@ adminProductsRouter.put('/:sku', async (c) => {
 // ============================================
 adminProductsRouter.put('/:sku/stock', async (c) => {
   try {
-    const contentLength = parseInt(c.req.header('Content-Length') || '0', 10)
-    if (contentLength > MAX_BODY) return c.json({ error: 'Zbyt duży rozmiar żądania' }, 413)
+    const sizeErr = checkContentLength(c, MAX_BODY)
+    if (sizeErr) return sizeErr
 
     const db    = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
     const sku   = sanitize(c.req.param('sku'), 50).toUpperCase()
     const admin = c.get('user')
-    const adminIp = c.req.header('CF-Connecting-IP') || 'unknown'
+    const adminIp = getClientIp(c)
 
     const body = await c.req.json<{
       stock: number
@@ -306,8 +290,8 @@ adminProductsRouter.put('/:sku/stock', async (c) => {
       notes:         sanitize(body.notes || '', 1000) || null,
     })
 
-    await db.insert(auditLog).values({
-      adminId:   parseInt(admin.sub),
+    await logAdminAction(db, {
+      adminSub:  admin.sub,
       action:    'admin_action',
       ipAddress: adminIp,
       details: {
@@ -332,8 +316,7 @@ adminProductsRouter.put('/:sku/stock', async (c) => {
       },
     })
   } catch (err) {
-    console.error('PUT /admin/products/:sku/stock error:', err)
-    return c.json({ error: 'Błąd serwera' }, 500)
+    return serverError(c, 'PUT /admin/products/:sku/stock', err)
   }
 })
 
@@ -345,8 +328,8 @@ adminProductsRouter.delete('/:sku', async (c) => {
   try {
     const db    = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
     const sku   = sanitize(c.req.param('sku'), 50).toUpperCase()
-    const admin = c.get('user')
-    const adminIp = c.req.header('CF-Connecting-IP') || 'unknown'
+    const admin   = c.get('user')
+    const adminIp = getClientIp(c)
 
     const product = await db.query.products.findFirst({
       columns: { sku: true, name: true, isActive: true },
@@ -358,8 +341,8 @@ adminProductsRouter.delete('/:sku', async (c) => {
       .set({ isActive: false, updatedAt: new Date() })
       .where(eq(products.sku, sku))
 
-    await db.insert(auditLog).values({
-      adminId:   parseInt(admin.sub),
+    await logAdminAction(db, {
+      adminSub:  admin.sub,
       action:    'admin_action',
       ipAddress: adminIp,
       details:   { event: 'product_deactivated', sku, productName: product.name },
@@ -367,8 +350,7 @@ adminProductsRouter.delete('/:sku', async (c) => {
 
     return c.json({ success: true, message: `Produkt '${sku}' został zdezaktywowany` })
   } catch (err) {
-    console.error('DELETE /admin/products/:sku error:', err)
-    return c.json({ error: 'Błąd serwera' }, 500)
+    return serverError(c, 'DELETE /admin/products/:sku', err)
   }
 })
 
@@ -411,8 +393,7 @@ adminProductsRouter.post('/:sku/images', async (c) => {
 
     return c.json({ success: true, data: image }, 201)
   } catch (err) {
-    console.error('POST /admin/products/:sku/images error:', err)
-    return c.json({ error: 'Błąd serwera' }, 500)
+    return serverError(c, 'POST /admin/products/:sku/images', err)
   }
 })
 
@@ -441,7 +422,6 @@ adminProductsRouter.delete('/:sku/images/:imageId', async (c) => {
 
     return c.json({ success: true, message: 'Obraz usunięty' })
   } catch (err) {
-    console.error('DELETE /admin/products/:sku/images/:imageId error:', err)
-    return c.json({ error: 'Błąd serwera' }, 500)
+    return serverError(c, 'DELETE /admin/products/:sku/images/:imageId', err)
   }
 })

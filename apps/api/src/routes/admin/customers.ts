@@ -1,15 +1,13 @@
 import { Hono } from 'hono'
 import { createDb } from '@repo/db/client'
-import { users, orders, userConsents, auditLog } from '@repo/db/schema'
+import { users, orders, userConsents } from '@repo/db/schema'
+import { logAdminAction } from '../../lib/audit'
 import { eq, and, desc, sql, like, ilike, isNull, lte, asc } from 'drizzle-orm'
 import { requireAdminOrProxy } from '../../middleware/auth'
 import { auditLogMiddleware } from '../../middleware/auditLog'
 import type { Env } from '../../index'
-
-function sanitize(raw: unknown, max = 255): string {
-  if (typeof raw !== 'string') return ''
-  return raw.trim().slice(0, max)
-}
+import { sanitize } from '../../lib/sanitize'
+import { parsePagination, getClientIp, serverError } from '../../lib/request'
 
 export const adminCustomersRouter = new Hono<{ Bindings: Env }>()
 adminCustomersRouter.use('*', requireAdminOrProxy())
@@ -20,9 +18,8 @@ adminCustomersRouter.use('*', requireAdminOrProxy())
 // ============================================
 adminCustomersRouter.get('/', auditLogMiddleware('view_customer'), async (c) => {
   try {
-    const db     = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
-    const page   = Math.max(1, parseInt(c.req.query('page')  || '1',  10))
-    const limit  = Math.min(100, Math.max(1, parseInt(c.req.query('limit') || '50', 10)))
+    const db               = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const { page, limit } = parsePagination(c)
     const search = sanitize(c.req.query('search') || '', 100)
 
     const conditions: any[] = [
@@ -57,8 +54,7 @@ adminCustomersRouter.get('/', auditLogMiddleware('view_customer'), async (c) => 
 
     return c.json({ success: true, data: rows, meta: { total, page, limit, totalPages } })
   } catch (err) {
-    console.error('GET /admin/customers error:', err)
-    return c.json({ error: 'Błąd serwera' }, 500)
+    return serverError(c, 'GET /admin/customers', err)
   }
 })
 
@@ -125,8 +121,7 @@ adminCustomersRouter.get('/:userId', auditLogMiddleware('view_customer'), async 
       },
     })
   } catch (err) {
-    console.error('GET /admin/customers/:userId error:', err)
-    return c.json({ error: 'Błąd serwera' }, 500)
+    return serverError(c, 'GET /admin/customers/:userId', err)
   }
 })
 
@@ -148,18 +143,17 @@ adminCustomersRouter.post('/:userId/unlock', async (c) => {
       updatedAt: new Date(),
     }).where(eq(users.id, userId))
 
-    await db.insert(auditLog).values({
-      adminId:      parseInt(admin.sub),
+    await logAdminAction(db, {
+      adminSub:     admin.sub,
       action:       'update_customer',
       targetUserId: userId,
-      ipAddress:    c.req.header('CF-Connecting-IP') || 'unknown',
+      ipAddress:    getClientIp(c),
       details:      { event: 'account_unlocked' },
     })
 
     return c.json({ success: true, message: 'Konto zostało odblokowane' })
   } catch (err) {
-    console.error('POST /admin/customers/:userId/unlock error:', err)
-    return c.json({ error: 'Błąd serwera' }, 500)
+    return serverError(c, 'POST /admin/customers/:userId/unlock', err)
   }
 })
 
@@ -194,15 +188,15 @@ adminCustomersRouter.post('/:userId/anonymize', async (c) => {
       updatedAt:        new Date(),
     }).where(eq(users.id, userId))
 
-    await db.insert(auditLog).values({
-      adminId:      parseInt(admin.sub),
+    await logAdminAction(db, {
+      adminSub:     admin.sub,
       action:       'anonymize_customer',
       targetUserId: userId,
-      ipAddress:    c.req.header('CF-Connecting-IP') || 'unknown',
+      ipAddress:    getClientIp(c),
       details: {
-        event:       'account_anonymized',
+        event:         'account_anonymized',
         originalEmail: user.email,
-        executedAt:  new Date().toISOString(),
+        executedAt:    new Date().toISOString(),
       },
     })
 
@@ -211,8 +205,7 @@ adminCustomersRouter.post('/:userId/anonymize', async (c) => {
       message: `Dane użytkownika ID ${userId} zostały zanonimizowane zgodnie z RODO (Art. 17)`,
     })
   } catch (err) {
-    console.error('POST /admin/customers/:userId/anonymize error:', err)
-    return c.json({ error: 'Błąd serwera' }, 500)
+    return serverError(c, 'POST /admin/customers/:userId/anonymize', err)
   }
 })
 
@@ -242,7 +235,6 @@ adminCustomersRouter.get('/gdpr/anonymize-preview', async (c) => {
 
     return c.json({ success: true, data: rows, meta: { count: rows.length, cutoffDate: cutoff } })
   } catch (err) {
-    console.error('GET /admin/gdpr/anonymize-preview error:', err)
-    return c.json({ error: 'Błąd serwera' }, 500)
+    return serverError(c, 'GET /admin/gdpr/anonymize-preview', err)
   }
 })

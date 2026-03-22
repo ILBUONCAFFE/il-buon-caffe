@@ -112,7 +112,7 @@ app.get('/image/:key{.+}', async (c) => {
 // DELETE /api/uploads/image/:key
 // ─────────────────────────────────────────────────────────
 app.delete('/image/:key{.+}', requireAdmin(), async (c) => {
-  const key = c.req.param('key')
+  const key = c.req.param('key')!
   await c.env.IMAGES_BUCKET.delete(key)
   return c.json({ deleted: key })
 })

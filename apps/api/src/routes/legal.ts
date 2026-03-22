@@ -50,7 +50,7 @@ legalRouter.get('/:type', async (c) => {
       },
     })
   } catch (err) {
-    console.error('GET /legal/:type error:', err)
+    console.error('GET /legal/:type error:', err instanceof Error ? err.message : String(err))
     return c.json({ error: 'Błąd serwera' }, 500)
   }
 })
@@ -81,7 +81,7 @@ legalRouter.get('/:type/history', async (c) => {
 
     return c.json({ success: true, data: docs })
   } catch (err) {
-    console.error('GET /legal/:type/history error:', err)
+    console.error('GET /legal/:type/history error:', err instanceof Error ? err.message : String(err))
     return c.json({ error: 'Błąd serwera' }, 500)
   }
 })

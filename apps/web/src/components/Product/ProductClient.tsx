@@ -63,7 +63,6 @@ export const ProductClient = ({ initialProduct }: ProductClientProps) => {
   const handleAddToCart = () => {
     if (!product) return;
     // TODO: Add to cart context
-    console.log('Adding to cart', product, quantity);
     setIsAdded(true);
     setTimeout(() => setIsAdded(false), 2000);
   };

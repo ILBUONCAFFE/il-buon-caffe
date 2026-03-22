@@ -7,13 +7,10 @@ import { eq, and, desc, sql } from 'drizzle-orm'
 import { requireAuth } from '../middleware/auth'
 import { rateLimit } from '../middleware/rateLimit'
 import type { Env } from '../index'
+import { sanitize } from '../lib/sanitize'
+import { checkContentLength, getClientIp, serverError } from '../lib/request'
 
 const MAX_BODY = 10_000
-
-function sanitize(raw: unknown, max = 255): string {
-  if (typeof raw !== 'string') return ''
-  return raw.trim().slice(0, max)
-}
 
 // Rate limit — 5 export requests per hour per user
 const exportRateLimiter = rateLimit({
@@ -52,8 +49,7 @@ userRouter.get('/profile', requireAuth(), async (c) => {
 
     return c.json({ success: true, data: user })
   } catch (err) {
-    console.error('GET /user/profile error:', err)
-    return c.json({ error: 'Błąd serwera' }, 500)
+    return serverError(c, 'GET /user/profile', err)
   }
 })
 
@@ -63,8 +59,8 @@ userRouter.get('/profile', requireAuth(), async (c) => {
 // ============================================
 userRouter.patch('/profile', requireAuth(), async (c) => {
   try {
-    const contentLength = parseInt(c.req.header('Content-Length') || '0', 10)
-    if (contentLength > MAX_BODY) return c.json({ error: 'Zbyt duży rozmiar żądania' }, 413)
+    const sizeErr = checkContentLength(c, MAX_BODY)
+    if (sizeErr) return sizeErr
 
     const payload = c.get('user')
     const db      = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
@@ -79,8 +75,7 @@ userRouter.patch('/profile', requireAuth(), async (c) => {
 
     return c.json({ success: true, message: 'Profil zaktualizowany' })
   } catch (err) {
-    console.error('PATCH /user/profile error:', err)
-    return c.json({ error: 'Błąd serwera' }, 500)
+    return serverError(c, 'PATCH /user/profile', err)
   }
 })
 
@@ -123,8 +118,7 @@ userRouter.get('/consents', requireAuth(), async (c) => {
 
     return c.json({ success: true, data: result })
   } catch (err) {
-    console.error('GET /user/consents error:', err)
-    return c.json({ error: 'Błąd serwera' }, 500)
+    return serverError(c, 'GET /user/consents', err)
   }
 })
 
@@ -135,14 +129,14 @@ userRouter.get('/consents', requireAuth(), async (c) => {
 // ============================================
 userRouter.post('/consents', requireAuth(), async (c) => {
   try {
-    const contentLength = parseInt(c.req.header('Content-Length') || '0', 10)
-    if (contentLength > MAX_BODY) return c.json({ error: 'Zbyt duży rozmiar żądania' }, 413)
+    const sizeErr = checkContentLength(c, MAX_BODY)
+    if (sizeErr) return sizeErr
 
     const payload    = c.get('user')
     const userId     = parseInt(payload.sub)
     const db         = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
     const body       = await c.req.json<Partial<Record<UpdatableConsent, boolean>>>()
-    const ipAddress  = c.req.header('CF-Connecting-IP') || 'unknown'
+    const ipAddress  = getClientIp(c)
     const userAgent  = sanitize(c.req.header('User-Agent'), 500) || 'unknown'
 
     const updates: Promise<unknown>[] = []
@@ -182,8 +176,7 @@ userRouter.post('/consents', requireAuth(), async (c) => {
 
     return c.json({ success: true, message: 'Zgody zaktualizowane' })
   } catch (err) {
-    console.error('POST /user/consents error:', err)
-    return c.json({ error: 'Błąd serwera' }, 500)
+    return serverError(c, 'POST /user/consents', err)
   }
 })
 
@@ -197,7 +190,7 @@ userRouter.delete('/consents/:type', requireAuth(), async (c) => {
     const userId     = parseInt(payload.sub)
     const type       = c.req.param('type') as UpdatableConsent
     const db         = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
-    const ipAddress  = c.req.header('CF-Connecting-IP') || 'unknown'
+    const ipAddress  = getClientIp(c)
     const userAgent  = sanitize(c.req.header('User-Agent'), 500) || 'unknown'
 
     if (!VALID_CONSENT_TYPES.includes(type)) {
@@ -223,8 +216,7 @@ userRouter.delete('/consents/:type', requireAuth(), async (c) => {
 
     return c.json({ success: true, message: `Zgoda '${type}' została wycofana` })
   } catch (err) {
-    console.error('DELETE /user/consents/:type error:', err)
-    return c.json({ error: 'Błąd serwera' }, 500)
+    return serverError(c, 'DELETE /user/consents/:type', err)
   }
 })
 
@@ -237,7 +229,7 @@ userRouter.get('/export', requireAuth(), exportRateLimiter, async (c) => {
     const payload = c.get('user')
     const userId  = parseInt(payload.sub)
     const db      = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
-    const ip      = c.req.header('CF-Connecting-IP') || 'unknown'
+    const ip      = getClientIp(c)
     const ua      = sanitize(c.req.header('User-Agent'), 500) || 'unknown'
 
     // Fetch user (exclude sensitive data)
@@ -304,8 +296,7 @@ userRouter.get('/export', requireAuth(), exportRateLimiter, async (c) => {
       },
     })
   } catch (err) {
-    console.error('GET /user/export error:', err)
-    return c.json({ error: 'Błąd serwera podczas eksportu' }, 500)
+    return serverError(c, 'GET /user/export', err)
   }
 })
 
@@ -315,8 +306,8 @@ userRouter.get('/export', requireAuth(), exportRateLimiter, async (c) => {
 // ============================================
 userRouter.post('/anonymize', requireAuth(), async (c) => {
   try {
-    const contentLength = parseInt(c.req.header('Content-Length') || '0', 10)
-    if (contentLength > MAX_BODY) return c.json({ error: 'Zbyt duży rozmiar żądania' }, 413)
+    const sizeErr = checkContentLength(c, MAX_BODY)
+    if (sizeErr) return sizeErr
 
     const payload = c.get('user')
     const userId  = parseInt(payload.sub)
@@ -340,7 +331,7 @@ userRouter.post('/anonymize', requireAuth(), async (c) => {
     // Schedule anonymization in 30 days (admin will confirm)
     const anonymizationDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
 
-    const ip = c.req.header('CF-Connecting-IP') || 'unknown'
+    const ip = getClientIp(c)
     const ua = sanitize(c.req.header('User-Agent'), 500) || 'unknown'
 
     await db.insert(auditLog).values({
@@ -365,7 +356,6 @@ userRouter.post('/anonymize', requireAuth(), async (c) => {
       },
     })
   } catch (err) {
-    console.error('POST /user/anonymize error:', err)
-    return c.json({ error: 'Błąd serwera' }, 500)
+    return serverError(c, 'POST /user/anonymize', err)
   }
 })

@@ -5,20 +5,11 @@ import { eq, and, asc, desc, sql, count } from 'drizzle-orm'
 import { requireAdminOrProxy } from '../../middleware/auth'
 import type { Env } from '../../index'
 import type { CategoryLayoutConfig } from '@repo/db/schema'
+import { sanitize } from '../../lib/sanitize'
+import { slugify } from '../../lib/slugify'
+import { checkContentLength, serverError } from '../../lib/request'
 
 const MAX_BODY = 20_000
-
-function sanitize(raw: unknown, max = 255): string {
-  if (typeof raw !== 'string') return ''
-  return raw.trim().slice(0, max)
-}
-
-function slugify(str: string): string {
-  return str.toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-}
 
 export const adminCategoriesRouter = new Hono<{ Bindings: Env }>()
 adminCategoriesRouter.use('*', requireAdminOrProxy())
@@ -53,8 +44,7 @@ adminCategoriesRouter.get('/', async (c) => {
 
     return c.json({ success: true, data: rows })
   } catch (err) {
-    console.error('GET /admin/categories error:', err)
-    return c.json({ error: 'Błąd serwera' }, 500)
+    return serverError(c, 'GET /admin/categories', err)
   }
 })
 
@@ -64,8 +54,8 @@ adminCategoriesRouter.get('/', async (c) => {
 // ============================================
 adminCategoriesRouter.post('/', async (c) => {
   try {
-    const contentLength = parseInt(c.req.header('Content-Length') || '0', 10)
-    if (contentLength > MAX_BODY) return c.json({ error: 'Zbyt duży rozmiar żądania' }, 413)
+    const sizeErr = checkContentLength(c, MAX_BODY)
+    if (sizeErr) return sizeErr
 
     const db   = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
     const body = await c.req.json<{
@@ -89,8 +79,7 @@ adminCategoriesRouter.post('/', async (c) => {
     return c.json({ success: true, data: cat }, 201)
   } catch (err: any) {
     if (err?.code === '23505') return c.json({ error: 'Slug już istnieje' }, 409)
-    console.error('POST /admin/categories error:', err)
-    return c.json({ error: 'Błąd serwera' }, 500)
+    return serverError(c, 'POST /admin/categories', err)
   }
 })
 
@@ -100,8 +89,8 @@ adminCategoriesRouter.post('/', async (c) => {
 // ============================================
 adminCategoriesRouter.put('/:id', async (c) => {
   try {
-    const contentLength = parseInt(c.req.header('Content-Length') || '0', 10)
-    if (contentLength > MAX_BODY) return c.json({ error: 'Zbyt duży rozmiar żądania' }, 413)
+    const sizeErr = checkContentLength(c, MAX_BODY)
+    if (sizeErr) return sizeErr
 
     const db  = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
     const id  = parseInt(c.req.param('id'))
@@ -126,8 +115,7 @@ adminCategoriesRouter.put('/:id', async (c) => {
     return c.json({ success: true, data: updated })
   } catch (err: any) {
     if (err?.code === '23505') return c.json({ error: 'Slug już istnieje' }, 409)
-    console.error('PUT /admin/categories/:id error:', err)
-    return c.json({ error: 'Błąd serwera' }, 500)
+    return serverError(c, 'PUT /admin/categories/:id', err)
   }
 })
 
@@ -145,7 +133,6 @@ adminCategoriesRouter.delete('/:id', async (c) => {
 
     return c.json({ success: true, message: 'Kategoria została zdezaktywowana' })
   } catch (err) {
-    console.error('DELETE /admin/categories/:id error:', err)
-    return c.json({ error: 'Błąd serwera' }, 500)
+    return serverError(c, 'DELETE /admin/categories/:id', err)
   }
 })

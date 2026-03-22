@@ -63,22 +63,14 @@ export const productService = {
       // ── Build WHERE conditions ──────────────────────
       const conditions: SQL[] = [eq(products.isActive, true)];
 
-      // Category filter (uses products_active_category_price_idx)
-      let categoryId: number | null = null;
-      if (category && category !== 'all') {
-        const categoryRecord = await db
-          .select({ id: categories.id })
-          .from(categories)
-          .where(eq(categories.slug, category))
-          .limit(1);
+      // Category filter — inline subquery avoids a serial round-trip before the parallel batch.
+      // PostgreSQL resolves the subquery once and caches it within the query plan.
+      const categoryFilter = category && category !== 'all'
+        ? sql`${products.categoryId} = (SELECT id FROM categories WHERE slug = ${category} LIMIT 1)`
+        : undefined;
 
-        if (categoryRecord.length > 0) {
-          categoryId = categoryRecord[0].id;
-          conditions.push(eq(products.categoryId, categoryId));
-        } else {
-          // Category not found → return empty
-          return { products: [], totalCount: 0, availableOrigins: [], priceRange: { min: 0, max: 0 } };
-        }
+      if (categoryFilter) {
+        conditions.push(categoryFilter);
       }
 
       // Text search (uses products_name_trgm_idx, products_description_trgm_idx, products_origin_trgm_idx)
@@ -157,13 +149,7 @@ export const productService = {
 
       const whereClause = and(...conditions)!;
 
-      // ── Build base conditions for wine filter options (without wine filters applied) ──
-      const baseWineConditions: SQL[] = [eq(products.isActive, true)];
-      if (categoryId) {
-        baseWineConditions.push(eq(products.categoryId, categoryId));
-      }
-
-      // ── Execute main query ──────────────────────
+      // ── Execute all queries in a single parallel batch ──────────────────
       const [mainResults, countResult, originsResult, priceResult, wineFilterOpts] = await Promise.all([
         // 1. Filtered + sorted + paginated products
         db
@@ -185,7 +171,7 @@ export const productService = {
           .where(whereClause),
 
         // 3. Available origins with counts (for sidebar filter)
-        // This uses base conditions WITHOUT origin filter so user sees all available origins
+        // Uses base active+category conditions WITHOUT origin filter so user sees all available origins
         db
           .select({
             origin: sql<string>`split_part(${products.origin}, ',', 1)`,
@@ -194,7 +180,7 @@ export const productService = {
           .from(products)
           .where(and(
             eq(products.isActive, true),
-            ...(categoryId ? [eq(products.categoryId, categoryId)] : []),
+            ...(categoryFilter ? [categoryFilter] : []),
             sql`${products.origin} IS NOT NULL AND ${products.origin} != ''`
           ))
           .groupBy(sql`split_part(${products.origin}, ',', 1)`)
@@ -209,11 +195,11 @@ export const productService = {
           .from(products)
           .where(and(
             eq(products.isActive, true),
-            ...(categoryId ? [eq(products.categoryId, categoryId)] : []),
+            ...(categoryFilter ? [categoryFilter] : []),
           )),
 
         // 5. Wine cascading filter options
-        this._getWineFilterOptions(categoryId, originCountry, originRegion),
+        this._getWineFilterOptions(category ?? null, originCountry, originRegion),
       ]);
 
       return {
@@ -243,18 +229,22 @@ export const productService = {
    * Level 3 (grapes): distinct grapes WHERE country + region match
    */
   async _getWineFilterOptions(
-    categoryId: number | null,
+    categorySlug: string | null,
     selectedCountry?: string,
     selectedRegion?: string,
   ): Promise<WineFilterOptions> {
     try {
-      // Base condition: active products, optionally wine category
+      // Base condition: active products, optionally wine category (subquery, same pattern as getFiltered)
+      const categoryFilter = categorySlug
+        ? sql`${products.categoryId} = (SELECT id FROM categories WHERE slug = ${categorySlug} LIMIT 1)`
+        : undefined;
+
       const baseConds: SQL[] = [
         eq(products.isActive, true),
         sql`${products.originCountry} IS NOT NULL AND ${products.originCountry} != ''`,
       ];
-      if (categoryId) {
-        baseConds.push(eq(products.categoryId, categoryId));
+      if (categoryFilter) {
+        baseConds.push(categoryFilter);
       }
 
       // Level 1: Countries (always show all available countries)
@@ -293,8 +283,8 @@ export const productService = {
         sql`p.is_active = true`,
         sql`p.grape_variety IS NOT NULL AND p.grape_variety != ''`,
       ];
-      if (categoryId) {
-        grapeConds.push(sql`p.category_id = ${categoryId}`);
+      if (categorySlug) {
+        grapeConds.push(sql`p.category_id = (SELECT id FROM categories WHERE slug = ${categorySlug} LIMIT 1)`);
       }
       if (selectedCountry) {
         grapeConds.push(sql`p.origin_country = ${selectedCountry}`);

@@ -3,6 +3,7 @@ import { createDb } from '@repo/db/client'
 import { orders, users, products } from '@repo/db/schema'
 import { eq, and, sql, gte, lt, desc, isNull } from 'drizzle-orm'
 import { requireAdminOrProxy } from '../../middleware/auth'
+import { serverError } from '../../lib/request'
 import { adminOrdersRouter } from './orders'
 import { adminProductsRouter } from './products'
 import { adminCustomersRouter } from './customers'
@@ -40,6 +41,23 @@ function polishDateStr(daysAgo = 0): string {
 /** Polish weekday abbreviation (Pon/Wt/…) for a given ISO date string */
 function polishDayAbbr(dateStr: string): string {
   return PL_DAYS[new Date(dateStr + 'T12:00:00Z').getUTCDay()]
+}
+
+/**
+ * Read from KV cache; on miss, compute via `fn`, store the result, and return it.
+ * Returns `{ data, cached }` so callers can include the `cached` flag in responses.
+ */
+async function kvCached<T>(
+  kv: KVNamespace,
+  key: string,
+  ttl: number,
+  fn: () => Promise<T>,
+): Promise<{ data: T; cached: boolean }> {
+  const hit = await kv.get(key)
+  if (hit) return { data: JSON.parse(hit) as T, cached: true }
+  const data = await fn()
+  await kv.put(key, JSON.stringify(data), { expirationTtl: ttl })
+  return { data, cached: false }
 }
 
 export const adminRouter = new Hono<{ Bindings: Env }>()
@@ -133,8 +151,7 @@ adminRouter.get('/dashboard', requireAdminOrProxy(), async (c) => {
       },
     })
   } catch (err) {
-    console.error('GET /admin/dashboard error:', err)
-    return c.json({ error: 'Błąd serwera' }, 500)
+    return serverError(c, 'GET /admin/dashboard', err)
   }
 })
 
@@ -145,91 +162,79 @@ adminRouter.get('/dashboard', requireAdminOrProxy(), async (c) => {
 // + KV cache 5 min (§22.3 ALLEGRO_API_STRATEGY)
 // ============================================
 adminRouter.get('/stats/overview', requireAdminOrProxy(), async (c) => {
-  const KV_KEY = 'stats:today'
-  const KV_TTL = 300 // 5 minut
-
   try {
-    // ── 1. KV cache hit ──────────────────────────────────────────────────
-    const cached = await c.env.ALLEGRO_KV.get(KV_KEY)
-    if (cached) {
-      return c.json({ success: true, data: JSON.parse(cached), cached: true })
-    }
+    const { data, cached } = await kvCached(c.env.ALLEGRO_KV, 'stats:today', 300, async () => {
+      const db = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
 
-    // ── 2. DB query (live data) ───────────────────────────────────────────
-    const db = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+      // Polish-timezone midnight UTC instants for index-friendly range queries
+      const todayStart     = polishMidnightUTC(0)
+      const tomorrowStart  = polishMidnightUTC(-1)   // tomorrow midnight = upper bound for today
+      const yesterdayStart = polishMidnightUTC(1)
+      const day30agoStart  = polishMidnightUTC(30)
+      const day60agoStart  = polishMidnightUTC(60)
 
-    // Polish-timezone midnight UTC instants for index-friendly range queries
-    const todayStart     = polishMidnightUTC(0)
-    const tomorrowStart  = polishMidnightUTC(-1)   // tomorrow midnight = upper bound for today
-    const yesterdayStart = polishMidnightUTC(1)
-    const day30agoStart  = polishMidnightUTC(30)
-    const day60agoStart  = polishMidnightUTC(60)
+      const PAID = sql`${orders.status} IN ('paid','processing','shipped','delivered')`
 
-    const PAID = sql`${orders.status} IN ('paid','processing','shipped','delivered')`
+      // All revenue/count queries use paidAt so they reflect actual payment date in PL time
+      const [todayRow, ydayRow, avg30Row, avgPrior30Row, todayCntRow, ydayCntRow] = await Promise.all([
+        // Today: total + allegro breakdown (paidAt in today's Polish calendar day)
+        db.select({
+          total:        sql<number>`COALESCE(SUM(COALESCE(CAST(${orders.totalPln} AS NUMERIC), CAST(${orders.total} AS NUMERIC))), 0)`,
+          allegroTotal: sql<number>`COALESCE(SUM(COALESCE(CAST(${orders.totalPln} AS NUMERIC), CAST(${orders.total} AS NUMERIC))) FILTER (WHERE ${orders.source} = 'allegro'), 0)`,
+          allegroCount: sql<number>`COALESCE(COUNT(*) FILTER (WHERE ${orders.source} = 'allegro'), 0)`,
+        }).from(orders).where(and(PAID, gte(orders.paidAt, todayStart), lt(orders.paidAt, tomorrowStart))),
 
-    // All revenue/count queries use paidAt so they reflect actual payment date in PL time
-    const [todayRow, ydayRow, avg30Row, avgPrior30Row, todayCntRow, ydayCntRow] = await Promise.all([
-      // Today: total + allegro breakdown (paidAt in today's Polish calendar day)
-      db.select({
-        total:        sql<number>`COALESCE(SUM(COALESCE(CAST(${orders.totalPln} AS NUMERIC), CAST(${orders.total} AS NUMERIC))), 0)`,
-        allegroTotal: sql<number>`COALESCE(SUM(COALESCE(CAST(${orders.totalPln} AS NUMERIC), CAST(${orders.total} AS NUMERIC))) FILTER (WHERE ${orders.source} = 'allegro'), 0)`,
-        allegroCount: sql<number>`COALESCE(COUNT(*) FILTER (WHERE ${orders.source} = 'allegro'), 0)`,
-      }).from(orders).where(and(PAID, gte(orders.paidAt, todayStart), lt(orders.paidAt, tomorrowStart))),
+        // Yesterday revenue (for % change)
+        db.select({ v: sql<number>`COALESCE(SUM(COALESCE(CAST(${orders.totalPln} AS NUMERIC), CAST(${orders.total} AS NUMERIC))),0)` })
+          .from(orders).where(and(PAID, gte(orders.paidAt, yesterdayStart), lt(orders.paidAt, todayStart))),
 
-      // Yesterday revenue (for % change)
-      db.select({ v: sql<number>`COALESCE(SUM(COALESCE(CAST(${orders.totalPln} AS NUMERIC), CAST(${orders.total} AS NUMERIC))),0)` })
-        .from(orders).where(and(PAID, gte(orders.paidAt, yesterdayStart), lt(orders.paidAt, todayStart))),
+        // Avg order value — last 30 days (paid)
+        db.select({ v: sql<number>`COALESCE(AVG(COALESCE(CAST(${orders.totalPln} AS NUMERIC), CAST(${orders.total} AS NUMERIC))),0)` })
+          .from(orders).where(and(PAID, gte(orders.paidAt, day30agoStart), lt(orders.paidAt, tomorrowStart))),
 
-      // Avg order value — last 30 days (paid)
-      db.select({ v: sql<number>`COALESCE(AVG(COALESCE(CAST(${orders.totalPln} AS NUMERIC), CAST(${orders.total} AS NUMERIC))),0)` })
-        .from(orders).where(and(PAID, gte(orders.paidAt, day30agoStart), lt(orders.paidAt, tomorrowStart))),
+        // Avg order value — prior 30 days (for % change)
+        db.select({ v: sql<number>`COALESCE(AVG(COALESCE(CAST(${orders.totalPln} AS NUMERIC), CAST(${orders.total} AS NUMERIC))),0)` })
+          .from(orders).where(and(PAID, gte(orders.paidAt, day60agoStart), lt(orders.paidAt, day30agoStart))),
 
-      // Avg order value — prior 30 days (for % change)
-      db.select({ v: sql<number>`COALESCE(AVG(COALESCE(CAST(${orders.totalPln} AS NUMERIC), CAST(${orders.total} AS NUMERIC))),0)` })
-        .from(orders).where(and(PAID, gte(orders.paidAt, day60agoStart), lt(orders.paidAt, day30agoStart))),
+        // Today paid order count (shipments paid today in PL time)
+        db.select({ v: sql<number>`COUNT(*)` })
+          .from(orders).where(and(PAID, gte(orders.paidAt, todayStart), lt(orders.paidAt, tomorrowStart))),
 
-      // Today paid order count (shipments paid today in PL time)
-      db.select({ v: sql<number>`COUNT(*)` })
-        .from(orders).where(and(PAID, gte(orders.paidAt, todayStart), lt(orders.paidAt, tomorrowStart))),
+        // Yesterday paid order count (for % change)
+        db.select({ v: sql<number>`COUNT(*)` })
+          .from(orders).where(and(PAID, gte(orders.paidAt, yesterdayStart), lt(orders.paidAt, todayStart))),
+      ])
 
-      // Yesterday paid order count (for % change)
-      db.select({ v: sql<number>`COUNT(*)` })
-        .from(orders).where(and(PAID, gte(orders.paidAt, yesterdayStart), lt(orders.paidAt, todayStart))),
-    ])
+      const pct = (cur: number, prev: number) =>
+        prev === 0 ? (cur > 0 ? 100 : 0) : Math.round(((cur - prev) / prev) * 1000) / 10
 
-    const pct = (cur: number, prev: number) =>
-      prev === 0 ? (cur > 0 ? 100 : 0) : Math.round(((cur - prev) / prev) * 1000) / 10
+      const tv  = Number(todayRow[0]?.total    ?? 0)
+      const yv  = Number(ydayRow[0]?.v         ?? 0)
+      const av  = Number(avg30Row[0]?.v        ?? 0)
+      const pv  = Number(avgPrior30Row[0]?.v   ?? 0)
+      const tc  = Number(todayCntRow[0]?.v     ?? 0)
+      const yc  = Number(ydayCntRow[0]?.v      ?? 0)
+      const alr = Number(todayRow[0]?.allegroTotal ?? 0)
+      const alc = Number(todayRow[0]?.allegroCount ?? 0)
 
-    const tv  = Number(todayRow[0]?.total    ?? 0)
-    const yv  = Number(ydayRow[0]?.v         ?? 0)
-    const av  = Number(avg30Row[0]?.v        ?? 0)
-    const pv  = Number(avgPrior30Row[0]?.v   ?? 0)
-    const tc  = Number(todayCntRow[0]?.v     ?? 0)
-    const yc  = Number(ydayCntRow[0]?.v      ?? 0)
-    const alr = Number(todayRow[0]?.allegroTotal ?? 0)
-    const alc = Number(todayRow[0]?.allegroCount ?? 0)
+      return {
+        todayRevenue:        tv,
+        revenueChange:       pct(tv, yv),
+        todayOrders:         tc,
+        ordersChange:        pct(tc, yc),
+        avgOrderValue:       av,
+        avgOrderValueChange: pct(av, pv),
+        // Podział na kanały (gotowe na dane z Allegro)
+        allegroRevenue:      alr,
+        allegroOrders:       alc,
+        shopRevenue:         Math.round((tv - alr) * 100) / 100,
+        shopOrders:          tc - alc,
+      }
+    })
 
-    const data = {
-      todayRevenue:        tv,
-      revenueChange:       pct(tv, yv),
-      todayOrders:         tc,
-      ordersChange:        pct(tc, yc),
-      avgOrderValue:       av,
-      avgOrderValueChange: pct(av, pv),
-      // Podział na kanały (gotowe na dane z Allegro)
-      allegroRevenue:      alr,
-      allegroOrders:       alc,
-      shopRevenue:         Math.round((tv - alr) * 100) / 100,
-      shopOrders:          tc - alc,
-    }
-
-    // ── 3. Cache result in KV (5 min) ────────────────────────────────────
-    await c.env.ALLEGRO_KV.put(KV_KEY, JSON.stringify(data), { expirationTtl: KV_TTL })
-
-    return c.json({ success: true, data })
+    return c.json({ success: true, data, ...(cached && { cached: true }) })
   } catch (err) {
-    console.error('GET /admin/stats/overview error:', err)
-    return c.json({ error: 'Błąd serwera' }, 500)
+    return serverError(c, 'GET /admin/stats/overview', err)
   }
 })
 
@@ -240,47 +245,42 @@ adminRouter.get('/stats/overview', requireAdminOrProxy(), async (c) => {
 // KV cache 5 min
 // ============================================
 adminRouter.get('/stats/weekly-revenue', requireAdminOrProxy(), async (c) => {
-  const KV_KEY = 'stats:weekly-revenue'
-  const KV_TTL = 300
   try {
-    const cached = await c.env.ALLEGRO_KV.get(KV_KEY)
-    if (cached) return c.json({ success: true, data: JSON.parse(cached), cached: true })
+    const { data, cached } = await kvCached(c.env.ALLEGRO_KV, 'stats:weekly-revenue', 300, async () => {
+      const db = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+      // Last 7 days including today — index-friendly lower bound in UTC
+      const weekAgoStart = polishMidnightUTC(6)
 
-    const db = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
-    // Last 7 days including today — index-friendly lower bound in UTC
-    const weekAgoStart = polishMidnightUTC(6)
+      const rows = await db
+        .select({
+          // Group by calendar date in Warsaw timezone for correct PL-midnight boundaries
+          day:     sql<string>`DATE(${orders.paidAt} AT TIME ZONE 'Europe/Warsaw')`,
+          shop:    sql<number>`COALESCE(SUM(COALESCE(CAST(${orders.totalPln} AS NUMERIC), CAST(${orders.total} AS NUMERIC))) FILTER (WHERE ${orders.source} = 'shop'), 0)`,
+          allegro: sql<number>`COALESCE(SUM(COALESCE(CAST(${orders.totalPln} AS NUMERIC), CAST(${orders.total} AS NUMERIC))) FILTER (WHERE ${orders.source} = 'allegro'), 0)`,
+        })
+        .from(orders)
+        .where(and(
+          gte(orders.paidAt, weekAgoStart),
+          sql`${orders.status} IN ('paid','processing','shipped','delivered')`,
+        ))
+        .groupBy(sql`DATE(${orders.paidAt} AT TIME ZONE 'Europe/Warsaw')`)
+        .orderBy(sql`DATE(${orders.paidAt} AT TIME ZONE 'Europe/Warsaw')`)
 
-    const rows = await db
-      .select({
-        // Group by calendar date in Warsaw timezone for correct PL-midnight boundaries
-        day:     sql<string>`DATE(${orders.paidAt} AT TIME ZONE 'Europe/Warsaw')`,
-        shop:    sql<number>`COALESCE(SUM(COALESCE(CAST(${orders.totalPln} AS NUMERIC), CAST(${orders.total} AS NUMERIC))) FILTER (WHERE ${orders.source} = 'shop'), 0)`,
-        allegro: sql<number>`COALESCE(SUM(COALESCE(CAST(${orders.totalPln} AS NUMERIC), CAST(${orders.total} AS NUMERIC))) FILTER (WHERE ${orders.source} = 'allegro'), 0)`,
+      const shopMap    = Object.fromEntries(rows.map(r => [r.day, Number(r.shop)]))
+      const allegroMap = Object.fromEntries(rows.map(r => [r.day, Number(r.allegro)]))
+
+      // Build 7-day result using Polish calendar dates (oldest → today)
+      return Array.from({ length: 7 }, (_, i) => {
+        const dateStr = polishDateStr(6 - i)
+        const shop    = shopMap[dateStr]    ?? 0
+        const allegro = allegroMap[dateStr] ?? 0
+        return { day: polishDayAbbr(dateStr), revenue: shop + allegro, shop, allegro }
       })
-      .from(orders)
-      .where(and(
-        gte(orders.paidAt, weekAgoStart),
-        sql`${orders.status} IN ('paid','processing','shipped','delivered')`,
-      ))
-      .groupBy(sql`DATE(${orders.paidAt} AT TIME ZONE 'Europe/Warsaw')`)
-      .orderBy(sql`DATE(${orders.paidAt} AT TIME ZONE 'Europe/Warsaw')`)
-
-    const shopMap    = Object.fromEntries(rows.map(r => [r.day, Number(r.shop)]))
-    const allegroMap = Object.fromEntries(rows.map(r => [r.day, Number(r.allegro)]))
-
-    // Build 7-day result using Polish calendar dates (oldest → today)
-    const result = Array.from({ length: 7 }, (_, i) => {
-      const dateStr = polishDateStr(6 - i)
-      const shop    = shopMap[dateStr]    ?? 0
-      const allegro = allegroMap[dateStr] ?? 0
-      return { day: polishDayAbbr(dateStr), revenue: shop + allegro, shop, allegro }
     })
 
-    await c.env.ALLEGRO_KV.put(KV_KEY, JSON.stringify(result), { expirationTtl: KV_TTL })
-    return c.json({ success: true, data: result })
+    return c.json({ success: true, data, ...(cached && { cached: true }) })
   } catch (err) {
-    console.error('GET /admin/stats/weekly-revenue error:', err)
-    return c.json({ error: 'Błąd serwera' }, 500)
+    return serverError(c, 'GET /admin/stats/weekly-revenue', err)
   }
 })
 
@@ -290,39 +290,34 @@ adminRouter.get('/stats/weekly-revenue', requireAdminOrProxy(), async (c) => {
 // KV cache 5 min
 // ============================================
 adminRouter.get('/stats/weekly', requireAdminOrProxy(), async (c) => {
-  const KV_KEY = 'stats:weekly'
-  const KV_TTL = 300
   try {
-    const cached = await c.env.ALLEGRO_KV.get(KV_KEY)
-    if (cached) return c.json({ success: true, data: JSON.parse(cached), cached: true })
+    const { data, cached } = await kvCached(c.env.ALLEGRO_KV, 'stats:weekly', 300, async () => {
+      const db = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+      const weekAgoStart = polishMidnightUTC(6)
 
-    const db = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
-    const weekAgoStart = polishMidnightUTC(6)
+      const rows = await db
+        .select({
+          day:   sql<string>`DATE(${orders.paidAt} AT TIME ZONE 'Europe/Warsaw')`,
+          value: sql<number>`COUNT(*)`,
+        })
+        .from(orders)
+        .where(and(
+          gte(orders.paidAt, weekAgoStart),
+          sql`${orders.status} IN ('paid','processing','shipped','delivered')`,
+        ))
+        .groupBy(sql`DATE(${orders.paidAt} AT TIME ZONE 'Europe/Warsaw')`)
+        .orderBy(sql`DATE(${orders.paidAt} AT TIME ZONE 'Europe/Warsaw')`)
 
-    const rows = await db
-      .select({
-        day:   sql<string>`DATE(${orders.paidAt} AT TIME ZONE 'Europe/Warsaw')`,
-        value: sql<number>`COUNT(*)`,
+      const map = Object.fromEntries(rows.map(r => [r.day, Number(r.value)]))
+      return Array.from({ length: 7 }, (_, i) => {
+        const dateStr = polishDateStr(6 - i)
+        return { day: polishDayAbbr(dateStr), value: map[dateStr] ?? 0 }
       })
-      .from(orders)
-      .where(and(
-        gte(orders.paidAt, weekAgoStart),
-        sql`${orders.status} IN ('paid','processing','shipped','delivered')`,
-      ))
-      .groupBy(sql`DATE(${orders.paidAt} AT TIME ZONE 'Europe/Warsaw')`)
-      .orderBy(sql`DATE(${orders.paidAt} AT TIME ZONE 'Europe/Warsaw')`)
-
-    const map = Object.fromEntries(rows.map(r => [r.day, Number(r.value)]))
-    const result = Array.from({ length: 7 }, (_, i) => {
-      const dateStr = polishDateStr(6 - i)
-      return { day: polishDayAbbr(dateStr), value: map[dateStr] ?? 0 }
     })
 
-    await c.env.ALLEGRO_KV.put(KV_KEY, JSON.stringify(result), { expirationTtl: KV_TTL })
-    return c.json({ success: true, data: result })
+    return c.json({ success: true, data, ...(cached && { cached: true }) })
   } catch (err) {
-    console.error('GET /admin/stats/weekly error:', err)
-    return c.json({ error: 'Błąd serwera' }, 500)
+    return serverError(c, 'GET /admin/stats/weekly', err)
   }
 })
 
@@ -372,7 +367,6 @@ adminRouter.get('/activity', requireAdminOrProxy(), async (c) => {
 
     return c.json({ success: true, data: activityItems })
   } catch (err) {
-    console.error('GET /admin/activity error:', err)
-    return c.json({ error: 'Błąd serwera' }, 500)
+    return serverError(c, 'GET /admin/activity', err)
   }
 })

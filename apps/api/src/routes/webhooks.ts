@@ -117,6 +117,7 @@ webhooksRouter.post('/przelewy24', async (c) => {
   // ── Step 3: Verify with P24 API (double-check) ─────────────────────────
   const merchantId = parseInt(c.env.P24_MERCHANT_ID)
   const verifyRes = await fetch(`${p24BaseUrl(c.env)}/api/v1/transaction/verify`, {
+    signal: AbortSignal.timeout(10_000),
     method: 'PUT',
     headers: {
       'Content-Type':  'application/json',
@@ -131,7 +132,7 @@ webhooksRouter.post('/przelewy24', async (c) => {
       orderId:    body.orderId,
     }),
   }).catch(err => {
-    console.error('[P24 Webhook] Verify request failed:', err)
+    console.error('[P24 Webhook] Verify request failed:', err instanceof Error ? err.message : String(err))
     return null
   })
 

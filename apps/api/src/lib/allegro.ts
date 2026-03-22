@@ -70,6 +70,7 @@ async function callTokenEndpoint(
 ): Promise<AllegroTokenResponse> {
   const credentials = btoa(`${clientId}:${clientSecret}`)
   const resp = await fetch(url, {
+    signal:  AbortSignal.timeout(10_000),
     method:  'POST',
     headers: {
       Authorization:  `Basic ${credentials}`,

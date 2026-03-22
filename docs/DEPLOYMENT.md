@@ -428,11 +428,8 @@ cd apps/api
 # Development
 pnpm dev
 
-# Deploy to staging
-wrangler deploy --env staging
-
-# Deploy to production
-wrangler deploy --env production
+# Deploy
+wrangler deploy
 ```
 
 ### 5.3 Web (Cloudflare Pages)

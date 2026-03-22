@@ -3,53 +3,22 @@ import commonPasswords from './common-passwords.json'
 
 // Password requirements constants
 const MIN_PASSWORD_LENGTH = 12
-const MAX_PASSWORD_LENGTH = 128
+const MAX_PASSWORD_LENGTH = 72 // bcrypt hard limit
 const BCRYPT_ROUNDS = 12
 
 // Common passwords set for O(1) lookup
 const commonPasswordsSet = new Set(commonPasswords.map(p => p.toLowerCase()))
 
-/**
- * Pre-hash the plaintext with SHA-256 before passing to bcrypt.
- *
- * Why: bcrypt silently truncates input at 72 bytes (~36 UTF-8 Polish chars).
- * Pre-hashing produces a fixed-length 64-char hex digest, eliminating the
- * truncation vulnerability while keeping full bcrypt security (cost factor,
- * unique salt, resistance to GPU attacks).
- *
- * Uses Web Crypto API (native in Cloudflare Workers).
- */
-async function preHash(password: string): Promise<string> {
-  const encoder = new TextEncoder()
-  const data = encoder.encode(password)
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
-  const hashArray = Array.from(new Uint8Array(hashBuffer))
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
-}
-
-/**
- * Hash a password using SHA-256 prehash + bcrypt
- * @param password - Plain text password to hash
- * @returns Hashed password string
- */
 export async function hashPassword(password: string): Promise<string> {
-  const preHashed = await preHash(password)
   const salt = await bcrypt.genSalt(BCRYPT_ROUNDS)
-  return bcrypt.hash(preHashed, salt)
+  return bcrypt.hash(password, salt)
 }
 
-/**
- * Verify a password against a hash using SHA-256 prehash + bcrypt
- * @param password - Plain text password to verify
- * @param hash - Bcrypt hash to compare against
- * @returns True if password matches hash, false otherwise
- */
 export async function verifyPassword(
   password: string,
   hash: string
 ): Promise<boolean> {
-  const preHashed = await preHash(password)
-  return bcrypt.compare(preHashed, hash)
+  return bcrypt.compare(password, hash)
 }
 
 /**

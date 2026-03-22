@@ -73,7 +73,7 @@ async function saveTokensToDB(db: ReturnType<typeof createDb>, opts: {
       .set({ isActive: false })
       .where(eq(allegroCredentials.isActive, true))
   } catch (err) {
-    console.error('[Allegro] saveTokensToDB — deactivate error:', err)
+    console.error('[Allegro] saveTokensToDB — deactivate error:', err instanceof Error ? err.message : String(err))
     throw err
   }
 
@@ -90,7 +90,7 @@ async function saveTokensToDB(db: ReturnType<typeof createDb>, opts: {
       updatedAt:    new Date(),
     })
   } catch (err) {
-    console.error('[Allegro] saveTokensToDB — insert error:', err)
+    console.error('[Allegro] saveTokensToDB — insert error:', err instanceof Error ? err.message : String(err))
     throw err
   }
 }
@@ -169,7 +169,7 @@ allegroRouter.get('/status', requireAdminOrProxy(), async (c) => {
 
     return c.json({ success: true, data: status })
   } catch (err) {
-    console.error('[Allegro] status error:', err)
+    console.error('[Allegro] status error:', err instanceof Error ? err.message : String(err))
     const msg = err instanceof Error ? err.message : 'Błąd pobierania statusu'
     return c.json({ success: false, error: { code: 'STATUS_ERROR', message: msg } }, 500)
   }
@@ -201,7 +201,7 @@ allegroRouter.get('/connect/url', requireAdminOrProxy(), async (c) => {
 
     return c.json({ success: true, data: { url, state: nonce, environment } })
   } catch (err) {
-    console.error('[Allegro] connect/url error:', err)
+    console.error('[Allegro] connect/url error:', err instanceof Error ? err.message : String(err))
     const msg = err instanceof Error ? err.message : 'Błąd generowania URL'
     return c.json({ success: false, error: { code: 'CONNECT_URL_ERROR', message: msg } }, 500)
   }
@@ -321,7 +321,7 @@ allegroRouter.post('/disconnect', requireAdminOrProxy(), async (c) => {
 
     return c.json({ success: true, message: 'Rozłączono z Allegro' })
   } catch (err) {
-    console.error('[Allegro] disconnect error:', err)
+    console.error('[Allegro] disconnect error:', err instanceof Error ? err.message : String(err))
     const msg = err instanceof Error ? err.message : 'Błąd rozłączania'
     return c.json({ success: false, error: { code: 'DISCONNECT_ERROR', message: msg } }, 500)
   }
@@ -433,6 +433,7 @@ allegroRouter.get('/me', requireAdminOrProxy(), async (c) => {
 
     const apiBase = getAllegroApiBase(environment)
     const resp = await fetch(`${apiBase}/me`, {
+      signal:  AbortSignal.timeout(10_000),
       headers: {
         Authorization:  `Bearer ${accessToken}`,
         Accept:         'application/vnd.allegro.public.v1+json',
@@ -446,7 +447,7 @@ allegroRouter.get('/me', requireAdminOrProxy(), async (c) => {
     const data = await resp.json()
     return c.json({ success: true, data })
   } catch (err) {
-    console.error('[Allegro] /me error:', err)
+    console.error('[Allegro] /me error:', err instanceof Error ? err.message : String(err))
     const msg = err instanceof Error ? err.message : 'Błąd weryfikacji tokenu'
     return c.json({ success: false, error: { code: 'ME_ERROR', message: msg } }, 500)
   }
@@ -464,7 +465,7 @@ allegroRouter.post('/sync/force', requireAdminOrProxy(), async (c) => {
     await syncAllegroOrders(c.env)
     return c.json({ success: true, message: 'Synchronizacja zamówień zakończona', cursorReset: resetCursor })
   } catch (err) {
-    console.error('[Allegro] sync/force error:', err)
+    console.error('[Allegro] sync/force error:', err instanceof Error ? err.message : String(err))
     const msg = err instanceof Error ? err.message : 'Błąd synchronizacji'
     return c.json({ success: false, error: msg }, 500)
   }
@@ -482,7 +483,7 @@ allegroRouter.post('/backfill', requireAdminOrProxy(), async (c) => {
       data: result,
     })
   } catch (err) {
-    console.error('[Allegro] backfill error:', err)
+    console.error('[Allegro] backfill error:', err instanceof Error ? err.message : String(err))
     const msg = err instanceof Error ? err.message : 'Błąd backfill'
     return c.json({ success: false, error: msg }, 500)
   }
@@ -510,6 +511,7 @@ allegroRouter.put('/orders/:id/fulfillment', requireAdminOrProxy(), async (c) =>
     const apiBase = getAllegroApiBase(allegroEnv)
 
     const resp = await fetch(`${apiBase}/order/checkout-forms/${checkoutFormId}/fulfillment`, {
+      signal: AbortSignal.timeout(10_000),
       method: 'PUT',
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -541,12 +543,12 @@ allegroRouter.put('/orders/:id/fulfillment', requireAdminOrProxy(), async (c) =>
       if (status === 'SENT' || status === 'READY_FOR_PICKUP') {
         updates.shippedAt = new Date()
       }
-      await db.update(orders).set(updates).where(eq(orders.externalId, checkoutFormId))
+      await db.update(orders).set(updates).where(eq(orders.externalId, checkoutFormId!))
     }
 
     return c.json({ success: true, data: { checkoutFormId, fulfillmentStatus: status, localStatus } })
   } catch (err) {
-    console.error('[Allegro] fulfillment error:', err)
+    console.error('[Allegro] fulfillment error:', err instanceof Error ? err.message : String(err))
     return c.json({ success: false, error: err instanceof Error ? err.message : 'Błąd' }, 500)
   }
 })
@@ -564,6 +566,7 @@ allegroRouter.get('/orders/:id', requireAdminOrProxy(), async (c) => {
     const apiBase = getAllegroApiBase(allegroEnv)
 
     const resp = await fetch(`${apiBase}/order/checkout-forms/${checkoutFormId}`, {
+      signal:  AbortSignal.timeout(10_000),
       headers: {
         Authorization: `Bearer ${accessToken}`,
         Accept: 'application/vnd.allegro.public.v1+json',
@@ -605,7 +608,7 @@ allegroRouter.get('/orders/:id', requireAdminOrProxy(), async (c) => {
       },
     })
   } catch (err) {
-    console.error('[Allegro] order details error:', err)
+    console.error('[Allegro] order details error:', err instanceof Error ? err.message : String(err))
     return c.json({ success: false, error: err instanceof Error ? err.message : 'Błąd' }, 500)
   }
 })
@@ -628,7 +631,7 @@ allegroRouter.get('/orders/:id/tracking', requireAdminOrProxy(), async (c) => {
     }
 
     // 1. Get shipments for this order
-    const shipResp = await fetch(`${apiBase}/order/checkout-forms/${checkoutFormId}/shipments`, { headers })
+    const shipResp = await fetch(`${apiBase}/order/checkout-forms/${checkoutFormId}/shipments`, { signal: AbortSignal.timeout(10_000), headers })
     if (!shipResp.ok) {
       return c.json({ success: false, error: `Brak przesyłek (${shipResp.status})` }, shipResp.status as any)
     }
@@ -644,7 +647,7 @@ allegroRouter.get('/orders/:id/tracking', requireAdminOrProxy(), async (c) => {
     // 2. Fetch carrier tracking
     const trackResp = await fetch(
       `${apiBase}/order/carriers/${encodeURIComponent(carrierId)}/tracking?waybill=${encodeURIComponent(waybill)}`,
-      { headers: { ...headers, 'Accept-Language': 'pl-PL' } },
+      { signal: AbortSignal.timeout(10_000), headers: { ...headers, 'Accept-Language': 'pl-PL' } },
     )
 
     if (!trackResp.ok) {
@@ -675,7 +678,7 @@ allegroRouter.get('/orders/:id/tracking', requireAdminOrProxy(), async (c) => {
       const db = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
       await db.update(orders)
         .set({ trackingNumber: waybill, updatedAt: new Date() })
-        .where(eq(orders.externalId, checkoutFormId))
+        .where(eq(orders.externalId, checkoutFormId!))
     }
 
     return c.json({
@@ -694,7 +697,7 @@ allegroRouter.get('/orders/:id/tracking', requireAdminOrProxy(), async (c) => {
       },
     })
   } catch (err) {
-    console.error('[Allegro] tracking error:', err)
+    console.error('[Allegro] tracking error:', err instanceof Error ? err.message : String(err))
     return c.json({ success: false, error: err instanceof Error ? err.message : 'Błąd' }, 500)
   }
 })

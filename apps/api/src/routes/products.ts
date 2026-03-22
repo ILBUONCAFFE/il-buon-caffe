@@ -12,6 +12,12 @@ export const productsRouter = new Hono<{ Bindings: Env }>()
 // ============================================
 productsRouter.get('/', async (c) => {
   try {
+    // ── Edge cache (Cloudflare Cache API) — 60s TTL ──
+    const cache    = caches.default
+    const cacheKey = new Request(c.req.url)
+    const cached   = await cache.match(cacheKey)
+    if (cached) return cached
+
     const db = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
 
     // Parse query params
@@ -90,9 +96,18 @@ productsRouter.get('/', async (c) => {
       available:      Math.max(0, p.stock - p.reserved),
     }))
 
-    return c.json({ success: true, data, meta: { total, page, limit, totalPages } })
+    const body     = JSON.stringify({ success: true, data, meta: { total, page, limit, totalPages } })
+    const response = new Response(body, {
+      status: 200,
+      headers: {
+        'Content-Type':  'application/json',
+        'Cache-Control': 'public, max-age=60, s-maxage=60',
+      },
+    })
+    c.executionCtx.waitUntil(cache.put(cacheKey, response.clone()))
+    return response
   } catch (error) {
-    console.error('GET /products error:', error)
+    console.error('GET /products error:', error instanceof Error ? error.message : String(error))
     return c.json({ success: false, error: 'Błąd serwera' }, 500)
   }
 })
@@ -103,6 +118,12 @@ productsRouter.get('/', async (c) => {
 // ============================================
 productsRouter.get('/:slug', async (c) => {
   try {
+    // ── Edge cache — 5 min TTL ──
+    const cache    = caches.default
+    const cacheKey = new Request(c.req.url)
+    const cached   = await cache.match(cacheKey)
+    if (cached) return cached
+
     const db   = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
     const slug = c.req.param('slug')
 
@@ -121,7 +142,7 @@ productsRouter.get('/:slug', async (c) => {
       return c.json({ success: false, error: 'Produkt nie znaleziony' }, 404)
     }
 
-    return c.json({
+    const body     = JSON.stringify({
       success: true,
       data: {
         ...product,
@@ -130,8 +151,17 @@ productsRouter.get('/:slug', async (c) => {
         available:      Math.max(0, product.stock - product.reserved),
       },
     })
+    const response = new Response(body, {
+      status: 200,
+      headers: {
+        'Content-Type':  'application/json',
+        'Cache-Control': 'public, max-age=300, s-maxage=300',
+      },
+    })
+    c.executionCtx.waitUntil(cache.put(cacheKey, response.clone()))
+    return response
   } catch (error) {
-    console.error('GET /products/:slug error:', error)
+    console.error('GET /products/:slug error:', error instanceof Error ? error.message : String(error))
     return c.json({ success: false, error: 'Błąd serwera' }, 500)
   }
 })

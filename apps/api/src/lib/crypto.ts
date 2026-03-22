@@ -47,13 +47,13 @@ function isHexCiphertext(text: string): boolean {
 
 /**
  * Decrypt hex string → plain text.
- * If the input is NOT hex ciphertext (e.g. a legacy unencrypted token),
- * returns it as-is to avoid crashing the sync Worker.
+ * Throws if the input is NOT valid hex ciphertext — once an encryption key is
+ * configured, plaintext tokens are rejected. Re-authenticate via Allegro OAuth
+ * to generate a fresh encrypted token.
  */
 export async function decryptText(hex: string, keyHex: string): Promise<string> {
   if (!isHexCiphertext(hex)) {
-    console.warn('[Crypto] Token nie jest zaszyfrowany (plaintext) — zwracam bez zmian. Uruchom ponownie OAuth flow aby zaszyfrować.')
-    return hex
+    throw new Error('[Crypto] Plaintext token encountered with active encryption key. Re-authenticate via Allegro OAuth to re-encrypt the token.')
   }
   const key = await importKey(keyHex)
   const combined = hexToBytes(hex)

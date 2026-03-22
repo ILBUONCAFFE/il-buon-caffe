@@ -4,10 +4,11 @@ import { unstable_cache } from 'next/cache';
 import { productService, type ProductFilters, type FilteredProductsResult } from '@/services/productService';
 import type { Product } from '@/types';
 
-// Cache TTL: 60s for listings, 120s for single products, 300s for categories
-const LIST_TTL = 60;
-const PRODUCT_TTL = 120;
-const CATEGORY_TTL = 300;
+// Cache TTL — admin revalidateTag('products') handles manual invalidation,
+// so longer TTLs are safe: there's no need to re-hit Neon on every page load.
+const LIST_TTL = 300;      // 5 min (was 1 min)
+const PRODUCT_TTL = 3600;  // 1 hour (was 2 min)
+const CATEGORY_TTL = 7200; // 2 hours (was 5 min)
 
 // ── Cached data functions (unstable_cache requires serializable args) ──
 
@@ -72,8 +73,16 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
   return cachedGetBySlug(slug);
 }
 
+const cachedSearch = unstable_cache(
+  async (query: string) => productService.search(query),
+  ['search-products'],
+  { revalidate: 60, tags: ['products'] },
+);
+
 export async function searchProducts(query: string): Promise<Product[]> {
-  return productService.search(query);
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  return cachedSearch(q);
 }
 
 export async function getCategories() {

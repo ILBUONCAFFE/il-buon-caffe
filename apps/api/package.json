@@ -3,7 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "wrangler dev --remote src/index.ts",
+    "dev": "wrangler dev src/index.ts --port 8787",
+    "dev:remote": "wrangler dev --remote src/index.ts",
     "deploy": "wrangler deploy --minify src/index.ts"
   },
   "dependencies": {

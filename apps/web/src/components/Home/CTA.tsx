@@ -116,7 +116,7 @@ export const CTA = () => {
           >
             <div className="relative aspect-square lg:aspect-[4/3] rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
               <iframe
-                src="https://maps.google.com/maps?q=Il+Buon+Caffe,+ul.+Bpa+Czes%C5%82awa+Domina+3%2F6,+75-065+Koszalin&t=&z=15&ie=UTF8&iwloc=&output=embed"
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2334.5129280751567!2d16.178687613014777!3d54.18870151124879!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x4701cd19ce8013ef%3A0x217844af23dcbb8a!2sKawiarnia%20%26%20Delikatesy%20Il%20Boun%20Caffe!5e0!3m2!1spl!2spl!4v1774121913838!5m2!1spl!2spl"
                 width="100%"
                 height="100%"
                 style={{ border: 0, filter: 'grayscale(0.8) contrast(1.1)' }}

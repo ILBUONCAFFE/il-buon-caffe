@@ -23,12 +23,18 @@ interface CookieOptions {
  * Determine if we're in production from the environment or hostname.
  */
 function isProduction(c: Context): boolean {
+  // Always check hostname first — local dev must never use __Host-/Secure cookies
+  // even if NODE_ENV is set to 'production' in .dev.vars / wrangler.json
+  const host = c.req.header('Host') || ''
+  if (host.includes('localhost') || host.includes('127.0.0.1')) return false
+
+  const localDev = (c.env as { LOCAL_DEV?: string }).LOCAL_DEV
+  if (localDev === 'true') return false
+
   const env = (c.env as { NODE_ENV?: string }).NODE_ENV
   if (env) return env === 'production'
-  // In Cloudflare Workers, there's no NODE_ENV by default.
-  // Check the hostname via the request.
-  const host = c.req.header('Host') || ''
-  return !host.includes('localhost') && !host.includes('127.0.0.1')
+
+  return true
 }
 
 /**
@@ -73,10 +79,9 @@ export function setAuthCookies(
   const accessMaxAge = rememberMe ? ACCESS_TOKEN_MAX_AGE_REMEMBER : ACCESS_TOKEN_MAX_AGE
   setCookie(c, cookieName(ACCESS_TOKEN_COOKIE, prod), accessToken, getSecureCookieOptions(accessMaxAge, prod))
   
-  // Set refresh token cookie — restrict path to /api/auth for least-privilege
-  const refreshOptions = getSecureCookieOptions(REFRESH_TOKEN_MAX_AGE, prod)
-  refreshOptions.path = '/api/auth'
-  setCookie(c, cookieName(REFRESH_TOKEN_COOKIE, prod), refreshToken, refreshOptions)
+  // Set refresh token cookie
+  // Note: __Host- prefix requires path=/ — cannot restrict to /api/auth
+  setCookie(c, cookieName(REFRESH_TOKEN_COOKIE, prod), refreshToken, getSecureCookieOptions(REFRESH_TOKEN_MAX_AGE, prod))
 }
 
 /**
@@ -88,8 +93,8 @@ export function clearAuthCookies(c: Context): void {
   
   // Delete both prefixed and non-prefixed cookies for transition safety
   deleteCookie(c, cookieName(ACCESS_TOKEN_COOKIE, prod), { path: '/' })
-  deleteCookie(c, cookieName(REFRESH_TOKEN_COOKIE, prod), { path: '/api/auth' })
-  
+  deleteCookie(c, cookieName(REFRESH_TOKEN_COOKIE, prod), { path: '/' })
+
   // Also clear the un-prefixed variants in case of migration
   if (prod) {
     deleteCookie(c, ACCESS_TOKEN_COOKIE, { path: '/' })

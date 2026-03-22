@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { ShopClient } from "@/components/Shop/ShopClient";
 import { getFilteredProducts } from "@/actions/products";
 
+// ISR: rebuild shop listing every 5 minutes
+export const revalidate = 300;
+
 export const metadata: Metadata = {
   title: "Sklep Online | Il Buon Caffe",
   description: "Przeglądaj naszą pełną ofertę: świeżo palone kawy, wina z renomowanych winnic, oliwy, sery i włoskie słodycze. Zamów z dostawą do domu.",

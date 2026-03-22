@@ -90,9 +90,8 @@ wrangler secret put ALLEGRO_REDIRECT_URI
 wrangler secret put DATABASE_URL
 ```
 
-For staging/production:
 ```bash
-wrangler secret put JWT_SECRET --env production
+wrangler secret put JWT_SECRET
 ```
 
 ## KV Namespace Setup
@@ -141,14 +140,11 @@ Hyperdrive handles connection pooling, caching, and reduces latency to Neon.
 cd apps/api
 wrangler dev
 
-# Deploy to staging
-wrangler deploy --env staging
-
-# Deploy to production
-wrangler deploy --env production
+# Deploy
+wrangler deploy
 
 # Check logs
-wrangler tail --env production
+wrangler tail
 
 # Run via Turborepo (from monorepo root)
 turbo run deploy --filter=api

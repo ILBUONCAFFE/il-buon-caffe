@@ -3,6 +3,7 @@ import { createDb } from '@repo/db/client'
 import { categories, products } from '@repo/db/schema'
 import { eq, and, count, sql } from 'drizzle-orm'
 import type { Env } from '../index'
+import { serverError } from '../lib/request'
 
 export const categoriesRouter = new Hono<{ Bindings: Env }>()
 
@@ -12,6 +13,12 @@ export const categoriesRouter = new Hono<{ Bindings: Env }>()
 // ============================================
 categoriesRouter.get('/', async (c) => {
   try {
+    // ── Edge cache — 10 min TTL (categories change rarely) ──
+    const cache    = caches.default
+    const cacheKey = new Request(c.req.url)
+    const cached   = await cache.match(cacheKey)
+    if (cached) return cached
+
     const db = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
 
     const rows = await db
@@ -47,10 +54,18 @@ categoriesRouter.get('/', async (c) => {
       )
       .orderBy(categories.sortOrder)
 
-    return c.json({ success: true, data: rows })
+    const body     = JSON.stringify({ success: true, data: rows })
+    const response = new Response(body, {
+      status: 200,
+      headers: {
+        'Content-Type':  'application/json',
+        'Cache-Control': 'public, max-age=600, s-maxage=600',
+      },
+    })
+    c.executionCtx.waitUntil(cache.put(cacheKey, response.clone()))
+    return response
   } catch (error) {
-    console.error('GET /categories error:', error)
-    return c.json({ success: false, error: 'Błąd serwera' }, 500)
+    return serverError(c, 'GET /categories', error)
   }
 })
 
@@ -68,12 +83,11 @@ categoriesRouter.get('/:slug', async (c) => {
     })
 
     if (!cat) {
-      return c.json({ success: false, error: 'Kategoria nie znaleziona' }, 404)
+      return c.json({ error: 'Kategoria nie znaleziona' }, 404)
     }
 
     return c.json({ success: true, data: cat })
   } catch (error) {
-    console.error('GET /categories/:slug error:', error)
-    return c.json({ success: false, error: 'Błąd serwera' }, 500)
+    return serverError(c, 'GET /categories/:slug', error)
   }
 })

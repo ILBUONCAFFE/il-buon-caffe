@@ -37,13 +37,15 @@ export function auditLogMiddleware(action: 'view_customer' | 'view_order' | 'exp
       const userAgent = c.req.header('User-Agent') || 'unknown'
       
       // Extract target user ID from request params if available
-      const targetUserId = c.req.param('userId') 
-        ? parseInt(c.req.param('userId')) 
+      const userIdParam = c.req.param('userId')
+      const targetUserId = userIdParam
+        ? parseInt(userIdParam)
         : undefined
-      
+
       // Extract target order ID from request params if available
-      const targetOrderId = c.req.param('orderId')
-        ? parseInt(c.req.param('orderId'))
+      const orderIdParam = c.req.param('orderId')
+      const targetOrderId = orderIdParam
+        ? parseInt(orderIdParam)
         : undefined
       
       await db.insert(auditLog).values({
@@ -61,7 +63,7 @@ export function auditLogMiddleware(action: 'view_customer' | 'view_order' | 'exp
       })
     } catch (error) {
       // Log error but don't fail the request
-      console.error('Audit log error:', error)
+      console.error('Audit log error:', error instanceof Error ? error.message : String(error))
     }
   }
 }
@@ -92,6 +94,6 @@ export async function logAuditEvent(
       details: event.details || null
     })
   } catch (error) {
-    console.error('Audit log error:', error)
+    console.error('Audit log error:', error instanceof Error ? error.message : String(error))
   }
 }
