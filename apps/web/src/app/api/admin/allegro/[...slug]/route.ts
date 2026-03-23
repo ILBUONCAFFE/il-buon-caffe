@@ -23,11 +23,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminSession } from '@/lib/auth/jwt'
 
-// INTERNAL_API_URL is a non-NEXT_PUBLIC_ var so it is NOT baked in at build time —
-// it is read from Cloudflare Workers vars at runtime, which is what we want here.
-const API_ORIGIN = process.env.INTERNAL_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8787'
-const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET ?? ''
-
 // ── Shared proxy logic ────────────────────────────────────────────────────────
 
 async function proxyAllegroRequest(
@@ -35,6 +30,11 @@ async function proxyAllegroRequest(
   slugs: string[],
   method: string,
 ): Promise<NextResponse> {
+  // Read env vars at request time (not module load time) so that
+  // Cloudflare Workers vars are available via process.env.
+  const API_ORIGIN = process.env.INTERNAL_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8787'
+  const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET ?? ''
+
   // Verify the admin session server-side
   const session = await getAdminSession().catch(() => null)
   if (!session) {
