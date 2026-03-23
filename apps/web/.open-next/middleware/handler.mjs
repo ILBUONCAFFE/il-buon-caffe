@@ -737,7 +737,7 @@ var require_edge_runtime_webpack = __commonJS({
         return g.d(b2, { a: b2 }), b2;
       }, g.d = (a2, b2) => {
         for (var c2 in b2) g.o(b2, c2) && !g.o(a2, c2) && Object.defineProperty(a2, c2, { enumerable: true, get: b2[c2] });
-      }, g.e = () => Promise.resolve(), g.g = function() {
+      }, g.g = function() {
         if ("object" == typeof globalThis) return globalThis;
         try {
           return this || Function("return this")();
@@ -746,11 +746,7 @@ var require_edge_runtime_webpack = __commonJS({
         }
       }(), g.o = (a2, b2) => Object.prototype.hasOwnProperty.call(a2, b2), g.r = (a2) => {
         "u" > typeof Symbol && Symbol.toStringTag && Object.defineProperty(a2, Symbol.toStringTag, { value: "Module" }), Object.defineProperty(a2, "__esModule", { value: true });
-      }, g.U = function(a2) {
-        var b2 = new URL(a2, "x:/"), c2 = {};
-        for (var d2 in b2) c2[d2] = b2[d2];
-        for (var d2 in c2.href = a2, c2.pathname = a2.replace(/[?#].*/, ""), c2.origin = c2.protocol = "", c2.toString = c2.toJSON = () => a2, c2) Object.defineProperty(this, d2, { enumerable: true, configurable: true, value: c2[d2] });
-      }, g.U.prototype = URL.prototype, b = { 149: 0 }, g.O.j = (a2) => 0 === b[a2], c = (a2, c2) => {
+      }, b = { 149: 0 }, g.O.j = (a2) => 0 === b[a2], c = (a2, c2) => {
         var d2, e2, [f2, h, i] = c2, j = 0;
         if (f2.some((a3) => 0 !== b[a3])) {
           for (d2 in h) g.o(h, d2) && (g.m[d2] = h[d2]);
@@ -785,1784 +781,7 @@ var init_node_async_hooks = __esm({
 var require_middleware = __commonJS({
   ".next/server/src/middleware.js"() {
     "use strict";
-    (self.webpackChunk_N_E = self.webpackChunk_N_E || []).push([[550], { 372: (a, b, c) => {
-      "use strict";
-      let d, e, f;
-      c.r(b), c.d(b, { default: () => b2 });
-      var g, h, i, j, k, l, m, n, o, p, q, r, s = {};
-      async function t() {
-        return "_ENTRIES" in globalThis && _ENTRIES.middleware_instrumentation && await _ENTRIES.middleware_instrumentation;
-      }
-      c.r(s), c.d(s, { config: () => bZ, middleware: () => bY });
-      let u = null;
-      async function v() {
-        if ("phase-production-build" === process.env.NEXT_PHASE) return;
-        u || (u = t());
-        let a10 = await u;
-        if (null == a10 ? void 0 : a10.register) try {
-          await a10.register();
-        } catch (a11) {
-          throw a11.message = `An error occurred while loading instrumentation hook: ${a11.message}`, a11;
-        }
-      }
-      async function w(...a10) {
-        let b3 = await t();
-        try {
-          var c2;
-          await (null == b3 || null == (c2 = b3.onRequestError) ? void 0 : c2.call(b3, ...a10));
-        } catch (a11) {
-          console.error("Error in instrumentation.onRequestError:", a11);
-        }
-      }
-      let x = null;
-      function y() {
-        return x || (x = v()), x;
-      }
-      function z(a10) {
-        return `The edge runtime does not support Node.js '${a10}' module.
-Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime`;
-      }
-      process !== c.g.process && (process.env = c.g.process.env, c.g.process = process);
-      try {
-        Object.defineProperty(globalThis, "__import_unsupported", { value: function(a10) {
-          let b3 = new Proxy(function() {
-          }, { get(b4, c2) {
-            if ("then" === c2) return {};
-            throw Object.defineProperty(Error(z(a10)), "__NEXT_ERROR_CODE", { value: "E394", enumerable: false, configurable: true });
-          }, construct() {
-            throw Object.defineProperty(Error(z(a10)), "__NEXT_ERROR_CODE", { value: "E394", enumerable: false, configurable: true });
-          }, apply(c2, d2, e2) {
-            if ("function" == typeof e2[0]) return e2[0](b3);
-            throw Object.defineProperty(Error(z(a10)), "__NEXT_ERROR_CODE", { value: "E394", enumerable: false, configurable: true });
-          } });
-          return new Proxy({}, { get: () => b3 });
-        }, enumerable: false, configurable: false });
-      } catch {
-      }
-      y();
-      class A extends Error {
-        constructor({ page: a10 }) {
-          super(`The middleware "${a10}" accepts an async API directly with the form:
-  
-  export function middleware(request, event) {
-    return NextResponse.redirect('/new-location')
-  }
-  
-  Read more: https://nextjs.org/docs/messages/middleware-new-signature
-  `);
-        }
-      }
-      class B extends Error {
-        constructor() {
-          super(`The request.page has been deprecated in favour of \`URLPattern\`.
-  Read more: https://nextjs.org/docs/messages/middleware-request-page
-  `);
-        }
-      }
-      class C extends Error {
-        constructor() {
-          super(`The request.ua has been removed in favour of \`userAgent\` function.
-  Read more: https://nextjs.org/docs/messages/middleware-parse-user-agent
-  `);
-        }
-      }
-      let D = "_N_T_", E = { shared: "shared", reactServerComponents: "rsc", serverSideRendering: "ssr", actionBrowser: "action-browser", apiNode: "api-node", apiEdge: "api-edge", middleware: "middleware", instrument: "instrument", edgeAsset: "edge-asset", appPagesBrowser: "app-pages-browser", pagesDirBrowser: "pages-dir-browser", pagesDirEdge: "pages-dir-edge", pagesDirNode: "pages-dir-node" };
-      function F(a10) {
-        var b3, c2, d2, e2, f2, g2 = [], h2 = 0;
-        function i2() {
-          for (; h2 < a10.length && /\s/.test(a10.charAt(h2)); ) h2 += 1;
-          return h2 < a10.length;
-        }
-        for (; h2 < a10.length; ) {
-          for (b3 = h2, f2 = false; i2(); ) if ("," === (c2 = a10.charAt(h2))) {
-            for (d2 = h2, h2 += 1, i2(), e2 = h2; h2 < a10.length && "=" !== (c2 = a10.charAt(h2)) && ";" !== c2 && "," !== c2; ) h2 += 1;
-            h2 < a10.length && "=" === a10.charAt(h2) ? (f2 = true, h2 = e2, g2.push(a10.substring(b3, d2)), b3 = h2) : h2 = d2 + 1;
-          } else h2 += 1;
-          (!f2 || h2 >= a10.length) && g2.push(a10.substring(b3, a10.length));
-        }
-        return g2;
-      }
-      function G(a10) {
-        let b3 = {}, c2 = [];
-        if (a10) for (let [d2, e2] of a10.entries()) "set-cookie" === d2.toLowerCase() ? (c2.push(...F(e2)), b3[d2] = 1 === c2.length ? c2[0] : c2) : b3[d2] = e2;
-        return b3;
-      }
-      function H(a10) {
-        try {
-          return String(new URL(String(a10)));
-        } catch (b3) {
-          throw Object.defineProperty(Error(`URL is malformed "${String(a10)}". Please use only absolute URLs - https://nextjs.org/docs/messages/middleware-relative-urls`, { cause: b3 }), "__NEXT_ERROR_CODE", { value: "E61", enumerable: false, configurable: true });
-        }
-      }
-      ({ ...E, GROUP: { builtinReact: [E.reactServerComponents, E.actionBrowser], serverOnly: [E.reactServerComponents, E.actionBrowser, E.instrument, E.middleware], neutralTarget: [E.apiNode, E.apiEdge], clientOnly: [E.serverSideRendering, E.appPagesBrowser], bundled: [E.reactServerComponents, E.actionBrowser, E.serverSideRendering, E.appPagesBrowser, E.shared, E.instrument, E.middleware], appPages: [E.reactServerComponents, E.serverSideRendering, E.appPagesBrowser, E.actionBrowser] } });
-      let I = Symbol("response"), J = Symbol("passThrough"), K = Symbol("waitUntil");
-      class L {
-        constructor(a10, b3) {
-          this[J] = false, this[K] = b3 ? { kind: "external", function: b3 } : { kind: "internal", promises: [] };
-        }
-        respondWith(a10) {
-          this[I] || (this[I] = Promise.resolve(a10));
-        }
-        passThroughOnException() {
-          this[J] = true;
-        }
-        waitUntil(a10) {
-          if ("external" === this[K].kind) return (0, this[K].function)(a10);
-          this[K].promises.push(a10);
-        }
-      }
-      class M extends L {
-        constructor(a10) {
-          var b3;
-          super(a10.request, null == (b3 = a10.context) ? void 0 : b3.waitUntil), this.sourcePage = a10.page;
-        }
-        get request() {
-          throw Object.defineProperty(new A({ page: this.sourcePage }), "__NEXT_ERROR_CODE", { value: "E394", enumerable: false, configurable: true });
-        }
-        respondWith() {
-          throw Object.defineProperty(new A({ page: this.sourcePage }), "__NEXT_ERROR_CODE", { value: "E394", enumerable: false, configurable: true });
-        }
-      }
-      function N(a10) {
-        return a10.replace(/\/$/, "") || "/";
-      }
-      function O(a10) {
-        let b3 = a10.indexOf("#"), c2 = a10.indexOf("?"), d2 = c2 > -1 && (b3 < 0 || c2 < b3);
-        return d2 || b3 > -1 ? { pathname: a10.substring(0, d2 ? c2 : b3), query: d2 ? a10.substring(c2, b3 > -1 ? b3 : void 0) : "", hash: b3 > -1 ? a10.slice(b3) : "" } : { pathname: a10, query: "", hash: "" };
-      }
-      function P(a10, b3) {
-        if (!a10.startsWith("/") || !b3) return a10;
-        let { pathname: c2, query: d2, hash: e2 } = O(a10);
-        return `${b3}${c2}${d2}${e2}`;
-      }
-      function Q(a10, b3) {
-        if (!a10.startsWith("/") || !b3) return a10;
-        let { pathname: c2, query: d2, hash: e2 } = O(a10);
-        return `${c2}${b3}${d2}${e2}`;
-      }
-      function R(a10, b3) {
-        if ("string" != typeof a10) return false;
-        let { pathname: c2 } = O(a10);
-        return c2 === b3 || c2.startsWith(b3 + "/");
-      }
-      let S = /* @__PURE__ */ new WeakMap();
-      function T(a10, b3) {
-        let c2;
-        if (!b3) return { pathname: a10 };
-        let d2 = S.get(b3);
-        d2 || (d2 = b3.map((a11) => a11.toLowerCase()), S.set(b3, d2));
-        let e2 = a10.split("/", 2);
-        if (!e2[1]) return { pathname: a10 };
-        let f2 = e2[1].toLowerCase(), g2 = d2.indexOf(f2);
-        return g2 < 0 ? { pathname: a10 } : (c2 = b3[g2], { pathname: a10 = a10.slice(c2.length + 1) || "/", detectedLocale: c2 });
-      }
-      let U = /(?!^https?:\/\/)(127(?:\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}|\[::1\]|localhost)/;
-      function V(a10, b3) {
-        return new URL(String(a10).replace(U, "localhost"), b3 && String(b3).replace(U, "localhost"));
-      }
-      let W = Symbol("NextURLInternal");
-      class X {
-        constructor(a10, b3, c2) {
-          let d2, e2;
-          "object" == typeof b3 && "pathname" in b3 || "string" == typeof b3 ? (d2 = b3, e2 = c2 || {}) : e2 = c2 || b3 || {}, this[W] = { url: V(a10, d2 ?? e2.base), options: e2, basePath: "" }, this.analyze();
-        }
-        analyze() {
-          var a10, b3, c2, d2, e2;
-          let f2 = function(a11, b4) {
-            let { basePath: c3, i18n: d3, trailingSlash: e3 } = b4.nextConfig ?? {}, f3 = { pathname: a11, trailingSlash: "/" !== a11 ? a11.endsWith("/") : e3 };
-            c3 && R(f3.pathname, c3) && (f3.pathname = function(a12, b5) {
-              if (!R(a12, b5)) return a12;
-              let c4 = a12.slice(b5.length);
-              return c4.startsWith("/") ? c4 : `/${c4}`;
-            }(f3.pathname, c3), f3.basePath = c3);
-            let g3 = f3.pathname;
-            if (f3.pathname.startsWith("/_next/data/") && f3.pathname.endsWith(".json")) {
-              let a12 = f3.pathname.replace(/^\/_next\/data\//, "").replace(/\.json$/, "").split("/");
-              f3.buildId = a12[0], g3 = "index" !== a12[1] ? `/${a12.slice(1).join("/")}` : "/", true === b4.parseData && (f3.pathname = g3);
-            }
-            if (d3) {
-              let a12 = b4.i18nProvider ? b4.i18nProvider.analyze(f3.pathname) : T(f3.pathname, d3.locales);
-              f3.locale = a12.detectedLocale, f3.pathname = a12.pathname ?? f3.pathname, !a12.detectedLocale && f3.buildId && (a12 = b4.i18nProvider ? b4.i18nProvider.analyze(g3) : T(g3, d3.locales)).detectedLocale && (f3.locale = a12.detectedLocale);
-            }
-            return f3;
-          }(this[W].url.pathname, { nextConfig: this[W].options.nextConfig, parseData: true, i18nProvider: this[W].options.i18nProvider }), g2 = function(a11, b4) {
-            let c3;
-            if (b4?.host && !Array.isArray(b4.host)) c3 = b4.host.toString().split(":", 1)[0];
-            else {
-              if (!a11.hostname) return;
-              c3 = a11.hostname;
-            }
-            return c3.toLowerCase();
-          }(this[W].url, this[W].options.headers);
-          this[W].domainLocale = this[W].options.i18nProvider ? this[W].options.i18nProvider.detectDomainLocale(g2) : function(a11, b4, c3) {
-            if (a11) {
-              for (let d3 of (c3 && (c3 = c3.toLowerCase()), a11)) if (b4 === d3.domain?.split(":", 1)[0].toLowerCase() || c3 === d3.defaultLocale.toLowerCase() || d3.locales?.some((a12) => a12.toLowerCase() === c3)) return d3;
-            }
-          }(null == (b3 = this[W].options.nextConfig) || null == (a10 = b3.i18n) ? void 0 : a10.domains, g2);
-          let h2 = (null == (c2 = this[W].domainLocale) ? void 0 : c2.defaultLocale) || (null == (e2 = this[W].options.nextConfig) || null == (d2 = e2.i18n) ? void 0 : d2.defaultLocale);
-          this[W].url.pathname = f2.pathname, this[W].defaultLocale = h2, this[W].basePath = f2.basePath ?? "", this[W].buildId = f2.buildId, this[W].locale = f2.locale ?? h2, this[W].trailingSlash = f2.trailingSlash;
-        }
-        formatPathname() {
-          var a10;
-          let b3;
-          return b3 = function(a11, b4, c2, d2) {
-            if (!b4 || b4 === c2) return a11;
-            let e2 = a11.toLowerCase();
-            return !d2 && (R(e2, "/api") || R(e2, `/${b4.toLowerCase()}`)) ? a11 : P(a11, `/${b4}`);
-          }((a10 = { basePath: this[W].basePath, buildId: this[W].buildId, defaultLocale: this[W].options.forceLocale ? void 0 : this[W].defaultLocale, locale: this[W].locale, pathname: this[W].url.pathname, trailingSlash: this[W].trailingSlash }).pathname, a10.locale, a10.buildId ? void 0 : a10.defaultLocale, a10.ignorePrefix), (a10.buildId || !a10.trailingSlash) && (b3 = N(b3)), a10.buildId && (b3 = Q(P(b3, `/_next/data/${a10.buildId}`), "/" === a10.pathname ? "index.json" : ".json")), b3 = P(b3, a10.basePath), !a10.buildId && a10.trailingSlash ? b3.endsWith("/") ? b3 : Q(b3, "/") : N(b3);
-        }
-        formatSearch() {
-          return this[W].url.search;
-        }
-        get buildId() {
-          return this[W].buildId;
-        }
-        set buildId(a10) {
-          this[W].buildId = a10;
-        }
-        get locale() {
-          return this[W].locale ?? "";
-        }
-        set locale(a10) {
-          var b3, c2;
-          if (!this[W].locale || !(null == (c2 = this[W].options.nextConfig) || null == (b3 = c2.i18n) ? void 0 : b3.locales.includes(a10))) throw Object.defineProperty(TypeError(`The NextURL configuration includes no locale "${a10}"`), "__NEXT_ERROR_CODE", { value: "E597", enumerable: false, configurable: true });
-          this[W].locale = a10;
-        }
-        get defaultLocale() {
-          return this[W].defaultLocale;
-        }
-        get domainLocale() {
-          return this[W].domainLocale;
-        }
-        get searchParams() {
-          return this[W].url.searchParams;
-        }
-        get host() {
-          return this[W].url.host;
-        }
-        set host(a10) {
-          this[W].url.host = a10;
-        }
-        get hostname() {
-          return this[W].url.hostname;
-        }
-        set hostname(a10) {
-          this[W].url.hostname = a10;
-        }
-        get port() {
-          return this[W].url.port;
-        }
-        set port(a10) {
-          this[W].url.port = a10;
-        }
-        get protocol() {
-          return this[W].url.protocol;
-        }
-        set protocol(a10) {
-          this[W].url.protocol = a10;
-        }
-        get href() {
-          let a10 = this.formatPathname(), b3 = this.formatSearch();
-          return `${this.protocol}//${this.host}${a10}${b3}${this.hash}`;
-        }
-        set href(a10) {
-          this[W].url = V(a10), this.analyze();
-        }
-        get origin() {
-          return this[W].url.origin;
-        }
-        get pathname() {
-          return this[W].url.pathname;
-        }
-        set pathname(a10) {
-          this[W].url.pathname = a10;
-        }
-        get hash() {
-          return this[W].url.hash;
-        }
-        set hash(a10) {
-          this[W].url.hash = a10;
-        }
-        get search() {
-          return this[W].url.search;
-        }
-        set search(a10) {
-          this[W].url.search = a10;
-        }
-        get password() {
-          return this[W].url.password;
-        }
-        set password(a10) {
-          this[W].url.password = a10;
-        }
-        get username() {
-          return this[W].url.username;
-        }
-        set username(a10) {
-          this[W].url.username = a10;
-        }
-        get basePath() {
-          return this[W].basePath;
-        }
-        set basePath(a10) {
-          this[W].basePath = a10.startsWith("/") ? a10 : `/${a10}`;
-        }
-        toString() {
-          return this.href;
-        }
-        toJSON() {
-          return this.href;
-        }
-        [Symbol.for("edge-runtime.inspect.custom")]() {
-          return { href: this.href, origin: this.origin, protocol: this.protocol, username: this.username, password: this.password, host: this.host, hostname: this.hostname, port: this.port, pathname: this.pathname, search: this.search, searchParams: this.searchParams, hash: this.hash };
-        }
-        clone() {
-          return new X(String(this), this[W].options);
-        }
-      }
-      var Y = c(6508);
-      let Z = Symbol("internal request");
-      class $ extends Request {
-        constructor(a10, b3 = {}) {
-          const c2 = "string" != typeof a10 && "url" in a10 ? a10.url : String(a10);
-          H(c2), a10 instanceof Request ? super(a10, b3) : super(c2, b3);
-          const d2 = new X(c2, { headers: G(this.headers), nextConfig: b3.nextConfig });
-          this[Z] = { cookies: new Y.RequestCookies(this.headers), nextUrl: d2, url: d2.toString() };
-        }
-        [Symbol.for("edge-runtime.inspect.custom")]() {
-          return { cookies: this.cookies, nextUrl: this.nextUrl, url: this.url, bodyUsed: this.bodyUsed, cache: this.cache, credentials: this.credentials, destination: this.destination, headers: Object.fromEntries(this.headers), integrity: this.integrity, keepalive: this.keepalive, method: this.method, mode: this.mode, redirect: this.redirect, referrer: this.referrer, referrerPolicy: this.referrerPolicy, signal: this.signal };
-        }
-        get cookies() {
-          return this[Z].cookies;
-        }
-        get nextUrl() {
-          return this[Z].nextUrl;
-        }
-        get page() {
-          throw new B();
-        }
-        get ua() {
-          throw new C();
-        }
-        get url() {
-          return this[Z].url;
-        }
-      }
-      class _ {
-        static get(a10, b3, c2) {
-          let d2 = Reflect.get(a10, b3, c2);
-          return "function" == typeof d2 ? d2.bind(a10) : d2;
-        }
-        static set(a10, b3, c2, d2) {
-          return Reflect.set(a10, b3, c2, d2);
-        }
-        static has(a10, b3) {
-          return Reflect.has(a10, b3);
-        }
-        static deleteProperty(a10, b3) {
-          return Reflect.deleteProperty(a10, b3);
-        }
-      }
-      let aa = Symbol("internal response"), ab = /* @__PURE__ */ new Set([301, 302, 303, 307, 308]);
-      function ac(a10, b3) {
-        var c2;
-        if (null == a10 || null == (c2 = a10.request) ? void 0 : c2.headers) {
-          if (!(a10.request.headers instanceof Headers)) throw Object.defineProperty(Error("request.headers must be an instance of Headers"), "__NEXT_ERROR_CODE", { value: "E119", enumerable: false, configurable: true });
-          let c3 = [];
-          for (let [d2, e2] of a10.request.headers) b3.set("x-middleware-request-" + d2, e2), c3.push(d2);
-          b3.set("x-middleware-override-headers", c3.join(","));
-        }
-      }
-      class ad extends Response {
-        constructor(a10, b3 = {}) {
-          super(a10, b3);
-          const c2 = this.headers, d2 = new Proxy(new Y.ResponseCookies(c2), { get(a11, d3, e2) {
-            switch (d3) {
-              case "delete":
-              case "set":
-                return (...e3) => {
-                  let f2 = Reflect.apply(a11[d3], a11, e3), g2 = new Headers(c2);
-                  return f2 instanceof Y.ResponseCookies && c2.set("x-middleware-set-cookie", f2.getAll().map((a12) => (0, Y.stringifyCookie)(a12)).join(",")), ac(b3, g2), f2;
-                };
-              default:
-                return _.get(a11, d3, e2);
-            }
-          } });
-          this[aa] = { cookies: d2, url: b3.url ? new X(b3.url, { headers: G(c2), nextConfig: b3.nextConfig }) : void 0 };
-        }
-        [Symbol.for("edge-runtime.inspect.custom")]() {
-          return { cookies: this.cookies, url: this.url, body: this.body, bodyUsed: this.bodyUsed, headers: Object.fromEntries(this.headers), ok: this.ok, redirected: this.redirected, status: this.status, statusText: this.statusText, type: this.type };
-        }
-        get cookies() {
-          return this[aa].cookies;
-        }
-        static json(a10, b3) {
-          let c2 = Response.json(a10, b3);
-          return new ad(c2.body, c2);
-        }
-        static redirect(a10, b3) {
-          let c2 = "number" == typeof b3 ? b3 : (null == b3 ? void 0 : b3.status) ?? 307;
-          if (!ab.has(c2)) throw Object.defineProperty(RangeError('Failed to execute "redirect" on "response": Invalid status code'), "__NEXT_ERROR_CODE", { value: "E529", enumerable: false, configurable: true });
-          let d2 = "object" == typeof b3 ? b3 : {}, e2 = new Headers(null == d2 ? void 0 : d2.headers);
-          return e2.set("Location", H(a10)), new ad(null, { ...d2, headers: e2, status: c2 });
-        }
-        static rewrite(a10, b3) {
-          let c2 = new Headers(null == b3 ? void 0 : b3.headers);
-          return c2.set("x-middleware-rewrite", H(a10)), ac(b3, c2), new ad(null, { ...b3, headers: c2 });
-        }
-        static next(a10) {
-          let b3 = new Headers(null == a10 ? void 0 : a10.headers);
-          return b3.set("x-middleware-next", "1"), ac(a10, b3), new ad(null, { ...a10, headers: b3 });
-        }
-      }
-      function ae(a10, b3) {
-        let c2 = "string" == typeof b3 ? new URL(b3) : b3, d2 = new URL(a10, b3), e2 = d2.origin === c2.origin;
-        return { url: e2 ? d2.toString().slice(c2.origin.length) : d2.toString(), isRelative: e2 };
-      }
-      let af = "next-router-prefetch", ag = ["rsc", "next-router-state-tree", af, "next-hmr-refresh", "next-router-segment-prefetch"], ah = "_rsc";
-      class ai extends Error {
-        constructor() {
-          super("Headers cannot be modified. Read more: https://nextjs.org/docs/app/api-reference/functions/headers");
-        }
-        static callable() {
-          throw new ai();
-        }
-      }
-      class aj extends Headers {
-        constructor(a10) {
-          super(), this.headers = new Proxy(a10, { get(b3, c2, d2) {
-            if ("symbol" == typeof c2) return _.get(b3, c2, d2);
-            let e2 = c2.toLowerCase(), f2 = Object.keys(a10).find((a11) => a11.toLowerCase() === e2);
-            if (void 0 !== f2) return _.get(b3, f2, d2);
-          }, set(b3, c2, d2, e2) {
-            if ("symbol" == typeof c2) return _.set(b3, c2, d2, e2);
-            let f2 = c2.toLowerCase(), g2 = Object.keys(a10).find((a11) => a11.toLowerCase() === f2);
-            return _.set(b3, g2 ?? c2, d2, e2);
-          }, has(b3, c2) {
-            if ("symbol" == typeof c2) return _.has(b3, c2);
-            let d2 = c2.toLowerCase(), e2 = Object.keys(a10).find((a11) => a11.toLowerCase() === d2);
-            return void 0 !== e2 && _.has(b3, e2);
-          }, deleteProperty(b3, c2) {
-            if ("symbol" == typeof c2) return _.deleteProperty(b3, c2);
-            let d2 = c2.toLowerCase(), e2 = Object.keys(a10).find((a11) => a11.toLowerCase() === d2);
-            return void 0 === e2 || _.deleteProperty(b3, e2);
-          } });
-        }
-        static seal(a10) {
-          return new Proxy(a10, { get(a11, b3, c2) {
-            switch (b3) {
-              case "append":
-              case "delete":
-              case "set":
-                return ai.callable;
-              default:
-                return _.get(a11, b3, c2);
-            }
-          } });
-        }
-        merge(a10) {
-          return Array.isArray(a10) ? a10.join(", ") : a10;
-        }
-        static from(a10) {
-          return a10 instanceof Headers ? a10 : new aj(a10);
-        }
-        append(a10, b3) {
-          let c2 = this.headers[a10];
-          "string" == typeof c2 ? this.headers[a10] = [c2, b3] : Array.isArray(c2) ? c2.push(b3) : this.headers[a10] = b3;
-        }
-        delete(a10) {
-          delete this.headers[a10];
-        }
-        get(a10) {
-          let b3 = this.headers[a10];
-          return void 0 !== b3 ? this.merge(b3) : null;
-        }
-        has(a10) {
-          return void 0 !== this.headers[a10];
-        }
-        set(a10, b3) {
-          this.headers[a10] = b3;
-        }
-        forEach(a10, b3) {
-          for (let [c2, d2] of this.entries()) a10.call(b3, d2, c2, this);
-        }
-        *entries() {
-          for (let a10 of Object.keys(this.headers)) {
-            let b3 = a10.toLowerCase(), c2 = this.get(b3);
-            yield [b3, c2];
-          }
-        }
-        *keys() {
-          for (let a10 of Object.keys(this.headers)) {
-            let b3 = a10.toLowerCase();
-            yield b3;
-          }
-        }
-        *values() {
-          for (let a10 of Object.keys(this.headers)) {
-            let b3 = this.get(a10);
-            yield b3;
-          }
-        }
-        [Symbol.iterator]() {
-          return this.entries();
-        }
-      }
-      var ak = c(6975);
-      class al extends Error {
-        constructor() {
-          super("Cookies can only be modified in a Server Action or Route Handler. Read more: https://nextjs.org/docs/app/api-reference/functions/cookies#options");
-        }
-        static callable() {
-          throw new al();
-        }
-      }
-      class am {
-        static seal(a10) {
-          return new Proxy(a10, { get(a11, b3, c2) {
-            switch (b3) {
-              case "clear":
-              case "delete":
-              case "set":
-                return al.callable;
-              default:
-                return _.get(a11, b3, c2);
-            }
-          } });
-        }
-      }
-      let an = Symbol.for("next.mutated.cookies");
-      class ao {
-        static wrap(a10, b3) {
-          let c2 = new Y.ResponseCookies(new Headers());
-          for (let b4 of a10.getAll()) c2.set(b4);
-          let d2 = [], e2 = /* @__PURE__ */ new Set(), f2 = () => {
-            let a11 = ak.I.getStore();
-            if (a11 && (a11.pathWasRevalidated = 1), d2 = c2.getAll().filter((a12) => e2.has(a12.name)), b3) {
-              let a12 = [];
-              for (let b4 of d2) {
-                let c3 = new Y.ResponseCookies(new Headers());
-                c3.set(b4), a12.push(c3.toString());
-              }
-              b3(a12);
-            }
-          }, g2 = new Proxy(c2, { get(a11, b4, c3) {
-            switch (b4) {
-              case an:
-                return d2;
-              case "delete":
-                return function(...b5) {
-                  e2.add("string" == typeof b5[0] ? b5[0] : b5[0].name);
-                  try {
-                    return a11.delete(...b5), g2;
-                  } finally {
-                    f2();
-                  }
-                };
-              case "set":
-                return function(...b5) {
-                  e2.add("string" == typeof b5[0] ? b5[0] : b5[0].name);
-                  try {
-                    return a11.set(...b5), g2;
-                  } finally {
-                    f2();
-                  }
-                };
-              default:
-                return _.get(a11, b4, c3);
-            }
-          } });
-          return g2;
-        }
-      }
-      function ap(a10, b3) {
-        if ("action" !== a10.phase) throw new al();
-      }
-      var aq = ((g = aq || {}).handleRequest = "BaseServer.handleRequest", g.run = "BaseServer.run", g.pipe = "BaseServer.pipe", g.getStaticHTML = "BaseServer.getStaticHTML", g.render = "BaseServer.render", g.renderToResponseWithComponents = "BaseServer.renderToResponseWithComponents", g.renderToResponse = "BaseServer.renderToResponse", g.renderToHTML = "BaseServer.renderToHTML", g.renderError = "BaseServer.renderError", g.renderErrorToResponse = "BaseServer.renderErrorToResponse", g.renderErrorToHTML = "BaseServer.renderErrorToHTML", g.render404 = "BaseServer.render404", g), ar = ((h = ar || {}).loadDefaultErrorComponents = "LoadComponents.loadDefaultErrorComponents", h.loadComponents = "LoadComponents.loadComponents", h), as = ((i = as || {}).getRequestHandler = "NextServer.getRequestHandler", i.getRequestHandlerWithMetadata = "NextServer.getRequestHandlerWithMetadata", i.getServer = "NextServer.getServer", i.getServerRequestHandler = "NextServer.getServerRequestHandler", i.createServer = "createServer.createServer", i), at = ((j = at || {}).compression = "NextNodeServer.compression", j.getBuildId = "NextNodeServer.getBuildId", j.createComponentTree = "NextNodeServer.createComponentTree", j.clientComponentLoading = "NextNodeServer.clientComponentLoading", j.getLayoutOrPageModule = "NextNodeServer.getLayoutOrPageModule", j.generateStaticRoutes = "NextNodeServer.generateStaticRoutes", j.generateFsStaticRoutes = "NextNodeServer.generateFsStaticRoutes", j.generatePublicRoutes = "NextNodeServer.generatePublicRoutes", j.generateImageRoutes = "NextNodeServer.generateImageRoutes.route", j.sendRenderResult = "NextNodeServer.sendRenderResult", j.proxyRequest = "NextNodeServer.proxyRequest", j.runApi = "NextNodeServer.runApi", j.render = "NextNodeServer.render", j.renderHTML = "NextNodeServer.renderHTML", j.imageOptimizer = "NextNodeServer.imageOptimizer", j.getPagePath = "NextNodeServer.getPagePath", j.getRoutesManifest = "NextNodeServer.getRoutesManifest", j.findPageComponents = "NextNodeServer.findPageComponents", j.getFontManifest = "NextNodeServer.getFontManifest", j.getServerComponentManifest = "NextNodeServer.getServerComponentManifest", j.getRequestHandler = "NextNodeServer.getRequestHandler", j.renderToHTML = "NextNodeServer.renderToHTML", j.renderError = "NextNodeServer.renderError", j.renderErrorToHTML = "NextNodeServer.renderErrorToHTML", j.render404 = "NextNodeServer.render404", j.startResponse = "NextNodeServer.startResponse", j.route = "route", j.onProxyReq = "onProxyReq", j.apiResolver = "apiResolver", j.internalFetch = "internalFetch", j), au = ((k = au || {}).startServer = "startServer.startServer", k), av = ((l = av || {}).getServerSideProps = "Render.getServerSideProps", l.getStaticProps = "Render.getStaticProps", l.renderToString = "Render.renderToString", l.renderDocument = "Render.renderDocument", l.createBodyResult = "Render.createBodyResult", l), aw = ((m = aw || {}).renderToString = "AppRender.renderToString", m.renderToReadableStream = "AppRender.renderToReadableStream", m.getBodyResult = "AppRender.getBodyResult", m.fetch = "AppRender.fetch", m), ax = ((n = ax || {}).executeRoute = "Router.executeRoute", n), ay = ((o = ay || {}).runHandler = "Node.runHandler", o), az = ((p = az || {}).runHandler = "AppRouteRouteHandlers.runHandler", p), aA = ((q = aA || {}).generateMetadata = "ResolveMetadata.generateMetadata", q.generateViewport = "ResolveMetadata.generateViewport", q), aB = ((r = aB || {}).execute = "Middleware.execute", r);
-      let aC = /* @__PURE__ */ new Set(["Middleware.execute", "BaseServer.handleRequest", "Render.getServerSideProps", "Render.getStaticProps", "AppRender.fetch", "AppRender.getBodyResult", "Render.renderDocument", "Node.runHandler", "AppRouteRouteHandlers.runHandler", "ResolveMetadata.generateMetadata", "ResolveMetadata.generateViewport", "NextNodeServer.createComponentTree", "NextNodeServer.findPageComponents", "NextNodeServer.getLayoutOrPageModule", "NextNodeServer.startResponse", "NextNodeServer.clientComponentLoading"]), aD = /* @__PURE__ */ new Set(["NextNodeServer.findPageComponents", "NextNodeServer.createComponentTree", "NextNodeServer.clientComponentLoading"]);
-      function aE(a10) {
-        return null !== a10 && "object" == typeof a10 && "then" in a10 && "function" == typeof a10.then;
-      }
-      let aF = process.env.NEXT_OTEL_PERFORMANCE_PREFIX, { context: aG, propagation: aH, trace: aI, SpanStatusCode: aJ, SpanKind: aK, ROOT_CONTEXT: aL } = d = c(6076);
-      class aM extends Error {
-        constructor(a10, b3) {
-          super(), this.bubble = a10, this.result = b3;
-        }
-      }
-      let aN = (a10, b3) => {
-        "object" == typeof b3 && null !== b3 && b3 instanceof aM && b3.bubble ? a10.setAttribute("next.bubble", true) : (b3 && (a10.recordException(b3), a10.setAttribute("error.type", b3.name)), a10.setStatus({ code: aJ.ERROR, message: null == b3 ? void 0 : b3.message })), a10.end();
-      }, aO = /* @__PURE__ */ new Map(), aP = d.createContextKey("next.rootSpanId"), aQ = 0, aR = { set(a10, b3, c2) {
-        a10.push({ key: b3, value: c2 });
-      } };
-      class aS {
-        getTracerInstance() {
-          return aI.getTracer("next.js", "0.0.1");
-        }
-        getContext() {
-          return aG;
-        }
-        getTracePropagationData() {
-          let a10 = aG.active(), b3 = [];
-          return aH.inject(a10, b3, aR), b3;
-        }
-        getActiveScopeSpan() {
-          return aI.getSpan(null == aG ? void 0 : aG.active());
-        }
-        withPropagatedContext(a10, b3, c2) {
-          let d2 = aG.active();
-          if (aI.getSpanContext(d2)) return b3();
-          let e2 = aH.extract(d2, a10, c2);
-          return aG.with(e2, b3);
-        }
-        trace(...a10) {
-          let [b3, c2, d2] = a10, { fn: e2, options: f2 } = "function" == typeof c2 ? { fn: c2, options: {} } : { fn: d2, options: { ...c2 } }, g2 = f2.spanName ?? b3;
-          if (!aC.has(b3) && "1" !== process.env.NEXT_OTEL_VERBOSE || f2.hideSpan) return e2();
-          let h2 = this.getSpanContext((null == f2 ? void 0 : f2.parentSpan) ?? this.getActiveScopeSpan());
-          h2 || (h2 = (null == aG ? void 0 : aG.active()) ?? aL);
-          let i2 = h2.getValue(aP), j2 = "number" != typeof i2 || !aO.has(i2), k2 = aQ++;
-          return f2.attributes = { "next.span_name": g2, "next.span_type": b3, ...f2.attributes }, aG.with(h2.setValue(aP, k2), () => this.getTracerInstance().startActiveSpan(g2, f2, (a11) => {
-            let c3;
-            aF && b3 && aD.has(b3) && (c3 = "performance" in globalThis && "measure" in performance ? globalThis.performance.now() : void 0);
-            let d3 = false, g3 = () => {
-              !d3 && (d3 = true, aO.delete(k2), c3 && performance.measure(`${aF}:next-${(b3.split(".").pop() || "").replace(/[A-Z]/g, (a12) => "-" + a12.toLowerCase())}`, { start: c3, end: performance.now() }));
-            };
-            if (j2 && aO.set(k2, new Map(Object.entries(f2.attributes ?? {}))), e2.length > 1) try {
-              return e2(a11, (b4) => aN(a11, b4));
-            } catch (b4) {
-              throw aN(a11, b4), b4;
-            } finally {
-              g3();
-            }
-            try {
-              let b4 = e2(a11);
-              if (aE(b4)) return b4.then((b5) => (a11.end(), b5)).catch((b5) => {
-                throw aN(a11, b5), b5;
-              }).finally(g3);
-              return a11.end(), g3(), b4;
-            } catch (b4) {
-              throw aN(a11, b4), g3(), b4;
-            }
-          }));
-        }
-        wrap(...a10) {
-          let b3 = this, [c2, d2, e2] = 3 === a10.length ? a10 : [a10[0], {}, a10[1]];
-          return aC.has(c2) || "1" === process.env.NEXT_OTEL_VERBOSE ? function() {
-            let a11 = d2;
-            "function" == typeof a11 && "function" == typeof e2 && (a11 = a11.apply(this, arguments));
-            let f2 = arguments.length - 1, g2 = arguments[f2];
-            if ("function" != typeof g2) return b3.trace(c2, a11, () => e2.apply(this, arguments));
-            {
-              let d3 = b3.getContext().bind(aG.active(), g2);
-              return b3.trace(c2, a11, (a12, b4) => (arguments[f2] = function(a13) {
-                return null == b4 || b4(a13), d3.apply(this, arguments);
-              }, e2.apply(this, arguments)));
-            }
-          } : e2;
-        }
-        startSpan(...a10) {
-          let [b3, c2] = a10, d2 = this.getSpanContext((null == c2 ? void 0 : c2.parentSpan) ?? this.getActiveScopeSpan());
-          return this.getTracerInstance().startSpan(b3, c2, d2);
-        }
-        getSpanContext(a10) {
-          return a10 ? aI.setSpan(aG.active(), a10) : void 0;
-        }
-        getRootSpanAttributes() {
-          let a10 = aG.active().getValue(aP);
-          return aO.get(a10);
-        }
-        setRootSpanAttribute(a10, b3) {
-          let c2 = aG.active().getValue(aP), d2 = aO.get(c2);
-          d2 && !d2.has(a10) && d2.set(a10, b3);
-        }
-        withSpan(a10, b3) {
-          let c2 = aI.setSpan(aG.active(), a10);
-          return aG.with(c2, b3);
-        }
-      }
-      let aT = (f = new aS(), () => f), aU = "__prerender_bypass";
-      Symbol("__next_preview_data"), Symbol(aU);
-      class aV {
-        constructor(a10, b3, c2, d2) {
-          var e2;
-          const f2 = a10 && function(a11, b4) {
-            let c3 = aj.from(a11.headers);
-            return { isOnDemandRevalidate: c3.get("x-prerender-revalidate") === b4.previewModeId, revalidateOnlyGenerated: c3.has("x-prerender-revalidate-if-generated") };
-          }(b3, a10).isOnDemandRevalidate, g2 = null == (e2 = c2.get(aU)) ? void 0 : e2.value;
-          this._isEnabled = !!(!f2 && g2 && a10 && g2 === a10.previewModeId), this._previewModeId = null == a10 ? void 0 : a10.previewModeId, this._mutableCookies = d2;
-        }
-        get isEnabled() {
-          return this._isEnabled;
-        }
-        enable() {
-          if (!this._previewModeId) throw Object.defineProperty(Error("Invariant: previewProps missing previewModeId this should never happen"), "__NEXT_ERROR_CODE", { value: "E93", enumerable: false, configurable: true });
-          this._mutableCookies.set({ name: aU, value: this._previewModeId, httpOnly: true, sameSite: "none", secure: true, path: "/" }), this._isEnabled = true;
-        }
-        disable() {
-          this._mutableCookies.set({ name: aU, value: "", httpOnly: true, sameSite: "none", secure: true, path: "/", expires: /* @__PURE__ */ new Date(0) }), this._isEnabled = false;
-        }
-      }
-      function aW(a10, b3) {
-        if ("x-middleware-set-cookie" in a10.headers && "string" == typeof a10.headers["x-middleware-set-cookie"]) {
-          let c2 = a10.headers["x-middleware-set-cookie"], d2 = new Headers();
-          for (let a11 of F(c2)) d2.append("set-cookie", a11);
-          for (let a11 of new Y.ResponseCookies(d2).getAll()) b3.set(a11);
-        }
-      }
-      var aX = c(7094);
-      c(1066), c(4658);
-      var aY = c(8850), aZ = c.n(aY);
-      class a$ extends Error {
-        constructor(a10, b3) {
-          super(`Invariant: ${a10.endsWith(".") ? a10 : a10 + "."} This is a bug in Next.js.`, b3), this.name = "InvariantError";
-        }
-      }
-      c(5356).Buffer, process.env.NEXT_PRIVATE_DEBUG_CACHE, Symbol.for("@next/cache-handlers");
-      let a_ = Symbol.for("@next/cache-handlers-map"), a0 = Symbol.for("@next/cache-handlers-set"), a1 = globalThis;
-      function a2() {
-        if (a1[a_]) return a1[a_].entries();
-      }
-      async function a3(a10, b3) {
-        if (!a10) return b3();
-        let c2 = a4(a10);
-        try {
-          return await b3();
-        } finally {
-          var d2, e2;
-          let b4, f2, g2 = (d2 = c2, e2 = a4(a10), b4 = new Set(d2.pendingRevalidatedTags.map((a11) => {
-            let b5 = "object" == typeof a11.profile ? JSON.stringify(a11.profile) : a11.profile || "";
-            return `${a11.tag}:${b5}`;
-          })), f2 = new Set(d2.pendingRevalidateWrites), { pendingRevalidatedTags: e2.pendingRevalidatedTags.filter((a11) => {
-            let c3 = "object" == typeof a11.profile ? JSON.stringify(a11.profile) : a11.profile || "";
-            return !b4.has(`${a11.tag}:${c3}`);
-          }), pendingRevalidates: Object.fromEntries(Object.entries(e2.pendingRevalidates).filter(([a11]) => !(a11 in d2.pendingRevalidates))), pendingRevalidateWrites: e2.pendingRevalidateWrites.filter((a11) => !f2.has(a11)) });
-          await a6(a10, g2);
-        }
-      }
-      function a4(a10) {
-        return { pendingRevalidatedTags: a10.pendingRevalidatedTags ? [...a10.pendingRevalidatedTags] : [], pendingRevalidates: { ...a10.pendingRevalidates }, pendingRevalidateWrites: a10.pendingRevalidateWrites ? [...a10.pendingRevalidateWrites] : [] };
-      }
-      async function a5(a10, b3, c2) {
-        if (0 === a10.length) return;
-        let d2 = function() {
-          if (a1[a0]) return a1[a0].values();
-        }(), e2 = [], f2 = /* @__PURE__ */ new Map();
-        for (let b4 of a10) {
-          let a11, c3 = b4.profile;
-          for (let [b5] of f2) if ("string" == typeof b5 && "string" == typeof c3 && b5 === c3 || "object" == typeof b5 && "object" == typeof c3 && JSON.stringify(b5) === JSON.stringify(c3) || b5 === c3) {
-            a11 = b5;
-            break;
-          }
-          let d3 = a11 || c3;
-          f2.has(d3) || f2.set(d3, []), f2.get(d3).push(b4.tag);
-        }
-        for (let [a11, h2] of f2) {
-          let f3;
-          if (a11) {
-            let b4;
-            if ("object" == typeof a11) b4 = a11;
-            else if ("string" == typeof a11) {
-              var g2;
-              if (!(b4 = null == c2 || null == (g2 = c2.cacheLifeProfiles) ? void 0 : g2[a11])) throw Object.defineProperty(Error(`Invalid profile provided "${a11}" must be configured under cacheLife in next.config or be "max"`), "__NEXT_ERROR_CODE", { value: "E873", enumerable: false, configurable: true });
-            }
-            b4 && (f3 = { expire: b4.expire });
-          }
-          for (let b4 of d2 || []) a11 ? e2.push(null == b4.updateTags ? void 0 : b4.updateTags.call(b4, h2, f3)) : e2.push(null == b4.updateTags ? void 0 : b4.updateTags.call(b4, h2));
-          b3 && e2.push(b3.revalidateTag(h2, f3));
-        }
-        await Promise.all(e2);
-      }
-      async function a6(a10, b3) {
-        let c2 = (null == b3 ? void 0 : b3.pendingRevalidatedTags) ?? a10.pendingRevalidatedTags ?? [], d2 = (null == b3 ? void 0 : b3.pendingRevalidates) ?? a10.pendingRevalidates ?? {}, e2 = (null == b3 ? void 0 : b3.pendingRevalidateWrites) ?? a10.pendingRevalidateWrites ?? [];
-        return Promise.all([a5(c2, a10.incrementalCache, a10), ...Object.values(d2), ...e2]);
-      }
-      let a7 = Object.defineProperty(Error("Invariant: AsyncLocalStorage accessed in runtime where it is not available"), "__NEXT_ERROR_CODE", { value: "E504", enumerable: false, configurable: true });
-      class a8 {
-        disable() {
-          throw a7;
-        }
-        getStore() {
-        }
-        run() {
-          throw a7;
-        }
-        exit() {
-          throw a7;
-        }
-        enterWith() {
-          throw a7;
-        }
-        static bind(a10) {
-          return a10;
-        }
-      }
-      let a9 = "u" > typeof globalThis && globalThis.AsyncLocalStorage, ba = a9 ? new a9() : new a8();
-      class bb {
-        constructor({ waitUntil: a10, onClose: b3, onTaskError: c2 }) {
-          this.workUnitStores = /* @__PURE__ */ new Set(), this.waitUntil = a10, this.onClose = b3, this.onTaskError = c2, this.callbackQueue = new (aZ())(), this.callbackQueue.pause();
-        }
-        after(a10) {
-          if (aE(a10)) this.waitUntil || bc(), this.waitUntil(a10.catch((a11) => this.reportTaskError("promise", a11)));
-          else if ("function" == typeof a10) this.addCallback(a10);
-          else throw Object.defineProperty(Error("`after()`: Argument must be a promise or a function"), "__NEXT_ERROR_CODE", { value: "E50", enumerable: false, configurable: true });
-        }
-        addCallback(a10) {
-          var b3;
-          this.waitUntil || bc();
-          let c2 = aX.e.getStore();
-          c2 && this.workUnitStores.add(c2);
-          let d2 = ba.getStore(), e2 = d2 ? d2.rootTaskSpawnPhase : null == c2 ? void 0 : c2.phase;
-          this.runCallbacksOnClosePromise || (this.runCallbacksOnClosePromise = this.runCallbacksOnClose(), this.waitUntil(this.runCallbacksOnClosePromise));
-          let f2 = (b3 = async () => {
-            try {
-              await ba.run({ rootTaskSpawnPhase: e2 }, () => a10());
-            } catch (a11) {
-              this.reportTaskError("function", a11);
-            }
-          }, a9 ? a9.bind(b3) : a8.bind(b3));
-          this.callbackQueue.add(f2);
-        }
-        async runCallbacksOnClose() {
-          return await new Promise((a10) => this.onClose(a10)), this.runCallbacks();
-        }
-        async runCallbacks() {
-          if (0 === this.callbackQueue.size) return;
-          for (let a11 of this.workUnitStores) a11.phase = "after";
-          let a10 = ak.I.getStore();
-          if (!a10) throw Object.defineProperty(new a$("Missing workStore in AfterContext.runCallbacks"), "__NEXT_ERROR_CODE", { value: "E547", enumerable: false, configurable: true });
-          return a3(a10, () => (this.callbackQueue.start(), this.callbackQueue.onIdle()));
-        }
-        reportTaskError(a10, b3) {
-          if (console.error("promise" === a10 ? "A promise passed to `after()` rejected:" : "An error occurred in a function passed to `after()`:", b3), this.onTaskError) try {
-            null == this.onTaskError || this.onTaskError.call(this, b3);
-          } catch (a11) {
-            console.error(Object.defineProperty(new a$("`onTaskError` threw while handling an error thrown from an `after` task", { cause: a11 }), "__NEXT_ERROR_CODE", { value: "E569", enumerable: false, configurable: true }));
-          }
-        }
-      }
-      function bc() {
-        throw Object.defineProperty(Error("`after()` will not work correctly, because `waitUntil` is not available in the current environment."), "__NEXT_ERROR_CODE", { value: "E91", enumerable: false, configurable: true });
-      }
-      function bd(a10) {
-        let b3, c2 = { then: (d2, e2) => (b3 || (b3 = Promise.resolve(a10())), b3.then((a11) => {
-          c2.value = a11;
-        }).catch(() => {
-        }), b3.then(d2, e2)) };
-        return c2;
-      }
-      class be {
-        onClose(a10) {
-          if (this.isClosed) throw Object.defineProperty(Error("Cannot subscribe to a closed CloseController"), "__NEXT_ERROR_CODE", { value: "E365", enumerable: false, configurable: true });
-          this.target.addEventListener("close", a10), this.listeners++;
-        }
-        dispatchClose() {
-          if (this.isClosed) throw Object.defineProperty(Error("Cannot close a CloseController multiple times"), "__NEXT_ERROR_CODE", { value: "E229", enumerable: false, configurable: true });
-          this.listeners > 0 && this.target.dispatchEvent(new Event("close")), this.isClosed = true;
-        }
-        constructor() {
-          this.target = new EventTarget(), this.listeners = 0, this.isClosed = false;
-        }
-      }
-      function bf() {
-        return { previewModeId: process.env.__NEXT_PREVIEW_MODE_ID || "", previewModeSigningKey: process.env.__NEXT_PREVIEW_MODE_SIGNING_KEY || "", previewModeEncryptionKey: process.env.__NEXT_PREVIEW_MODE_ENCRYPTION_KEY || "" };
-      }
-      let bg = Symbol.for("@next/request-context");
-      async function bh(a10, b3, c2) {
-        let d2 = /* @__PURE__ */ new Set();
-        for (let b4 of ((a11) => {
-          let b5 = ["/layout"];
-          if (a11.startsWith("/")) {
-            let c3 = a11.split("/");
-            for (let a12 = 1; a12 < c3.length + 1; a12++) {
-              let d3 = c3.slice(0, a12).join("/");
-              d3 && (d3.endsWith("/page") || d3.endsWith("/route") || (d3 = `${d3}${!d3.endsWith("/") ? "/" : ""}layout`), b5.push(d3));
-            }
-          }
-          return b5;
-        })(a10)) b4 = `${D}${b4}`, d2.add(b4);
-        if (b3.pathname && (!c2 || 0 === c2.size)) {
-          let a11 = `${D}${b3.pathname}`;
-          d2.add(a11);
-        }
-        d2.has(`${D}/`) && d2.add(`${D}/index`), d2.has(`${D}/index`) && d2.add(`${D}/`);
-        let e2 = Array.from(d2);
-        return { tags: e2, expirationsByCacheKind: function(a11) {
-          let b4 = /* @__PURE__ */ new Map(), c3 = a2();
-          if (c3) for (let [d3, e3] of c3) "getExpiration" in e3 && b4.set(d3, bd(async () => e3.getExpiration(a11)));
-          return b4;
-        }(e2) };
-      }
-      class bi extends $ {
-        constructor(a10) {
-          super(a10.input, a10.init), this.sourcePage = a10.page;
-        }
-        get request() {
-          throw Object.defineProperty(new A({ page: this.sourcePage }), "__NEXT_ERROR_CODE", { value: "E394", enumerable: false, configurable: true });
-        }
-        respondWith() {
-          throw Object.defineProperty(new A({ page: this.sourcePage }), "__NEXT_ERROR_CODE", { value: "E394", enumerable: false, configurable: true });
-        }
-        waitUntil() {
-          throw Object.defineProperty(new A({ page: this.sourcePage }), "__NEXT_ERROR_CODE", { value: "E394", enumerable: false, configurable: true });
-        }
-      }
-      let bj = { keys: (a10) => Array.from(a10.keys()), get: (a10, b3) => a10.get(b3) ?? void 0 }, bk = (a10, b3) => aT().withPropagatedContext(a10.headers, b3, bj), bl = false;
-      async function bm(a10) {
-        var b3, d2, e2, f2;
-        let g2, h2, i2, j2, k2;
-        !function() {
-          if (!bl && (bl = true, "true" === process.env.NEXT_PRIVATE_TEST_PROXY)) {
-            let { interceptTestApis: a11, wrapRequestHandler: b4 } = c(3233);
-            a11(), bk = b4(bk);
-          }
-        }(), await y();
-        let l2 = void 0 !== globalThis.__BUILD_MANIFEST;
-        a10.request.url = a10.request.url.replace(/\.rsc($|\?)/, "$1");
-        let m2 = a10.bypassNextUrl ? new URL(a10.request.url) : new X(a10.request.url, { headers: a10.request.headers, nextConfig: a10.request.nextConfig });
-        for (let a11 of [...m2.searchParams.keys()]) {
-          let b4 = m2.searchParams.getAll(a11), c2 = function(a12) {
-            for (let b5 of ["nxtP", "nxtI"]) if (a12 !== b5 && a12.startsWith(b5)) return a12.substring(b5.length);
-            return null;
-          }(a11);
-          if (c2) {
-            for (let a12 of (m2.searchParams.delete(c2), b4)) m2.searchParams.append(c2, a12);
-            m2.searchParams.delete(a11);
-          }
-        }
-        let n2 = process.env.__NEXT_BUILD_ID || "";
-        "buildId" in m2 && (n2 = m2.buildId || "", m2.buildId = "");
-        let o2 = function(a11) {
-          let b4 = new Headers();
-          for (let [c2, d3] of Object.entries(a11)) for (let a12 of Array.isArray(d3) ? d3 : [d3]) void 0 !== a12 && ("number" == typeof a12 && (a12 = a12.toString()), b4.append(c2, a12));
-          return b4;
-        }(a10.request.headers), p2 = o2.has("x-nextjs-data"), q2 = "1" === o2.get("rsc");
-        p2 && "/index" === m2.pathname && (m2.pathname = "/");
-        let r2 = /* @__PURE__ */ new Map();
-        if (!l2) for (let a11 of ag) {
-          let b4 = o2.get(a11);
-          null !== b4 && (r2.set(a11, b4), o2.delete(a11));
-        }
-        let s2 = m2.searchParams.get(ah), t2 = new bi({ page: a10.page, input: ((j2 = (i2 = "string" == typeof m2) ? new URL(m2) : m2).searchParams.delete(ah), i2 ? j2.toString() : j2).toString(), init: { body: a10.request.body, headers: o2, method: a10.request.method, nextConfig: a10.request.nextConfig, signal: a10.request.signal } });
-        p2 && Object.defineProperty(t2, "__isData", { enumerable: false, value: true }), !globalThis.__incrementalCacheShared && a10.IncrementalCache && (globalThis.__incrementalCache = new a10.IncrementalCache({ CurCacheHandler: a10.incrementalCacheHandler, minimalMode: true, fetchCacheKeyPrefix: "", dev: false, requestHeaders: a10.request.headers, getPrerenderManifest: () => ({ version: -1, routes: {}, dynamicRoutes: {}, notFoundRoutes: [], preview: bf() }) }));
-        let u2 = a10.request.waitUntil ?? (null == (b3 = null == (k2 = globalThis[bg]) ? void 0 : k2.get()) ? void 0 : b3.waitUntil), v2 = new M({ request: t2, page: a10.page, context: u2 ? { waitUntil: u2 } : void 0 });
-        if ((g2 = await bk(t2, () => {
-          if ("/middleware" === a10.page || "/src/middleware" === a10.page || "/proxy" === a10.page || "/src/proxy" === a10.page) {
-            let b4 = v2.waitUntil.bind(v2), c2 = new be();
-            return aT().trace(aB.execute, { spanName: `middleware ${t2.method}`, attributes: { "http.target": t2.nextUrl.pathname, "http.method": t2.method } }, async () => {
-              try {
-                var d3, e3, f3, g3, i3, j3;
-                let k3 = bf(), l3 = await bh("/", t2.nextUrl, null), m3 = (i3 = t2.nextUrl, j3 = (a11) => {
-                  h2 = a11;
-                }, function(a11, b5, c3, d4, e4, f4, g4, h3, i4, j4, k4, l4) {
-                  function m4(a12) {
-                    c3 && c3.setHeader("Set-Cookie", a12);
-                  }
-                  let n3 = {};
-                  return { type: "request", phase: a11, implicitTags: f4, url: { pathname: d4.pathname, search: d4.search ?? "" }, rootParams: e4, get headers() {
-                    return n3.headers || (n3.headers = function(a12) {
-                      let b6 = aj.from(a12);
-                      for (let a13 of ag) b6.delete(a13);
-                      return aj.seal(b6);
-                    }(b5.headers)), n3.headers;
-                  }, get cookies() {
-                    if (!n3.cookies) {
-                      let a12 = new Y.RequestCookies(aj.from(b5.headers));
-                      aW(b5, a12), n3.cookies = am.seal(a12);
-                    }
-                    return n3.cookies;
-                  }, set cookies(value) {
-                    n3.cookies = value;
-                  }, get mutableCookies() {
-                    if (!n3.mutableCookies) {
-                      var o4, p3;
-                      let a12, d5 = (o4 = b5.headers, p3 = g4 || (c3 ? m4 : void 0), a12 = new Y.RequestCookies(aj.from(o4)), ao.wrap(a12, p3));
-                      aW(b5, d5), n3.mutableCookies = d5;
-                    }
-                    return n3.mutableCookies;
-                  }, get userspaceMutableCookies() {
-                    if (!n3.userspaceMutableCookies) {
-                      var q3;
-                      let a12;
-                      q3 = this, n3.userspaceMutableCookies = a12 = new Proxy(q3.mutableCookies, { get(b6, c4, d5) {
-                        switch (c4) {
-                          case "delete":
-                            return function(...c5) {
-                              return ap(q3, "cookies().delete"), b6.delete(...c5), a12;
-                            };
-                          case "set":
-                            return function(...c5) {
-                              return ap(q3, "cookies().set"), b6.set(...c5), a12;
-                            };
-                          default:
-                            return _.get(b6, c4, d5);
-                        }
-                      } });
-                    }
-                    return n3.userspaceMutableCookies;
-                  }, get draftMode() {
-                    return n3.draftMode || (n3.draftMode = new aV(i4, b5, this.cookies, this.mutableCookies)), n3.draftMode;
-                  }, renderResumeDataCache: null, isHmrRefresh: j4, serverComponentsHmrCache: k4 || globalThis.__serverComponentsHmrCache, devFallbackParams: null };
-                }("action", t2, void 0, i3, {}, l3, j3, null, k3, false, void 0, null)), o3 = function({ page: a11, renderOpts: b5, isPrefetchRequest: c3, buildId: d4, previouslyRevalidatedTags: e4, nonce: f4 }) {
-                  var g4;
-                  let h3 = !b5.shouldWaitOnAllReady && !b5.supportsDynamicResponse && !b5.isDraftMode && !b5.isPossibleServerAction, i4 = b5.dev ?? false, j4 = i4 || h3 && (!!process.env.NEXT_DEBUG_BUILD || "1" === process.env.NEXT_SSG_FETCH_METRICS), k4 = { isStaticGeneration: h3, page: a11, route: (g4 = a11.split("/").reduce((a12, b6, c4, d5) => b6 ? "(" === b6[0] && b6.endsWith(")") || "@" === b6[0] || ("page" === b6 || "route" === b6) && c4 === d5.length - 1 ? a12 : `${a12}/${b6}` : a12, "")).startsWith("/") ? g4 : `/${g4}`, incrementalCache: b5.incrementalCache || globalThis.__incrementalCache, cacheLifeProfiles: b5.cacheLifeProfiles, isBuildTimePrerendering: b5.nextExport, hasReadableErrorStacks: b5.hasReadableErrorStacks, fetchCache: b5.fetchCache, isOnDemandRevalidate: b5.isOnDemandRevalidate, isDraftMode: b5.isDraftMode, isPrefetchRequest: c3, buildId: d4, reactLoadableManifest: (null == b5 ? void 0 : b5.reactLoadableManifest) || {}, assetPrefix: (null == b5 ? void 0 : b5.assetPrefix) || "", nonce: f4, afterContext: function(a12) {
-                    let { waitUntil: b6, onClose: c4, onAfterTaskError: d5 } = a12;
-                    return new bb({ waitUntil: b6, onClose: c4, onTaskError: d5 });
-                  }(b5), cacheComponentsEnabled: b5.cacheComponents, dev: i4, previouslyRevalidatedTags: e4, refreshTagsByCacheKind: function() {
-                    let a12 = /* @__PURE__ */ new Map(), b6 = a2();
-                    if (b6) for (let [c4, d5] of b6) "refreshTags" in d5 && a12.set(c4, bd(async () => d5.refreshTags()));
-                    return a12;
-                  }(), runInCleanSnapshot: a9 ? a9.snapshot() : function(a12, ...b6) {
-                    return a12(...b6);
-                  }, shouldTrackFetchMetrics: j4, reactServerErrorsByDigest: /* @__PURE__ */ new Map() };
-                  return b5.store = k4, k4;
-                }({ page: "/", renderOpts: { cacheLifeProfiles: null == (e3 = a10.request.nextConfig) || null == (d3 = e3.experimental) ? void 0 : d3.cacheLife, cacheComponents: false, experimental: { isRoutePPREnabled: false, authInterrupts: !!(null == (g3 = a10.request.nextConfig) || null == (f3 = g3.experimental) ? void 0 : f3.authInterrupts) }, supportsDynamicResponse: true, waitUntil: b4, onClose: c2.onClose.bind(c2), onAfterTaskError: void 0 }, isPrefetchRequest: "1" === t2.headers.get(af), buildId: n2 ?? "", previouslyRevalidatedTags: [] });
-                return await ak.I.run(o3, () => aX.e.run(m3, a10.handler, t2, v2));
-              } finally {
-                setTimeout(() => {
-                  c2.dispatchClose();
-                }, 0);
-              }
-            });
-          }
-          return a10.handler(t2, v2);
-        })) && !(g2 instanceof Response)) throw Object.defineProperty(TypeError("Expected an instance of Response to be returned"), "__NEXT_ERROR_CODE", { value: "E567", enumerable: false, configurable: true });
-        g2 && h2 && g2.headers.set("set-cookie", h2);
-        let w2 = null == g2 ? void 0 : g2.headers.get("x-middleware-rewrite");
-        if (g2 && w2 && (q2 || !l2)) {
-          let b4 = new X(w2, { forceLocale: true, headers: a10.request.headers, nextConfig: a10.request.nextConfig });
-          l2 || b4.host !== t2.nextUrl.host || (b4.buildId = n2 || b4.buildId, g2.headers.set("x-middleware-rewrite", String(b4)));
-          let { url: c2, isRelative: h3 } = ae(b4.toString(), m2.toString());
-          !l2 && p2 && g2.headers.set("x-nextjs-rewrite", c2);
-          let i3 = !h3 && (null == (f2 = a10.request.nextConfig) || null == (e2 = f2.experimental) || null == (d2 = e2.clientParamParsingOrigins) ? void 0 : d2.some((a11) => new RegExp(a11).test(b4.origin)));
-          q2 && (h3 || i3) && (m2.pathname !== b4.pathname && g2.headers.set("x-nextjs-rewritten-path", b4.pathname), m2.search !== b4.search && g2.headers.set("x-nextjs-rewritten-query", b4.search.slice(1)));
-        }
-        if (g2 && w2 && q2 && s2) {
-          let a11 = new URL(w2);
-          a11.searchParams.has(ah) || (a11.searchParams.set(ah, s2), g2.headers.set("x-middleware-rewrite", a11.toString()));
-        }
-        let x2 = null == g2 ? void 0 : g2.headers.get("Location");
-        if (g2 && x2 && !l2) {
-          let b4 = new X(x2, { forceLocale: false, headers: a10.request.headers, nextConfig: a10.request.nextConfig });
-          g2 = new Response(g2.body, g2), b4.host === m2.host && (b4.buildId = n2 || b4.buildId, g2.headers.set("Location", ae(b4, m2).url)), p2 && (g2.headers.delete("Location"), g2.headers.set("x-nextjs-redirect", ae(b4.toString(), m2.toString()).url));
-        }
-        let z2 = g2 || ad.next(), A2 = z2.headers.get("x-middleware-override-headers"), B2 = [];
-        if (A2) {
-          for (let [a11, b4] of r2) z2.headers.set(`x-middleware-request-${a11}`, b4), B2.push(a11);
-          B2.length > 0 && z2.headers.set("x-middleware-override-headers", A2 + "," + B2.join(","));
-        }
-        return { response: z2, waitUntil: ("internal" === v2[K].kind ? Promise.all(v2[K].promises).then(() => {
-        }) : void 0) ?? Promise.resolve(), fetchMetrics: t2.fetchMetrics };
-      }
-      c(5808), "u" < typeof URLPattern || URLPattern;
-      var bn = c(7879);
-      if (/* @__PURE__ */ new WeakMap(), bn.unstable_postpone, false === ("Route %%% needs to bail out of prerendering at this point because it used ^^^. React throws this special object to indicate where. It should not be caught by your own try/catch. Learn more: https://nextjs.org/docs/messages/ppr-caught-error".includes("needs to bail out of prerendering at this point because it used") && "Route %%% needs to bail out of prerendering at this point because it used ^^^. React throws this special object to indicate where. It should not be caught by your own try/catch. Learn more: https://nextjs.org/docs/messages/ppr-caught-error".includes("Learn more: https://nextjs.org/docs/messages/ppr-caught-error"))) throw Object.defineProperty(Error("Invariant: isDynamicPostpone misidentified a postpone reason. This is a bug in Next.js"), "__NEXT_ERROR_CODE", { value: "E296", enumerable: false, configurable: true });
-      RegExp(`\\n\\s+at Suspense \\(<anonymous>\\)(?:(?!\\n\\s+at (?:body|div|main|section|article|aside|header|footer|nav|form|p|span|h1|h2|h3|h4|h5|h6) \\(<anonymous>\\))[\\s\\S])*?\\n\\s+at __next_root_layout_boundary__ \\([^\\n]*\\)`), RegExp(`\\n\\s+at __next_metadata_boundary__[\\n\\s]`), RegExp(`\\n\\s+at __next_viewport_boundary__[\\n\\s]`), RegExp(`\\n\\s+at __next_outlet_boundary__[\\n\\s]`);
-      let bo = new TextEncoder(), bp = new TextDecoder();
-      function bq(a10) {
-        let b3 = new Uint8Array(a10.length);
-        for (let c2 = 0; c2 < a10.length; c2++) {
-          let d2 = a10.charCodeAt(c2);
-          if (d2 > 127) throw TypeError("non-ASCII string encountered in encode()");
-          b3[c2] = d2;
-        }
-        return b3;
-      }
-      function br(a10) {
-        if (Uint8Array.fromBase64) return Uint8Array.fromBase64("string" == typeof a10 ? a10 : bp.decode(a10), { alphabet: "base64url" });
-        let b3 = a10;
-        b3 instanceof Uint8Array && (b3 = bp.decode(b3)), b3 = b3.replace(/-/g, "+").replace(/_/g, "/");
-        try {
-          var c2 = b3;
-          if (Uint8Array.fromBase64) return Uint8Array.fromBase64(c2);
-          let a11 = atob(c2), d2 = new Uint8Array(a11.length);
-          for (let b4 = 0; b4 < a11.length; b4++) d2[b4] = a11.charCodeAt(b4);
-          return d2;
-        } catch {
-          throw TypeError("The input to be decoded is not correctly encoded.");
-        }
-      }
-      class bs extends Error {
-        static code = "ERR_JOSE_GENERIC";
-        code = "ERR_JOSE_GENERIC";
-        constructor(a10, b3) {
-          super(a10, b3), this.name = this.constructor.name, Error.captureStackTrace?.(this, this.constructor);
-        }
-      }
-      class bt extends bs {
-        static code = "ERR_JWT_CLAIM_VALIDATION_FAILED";
-        code = "ERR_JWT_CLAIM_VALIDATION_FAILED";
-        claim;
-        reason;
-        payload;
-        constructor(a10, b3, c2 = "unspecified", d2 = "unspecified") {
-          super(a10, { cause: { claim: c2, reason: d2, payload: b3 } }), this.claim = c2, this.reason = d2, this.payload = b3;
-        }
-      }
-      class bu extends bs {
-        static code = "ERR_JWT_EXPIRED";
-        code = "ERR_JWT_EXPIRED";
-        claim;
-        reason;
-        payload;
-        constructor(a10, b3, c2 = "unspecified", d2 = "unspecified") {
-          super(a10, { cause: { claim: c2, reason: d2, payload: b3 } }), this.claim = c2, this.reason = d2, this.payload = b3;
-        }
-      }
-      class bv extends bs {
-        static code = "ERR_JOSE_ALG_NOT_ALLOWED";
-        code = "ERR_JOSE_ALG_NOT_ALLOWED";
-      }
-      class bw extends bs {
-        static code = "ERR_JOSE_NOT_SUPPORTED";
-        code = "ERR_JOSE_NOT_SUPPORTED";
-      }
-      class bx extends bs {
-        static code = "ERR_JWS_INVALID";
-        code = "ERR_JWS_INVALID";
-      }
-      class by extends bs {
-        static code = "ERR_JWT_INVALID";
-        code = "ERR_JWT_INVALID";
-      }
-      class bz extends bs {
-        [Symbol.asyncIterator];
-        static code = "ERR_JWKS_MULTIPLE_MATCHING_KEYS";
-        code = "ERR_JWKS_MULTIPLE_MATCHING_KEYS";
-        constructor(a10 = "multiple matching keys found in the JSON Web Key Set", b3) {
-          super(a10, b3);
-        }
-      }
-      class bA extends bs {
-        static code = "ERR_JWS_SIGNATURE_VERIFICATION_FAILED";
-        code = "ERR_JWS_SIGNATURE_VERIFICATION_FAILED";
-        constructor(a10 = "signature verification failed", b3) {
-          super(a10, b3);
-        }
-      }
-      let bB = (a10, b3 = "algorithm.name") => TypeError(`CryptoKey does not support this operation, its ${b3} must be ${a10}`);
-      function bC(a10) {
-        return parseInt(a10.name.slice(4), 10);
-      }
-      function bD(a10, b3, ...c2) {
-        if ((c2 = c2.filter(Boolean)).length > 2) {
-          let b4 = c2.pop();
-          a10 += `one of type ${c2.join(", ")}, or ${b4}.`;
-        } else 2 === c2.length ? a10 += `one of type ${c2[0]} or ${c2[1]}.` : a10 += `of type ${c2[0]}.`;
-        return null == b3 ? a10 += ` Received ${b3}` : "function" == typeof b3 && b3.name ? a10 += ` Received function ${b3.name}` : "object" == typeof b3 && null != b3 && b3.constructor?.name && (a10 += ` Received an instance of ${b3.constructor.name}`), a10;
-      }
-      let bE = (a10, b3, ...c2) => bD(`Key for the ${a10} algorithm must be `, b3, ...c2);
-      async function bF(a10, b3, c2) {
-        if (b3 instanceof Uint8Array) {
-          if (!a10.startsWith("HS")) throw TypeError(((a11, ...b4) => bD("Key must be ", a11, ...b4))(b3, "CryptoKey", "KeyObject", "JSON Web Key"));
-          return crypto.subtle.importKey("raw", b3, { hash: `SHA-${a10.slice(-3)}`, name: "HMAC" }, false, [c2]);
-        }
-        return !function(a11, b4, c3) {
-          switch (b4) {
-            case "HS256":
-            case "HS384":
-            case "HS512": {
-              if ("HMAC" !== a11.algorithm.name) throw bB("HMAC");
-              let c4 = parseInt(b4.slice(2), 10);
-              if (bC(a11.algorithm.hash) !== c4) throw bB(`SHA-${c4}`, "algorithm.hash");
-              break;
-            }
-            case "RS256":
-            case "RS384":
-            case "RS512": {
-              if ("RSASSA-PKCS1-v1_5" !== a11.algorithm.name) throw bB("RSASSA-PKCS1-v1_5");
-              let c4 = parseInt(b4.slice(2), 10);
-              if (bC(a11.algorithm.hash) !== c4) throw bB(`SHA-${c4}`, "algorithm.hash");
-              break;
-            }
-            case "PS256":
-            case "PS384":
-            case "PS512": {
-              if ("RSA-PSS" !== a11.algorithm.name) throw bB("RSA-PSS");
-              let c4 = parseInt(b4.slice(2), 10);
-              if (bC(a11.algorithm.hash) !== c4) throw bB(`SHA-${c4}`, "algorithm.hash");
-              break;
-            }
-            case "Ed25519":
-            case "EdDSA":
-              if ("Ed25519" !== a11.algorithm.name) throw bB("Ed25519");
-              break;
-            case "ML-DSA-44":
-            case "ML-DSA-65":
-            case "ML-DSA-87":
-              let d2;
-              if (d2 = a11.algorithm, d2.name !== b4) throw bB(b4);
-              break;
-            case "ES256":
-            case "ES384":
-            case "ES512": {
-              if ("ECDSA" !== a11.algorithm.name) throw bB("ECDSA");
-              let c4 = function(a12) {
-                switch (a12) {
-                  case "ES256":
-                    return "P-256";
-                  case "ES384":
-                    return "P-384";
-                  case "ES512":
-                    return "P-521";
-                  default:
-                    throw Error("unreachable");
-                }
-              }(b4);
-              if (a11.algorithm.namedCurve !== c4) throw bB(c4, "algorithm.namedCurve");
-              break;
-            }
-            default:
-              throw TypeError("CryptoKey does not support this operation");
-          }
-          if (c3 && !a11.usages.includes(c3)) throw TypeError(`CryptoKey does not support this operation, its usages must include ${c3}.`);
-        }(b3, a10, c2), b3;
-      }
-      async function bG(a10, b3, c2, d2) {
-        let e2 = await bF(a10, b3, "verify");
-        !function(a11, b4) {
-          if (a11.startsWith("RS") || a11.startsWith("PS")) {
-            let { modulusLength: c3 } = b4.algorithm;
-            if ("number" != typeof c3 || c3 < 2048) throw TypeError(`${a11} requires key modulusLength to be 2048 bits or larger`);
-          }
-        }(a10, e2);
-        let f2 = function(a11, b4) {
-          let c3 = `SHA-${a11.slice(-3)}`;
-          switch (a11) {
-            case "HS256":
-            case "HS384":
-            case "HS512":
-              return { hash: c3, name: "HMAC" };
-            case "PS256":
-            case "PS384":
-            case "PS512":
-              return { hash: c3, name: "RSA-PSS", saltLength: parseInt(a11.slice(-3), 10) >> 3 };
-            case "RS256":
-            case "RS384":
-            case "RS512":
-              return { hash: c3, name: "RSASSA-PKCS1-v1_5" };
-            case "ES256":
-            case "ES384":
-            case "ES512":
-              return { hash: c3, name: "ECDSA", namedCurve: b4.namedCurve };
-            case "Ed25519":
-            case "EdDSA":
-              return { name: "Ed25519" };
-            case "ML-DSA-44":
-            case "ML-DSA-65":
-            case "ML-DSA-87":
-              return { name: a11 };
-            default:
-              throw new bw(`alg ${a11} is not supported either by JOSE or your javascript runtime`);
-          }
-        }(a10, e2.algorithm);
-        try {
-          return await crypto.subtle.verify(f2, e2, c2, d2);
-        } catch {
-          return false;
-        }
-      }
-      function bH(a10) {
-        if ("object" != typeof a10 || null === a10 || "[object Object]" !== Object.prototype.toString.call(a10)) return false;
-        if (null === Object.getPrototypeOf(a10)) return true;
-        let b3 = a10;
-        for (; null !== Object.getPrototypeOf(b3); ) b3 = Object.getPrototypeOf(b3);
-        return Object.getPrototypeOf(a10) === b3;
-      }
-      let bI = (a10) => {
-        if (a10?.[Symbol.toStringTag] === "CryptoKey") return true;
-        try {
-          return a10 instanceof CryptoKey;
-        } catch {
-          return false;
-        }
-      }, bJ = (a10) => a10?.[Symbol.toStringTag] === "KeyObject", bK = (a10) => bI(a10) || bJ(a10), bL = (a10) => bH(a10) && "string" == typeof a10.kty, bM = (a10) => a10?.[Symbol.toStringTag], bN = (a10, b3, c2) => {
-        if (void 0 !== b3.use) {
-          let a11;
-          switch (c2) {
-            case "sign":
-            case "verify":
-              a11 = "sig";
-              break;
-            case "encrypt":
-            case "decrypt":
-              a11 = "enc";
-          }
-          if (b3.use !== a11) throw TypeError(`Invalid key for this operation, its "use" must be "${a11}" when present`);
-        }
-        if (void 0 !== b3.alg && b3.alg !== a10) throw TypeError(`Invalid key for this operation, its "alg" must be "${a10}" when present`);
-        if (Array.isArray(b3.key_ops)) {
-          let d2;
-          switch (true) {
-            case ("sign" === c2 || "verify" === c2):
-            case "dir" === a10:
-            case a10.includes("CBC-HS"):
-              d2 = c2;
-              break;
-            case a10.startsWith("PBES2"):
-              d2 = "deriveBits";
-              break;
-            case /^A\d{3}(?:GCM)?(?:KW)?$/.test(a10):
-              d2 = !a10.includes("GCM") && a10.endsWith("KW") ? "encrypt" === c2 ? "wrapKey" : "unwrapKey" : c2;
-              break;
-            case ("encrypt" === c2 && a10.startsWith("RSA")):
-              d2 = "wrapKey";
-              break;
-            case "decrypt" === c2:
-              d2 = a10.startsWith("RSA") ? "unwrapKey" : "deriveBits";
-          }
-          if (d2 && b3.key_ops?.includes?.(d2) === false) throw TypeError(`Invalid key for this operation, its "key_ops" must include "${d2}" when present`);
-        }
-        return true;
-      };
-      async function bO(a10) {
-        if (!a10.alg) throw TypeError('"alg" argument is required when "jwk.alg" is not present');
-        let { algorithm: b3, keyUsages: c2 } = function(a11) {
-          let b4, c3;
-          switch (a11.kty) {
-            case "AKP":
-              switch (a11.alg) {
-                case "ML-DSA-44":
-                case "ML-DSA-65":
-                case "ML-DSA-87":
-                  b4 = { name: a11.alg }, c3 = a11.priv ? ["sign"] : ["verify"];
-                  break;
-                default:
-                  throw new bw('Invalid or unsupported JWK "alg" (Algorithm) Parameter value');
-              }
-              break;
-            case "RSA":
-              switch (a11.alg) {
-                case "PS256":
-                case "PS384":
-                case "PS512":
-                  b4 = { name: "RSA-PSS", hash: `SHA-${a11.alg.slice(-3)}` }, c3 = a11.d ? ["sign"] : ["verify"];
-                  break;
-                case "RS256":
-                case "RS384":
-                case "RS512":
-                  b4 = { name: "RSASSA-PKCS1-v1_5", hash: `SHA-${a11.alg.slice(-3)}` }, c3 = a11.d ? ["sign"] : ["verify"];
-                  break;
-                case "RSA-OAEP":
-                case "RSA-OAEP-256":
-                case "RSA-OAEP-384":
-                case "RSA-OAEP-512":
-                  b4 = { name: "RSA-OAEP", hash: `SHA-${parseInt(a11.alg.slice(-3), 10) || 1}` }, c3 = a11.d ? ["decrypt", "unwrapKey"] : ["encrypt", "wrapKey"];
-                  break;
-                default:
-                  throw new bw('Invalid or unsupported JWK "alg" (Algorithm) Parameter value');
-              }
-              break;
-            case "EC":
-              switch (a11.alg) {
-                case "ES256":
-                  b4 = { name: "ECDSA", namedCurve: "P-256" }, c3 = a11.d ? ["sign"] : ["verify"];
-                  break;
-                case "ES384":
-                  b4 = { name: "ECDSA", namedCurve: "P-384" }, c3 = a11.d ? ["sign"] : ["verify"];
-                  break;
-                case "ES512":
-                  b4 = { name: "ECDSA", namedCurve: "P-521" }, c3 = a11.d ? ["sign"] : ["verify"];
-                  break;
-                case "ECDH-ES":
-                case "ECDH-ES+A128KW":
-                case "ECDH-ES+A192KW":
-                case "ECDH-ES+A256KW":
-                  b4 = { name: "ECDH", namedCurve: a11.crv }, c3 = a11.d ? ["deriveBits"] : [];
-                  break;
-                default:
-                  throw new bw('Invalid or unsupported JWK "alg" (Algorithm) Parameter value');
-              }
-              break;
-            case "OKP":
-              switch (a11.alg) {
-                case "Ed25519":
-                case "EdDSA":
-                  b4 = { name: "Ed25519" }, c3 = a11.d ? ["sign"] : ["verify"];
-                  break;
-                case "ECDH-ES":
-                case "ECDH-ES+A128KW":
-                case "ECDH-ES+A192KW":
-                case "ECDH-ES+A256KW":
-                  b4 = { name: a11.crv }, c3 = a11.d ? ["deriveBits"] : [];
-                  break;
-                default:
-                  throw new bw('Invalid or unsupported JWK "alg" (Algorithm) Parameter value');
-              }
-              break;
-            default:
-              throw new bw('Invalid or unsupported JWK "kty" (Key Type) Parameter value');
-          }
-          return { algorithm: b4, keyUsages: c3 };
-        }(a10), d2 = { ...a10 };
-        return "AKP" !== d2.kty && delete d2.alg, delete d2.use, crypto.subtle.importKey("jwk", d2, b3, a10.ext ?? (!a10.d && !a10.priv), a10.key_ops ?? c2);
-      }
-      let bP = async (a10, b3, c2, d2 = false) => {
-        let f2 = (e ||= /* @__PURE__ */ new WeakMap()).get(a10);
-        if (f2?.[c2]) return f2[c2];
-        let g2 = await bO({ ...b3, alg: c2 });
-        return d2 && Object.freeze(a10), f2 ? f2[c2] = g2 : e.set(a10, { [c2]: g2 }), g2;
-      };
-      async function bQ(a10, b3) {
-        if (a10 instanceof Uint8Array || bI(a10)) return a10;
-        if (bJ(a10)) {
-          if ("secret" === a10.type) return a10.export();
-          if ("toCryptoKey" in a10 && "function" == typeof a10.toCryptoKey) try {
-            return ((a11, b4) => {
-              let c3, d2 = (e ||= /* @__PURE__ */ new WeakMap()).get(a11);
-              if (d2?.[b4]) return d2[b4];
-              let f2 = "public" === a11.type, g2 = !!f2;
-              if ("x25519" === a11.asymmetricKeyType) {
-                switch (b4) {
-                  case "ECDH-ES":
-                  case "ECDH-ES+A128KW":
-                  case "ECDH-ES+A192KW":
-                  case "ECDH-ES+A256KW":
-                    break;
-                  default:
-                    throw TypeError("given KeyObject instance cannot be used for this algorithm");
-                }
-                c3 = a11.toCryptoKey(a11.asymmetricKeyType, g2, f2 ? [] : ["deriveBits"]);
-              }
-              if ("ed25519" === a11.asymmetricKeyType) {
-                if ("EdDSA" !== b4 && "Ed25519" !== b4) throw TypeError("given KeyObject instance cannot be used for this algorithm");
-                c3 = a11.toCryptoKey(a11.asymmetricKeyType, g2, [f2 ? "verify" : "sign"]);
-              }
-              switch (a11.asymmetricKeyType) {
-                case "ml-dsa-44":
-                case "ml-dsa-65":
-                case "ml-dsa-87":
-                  if (b4 !== a11.asymmetricKeyType.toUpperCase()) throw TypeError("given KeyObject instance cannot be used for this algorithm");
-                  c3 = a11.toCryptoKey(a11.asymmetricKeyType, g2, [f2 ? "verify" : "sign"]);
-              }
-              if ("rsa" === a11.asymmetricKeyType) {
-                let d3;
-                switch (b4) {
-                  case "RSA-OAEP":
-                    d3 = "SHA-1";
-                    break;
-                  case "RS256":
-                  case "PS256":
-                  case "RSA-OAEP-256":
-                    d3 = "SHA-256";
-                    break;
-                  case "RS384":
-                  case "PS384":
-                  case "RSA-OAEP-384":
-                    d3 = "SHA-384";
-                    break;
-                  case "RS512":
-                  case "PS512":
-                  case "RSA-OAEP-512":
-                    d3 = "SHA-512";
-                    break;
-                  default:
-                    throw TypeError("given KeyObject instance cannot be used for this algorithm");
-                }
-                if (b4.startsWith("RSA-OAEP")) return a11.toCryptoKey({ name: "RSA-OAEP", hash: d3 }, g2, f2 ? ["encrypt"] : ["decrypt"]);
-                c3 = a11.toCryptoKey({ name: b4.startsWith("PS") ? "RSA-PSS" : "RSASSA-PKCS1-v1_5", hash: d3 }, g2, [f2 ? "verify" : "sign"]);
-              }
-              if ("ec" === a11.asymmetricKeyType) {
-                let d3 = (/* @__PURE__ */ new Map([["prime256v1", "P-256"], ["secp384r1", "P-384"], ["secp521r1", "P-521"]])).get(a11.asymmetricKeyDetails?.namedCurve);
-                if (!d3) throw TypeError("given KeyObject instance cannot be used for this algorithm");
-                "ES256" === b4 && "P-256" === d3 && (c3 = a11.toCryptoKey({ name: "ECDSA", namedCurve: d3 }, g2, [f2 ? "verify" : "sign"])), "ES384" === b4 && "P-384" === d3 && (c3 = a11.toCryptoKey({ name: "ECDSA", namedCurve: d3 }, g2, [f2 ? "verify" : "sign"])), "ES512" === b4 && "P-521" === d3 && (c3 = a11.toCryptoKey({ name: "ECDSA", namedCurve: d3 }, g2, [f2 ? "verify" : "sign"])), b4.startsWith("ECDH-ES") && (c3 = a11.toCryptoKey({ name: "ECDH", namedCurve: d3 }, g2, f2 ? [] : ["deriveBits"]));
-              }
-              if (!c3) throw TypeError("given KeyObject instance cannot be used for this algorithm");
-              return d2 ? d2[b4] = c3 : e.set(a11, { [b4]: c3 }), c3;
-            })(a10, b3);
-          } catch (a11) {
-            if (a11 instanceof TypeError) throw a11;
-          }
-          let c2 = a10.export({ format: "jwk" });
-          return bP(a10, c2, b3);
-        }
-        if (bL(a10)) return a10.k ? br(a10.k) : bP(a10, a10, b3, true);
-        throw Error("unreachable");
-      }
-      async function bR(a10, b3, c2) {
-        let d2, e2;
-        if (!bH(a10)) throw new bx("Flattened JWS must be an object");
-        if (void 0 === a10.protected && void 0 === a10.header) throw new bx('Flattened JWS must have either of the "protected" or "header" members');
-        if (void 0 !== a10.protected && "string" != typeof a10.protected) throw new bx("JWS Protected Header incorrect type");
-        if (void 0 === a10.payload) throw new bx("JWS Payload missing");
-        if ("string" != typeof a10.signature) throw new bx("JWS Signature missing or incorrect type");
-        if (void 0 !== a10.header && !bH(a10.header)) throw new bx("JWS Unprotected Header incorrect type");
-        let f2 = {};
-        if (a10.protected) try {
-          let b4 = br(a10.protected);
-          f2 = JSON.parse(bp.decode(b4));
-        } catch {
-          throw new bx("JWS Protected Header is invalid");
-        }
-        if (!function(...a11) {
-          let b4, c3 = a11.filter(Boolean);
-          if (0 === c3.length || 1 === c3.length) return true;
-          for (let a12 of c3) {
-            let c4 = Object.keys(a12);
-            if (!b4 || 0 === b4.size) {
-              b4 = new Set(c4);
-              continue;
-            }
-            for (let a13 of c4) {
-              if (b4.has(a13)) return false;
-              b4.add(a13);
-            }
-          }
-          return true;
-        }(f2, a10.header)) throw new bx("JWS Protected and JWS Unprotected Header Parameter names must be disjoint");
-        let g2 = { ...f2, ...a10.header }, h2 = function(a11, b4, c3, d3, e3) {
-          let f3;
-          if (void 0 !== e3.crit && d3?.crit === void 0) throw new a11('"crit" (Critical) Header Parameter MUST be integrity protected');
-          if (!d3 || void 0 === d3.crit) return /* @__PURE__ */ new Set();
-          if (!Array.isArray(d3.crit) || 0 === d3.crit.length || d3.crit.some((a12) => "string" != typeof a12 || 0 === a12.length)) throw new a11('"crit" (Critical) Header Parameter MUST be an array of non-empty strings when present');
-          for (let g3 of (f3 = void 0 !== c3 ? new Map([...Object.entries(c3), ...b4.entries()]) : b4, d3.crit)) {
-            if (!f3.has(g3)) throw new bw(`Extension Header Parameter "${g3}" is not recognized`);
-            if (void 0 === e3[g3]) throw new a11(`Extension Header Parameter "${g3}" is missing`);
-            if (f3.get(g3) && void 0 === d3[g3]) throw new a11(`Extension Header Parameter "${g3}" MUST be integrity protected`);
-          }
-          return new Set(d3.crit);
-        }(bx, /* @__PURE__ */ new Map([["b64", true]]), c2?.crit, f2, g2), i2 = true;
-        if (h2.has("b64") && "boolean" != typeof (i2 = f2.b64)) throw new bx('The "b64" (base64url-encode payload) Header Parameter must be a boolean');
-        let { alg: j2 } = g2;
-        if ("string" != typeof j2 || !j2) throw new bx('JWS "alg" (Algorithm) Header Parameter missing or invalid');
-        let k2 = c2 && function(a11, b4) {
-          if (void 0 !== b4 && (!Array.isArray(b4) || b4.some((a12) => "string" != typeof a12))) throw TypeError(`"${a11}" option must be an array of strings`);
-          if (b4) return new Set(b4);
-        }("algorithms", c2.algorithms);
-        if (k2 && !k2.has(j2)) throw new bv('"alg" (Algorithm) Header Parameter value not allowed');
-        if (i2) {
-          if ("string" != typeof a10.payload) throw new bx("JWS Payload must be a string");
-        } else if ("string" != typeof a10.payload && !(a10.payload instanceof Uint8Array)) throw new bx("JWS Payload must be a string or an Uint8Array instance");
-        let l2 = false;
-        "function" == typeof b3 && (b3 = await b3(f2, a10), l2 = true);
-        var m2 = b3, n2 = "verify";
-        switch (j2.substring(0, 2)) {
-          case "A1":
-          case "A2":
-          case "di":
-          case "HS":
-          case "PB":
-            ((a11, b4, c3) => {
-              if (!(b4 instanceof Uint8Array)) {
-                if (bL(b4)) {
-                  if ("oct" === b4.kty && "string" == typeof b4.k && bN(a11, b4, c3)) return;
-                  throw TypeError('JSON Web Key for symmetric algorithms must have JWK "kty" (Key Type) equal to "oct" and the JWK "k" (Key Value) present');
-                }
-                if (!bK(b4)) throw TypeError(bE(a11, b4, "CryptoKey", "KeyObject", "JSON Web Key", "Uint8Array"));
-                if ("secret" !== b4.type) throw TypeError(`${bM(b4)} instances for symmetric algorithms must be of type "secret"`);
-              }
-            })(j2, m2, n2);
-            break;
-          default:
-            ((a11, b4, c3) => {
-              if (bL(b4)) switch (c3) {
-                case "decrypt":
-                case "sign":
-                  if ("oct" !== b4.kty && ("AKP" === b4.kty && "string" == typeof b4.priv || "string" == typeof b4.d) && bN(a11, b4, c3)) return;
-                  throw TypeError("JSON Web Key for this operation must be a private JWK");
-                case "encrypt":
-                case "verify":
-                  if ("oct" !== b4.kty && void 0 === b4.d && void 0 === b4.priv && bN(a11, b4, c3)) return;
-                  throw TypeError("JSON Web Key for this operation must be a public JWK");
-              }
-              if (!bK(b4)) throw TypeError(bE(a11, b4, "CryptoKey", "KeyObject", "JSON Web Key"));
-              if ("secret" === b4.type) throw TypeError(`${bM(b4)} instances for asymmetric algorithms must not be of type "secret"`);
-              if ("public" === b4.type) switch (c3) {
-                case "sign":
-                  throw TypeError(`${bM(b4)} instances for asymmetric algorithm signing must be of type "private"`);
-                case "decrypt":
-                  throw TypeError(`${bM(b4)} instances for asymmetric algorithm decryption must be of type "private"`);
-              }
-              if ("private" === b4.type) switch (c3) {
-                case "verify":
-                  throw TypeError(`${bM(b4)} instances for asymmetric algorithm verifying must be of type "public"`);
-                case "encrypt":
-                  throw TypeError(`${bM(b4)} instances for asymmetric algorithm encryption must be of type "public"`);
-              }
-            })(j2, m2, n2);
-        }
-        let o2 = function(...a11) {
-          let b4 = new Uint8Array(a11.reduce((a12, { length: b5 }) => a12 + b5, 0)), c3 = 0;
-          for (let d3 of a11) b4.set(d3, c3), c3 += d3.length;
-          return b4;
-        }(void 0 !== a10.protected ? bq(a10.protected) : new Uint8Array(), bq("."), "string" == typeof a10.payload ? i2 ? bq(a10.payload) : bo.encode(a10.payload) : a10.payload);
-        try {
-          d2 = br(a10.signature);
-        } catch {
-          throw new bx("Failed to base64url decode the signature");
-        }
-        let p2 = await bQ(b3, j2);
-        if (!await bG(j2, p2, d2, o2)) throw new bA();
-        if (i2) try {
-          e2 = br(a10.payload);
-        } catch {
-          throw new bx("Failed to base64url decode the payload");
-        }
-        else e2 = "string" == typeof a10.payload ? bo.encode(a10.payload) : a10.payload;
-        let q2 = { payload: e2 };
-        return (void 0 !== a10.protected && (q2.protectedHeader = f2), void 0 !== a10.header && (q2.unprotectedHeader = a10.header), l2) ? { ...q2, key: p2 } : q2;
-      }
-      async function bS(a10, b3, c2) {
-        if (a10 instanceof Uint8Array && (a10 = bp.decode(a10)), "string" != typeof a10) throw new bx("Compact JWS must be a string or Uint8Array");
-        let { 0: d2, 1: e2, 2: f2, length: g2 } = a10.split(".");
-        if (3 !== g2) throw new bx("Invalid Compact JWS");
-        let h2 = await bR({ payload: e2, protected: d2, signature: f2 }, b3, c2), i2 = { payload: h2.payload, protectedHeader: h2.protectedHeader };
-        return "function" == typeof b3 ? { ...i2, key: h2.key } : i2;
-      }
-      let bT = /^(\+|\-)? ?(\d+|\d+\.\d+) ?(seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|weeks?|w|years?|yrs?|y)(?: (ago|from now))?$/i;
-      function bU(a10) {
-        let b3, c2 = bT.exec(a10);
-        if (!c2 || c2[4] && c2[1]) throw TypeError("Invalid time period format");
-        let d2 = parseFloat(c2[2]);
-        switch (c2[3].toLowerCase()) {
-          case "sec":
-          case "secs":
-          case "second":
-          case "seconds":
-          case "s":
-            b3 = Math.round(d2);
-            break;
-          case "minute":
-          case "minutes":
-          case "min":
-          case "mins":
-          case "m":
-            b3 = Math.round(60 * d2);
-            break;
-          case "hour":
-          case "hours":
-          case "hr":
-          case "hrs":
-          case "h":
-            b3 = Math.round(3600 * d2);
-            break;
-          case "day":
-          case "days":
-          case "d":
-            b3 = Math.round(86400 * d2);
-            break;
-          case "week":
-          case "weeks":
-          case "w":
-            b3 = Math.round(604800 * d2);
-            break;
-          default:
-            b3 = Math.round(31557600 * d2);
-        }
-        return "-" === c2[1] || "ago" === c2[4] ? -b3 : b3;
-      }
-      let bV = (a10) => a10.includes("/") ? a10.toLowerCase() : `application/${a10.toLowerCase()}`;
-      async function bW(a10, b3, c2) {
-        let d2 = await bS(a10, b3, c2);
-        if (d2.protectedHeader.crit?.includes("b64") && false === d2.protectedHeader.b64) throw new by("JWTs MUST NOT use unencoded payload");
-        let e2 = { payload: function(a11, b4, c3 = {}) {
-          var d3, e3;
-          let f2, g2;
-          try {
-            f2 = JSON.parse(bp.decode(b4));
-          } catch {
-          }
-          if (!bH(f2)) throw new by("JWT Claims Set must be a top-level JSON object");
-          let { typ: h2 } = c3;
-          if (h2 && ("string" != typeof a11.typ || bV(a11.typ) !== bV(h2))) throw new bt('unexpected "typ" JWT header value', f2, "typ", "check_failed");
-          let { requiredClaims: i2 = [], issuer: j2, subject: k2, audience: l2, maxTokenAge: m2 } = c3, n2 = [...i2];
-          for (let a12 of (void 0 !== m2 && n2.push("iat"), void 0 !== l2 && n2.push("aud"), void 0 !== k2 && n2.push("sub"), void 0 !== j2 && n2.push("iss"), new Set(n2.reverse()))) if (!(a12 in f2)) throw new bt(`missing required "${a12}" claim`, f2, a12, "missing");
-          if (j2 && !(Array.isArray(j2) ? j2 : [j2]).includes(f2.iss)) throw new bt('unexpected "iss" claim value', f2, "iss", "check_failed");
-          if (k2 && f2.sub !== k2) throw new bt('unexpected "sub" claim value', f2, "sub", "check_failed");
-          if (l2 && (d3 = f2.aud, e3 = "string" == typeof l2 ? [l2] : l2, "string" == typeof d3 ? !e3.includes(d3) : !(Array.isArray(d3) && e3.some(Set.prototype.has.bind(new Set(d3)))))) throw new bt('unexpected "aud" claim value', f2, "aud", "check_failed");
-          switch (typeof c3.clockTolerance) {
-            case "string":
-              g2 = bU(c3.clockTolerance);
-              break;
-            case "number":
-              g2 = c3.clockTolerance;
-              break;
-            case "undefined":
-              g2 = 0;
-              break;
-            default:
-              throw TypeError("Invalid clockTolerance option type");
-          }
-          let { currentDate: o2 } = c3, p2 = Math.floor((o2 || /* @__PURE__ */ new Date()).getTime() / 1e3);
-          if ((void 0 !== f2.iat || m2) && "number" != typeof f2.iat) throw new bt('"iat" claim must be a number', f2, "iat", "invalid");
-          if (void 0 !== f2.nbf) {
-            if ("number" != typeof f2.nbf) throw new bt('"nbf" claim must be a number', f2, "nbf", "invalid");
-            if (f2.nbf > p2 + g2) throw new bt('"nbf" claim timestamp check failed', f2, "nbf", "check_failed");
-          }
-          if (void 0 !== f2.exp) {
-            if ("number" != typeof f2.exp) throw new bt('"exp" claim must be a number', f2, "exp", "invalid");
-            if (f2.exp <= p2 - g2) throw new bu('"exp" claim timestamp check failed', f2, "exp", "check_failed");
-          }
-          if (m2) {
-            let a12 = p2 - f2.iat;
-            if (a12 - g2 > ("number" == typeof m2 ? m2 : bU(m2))) throw new bu('"iat" claim timestamp check failed (too far in the past)', f2, "iat", "check_failed");
-            if (a12 < 0 - g2) throw new bt('"iat" claim timestamp check failed (it should be in the past)', f2, "iat", "check_failed");
-          }
-          return f2;
-        }(d2.protectedHeader, d2.payload, c2), protectedHeader: d2.protectedHeader };
-        return "function" == typeof b3 ? { ...e2, key: d2.key } : e2;
-      }
-      function bX(a10, b3) {
-        let c2 = a10.headers;
-        return c2.set("X-Frame-Options", "DENY"), c2.set("X-Content-Type-Options", "nosniff"), c2.set("Referrer-Policy", "strict-origin-when-cross-origin"), c2.set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=(), bluetooth=(), interest-cohort=()"), c2.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload"), c2.set("Cross-Origin-Opener-Policy", "same-origin"), c2.set("Cross-Origin-Embedder-Policy", "require-corp"), c2.set("Cross-Origin-Resource-Policy", "same-origin"), c2.set("Cache-Control", "no-store, no-cache, must-revalidate, private"), c2.set("Pragma", "no-cache"), c2.set("Content-Security-Policy", `default-src 'self'; script-src 'self' 'nonce-${b3}'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; worker-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests`), a10;
-      }
-      async function bY(a10) {
-        let { pathname: b3 } = a10.nextUrl;
-        if (!b3.startsWith("/admin")) return ad.next();
-        let c2 = btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(16)))), d2 = crypto.randomUUID(), e2 = (process.env.ADMIN_ALLOWED_IPS ?? "").split(",").map((a11) => a11.trim()).filter(Boolean);
-        if (e2.length > 0) {
-          let b4 = a10.headers.get("cf-connecting-ip") ?? a10.headers.get("x-real-ip") ?? a10.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "";
-          if (!function(a11, b5) {
-            if (!a11 || 0 === b5.length) return true;
-            let c3 = a11.replace(/^::ffff:/, "").trim(), d3 = c3.split(".");
-            if (4 !== d3.length) return false;
-            let e3 = d3.reduce((a12, b6) => a12 << 8 | parseInt(b6, 10), 0) >>> 0;
-            for (let a12 of b5) if (a12.includes("/")) {
-              let b6 = function(a13) {
-                let [b7, c4] = a13.split("/");
-                if (!b7) return null;
-                let d4 = c4 ? parseInt(c4, 10) : 32, e4 = b7.split(".").reduce((a14, b8) => a14 << 8 | parseInt(b8, 10), 0) >>> 0, f3 = 0 === d4 ? 0 : 4294967295 << 32 - d4 >>> 0;
-                return [e4 & f3, f3];
-              }(a12);
-              if (b6 && (e3 & b6[1]) === b6[0]) return true;
-            } else if (a12.trim() === c3) return true;
-            return false;
-          }(b4, e2)) return console.warn(`[middleware] IP blocked: ${b4} \u2014 request ${d2}`), new ad(null, { status: 404 });
-        }
-        if ("/admin/login" === b3) {
-          let a11 = ad.next();
-          return a11.headers.set("x-nonce", c2), a11.headers.set("x-request-id", d2), bX(a11, c2);
-        }
-        let f2 = a10.cookies.get("admin_session")?.value;
-        if (!f2) return ad.redirect(new URL("/admin/login", a10.url));
-        try {
-          let b4 = process.env.ADMIN_JWT_SECRET;
-          if (!b4) return console.error("[middleware] ADMIN_JWT_SECRET not configured"), ad.redirect(new URL("/admin/login", a10.url));
-          let { payload: e3 } = await bW(f2, new TextEncoder().encode(b4), { issuer: "ilbuoncaffe:admin", algorithms: ["HS256"] });
-          if ("admin" !== e3.role) return ad.redirect(new URL("/admin/login", a10.url));
-          let g2 = ad.next();
-          return g2.headers.set("x-nonce", c2), g2.headers.set("x-request-id", d2), bX(g2, c2);
-        } catch {
-          let b4 = ad.redirect(new URL("/admin/login", a10.url));
-          return b4.cookies.delete({ name: "admin_session", path: "/" }), b4;
-        }
-      }
-      let bZ = { matcher: ["/admin/:path*"] };
-      Object.values({ NOT_FOUND: 404, FORBIDDEN: 403, UNAUTHORIZED: 401 });
-      let b$ = { ...s }, b_ = "/src/middleware", b0 = (0, b$.middleware || b$.default);
-      class b1 extends Error {
-        constructor(a10) {
-          super(a10), this.stack = "";
-        }
-      }
-      if ("function" != typeof b0) throw new b1(`The Middleware file "${b_}" must export a function named \`middleware\` or a default function.`);
-      let b2 = (a10) => bm({ ...a10, page: b_, handler: async (...a11) => {
-        try {
-          return await b0(...a11);
-        } catch (e2) {
-          let b3 = a11[0], c2 = new URL(b3.url), d2 = c2.pathname + c2.search;
-          throw await w(e2, { path: d2, method: b3.method, headers: Object.fromEntries(b3.headers.entries()) }, { routerKind: "Pages Router", routePath: "/proxy", routeType: "proxy", revalidateReason: void 0 }), e2;
-        }
-      } });
-    }, 1026: (a) => {
+    (self.webpackChunk_N_E = self.webpackChunk_N_E || []).push([[550], { 26: (a) => {
       (() => {
         "use strict";
         "u" > typeof __nccwpck_require__ && (__nccwpck_require__.ab = "//");
@@ -2624,201 +843,1807 @@ Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime`;
           return i;
         }, b = decodeURIComponent, c = encodeURIComponent, d = /; */, e = /^[\u0009\u0020-\u007e\u0080-\u00ff]+$/, a.exports = f;
       })();
-    }, 1066: (a, b, c) => {
-    }, 1587: (a, b) => {
+    }, 57: (a, b, c) => {
       "use strict";
-      Symbol.for("react.transitional.element"), Symbol.for("react.portal"), Symbol.for("react.fragment"), Symbol.for("react.strict_mode"), Symbol.for("react.profiler"), Symbol.for("react.forward_ref"), Symbol.for("react.suspense"), Symbol.for("react.memo"), Symbol.for("react.lazy"), Symbol.for("react.activity"), Symbol.for("react.view_transition"), Symbol.iterator;
-      Object.prototype.hasOwnProperty;
-    }, 2681: (a, b, c) => {
-      "use strict";
-      Object.defineProperty(b, "__esModule", { value: true });
-      var d = { getTestReqInfo: function() {
-        return i;
-      }, withRequest: function() {
-        return h;
+      let d, e, f;
+      c.r(b), c.d(b, { default: () => b6 });
+      var g, h, i, j, k, l, m, n, o, p, q, r, s = {};
+      async function t() {
+        return "_ENTRIES" in globalThis && _ENTRIES.middleware_instrumentation && await _ENTRIES.middleware_instrumentation;
+      }
+      c.r(s), c.d(s, { config: () => b1, middleware: () => b0 });
+      let u = null;
+      async function v() {
+        if ("phase-production-build" === process.env.NEXT_PHASE) return;
+        u || (u = t());
+        let a10 = await u;
+        if (null == a10 ? void 0 : a10.register) try {
+          await a10.register();
+        } catch (a11) {
+          throw a11.message = `An error occurred while loading instrumentation hook: ${a11.message}`, a11;
+        }
+      }
+      async function w(...a10) {
+        let b7 = await t();
+        try {
+          var c2;
+          await (null == b7 || null == (c2 = b7.onRequestError) ? void 0 : c2.call(b7, ...a10));
+        } catch (a11) {
+          console.error("Error in instrumentation.onRequestError:", a11);
+        }
+      }
+      let x = null;
+      function y() {
+        return x || (x = v()), x;
+      }
+      function z(a10) {
+        return `The edge runtime does not support Node.js '${a10}' module.
+Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime`;
+      }
+      process !== c.g.process && (process.env = c.g.process.env, c.g.process = process);
+      try {
+        Object.defineProperty(globalThis, "__import_unsupported", { value: function(a10) {
+          let b7 = new Proxy(function() {
+          }, { get(b8, c2) {
+            if ("then" === c2) return {};
+            throw Object.defineProperty(Error(z(a10)), "__NEXT_ERROR_CODE", { value: "E394", enumerable: false, configurable: true });
+          }, construct() {
+            throw Object.defineProperty(Error(z(a10)), "__NEXT_ERROR_CODE", { value: "E394", enumerable: false, configurable: true });
+          }, apply(c2, d2, e2) {
+            if ("function" == typeof e2[0]) return e2[0](b7);
+            throw Object.defineProperty(Error(z(a10)), "__NEXT_ERROR_CODE", { value: "E394", enumerable: false, configurable: true });
+          } });
+          return new Proxy({}, { get: () => b7 });
+        }, enumerable: false, configurable: false });
+      } catch {
+      }
+      y();
+      class A extends Error {
+        constructor({ page: a10 }) {
+          super(`The middleware "${a10}" accepts an async API directly with the form:
+  
+  export function middleware(request, event) {
+    return NextResponse.redirect('/new-location')
+  }
+  
+  Read more: https://nextjs.org/docs/messages/middleware-new-signature
+  `);
+        }
+      }
+      class B extends Error {
+        constructor() {
+          super(`The request.page has been deprecated in favour of \`URLPattern\`.
+  Read more: https://nextjs.org/docs/messages/middleware-request-page
+  `);
+        }
+      }
+      class C extends Error {
+        constructor() {
+          super(`The request.ua has been removed in favour of \`userAgent\` function.
+  Read more: https://nextjs.org/docs/messages/middleware-parse-user-agent
+  `);
+        }
+      }
+      let D = "_N_T_", E = { shared: "shared", reactServerComponents: "rsc", serverSideRendering: "ssr", actionBrowser: "action-browser", apiNode: "api-node", apiEdge: "api-edge", middleware: "middleware", instrument: "instrument", edgeAsset: "edge-asset", appPagesBrowser: "app-pages-browser", pagesDirBrowser: "pages-dir-browser", pagesDirEdge: "pages-dir-edge", pagesDirNode: "pages-dir-node" };
+      function F(a10) {
+        var b7, c2, d2, e2, f2, g2 = [], h2 = 0;
+        function i2() {
+          for (; h2 < a10.length && /\s/.test(a10.charAt(h2)); ) h2 += 1;
+          return h2 < a10.length;
+        }
+        for (; h2 < a10.length; ) {
+          for (b7 = h2, f2 = false; i2(); ) if ("," === (c2 = a10.charAt(h2))) {
+            for (d2 = h2, h2 += 1, i2(), e2 = h2; h2 < a10.length && "=" !== (c2 = a10.charAt(h2)) && ";" !== c2 && "," !== c2; ) h2 += 1;
+            h2 < a10.length && "=" === a10.charAt(h2) ? (f2 = true, h2 = e2, g2.push(a10.substring(b7, d2)), b7 = h2) : h2 = d2 + 1;
+          } else h2 += 1;
+          (!f2 || h2 >= a10.length) && g2.push(a10.substring(b7, a10.length));
+        }
+        return g2;
+      }
+      function G(a10) {
+        let b7 = {}, c2 = [];
+        if (a10) for (let [d2, e2] of a10.entries()) "set-cookie" === d2.toLowerCase() ? (c2.push(...F(e2)), b7[d2] = 1 === c2.length ? c2[0] : c2) : b7[d2] = e2;
+        return b7;
+      }
+      function H(a10) {
+        try {
+          return String(new URL(String(a10)));
+        } catch (b7) {
+          throw Object.defineProperty(Error(`URL is malformed "${String(a10)}". Please use only absolute URLs - https://nextjs.org/docs/messages/middleware-relative-urls`, { cause: b7 }), "__NEXT_ERROR_CODE", { value: "E61", enumerable: false, configurable: true });
+        }
+      }
+      ({ ...E, GROUP: { builtinReact: [E.reactServerComponents, E.actionBrowser], serverOnly: [E.reactServerComponents, E.actionBrowser, E.instrument, E.middleware], neutralTarget: [E.apiNode, E.apiEdge], clientOnly: [E.serverSideRendering, E.appPagesBrowser], bundled: [E.reactServerComponents, E.actionBrowser, E.serverSideRendering, E.appPagesBrowser, E.shared, E.instrument, E.middleware], appPages: [E.reactServerComponents, E.serverSideRendering, E.appPagesBrowser, E.actionBrowser] } });
+      let I = Symbol("response"), J = Symbol("passThrough"), K = Symbol("waitUntil");
+      class L {
+        constructor(a10, b7) {
+          this[J] = false, this[K] = b7 ? { kind: "external", function: b7 } : { kind: "internal", promises: [] };
+        }
+        respondWith(a10) {
+          this[I] || (this[I] = Promise.resolve(a10));
+        }
+        passThroughOnException() {
+          this[J] = true;
+        }
+        waitUntil(a10) {
+          if ("external" === this[K].kind) return (0, this[K].function)(a10);
+          this[K].promises.push(a10);
+        }
+      }
+      class M extends L {
+        constructor(a10) {
+          var b7;
+          super(a10.request, null == (b7 = a10.context) ? void 0 : b7.waitUntil), this.sourcePage = a10.page;
+        }
+        get request() {
+          throw Object.defineProperty(new A({ page: this.sourcePage }), "__NEXT_ERROR_CODE", { value: "E394", enumerable: false, configurable: true });
+        }
+        respondWith() {
+          throw Object.defineProperty(new A({ page: this.sourcePage }), "__NEXT_ERROR_CODE", { value: "E394", enumerable: false, configurable: true });
+        }
+      }
+      function N(a10) {
+        return a10.replace(/\/$/, "") || "/";
+      }
+      function O(a10) {
+        let b7 = a10.indexOf("#"), c2 = a10.indexOf("?"), d2 = c2 > -1 && (b7 < 0 || c2 < b7);
+        return d2 || b7 > -1 ? { pathname: a10.substring(0, d2 ? c2 : b7), query: d2 ? a10.substring(c2, b7 > -1 ? b7 : void 0) : "", hash: b7 > -1 ? a10.slice(b7) : "" } : { pathname: a10, query: "", hash: "" };
+      }
+      function P(a10, b7) {
+        if (!a10.startsWith("/") || !b7) return a10;
+        let { pathname: c2, query: d2, hash: e2 } = O(a10);
+        return `${b7}${c2}${d2}${e2}`;
+      }
+      function Q(a10, b7) {
+        if (!a10.startsWith("/") || !b7) return a10;
+        let { pathname: c2, query: d2, hash: e2 } = O(a10);
+        return `${c2}${b7}${d2}${e2}`;
+      }
+      function R(a10, b7) {
+        if ("string" != typeof a10) return false;
+        let { pathname: c2 } = O(a10);
+        return c2 === b7 || c2.startsWith(b7 + "/");
+      }
+      let S = /* @__PURE__ */ new WeakMap();
+      function T(a10, b7) {
+        let c2;
+        if (!b7) return { pathname: a10 };
+        let d2 = S.get(b7);
+        d2 || (d2 = b7.map((a11) => a11.toLowerCase()), S.set(b7, d2));
+        let e2 = a10.split("/", 2);
+        if (!e2[1]) return { pathname: a10 };
+        let f2 = e2[1].toLowerCase(), g2 = d2.indexOf(f2);
+        return g2 < 0 ? { pathname: a10 } : (c2 = b7[g2], { pathname: a10 = a10.slice(c2.length + 1) || "/", detectedLocale: c2 });
+      }
+      let U = /(?!^https?:\/\/)(127(?:\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}|\[::1\]|localhost)/;
+      function V(a10, b7) {
+        return new URL(String(a10).replace(U, "localhost"), b7 && String(b7).replace(U, "localhost"));
+      }
+      let W = Symbol("NextURLInternal");
+      class X {
+        constructor(a10, b7, c2) {
+          let d2, e2;
+          "object" == typeof b7 && "pathname" in b7 || "string" == typeof b7 ? (d2 = b7, e2 = c2 || {}) : e2 = c2 || b7 || {}, this[W] = { url: V(a10, d2 ?? e2.base), options: e2, basePath: "" }, this.analyze();
+        }
+        analyze() {
+          var a10, b7, c2, d2, e2;
+          let f2 = function(a11, b8) {
+            let { basePath: c3, i18n: d3, trailingSlash: e3 } = b8.nextConfig ?? {}, f3 = { pathname: a11, trailingSlash: "/" !== a11 ? a11.endsWith("/") : e3 };
+            c3 && R(f3.pathname, c3) && (f3.pathname = function(a12, b9) {
+              if (!R(a12, b9)) return a12;
+              let c4 = a12.slice(b9.length);
+              return c4.startsWith("/") ? c4 : `/${c4}`;
+            }(f3.pathname, c3), f3.basePath = c3);
+            let g3 = f3.pathname;
+            if (f3.pathname.startsWith("/_next/data/") && f3.pathname.endsWith(".json")) {
+              let a12 = f3.pathname.replace(/^\/_next\/data\//, "").replace(/\.json$/, "").split("/");
+              f3.buildId = a12[0], g3 = "index" !== a12[1] ? `/${a12.slice(1).join("/")}` : "/", true === b8.parseData && (f3.pathname = g3);
+            }
+            if (d3) {
+              let a12 = b8.i18nProvider ? b8.i18nProvider.analyze(f3.pathname) : T(f3.pathname, d3.locales);
+              f3.locale = a12.detectedLocale, f3.pathname = a12.pathname ?? f3.pathname, !a12.detectedLocale && f3.buildId && (a12 = b8.i18nProvider ? b8.i18nProvider.analyze(g3) : T(g3, d3.locales)).detectedLocale && (f3.locale = a12.detectedLocale);
+            }
+            return f3;
+          }(this[W].url.pathname, { nextConfig: this[W].options.nextConfig, parseData: true, i18nProvider: this[W].options.i18nProvider }), g2 = function(a11, b8) {
+            let c3;
+            if (b8?.host && !Array.isArray(b8.host)) c3 = b8.host.toString().split(":", 1)[0];
+            else {
+              if (!a11.hostname) return;
+              c3 = a11.hostname;
+            }
+            return c3.toLowerCase();
+          }(this[W].url, this[W].options.headers);
+          this[W].domainLocale = this[W].options.i18nProvider ? this[W].options.i18nProvider.detectDomainLocale(g2) : function(a11, b8, c3) {
+            if (a11) {
+              for (let d3 of (c3 && (c3 = c3.toLowerCase()), a11)) if (b8 === d3.domain?.split(":", 1)[0].toLowerCase() || c3 === d3.defaultLocale.toLowerCase() || d3.locales?.some((a12) => a12.toLowerCase() === c3)) return d3;
+            }
+          }(null == (b7 = this[W].options.nextConfig) || null == (a10 = b7.i18n) ? void 0 : a10.domains, g2);
+          let h2 = (null == (c2 = this[W].domainLocale) ? void 0 : c2.defaultLocale) || (null == (e2 = this[W].options.nextConfig) || null == (d2 = e2.i18n) ? void 0 : d2.defaultLocale);
+          this[W].url.pathname = f2.pathname, this[W].defaultLocale = h2, this[W].basePath = f2.basePath ?? "", this[W].buildId = f2.buildId, this[W].locale = f2.locale ?? h2, this[W].trailingSlash = f2.trailingSlash;
+        }
+        formatPathname() {
+          var a10;
+          let b7;
+          return b7 = function(a11, b8, c2, d2) {
+            if (!b8 || b8 === c2) return a11;
+            let e2 = a11.toLowerCase();
+            return !d2 && (R(e2, "/api") || R(e2, `/${b8.toLowerCase()}`)) ? a11 : P(a11, `/${b8}`);
+          }((a10 = { basePath: this[W].basePath, buildId: this[W].buildId, defaultLocale: this[W].options.forceLocale ? void 0 : this[W].defaultLocale, locale: this[W].locale, pathname: this[W].url.pathname, trailingSlash: this[W].trailingSlash }).pathname, a10.locale, a10.buildId ? void 0 : a10.defaultLocale, a10.ignorePrefix), (a10.buildId || !a10.trailingSlash) && (b7 = N(b7)), a10.buildId && (b7 = Q(P(b7, `/_next/data/${a10.buildId}`), "/" === a10.pathname ? "index.json" : ".json")), b7 = P(b7, a10.basePath), !a10.buildId && a10.trailingSlash ? b7.endsWith("/") ? b7 : Q(b7, "/") : N(b7);
+        }
+        formatSearch() {
+          return this[W].url.search;
+        }
+        get buildId() {
+          return this[W].buildId;
+        }
+        set buildId(a10) {
+          this[W].buildId = a10;
+        }
+        get locale() {
+          return this[W].locale ?? "";
+        }
+        set locale(a10) {
+          var b7, c2;
+          if (!this[W].locale || !(null == (c2 = this[W].options.nextConfig) || null == (b7 = c2.i18n) ? void 0 : b7.locales.includes(a10))) throw Object.defineProperty(TypeError(`The NextURL configuration includes no locale "${a10}"`), "__NEXT_ERROR_CODE", { value: "E597", enumerable: false, configurable: true });
+          this[W].locale = a10;
+        }
+        get defaultLocale() {
+          return this[W].defaultLocale;
+        }
+        get domainLocale() {
+          return this[W].domainLocale;
+        }
+        get searchParams() {
+          return this[W].url.searchParams;
+        }
+        get host() {
+          return this[W].url.host;
+        }
+        set host(a10) {
+          this[W].url.host = a10;
+        }
+        get hostname() {
+          return this[W].url.hostname;
+        }
+        set hostname(a10) {
+          this[W].url.hostname = a10;
+        }
+        get port() {
+          return this[W].url.port;
+        }
+        set port(a10) {
+          this[W].url.port = a10;
+        }
+        get protocol() {
+          return this[W].url.protocol;
+        }
+        set protocol(a10) {
+          this[W].url.protocol = a10;
+        }
+        get href() {
+          let a10 = this.formatPathname(), b7 = this.formatSearch();
+          return `${this.protocol}//${this.host}${a10}${b7}${this.hash}`;
+        }
+        set href(a10) {
+          this[W].url = V(a10), this.analyze();
+        }
+        get origin() {
+          return this[W].url.origin;
+        }
+        get pathname() {
+          return this[W].url.pathname;
+        }
+        set pathname(a10) {
+          this[W].url.pathname = a10;
+        }
+        get hash() {
+          return this[W].url.hash;
+        }
+        set hash(a10) {
+          this[W].url.hash = a10;
+        }
+        get search() {
+          return this[W].url.search;
+        }
+        set search(a10) {
+          this[W].url.search = a10;
+        }
+        get password() {
+          return this[W].url.password;
+        }
+        set password(a10) {
+          this[W].url.password = a10;
+        }
+        get username() {
+          return this[W].url.username;
+        }
+        set username(a10) {
+          this[W].url.username = a10;
+        }
+        get basePath() {
+          return this[W].basePath;
+        }
+        set basePath(a10) {
+          this[W].basePath = a10.startsWith("/") ? a10 : `/${a10}`;
+        }
+        toString() {
+          return this.href;
+        }
+        toJSON() {
+          return this.href;
+        }
+        [Symbol.for("edge-runtime.inspect.custom")]() {
+          return { href: this.href, origin: this.origin, protocol: this.protocol, username: this.username, password: this.password, host: this.host, hostname: this.hostname, port: this.port, pathname: this.pathname, search: this.search, searchParams: this.searchParams, hash: this.hash };
+        }
+        clone() {
+          return new X(String(this), this[W].options);
+        }
+      }
+      var Y = c(508);
+      let Z = Symbol("internal request");
+      class $ extends Request {
+        constructor(a10, b7 = {}) {
+          const c2 = "string" != typeof a10 && "url" in a10 ? a10.url : String(a10);
+          H(c2), a10 instanceof Request ? super(a10, b7) : super(c2, b7);
+          const d2 = new X(c2, { headers: G(this.headers), nextConfig: b7.nextConfig });
+          this[Z] = { cookies: new Y.RequestCookies(this.headers), nextUrl: d2, url: d2.toString() };
+        }
+        [Symbol.for("edge-runtime.inspect.custom")]() {
+          return { cookies: this.cookies, nextUrl: this.nextUrl, url: this.url, bodyUsed: this.bodyUsed, cache: this.cache, credentials: this.credentials, destination: this.destination, headers: Object.fromEntries(this.headers), integrity: this.integrity, keepalive: this.keepalive, method: this.method, mode: this.mode, redirect: this.redirect, referrer: this.referrer, referrerPolicy: this.referrerPolicy, signal: this.signal };
+        }
+        get cookies() {
+          return this[Z].cookies;
+        }
+        get nextUrl() {
+          return this[Z].nextUrl;
+        }
+        get page() {
+          throw new B();
+        }
+        get ua() {
+          throw new C();
+        }
+        get url() {
+          return this[Z].url;
+        }
+      }
+      class _ {
+        static get(a10, b7, c2) {
+          let d2 = Reflect.get(a10, b7, c2);
+          return "function" == typeof d2 ? d2.bind(a10) : d2;
+        }
+        static set(a10, b7, c2, d2) {
+          return Reflect.set(a10, b7, c2, d2);
+        }
+        static has(a10, b7) {
+          return Reflect.has(a10, b7);
+        }
+        static deleteProperty(a10, b7) {
+          return Reflect.deleteProperty(a10, b7);
+        }
+      }
+      let aa = Symbol("internal response"), ab = /* @__PURE__ */ new Set([301, 302, 303, 307, 308]);
+      function ac(a10, b7) {
+        var c2;
+        if (null == a10 || null == (c2 = a10.request) ? void 0 : c2.headers) {
+          if (!(a10.request.headers instanceof Headers)) throw Object.defineProperty(Error("request.headers must be an instance of Headers"), "__NEXT_ERROR_CODE", { value: "E119", enumerable: false, configurable: true });
+          let c3 = [];
+          for (let [d2, e2] of a10.request.headers) b7.set("x-middleware-request-" + d2, e2), c3.push(d2);
+          b7.set("x-middleware-override-headers", c3.join(","));
+        }
+      }
+      class ad extends Response {
+        constructor(a10, b7 = {}) {
+          super(a10, b7);
+          const c2 = this.headers, d2 = new Proxy(new Y.ResponseCookies(c2), { get(a11, d3, e2) {
+            switch (d3) {
+              case "delete":
+              case "set":
+                return (...e3) => {
+                  let f2 = Reflect.apply(a11[d3], a11, e3), g2 = new Headers(c2);
+                  return f2 instanceof Y.ResponseCookies && c2.set("x-middleware-set-cookie", f2.getAll().map((a12) => (0, Y.stringifyCookie)(a12)).join(",")), ac(b7, g2), f2;
+                };
+              default:
+                return _.get(a11, d3, e2);
+            }
+          } });
+          this[aa] = { cookies: d2, url: b7.url ? new X(b7.url, { headers: G(c2), nextConfig: b7.nextConfig }) : void 0 };
+        }
+        [Symbol.for("edge-runtime.inspect.custom")]() {
+          return { cookies: this.cookies, url: this.url, body: this.body, bodyUsed: this.bodyUsed, headers: Object.fromEntries(this.headers), ok: this.ok, redirected: this.redirected, status: this.status, statusText: this.statusText, type: this.type };
+        }
+        get cookies() {
+          return this[aa].cookies;
+        }
+        static json(a10, b7) {
+          let c2 = Response.json(a10, b7);
+          return new ad(c2.body, c2);
+        }
+        static redirect(a10, b7) {
+          let c2 = "number" == typeof b7 ? b7 : (null == b7 ? void 0 : b7.status) ?? 307;
+          if (!ab.has(c2)) throw Object.defineProperty(RangeError('Failed to execute "redirect" on "response": Invalid status code'), "__NEXT_ERROR_CODE", { value: "E529", enumerable: false, configurable: true });
+          let d2 = "object" == typeof b7 ? b7 : {}, e2 = new Headers(null == d2 ? void 0 : d2.headers);
+          return e2.set("Location", H(a10)), new ad(null, { ...d2, headers: e2, status: c2 });
+        }
+        static rewrite(a10, b7) {
+          let c2 = new Headers(null == b7 ? void 0 : b7.headers);
+          return c2.set("x-middleware-rewrite", H(a10)), ac(b7, c2), new ad(null, { ...b7, headers: c2 });
+        }
+        static next(a10) {
+          let b7 = new Headers(null == a10 ? void 0 : a10.headers);
+          return b7.set("x-middleware-next", "1"), ac(a10, b7), new ad(null, { ...a10, headers: b7 });
+        }
+      }
+      function ae(a10, b7) {
+        let c2 = "string" == typeof b7 ? new URL(b7) : b7, d2 = new URL(a10, b7), e2 = d2.origin === c2.origin;
+        return { url: e2 ? d2.toString().slice(c2.origin.length) : d2.toString(), isRelative: e2 };
+      }
+      let af = "next-router-prefetch", ag = ["rsc", "next-router-state-tree", af, "next-hmr-refresh", "next-router-segment-prefetch"], ah = "_rsc";
+      class ai extends Error {
+        constructor() {
+          super("Headers cannot be modified. Read more: https://nextjs.org/docs/app/api-reference/functions/headers");
+        }
+        static callable() {
+          throw new ai();
+        }
+      }
+      class aj extends Headers {
+        constructor(a10) {
+          super(), this.headers = new Proxy(a10, { get(b7, c2, d2) {
+            if ("symbol" == typeof c2) return _.get(b7, c2, d2);
+            let e2 = c2.toLowerCase(), f2 = Object.keys(a10).find((a11) => a11.toLowerCase() === e2);
+            if (void 0 !== f2) return _.get(b7, f2, d2);
+          }, set(b7, c2, d2, e2) {
+            if ("symbol" == typeof c2) return _.set(b7, c2, d2, e2);
+            let f2 = c2.toLowerCase(), g2 = Object.keys(a10).find((a11) => a11.toLowerCase() === f2);
+            return _.set(b7, g2 ?? c2, d2, e2);
+          }, has(b7, c2) {
+            if ("symbol" == typeof c2) return _.has(b7, c2);
+            let d2 = c2.toLowerCase(), e2 = Object.keys(a10).find((a11) => a11.toLowerCase() === d2);
+            return void 0 !== e2 && _.has(b7, e2);
+          }, deleteProperty(b7, c2) {
+            if ("symbol" == typeof c2) return _.deleteProperty(b7, c2);
+            let d2 = c2.toLowerCase(), e2 = Object.keys(a10).find((a11) => a11.toLowerCase() === d2);
+            return void 0 === e2 || _.deleteProperty(b7, e2);
+          } });
+        }
+        static seal(a10) {
+          return new Proxy(a10, { get(a11, b7, c2) {
+            switch (b7) {
+              case "append":
+              case "delete":
+              case "set":
+                return ai.callable;
+              default:
+                return _.get(a11, b7, c2);
+            }
+          } });
+        }
+        merge(a10) {
+          return Array.isArray(a10) ? a10.join(", ") : a10;
+        }
+        static from(a10) {
+          return a10 instanceof Headers ? a10 : new aj(a10);
+        }
+        append(a10, b7) {
+          let c2 = this.headers[a10];
+          "string" == typeof c2 ? this.headers[a10] = [c2, b7] : Array.isArray(c2) ? c2.push(b7) : this.headers[a10] = b7;
+        }
+        delete(a10) {
+          delete this.headers[a10];
+        }
+        get(a10) {
+          let b7 = this.headers[a10];
+          return void 0 !== b7 ? this.merge(b7) : null;
+        }
+        has(a10) {
+          return void 0 !== this.headers[a10];
+        }
+        set(a10, b7) {
+          this.headers[a10] = b7;
+        }
+        forEach(a10, b7) {
+          for (let [c2, d2] of this.entries()) a10.call(b7, d2, c2, this);
+        }
+        *entries() {
+          for (let a10 of Object.keys(this.headers)) {
+            let b7 = a10.toLowerCase(), c2 = this.get(b7);
+            yield [b7, c2];
+          }
+        }
+        *keys() {
+          for (let a10 of Object.keys(this.headers)) {
+            let b7 = a10.toLowerCase();
+            yield b7;
+          }
+        }
+        *values() {
+          for (let a10 of Object.keys(this.headers)) {
+            let b7 = this.get(a10);
+            yield b7;
+          }
+        }
+        [Symbol.iterator]() {
+          return this.entries();
+        }
+      }
+      let ak = Object.defineProperty(Error("Invariant: AsyncLocalStorage accessed in runtime where it is not available"), "__NEXT_ERROR_CODE", { value: "E504", enumerable: false, configurable: true });
+      class al {
+        disable() {
+          throw ak;
+        }
+        getStore() {
+        }
+        run() {
+          throw ak;
+        }
+        exit() {
+          throw ak;
+        }
+        enterWith() {
+          throw ak;
+        }
+        static bind(a10) {
+          return a10;
+        }
+      }
+      let am = "u" > typeof globalThis && globalThis.AsyncLocalStorage;
+      function an() {
+        return am ? new am() : new al();
+      }
+      let ao = an();
+      class ap extends Error {
+        constructor() {
+          super("Cookies can only be modified in a Server Action or Route Handler. Read more: https://nextjs.org/docs/app/api-reference/functions/cookies#options");
+        }
+        static callable() {
+          throw new ap();
+        }
+      }
+      class aq {
+        static seal(a10) {
+          return new Proxy(a10, { get(a11, b7, c2) {
+            switch (b7) {
+              case "clear":
+              case "delete":
+              case "set":
+                return ap.callable;
+              default:
+                return _.get(a11, b7, c2);
+            }
+          } });
+        }
+      }
+      let ar = Symbol.for("next.mutated.cookies");
+      class as {
+        static wrap(a10, b7) {
+          let c2 = new Y.ResponseCookies(new Headers());
+          for (let b8 of a10.getAll()) c2.set(b8);
+          let d2 = [], e2 = /* @__PURE__ */ new Set(), f2 = () => {
+            let a11 = ao.getStore();
+            if (a11 && (a11.pathWasRevalidated = 1), d2 = c2.getAll().filter((a12) => e2.has(a12.name)), b7) {
+              let a12 = [];
+              for (let b8 of d2) {
+                let c3 = new Y.ResponseCookies(new Headers());
+                c3.set(b8), a12.push(c3.toString());
+              }
+              b7(a12);
+            }
+          }, g2 = new Proxy(c2, { get(a11, b8, c3) {
+            switch (b8) {
+              case ar:
+                return d2;
+              case "delete":
+                return function(...b9) {
+                  e2.add("string" == typeof b9[0] ? b9[0] : b9[0].name);
+                  try {
+                    return a11.delete(...b9), g2;
+                  } finally {
+                    f2();
+                  }
+                };
+              case "set":
+                return function(...b9) {
+                  e2.add("string" == typeof b9[0] ? b9[0] : b9[0].name);
+                  try {
+                    return a11.set(...b9), g2;
+                  } finally {
+                    f2();
+                  }
+                };
+              default:
+                return _.get(a11, b8, c3);
+            }
+          } });
+          return g2;
+        }
+      }
+      function at(a10, b7) {
+        if ("action" !== a10.phase) throw new ap();
+      }
+      var au = ((g = au || {}).handleRequest = "BaseServer.handleRequest", g.run = "BaseServer.run", g.pipe = "BaseServer.pipe", g.getStaticHTML = "BaseServer.getStaticHTML", g.render = "BaseServer.render", g.renderToResponseWithComponents = "BaseServer.renderToResponseWithComponents", g.renderToResponse = "BaseServer.renderToResponse", g.renderToHTML = "BaseServer.renderToHTML", g.renderError = "BaseServer.renderError", g.renderErrorToResponse = "BaseServer.renderErrorToResponse", g.renderErrorToHTML = "BaseServer.renderErrorToHTML", g.render404 = "BaseServer.render404", g), av = ((h = av || {}).loadDefaultErrorComponents = "LoadComponents.loadDefaultErrorComponents", h.loadComponents = "LoadComponents.loadComponents", h), aw = ((i = aw || {}).getRequestHandler = "NextServer.getRequestHandler", i.getRequestHandlerWithMetadata = "NextServer.getRequestHandlerWithMetadata", i.getServer = "NextServer.getServer", i.getServerRequestHandler = "NextServer.getServerRequestHandler", i.createServer = "createServer.createServer", i), ax = ((j = ax || {}).compression = "NextNodeServer.compression", j.getBuildId = "NextNodeServer.getBuildId", j.createComponentTree = "NextNodeServer.createComponentTree", j.clientComponentLoading = "NextNodeServer.clientComponentLoading", j.getLayoutOrPageModule = "NextNodeServer.getLayoutOrPageModule", j.generateStaticRoutes = "NextNodeServer.generateStaticRoutes", j.generateFsStaticRoutes = "NextNodeServer.generateFsStaticRoutes", j.generatePublicRoutes = "NextNodeServer.generatePublicRoutes", j.generateImageRoutes = "NextNodeServer.generateImageRoutes.route", j.sendRenderResult = "NextNodeServer.sendRenderResult", j.proxyRequest = "NextNodeServer.proxyRequest", j.runApi = "NextNodeServer.runApi", j.render = "NextNodeServer.render", j.renderHTML = "NextNodeServer.renderHTML", j.imageOptimizer = "NextNodeServer.imageOptimizer", j.getPagePath = "NextNodeServer.getPagePath", j.getRoutesManifest = "NextNodeServer.getRoutesManifest", j.findPageComponents = "NextNodeServer.findPageComponents", j.getFontManifest = "NextNodeServer.getFontManifest", j.getServerComponentManifest = "NextNodeServer.getServerComponentManifest", j.getRequestHandler = "NextNodeServer.getRequestHandler", j.renderToHTML = "NextNodeServer.renderToHTML", j.renderError = "NextNodeServer.renderError", j.renderErrorToHTML = "NextNodeServer.renderErrorToHTML", j.render404 = "NextNodeServer.render404", j.startResponse = "NextNodeServer.startResponse", j.route = "route", j.onProxyReq = "onProxyReq", j.apiResolver = "apiResolver", j.internalFetch = "internalFetch", j), ay = ((k = ay || {}).startServer = "startServer.startServer", k), az = ((l = az || {}).getServerSideProps = "Render.getServerSideProps", l.getStaticProps = "Render.getStaticProps", l.renderToString = "Render.renderToString", l.renderDocument = "Render.renderDocument", l.createBodyResult = "Render.createBodyResult", l), aA = ((m = aA || {}).renderToString = "AppRender.renderToString", m.renderToReadableStream = "AppRender.renderToReadableStream", m.getBodyResult = "AppRender.getBodyResult", m.fetch = "AppRender.fetch", m), aB = ((n = aB || {}).executeRoute = "Router.executeRoute", n), aC = ((o = aC || {}).runHandler = "Node.runHandler", o), aD = ((p = aD || {}).runHandler = "AppRouteRouteHandlers.runHandler", p), aE = ((q = aE || {}).generateMetadata = "ResolveMetadata.generateMetadata", q.generateViewport = "ResolveMetadata.generateViewport", q), aF = ((r = aF || {}).execute = "Middleware.execute", r);
+      let aG = /* @__PURE__ */ new Set(["Middleware.execute", "BaseServer.handleRequest", "Render.getServerSideProps", "Render.getStaticProps", "AppRender.fetch", "AppRender.getBodyResult", "Render.renderDocument", "Node.runHandler", "AppRouteRouteHandlers.runHandler", "ResolveMetadata.generateMetadata", "ResolveMetadata.generateViewport", "NextNodeServer.createComponentTree", "NextNodeServer.findPageComponents", "NextNodeServer.getLayoutOrPageModule", "NextNodeServer.startResponse", "NextNodeServer.clientComponentLoading"]), aH = /* @__PURE__ */ new Set(["NextNodeServer.findPageComponents", "NextNodeServer.createComponentTree", "NextNodeServer.clientComponentLoading"]);
+      function aI(a10) {
+        return null !== a10 && "object" == typeof a10 && "then" in a10 && "function" == typeof a10.then;
+      }
+      let aJ = process.env.NEXT_OTEL_PERFORMANCE_PREFIX, { context: aK, propagation: aL, trace: aM, SpanStatusCode: aN, SpanKind: aO, ROOT_CONTEXT: aP } = d = c(76);
+      class aQ extends Error {
+        constructor(a10, b7) {
+          super(), this.bubble = a10, this.result = b7;
+        }
+      }
+      let aR = (a10, b7) => {
+        "object" == typeof b7 && null !== b7 && b7 instanceof aQ && b7.bubble ? a10.setAttribute("next.bubble", true) : (b7 && (a10.recordException(b7), a10.setAttribute("error.type", b7.name)), a10.setStatus({ code: aN.ERROR, message: null == b7 ? void 0 : b7.message })), a10.end();
+      }, aS = /* @__PURE__ */ new Map(), aT = d.createContextKey("next.rootSpanId"), aU = 0, aV = { set(a10, b7, c2) {
+        a10.push({ key: b7, value: c2 });
       } };
-      for (var e in d) Object.defineProperty(b, e, { enumerable: true, get: d[e] });
-      let f = new (c(5521)).AsyncLocalStorage();
-      function g(a2, b2) {
-        let c2 = b2.header(a2, "next-test-proxy-port");
-        if (!c2) return;
-        let d2 = b2.url(a2);
-        return { url: d2, proxyPort: Number(c2), testData: b2.header(a2, "next-test-data") || "" };
+      class aW {
+        getTracerInstance() {
+          return aM.getTracer("next.js", "0.0.1");
+        }
+        getContext() {
+          return aK;
+        }
+        getTracePropagationData() {
+          let a10 = aK.active(), b7 = [];
+          return aL.inject(a10, b7, aV), b7;
+        }
+        getActiveScopeSpan() {
+          return aM.getSpan(null == aK ? void 0 : aK.active());
+        }
+        withPropagatedContext(a10, b7, c2) {
+          let d2 = aK.active();
+          if (aM.getSpanContext(d2)) return b7();
+          let e2 = aL.extract(d2, a10, c2);
+          return aK.with(e2, b7);
+        }
+        trace(...a10) {
+          let [b7, c2, d2] = a10, { fn: e2, options: f2 } = "function" == typeof c2 ? { fn: c2, options: {} } : { fn: d2, options: { ...c2 } }, g2 = f2.spanName ?? b7;
+          if (!aG.has(b7) && "1" !== process.env.NEXT_OTEL_VERBOSE || f2.hideSpan) return e2();
+          let h2 = this.getSpanContext((null == f2 ? void 0 : f2.parentSpan) ?? this.getActiveScopeSpan());
+          h2 || (h2 = (null == aK ? void 0 : aK.active()) ?? aP);
+          let i2 = h2.getValue(aT), j2 = "number" != typeof i2 || !aS.has(i2), k2 = aU++;
+          return f2.attributes = { "next.span_name": g2, "next.span_type": b7, ...f2.attributes }, aK.with(h2.setValue(aT, k2), () => this.getTracerInstance().startActiveSpan(g2, f2, (a11) => {
+            let c3;
+            aJ && b7 && aH.has(b7) && (c3 = "performance" in globalThis && "measure" in performance ? globalThis.performance.now() : void 0);
+            let d3 = false, g3 = () => {
+              !d3 && (d3 = true, aS.delete(k2), c3 && performance.measure(`${aJ}:next-${(b7.split(".").pop() || "").replace(/[A-Z]/g, (a12) => "-" + a12.toLowerCase())}`, { start: c3, end: performance.now() }));
+            };
+            if (j2 && aS.set(k2, new Map(Object.entries(f2.attributes ?? {}))), e2.length > 1) try {
+              return e2(a11, (b8) => aR(a11, b8));
+            } catch (b8) {
+              throw aR(a11, b8), b8;
+            } finally {
+              g3();
+            }
+            try {
+              let b8 = e2(a11);
+              if (aI(b8)) return b8.then((b9) => (a11.end(), b9)).catch((b9) => {
+                throw aR(a11, b9), b9;
+              }).finally(g3);
+              return a11.end(), g3(), b8;
+            } catch (b8) {
+              throw aR(a11, b8), g3(), b8;
+            }
+          }));
+        }
+        wrap(...a10) {
+          let b7 = this, [c2, d2, e2] = 3 === a10.length ? a10 : [a10[0], {}, a10[1]];
+          return aG.has(c2) || "1" === process.env.NEXT_OTEL_VERBOSE ? function() {
+            let a11 = d2;
+            "function" == typeof a11 && "function" == typeof e2 && (a11 = a11.apply(this, arguments));
+            let f2 = arguments.length - 1, g2 = arguments[f2];
+            if ("function" != typeof g2) return b7.trace(c2, a11, () => e2.apply(this, arguments));
+            {
+              let d3 = b7.getContext().bind(aK.active(), g2);
+              return b7.trace(c2, a11, (a12, b8) => (arguments[f2] = function(a13) {
+                return null == b8 || b8(a13), d3.apply(this, arguments);
+              }, e2.apply(this, arguments)));
+            }
+          } : e2;
+        }
+        startSpan(...a10) {
+          let [b7, c2] = a10, d2 = this.getSpanContext((null == c2 ? void 0 : c2.parentSpan) ?? this.getActiveScopeSpan());
+          return this.getTracerInstance().startSpan(b7, c2, d2);
+        }
+        getSpanContext(a10) {
+          return a10 ? aM.setSpan(aK.active(), a10) : void 0;
+        }
+        getRootSpanAttributes() {
+          let a10 = aK.active().getValue(aT);
+          return aS.get(a10);
+        }
+        setRootSpanAttribute(a10, b7) {
+          let c2 = aK.active().getValue(aT), d2 = aS.get(c2);
+          d2 && !d2.has(a10) && d2.set(a10, b7);
+        }
+        withSpan(a10, b7) {
+          let c2 = aM.setSpan(aK.active(), a10);
+          return aK.with(c2, b7);
+        }
       }
-      function h(a2, b2, c2) {
-        let d2 = g(a2, b2);
-        return d2 ? f.run(d2, c2) : c2();
+      let aX = (f = new aW(), () => f), aY = "__prerender_bypass";
+      Symbol("__next_preview_data"), Symbol(aY);
+      class aZ {
+        constructor(a10, b7, c2, d2) {
+          var e2;
+          const f2 = a10 && function(a11, b8) {
+            let c3 = aj.from(a11.headers);
+            return { isOnDemandRevalidate: c3.get("x-prerender-revalidate") === b8.previewModeId, revalidateOnlyGenerated: c3.has("x-prerender-revalidate-if-generated") };
+          }(b7, a10).isOnDemandRevalidate, g2 = null == (e2 = c2.get(aY)) ? void 0 : e2.value;
+          this._isEnabled = !!(!f2 && g2 && a10 && g2 === a10.previewModeId), this._previewModeId = null == a10 ? void 0 : a10.previewModeId, this._mutableCookies = d2;
+        }
+        get isEnabled() {
+          return this._isEnabled;
+        }
+        enable() {
+          if (!this._previewModeId) throw Object.defineProperty(Error("Invariant: previewProps missing previewModeId this should never happen"), "__NEXT_ERROR_CODE", { value: "E93", enumerable: false, configurable: true });
+          this._mutableCookies.set({ name: aY, value: this._previewModeId, httpOnly: true, sameSite: "none", secure: true, path: "/" }), this._isEnabled = true;
+        }
+        disable() {
+          this._mutableCookies.set({ name: aY, value: "", httpOnly: true, sameSite: "none", secure: true, path: "/", expires: /* @__PURE__ */ new Date(0) }), this._isEnabled = false;
+        }
       }
-      function i(a2, b2) {
-        let c2 = f.getStore();
-        return c2 || (a2 && b2 ? g(a2, b2) : void 0);
+      function a$(a10, b7) {
+        if ("x-middleware-set-cookie" in a10.headers && "string" == typeof a10.headers["x-middleware-set-cookie"]) {
+          let c2 = a10.headers["x-middleware-set-cookie"], d2 = new Headers();
+          for (let a11 of F(c2)) d2.append("set-cookie", a11);
+          for (let a11 of new Y.ResponseCookies(d2).getAll()) b7.set(a11);
+        }
       }
-    }, 3233: (a, b, c) => {
-      "use strict";
-      Object.defineProperty(b, "__esModule", { value: true });
-      var d = { interceptTestApis: function() {
-        return h;
-      }, wrapRequestHandler: function() {
-        return i;
-      } };
-      for (var e in d) Object.defineProperty(b, e, { enumerable: true, get: d[e] });
-      let f = c(2681), g = c(4120);
-      function h() {
-        return (0, g.interceptFetch)(c.g.fetch);
+      let a_ = an();
+      var a0 = c(850), a1 = c.n(a0);
+      class a2 extends Error {
+        constructor(a10, b7) {
+          super(`Invariant: ${a10.endsWith(".") ? a10 : a10 + "."} This is a bug in Next.js.`, b7), this.name = "InvariantError";
+        }
       }
-      function i(a2) {
-        return (b2, c2) => (0, f.withRequest)(b2, g.reader, () => a2(b2, c2));
+      c(356).Buffer, process.env.NEXT_PRIVATE_DEBUG_CACHE, Symbol.for("@next/cache-handlers");
+      let a3 = Symbol.for("@next/cache-handlers-map"), a4 = Symbol.for("@next/cache-handlers-set"), a5 = globalThis;
+      function a6() {
+        if (a5[a3]) return a5[a3].entries();
       }
-    }, 4120: (a, b, c) => {
-      "use strict";
-      var d = c(5356).Buffer;
-      Object.defineProperty(b, "__esModule", { value: true });
-      var e = { handleFetch: function() {
-        return j;
-      }, interceptFetch: function() {
-        return k;
-      }, reader: function() {
-        return h;
-      } };
-      for (var f in e) Object.defineProperty(b, f, { enumerable: true, get: e[f] });
-      let g = c(2681), h = { url: (a2) => a2.url, header: (a2, b2) => a2.headers.get(b2) };
-      async function i(a2, b2) {
-        let { url: c2, method: e2, headers: f2, body: g2, cache: h2, credentials: i2, integrity: j2, mode: k2, redirect: l, referrer: m, referrerPolicy: n } = b2;
-        return { testData: a2, api: "fetch", request: { url: c2, method: e2, headers: [...Array.from(f2), ["next-test-stack", function() {
-          let a3 = (Error().stack ?? "").split("\n");
-          for (let b3 = 1; b3 < a3.length; b3++) if (a3[b3].length > 0) {
-            a3 = a3.slice(b3);
+      async function a7(a10, b7) {
+        if (!a10) return b7();
+        let c2 = a8(a10);
+        try {
+          return await b7();
+        } finally {
+          var d2, e2;
+          let b8, f2, g2 = (d2 = c2, e2 = a8(a10), b8 = new Set(d2.pendingRevalidatedTags.map((a11) => {
+            let b9 = "object" == typeof a11.profile ? JSON.stringify(a11.profile) : a11.profile || "";
+            return `${a11.tag}:${b9}`;
+          })), f2 = new Set(d2.pendingRevalidateWrites), { pendingRevalidatedTags: e2.pendingRevalidatedTags.filter((a11) => {
+            let c3 = "object" == typeof a11.profile ? JSON.stringify(a11.profile) : a11.profile || "";
+            return !b8.has(`${a11.tag}:${c3}`);
+          }), pendingRevalidates: Object.fromEntries(Object.entries(e2.pendingRevalidates).filter(([a11]) => !(a11 in d2.pendingRevalidates))), pendingRevalidateWrites: e2.pendingRevalidateWrites.filter((a11) => !f2.has(a11)) });
+          await ba(a10, g2);
+        }
+      }
+      function a8(a10) {
+        return { pendingRevalidatedTags: a10.pendingRevalidatedTags ? [...a10.pendingRevalidatedTags] : [], pendingRevalidates: { ...a10.pendingRevalidates }, pendingRevalidateWrites: a10.pendingRevalidateWrites ? [...a10.pendingRevalidateWrites] : [] };
+      }
+      async function a9(a10, b7, c2) {
+        if (0 === a10.length) return;
+        let d2 = function() {
+          if (a5[a4]) return a5[a4].values();
+        }(), e2 = [], f2 = /* @__PURE__ */ new Map();
+        for (let b8 of a10) {
+          let a11, c3 = b8.profile;
+          for (let [b9] of f2) if ("string" == typeof b9 && "string" == typeof c3 && b9 === c3 || "object" == typeof b9 && "object" == typeof c3 && JSON.stringify(b9) === JSON.stringify(c3) || b9 === c3) {
+            a11 = b9;
             break;
           }
-          return (a3 = (a3 = (a3 = a3.filter((a4) => !a4.includes("/next/dist/"))).slice(0, 5)).map((a4) => a4.replace("webpack-internal:///(rsc)/", "").trim())).join("    ");
-        }()]], body: g2 ? d.from(await b2.arrayBuffer()).toString("base64") : null, cache: h2, credentials: i2, integrity: j2, mode: k2, redirect: l, referrer: m, referrerPolicy: n } };
-      }
-      async function j(a2, b2) {
-        let c2 = (0, g.getTestReqInfo)(b2, h);
-        if (!c2) return a2(b2);
-        let { testData: e2, proxyPort: f2 } = c2, j2 = await i(e2, b2), k2 = await a2(`http://localhost:${f2}`, { method: "POST", body: JSON.stringify(j2), next: { internal: true } });
-        if (!k2.ok) throw Object.defineProperty(Error(`Proxy request failed: ${k2.status}`), "__NEXT_ERROR_CODE", { value: "E146", enumerable: false, configurable: true });
-        let l = await k2.json(), { api: m } = l;
-        switch (m) {
-          case "continue":
-            return a2(b2);
-          case "abort":
-          case "unhandled":
-            throw Object.defineProperty(Error(`Proxy request aborted [${b2.method} ${b2.url}]`), "__NEXT_ERROR_CODE", { value: "E145", enumerable: false, configurable: true });
-          case "fetch":
-            return function(a3) {
-              let { status: b3, headers: c3, body: e3 } = a3.response;
-              return new Response(e3 ? d.from(e3, "base64") : null, { status: b3, headers: new Headers(c3) });
-            }(l);
-          default:
-            return m;
+          let d3 = a11 || c3;
+          f2.has(d3) || f2.set(d3, []), f2.get(d3).push(b8.tag);
         }
-      }
-      function k(a2) {
-        return c.g.fetch = function(b2, c2) {
-          var d2;
-          return (null == c2 || null == (d2 = c2.next) ? void 0 : d2.internal) ? a2(b2, c2) : j(a2, new Request(b2, c2));
-        }, () => {
-          c.g.fetch = a2;
-        };
-      }
-    }, 4658: (a, b, c) => {
-      "use strict";
-      c.d(b, { z: () => d });
-      class d extends Error {
-        constructor(a2, b2) {
-          super(`Invariant: ${a2.endsWith(".") ? a2 : a2 + "."} This is a bug in Next.js.`, b2), this.name = "InvariantError";
-        }
-      }
-    }, 5356: (a) => {
-      "use strict";
-      a.exports = (init_node_buffer(), __toCommonJS(node_buffer_exports));
-    }, 5521: (a) => {
-      "use strict";
-      a.exports = (init_node_async_hooks(), __toCommonJS(node_async_hooks_exports));
-    }, 5808: (a, b, c) => {
-      var d, e = { 226: function(e2, f2) {
-        !function(g2, h) {
-          "use strict";
-          var i = "function", j = "undefined", k = "object", l = "string", m = "major", n = "model", o = "name", p = "type", q = "vendor", r = "version", s = "architecture", t = "console", u = "mobile", v = "tablet", w = "smarttv", x = "wearable", y = "embedded", z = "Amazon", A = "Apple", B = "ASUS", C = "BlackBerry", D = "Browser", E = "Chrome", F = "Firefox", G = "Google", H = "Huawei", I = "Microsoft", J = "Motorola", K = "Opera", L = "Samsung", M = "Sharp", N = "Sony", O = "Xiaomi", P = "Zebra", Q = "Facebook", R = "Chromium OS", S = "Mac OS", T = function(a2, b2) {
-            var c2 = {};
-            for (var d2 in a2) b2[d2] && b2[d2].length % 2 == 0 ? c2[d2] = b2[d2].concat(a2[d2]) : c2[d2] = a2[d2];
-            return c2;
-          }, U = function(a2) {
-            for (var b2 = {}, c2 = 0; c2 < a2.length; c2++) b2[a2[c2].toUpperCase()] = a2[c2];
-            return b2;
-          }, V = function(a2, b2) {
-            return typeof a2 === l && -1 !== W(b2).indexOf(W(a2));
-          }, W = function(a2) {
-            return a2.toLowerCase();
-          }, X = function(a2, b2) {
-            if (typeof a2 === l) return a2 = a2.replace(/^\s\s*/, ""), typeof b2 === j ? a2 : a2.substring(0, 350);
-          }, Y = function(a2, b2) {
-            for (var c2, d2, e3, f3, g3, h2, j2 = 0; j2 < b2.length && !g3; ) {
-              var l2 = b2[j2], m2 = b2[j2 + 1];
-              for (c2 = d2 = 0; c2 < l2.length && !g3 && l2[c2]; ) if (g3 = l2[c2++].exec(a2)) for (e3 = 0; e3 < m2.length; e3++) h2 = g3[++d2], typeof (f3 = m2[e3]) === k && f3.length > 0 ? 2 === f3.length ? typeof f3[1] == i ? this[f3[0]] = f3[1].call(this, h2) : this[f3[0]] = f3[1] : 3 === f3.length ? typeof f3[1] !== i || f3[1].exec && f3[1].test ? this[f3[0]] = h2 ? h2.replace(f3[1], f3[2]) : void 0 : this[f3[0]] = h2 ? f3[1].call(this, h2, f3[2]) : void 0 : 4 === f3.length && (this[f3[0]] = h2 ? f3[3].call(this, h2.replace(f3[1], f3[2])) : void 0) : this[f3] = h2 || void 0;
-              j2 += 2;
+        for (let [a11, h2] of f2) {
+          let f3;
+          if (a11) {
+            let b8;
+            if ("object" == typeof a11) b8 = a11;
+            else if ("string" == typeof a11) {
+              var g2;
+              if (!(b8 = null == c2 || null == (g2 = c2.cacheLifeProfiles) ? void 0 : g2[a11])) throw Object.defineProperty(Error(`Invalid profile provided "${a11}" must be configured under cacheLife in next.config or be "max"`), "__NEXT_ERROR_CODE", { value: "E873", enumerable: false, configurable: true });
             }
-          }, Z = function(a2, b2) {
-            for (var c2 in b2) if (typeof b2[c2] === k && b2[c2].length > 0) {
-              for (var d2 = 0; d2 < b2[c2].length; d2++) if (V(b2[c2][d2], a2)) return "?" === c2 ? void 0 : c2;
-            } else if (V(b2[c2], a2)) return "?" === c2 ? void 0 : c2;
-            return a2;
-          }, $ = { ME: "4.90", "NT 3.11": "NT3.51", "NT 4.0": "NT4.0", 2e3: "NT 5.0", XP: ["NT 5.1", "NT 5.2"], Vista: "NT 6.0", 7: "NT 6.1", 8: "NT 6.2", 8.1: "NT 6.3", 10: ["NT 6.4", "NT 10.0"], RT: "ARM" }, _ = { browser: [[/\b(?:crmo|crios)\/([\w\.]+)/i], [r, [o, "Chrome"]], [/edg(?:e|ios|a)?\/([\w\.]+)/i], [r, [o, "Edge"]], [/(opera mini)\/([-\w\.]+)/i, /(opera [mobiletab]{3,6})\b.+version\/([-\w\.]+)/i, /(opera)(?:.+version\/|[\/ ]+)([\w\.]+)/i], [o, r], [/opios[\/ ]+([\w\.]+)/i], [r, [o, K + " Mini"]], [/\bopr\/([\w\.]+)/i], [r, [o, K]], [/(kindle)\/([\w\.]+)/i, /(lunascape|maxthon|netfront|jasmine|blazer)[\/ ]?([\w\.]*)/i, /(avant |iemobile|slim)(?:browser)?[\/ ]?([\w\.]*)/i, /(ba?idubrowser)[\/ ]?([\w\.]+)/i, /(?:ms|\()(ie) ([\w\.]+)/i, /(flock|rockmelt|midori|epiphany|silk|skyfire|bolt|iron|vivaldi|iridium|phantomjs|bowser|quark|qupzilla|falkon|rekonq|puffin|brave|whale(?!.+naver)|qqbrowserlite|qq|duckduckgo)\/([-\w\.]+)/i, /(heytap|ovi)browser\/([\d\.]+)/i, /(weibo)__([\d\.]+)/i], [o, r], [/(?:\buc? ?browser|(?:juc.+)ucweb)[\/ ]?([\w\.]+)/i], [r, [o, "UC" + D]], [/microm.+\bqbcore\/([\w\.]+)/i, /\bqbcore\/([\w\.]+).+microm/i], [r, [o, "WeChat(Win) Desktop"]], [/micromessenger\/([\w\.]+)/i], [r, [o, "WeChat"]], [/konqueror\/([\w\.]+)/i], [r, [o, "Konqueror"]], [/trident.+rv[: ]([\w\.]{1,9})\b.+like gecko/i], [r, [o, "IE"]], [/ya(?:search)?browser\/([\w\.]+)/i], [r, [o, "Yandex"]], [/(avast|avg)\/([\w\.]+)/i], [[o, /(.+)/, "$1 Secure " + D], r], [/\bfocus\/([\w\.]+)/i], [r, [o, F + " Focus"]], [/\bopt\/([\w\.]+)/i], [r, [o, K + " Touch"]], [/coc_coc\w+\/([\w\.]+)/i], [r, [o, "Coc Coc"]], [/dolfin\/([\w\.]+)/i], [r, [o, "Dolphin"]], [/coast\/([\w\.]+)/i], [r, [o, K + " Coast"]], [/miuibrowser\/([\w\.]+)/i], [r, [o, "MIUI " + D]], [/fxios\/([-\w\.]+)/i], [r, [o, F]], [/\bqihu|(qi?ho?o?|360)browser/i], [[o, "360 " + D]], [/(oculus|samsung|sailfish|huawei)browser\/([\w\.]+)/i], [[o, /(.+)/, "$1 " + D], r], [/(comodo_dragon)\/([\w\.]+)/i], [[o, /_/g, " "], r], [/(electron)\/([\w\.]+) safari/i, /(tesla)(?: qtcarbrowser|\/(20\d\d\.[-\w\.]+))/i, /m?(qqbrowser|baiduboxapp|2345Explorer)[\/ ]?([\w\.]+)/i], [o, r], [/(metasr)[\/ ]?([\w\.]+)/i, /(lbbrowser)/i, /\[(linkedin)app\]/i], [o], [/((?:fban\/fbios|fb_iab\/fb4a)(?!.+fbav)|;fbav\/([\w\.]+);)/i], [[o, Q], r], [/(kakao(?:talk|story))[\/ ]([\w\.]+)/i, /(naver)\(.*?(\d+\.[\w\.]+).*\)/i, /safari (line)\/([\w\.]+)/i, /\b(line)\/([\w\.]+)\/iab/i, /(chromium|instagram)[\/ ]([-\w\.]+)/i], [o, r], [/\bgsa\/([\w\.]+) .*safari\//i], [r, [o, "GSA"]], [/musical_ly(?:.+app_?version\/|_)([\w\.]+)/i], [r, [o, "TikTok"]], [/headlesschrome(?:\/([\w\.]+)| )/i], [r, [o, E + " Headless"]], [/ wv\).+(chrome)\/([\w\.]+)/i], [[o, E + " WebView"], r], [/droid.+ version\/([\w\.]+)\b.+(?:mobile safari|safari)/i], [r, [o, "Android " + D]], [/(chrome|omniweb|arora|[tizenoka]{5} ?browser)\/v?([\w\.]+)/i], [o, r], [/version\/([\w\.\,]+) .*mobile\/\w+ (safari)/i], [r, [o, "Mobile Safari"]], [/version\/([\w(\.|\,)]+) .*(mobile ?safari|safari)/i], [r, o], [/webkit.+?(mobile ?safari|safari)(\/[\w\.]+)/i], [o, [r, Z, { "1.0": "/8", 1.2: "/1", 1.3: "/3", "2.0": "/412", "2.0.2": "/416", "2.0.3": "/417", "2.0.4": "/419", "?": "/" }]], [/(webkit|khtml)\/([\w\.]+)/i], [o, r], [/(navigator|netscape\d?)\/([-\w\.]+)/i], [[o, "Netscape"], r], [/mobile vr; rv:([\w\.]+)\).+firefox/i], [r, [o, F + " Reality"]], [/ekiohf.+(flow)\/([\w\.]+)/i, /(swiftfox)/i, /(icedragon|iceweasel|camino|chimera|fennec|maemo browser|minimo|conkeror|klar)[\/ ]?([\w\.\+]+)/i, /(seamonkey|k-meleon|icecat|iceape|firebird|phoenix|palemoon|basilisk|waterfox)\/([-\w\.]+)$/i, /(firefox)\/([\w\.]+)/i, /(mozilla)\/([\w\.]+) .+rv\:.+gecko\/\d+/i, /(polaris|lynx|dillo|icab|doris|amaya|w3m|netsurf|sleipnir|obigo|mosaic|(?:go|ice|up)[\. ]?browser)[-\/ ]?v?([\w\.]+)/i, /(links) \(([\w\.]+)/i, /panasonic;(viera)/i], [o, r], [/(cobalt)\/([\w\.]+)/i], [o, [r, /master.|lts./, ""]]], cpu: [[/(?:(amd|x(?:(?:86|64)[-_])?|wow|win)64)[;\)]/i], [[s, "amd64"]], [/(ia32(?=;))/i], [[s, W]], [/((?:i[346]|x)86)[;\)]/i], [[s, "ia32"]], [/\b(aarch64|arm(v?8e?l?|_?64))\b/i], [[s, "arm64"]], [/\b(arm(?:v[67])?ht?n?[fl]p?)\b/i], [[s, "armhf"]], [/windows (ce|mobile); ppc;/i], [[s, "arm"]], [/((?:ppc|powerpc)(?:64)?)(?: mac|;|\))/i], [[s, /ower/, "", W]], [/(sun4\w)[;\)]/i], [[s, "sparc"]], [/((?:avr32|ia64(?=;))|68k(?=\))|\barm(?=v(?:[1-7]|[5-7]1)l?|;|eabi)|(?=atmel )avr|(?:irix|mips|sparc)(?:64)?\b|pa-risc)/i], [[s, W]]], device: [[/\b(sch-i[89]0\d|shw-m380s|sm-[ptx]\w{2,4}|gt-[pn]\d{2,4}|sgh-t8[56]9|nexus 10)/i], [n, [q, L], [p, v]], [/\b((?:s[cgp]h|gt|sm)-\w+|sc[g-]?[\d]+a?|galaxy nexus)/i, /samsung[- ]([-\w]+)/i, /sec-(sgh\w+)/i], [n, [q, L], [p, u]], [/(?:\/|\()(ip(?:hone|od)[\w, ]*)(?:\/|;)/i], [n, [q, A], [p, u]], [/\((ipad);[-\w\),; ]+apple/i, /applecoremedia\/[\w\.]+ \((ipad)/i, /\b(ipad)\d\d?,\d\d?[;\]].+ios/i], [n, [q, A], [p, v]], [/(macintosh);/i], [n, [q, A]], [/\b(sh-?[altvz]?\d\d[a-ekm]?)/i], [n, [q, M], [p, u]], [/\b((?:ag[rs][23]?|bah2?|sht?|btv)-a?[lw]\d{2})\b(?!.+d\/s)/i], [n, [q, H], [p, v]], [/(?:huawei|honor)([-\w ]+)[;\)]/i, /\b(nexus 6p|\w{2,4}e?-[atu]?[ln][\dx][012359c][adn]?)\b(?!.+d\/s)/i], [n, [q, H], [p, u]], [/\b(poco[\w ]+)(?: bui|\))/i, /\b; (\w+) build\/hm\1/i, /\b(hm[-_ ]?note?[_ ]?(?:\d\w)?) bui/i, /\b(redmi[\-_ ]?(?:note|k)?[\w_ ]+)(?: bui|\))/i, /\b(mi[-_ ]?(?:a\d|one|one[_ ]plus|note lte|max|cc)?[_ ]?(?:\d?\w?)[_ ]?(?:plus|se|lite)?)(?: bui|\))/i], [[n, /_/g, " "], [q, O], [p, u]], [/\b(mi[-_ ]?(?:pad)(?:[\w_ ]+))(?: bui|\))/i], [[n, /_/g, " "], [q, O], [p, v]], [/; (\w+) bui.+ oppo/i, /\b(cph[12]\d{3}|p(?:af|c[al]|d\w|e[ar])[mt]\d0|x9007|a101op)\b/i], [n, [q, "OPPO"], [p, u]], [/vivo (\w+)(?: bui|\))/i, /\b(v[12]\d{3}\w?[at])(?: bui|;)/i], [n, [q, "Vivo"], [p, u]], [/\b(rmx[12]\d{3})(?: bui|;|\))/i], [n, [q, "Realme"], [p, u]], [/\b(milestone|droid(?:[2-4x]| (?:bionic|x2|pro|razr))?:?( 4g)?)\b[\w ]+build\//i, /\bmot(?:orola)?[- ](\w*)/i, /((?:moto[\w\(\) ]+|xt\d{3,4}|nexus 6)(?= bui|\)))/i], [n, [q, J], [p, u]], [/\b(mz60\d|xoom[2 ]{0,2}) build\//i], [n, [q, J], [p, v]], [/((?=lg)?[vl]k\-?\d{3}) bui| 3\.[-\w; ]{10}lg?-([06cv9]{3,4})/i], [n, [q, "LG"], [p, v]], [/(lm(?:-?f100[nv]?|-[\w\.]+)(?= bui|\))|nexus [45])/i, /\blg[-e;\/ ]+((?!browser|netcast|android tv)\w+)/i, /\blg-?([\d\w]+) bui/i], [n, [q, "LG"], [p, u]], [/(ideatab[-\w ]+)/i, /lenovo ?(s[56]000[-\w]+|tab(?:[\w ]+)|yt[-\d\w]{6}|tb[-\d\w]{6})/i], [n, [q, "Lenovo"], [p, v]], [/(?:maemo|nokia).*(n900|lumia \d+)/i, /nokia[-_ ]?([-\w\.]*)/i], [[n, /_/g, " "], [q, "Nokia"], [p, u]], [/(pixel c)\b/i], [n, [q, G], [p, v]], [/droid.+; (pixel[\daxl ]{0,6})(?: bui|\))/i], [n, [q, G], [p, u]], [/droid.+ (a?\d[0-2]{2}so|[c-g]\d{4}|so[-gl]\w+|xq-a\w[4-7][12])(?= bui|\).+chrome\/(?![1-6]{0,1}\d\.))/i], [n, [q, N], [p, u]], [/sony tablet [ps]/i, /\b(?:sony)?sgp\w+(?: bui|\))/i], [[n, "Xperia Tablet"], [q, N], [p, v]], [/ (kb2005|in20[12]5|be20[12][59])\b/i, /(?:one)?(?:plus)? (a\d0\d\d)(?: b|\))/i], [n, [q, "OnePlus"], [p, u]], [/(alexa)webm/i, /(kf[a-z]{2}wi|aeo[c-r]{2})( bui|\))/i, /(kf[a-z]+)( bui|\)).+silk\//i], [n, [q, z], [p, v]], [/((?:sd|kf)[0349hijorstuw]+)( bui|\)).+silk\//i], [[n, /(.+)/g, "Fire Phone $1"], [q, z], [p, u]], [/(playbook);[-\w\),; ]+(rim)/i], [n, q, [p, v]], [/\b((?:bb[a-f]|st[hv])100-\d)/i, /\(bb10; (\w+)/i], [n, [q, C], [p, u]], [/(?:\b|asus_)(transfo[prime ]{4,10} \w+|eeepc|slider \w+|nexus 7|padfone|p00[cj])/i], [n, [q, B], [p, v]], [/ (z[bes]6[027][012][km][ls]|zenfone \d\w?)\b/i], [n, [q, B], [p, u]], [/(nexus 9)/i], [n, [q, "HTC"], [p, v]], [/(htc)[-;_ ]{1,2}([\w ]+(?=\)| bui)|\w+)/i, /(zte)[- ]([\w ]+?)(?: bui|\/|\))/i, /(alcatel|geeksphone|nexian|panasonic(?!(?:;|\.))|sony(?!-bra))[-_ ]?([-\w]*)/i], [q, [n, /_/g, " "], [p, u]], [/droid.+; ([ab][1-7]-?[0178a]\d\d?)/i], [n, [q, "Acer"], [p, v]], [/droid.+; (m[1-5] note) bui/i, /\bmz-([-\w]{2,})/i], [n, [q, "Meizu"], [p, u]], [/(blackberry|benq|palm(?=\-)|sonyericsson|acer|asus|dell|meizu|motorola|polytron)[-_ ]?([-\w]*)/i, /(hp) ([\w ]+\w)/i, /(asus)-?(\w+)/i, /(microsoft); (lumia[\w ]+)/i, /(lenovo)[-_ ]?([-\w]+)/i, /(jolla)/i, /(oppo) ?([\w ]+) bui/i], [q, n, [p, u]], [/(kobo)\s(ereader|touch)/i, /(archos) (gamepad2?)/i, /(hp).+(touchpad(?!.+tablet)|tablet)/i, /(kindle)\/([\w\.]+)/i, /(nook)[\w ]+build\/(\w+)/i, /(dell) (strea[kpr\d ]*[\dko])/i, /(le[- ]+pan)[- ]+(\w{1,9}) bui/i, /(trinity)[- ]*(t\d{3}) bui/i, /(gigaset)[- ]+(q\w{1,9}) bui/i, /(vodafone) ([\w ]+)(?:\)| bui)/i], [q, n, [p, v]], [/(surface duo)/i], [n, [q, I], [p, v]], [/droid [\d\.]+; (fp\du?)(?: b|\))/i], [n, [q, "Fairphone"], [p, u]], [/(u304aa)/i], [n, [q, "AT&T"], [p, u]], [/\bsie-(\w*)/i], [n, [q, "Siemens"], [p, u]], [/\b(rct\w+) b/i], [n, [q, "RCA"], [p, v]], [/\b(venue[\d ]{2,7}) b/i], [n, [q, "Dell"], [p, v]], [/\b(q(?:mv|ta)\w+) b/i], [n, [q, "Verizon"], [p, v]], [/\b(?:barnes[& ]+noble |bn[rt])([\w\+ ]*) b/i], [n, [q, "Barnes & Noble"], [p, v]], [/\b(tm\d{3}\w+) b/i], [n, [q, "NuVision"], [p, v]], [/\b(k88) b/i], [n, [q, "ZTE"], [p, v]], [/\b(nx\d{3}j) b/i], [n, [q, "ZTE"], [p, u]], [/\b(gen\d{3}) b.+49h/i], [n, [q, "Swiss"], [p, u]], [/\b(zur\d{3}) b/i], [n, [q, "Swiss"], [p, v]], [/\b((zeki)?tb.*\b) b/i], [n, [q, "Zeki"], [p, v]], [/\b([yr]\d{2}) b/i, /\b(dragon[- ]+touch |dt)(\w{5}) b/i], [[q, "Dragon Touch"], n, [p, v]], [/\b(ns-?\w{0,9}) b/i], [n, [q, "Insignia"], [p, v]], [/\b((nxa|next)-?\w{0,9}) b/i], [n, [q, "NextBook"], [p, v]], [/\b(xtreme\_)?(v(1[045]|2[015]|[3469]0|7[05])) b/i], [[q, "Voice"], n, [p, u]], [/\b(lvtel\-)?(v1[12]) b/i], [[q, "LvTel"], n, [p, u]], [/\b(ph-1) /i], [n, [q, "Essential"], [p, u]], [/\b(v(100md|700na|7011|917g).*\b) b/i], [n, [q, "Envizen"], [p, v]], [/\b(trio[-\w\. ]+) b/i], [n, [q, "MachSpeed"], [p, v]], [/\btu_(1491) b/i], [n, [q, "Rotor"], [p, v]], [/(shield[\w ]+) b/i], [n, [q, "Nvidia"], [p, v]], [/(sprint) (\w+)/i], [q, n, [p, u]], [/(kin\.[onetw]{3})/i], [[n, /\./g, " "], [q, I], [p, u]], [/droid.+; (cc6666?|et5[16]|mc[239][23]x?|vc8[03]x?)\)/i], [n, [q, P], [p, v]], [/droid.+; (ec30|ps20|tc[2-8]\d[kx])\)/i], [n, [q, P], [p, u]], [/smart-tv.+(samsung)/i], [q, [p, w]], [/hbbtv.+maple;(\d+)/i], [[n, /^/, "SmartTV"], [q, L], [p, w]], [/(nux; netcast.+smarttv|lg (netcast\.tv-201\d|android tv))/i], [[q, "LG"], [p, w]], [/(apple) ?tv/i], [q, [n, A + " TV"], [p, w]], [/crkey/i], [[n, E + "cast"], [q, G], [p, w]], [/droid.+aft(\w)( bui|\))/i], [n, [q, z], [p, w]], [/\(dtv[\);].+(aquos)/i, /(aquos-tv[\w ]+)\)/i], [n, [q, M], [p, w]], [/(bravia[\w ]+)( bui|\))/i], [n, [q, N], [p, w]], [/(mitv-\w{5}) bui/i], [n, [q, O], [p, w]], [/Hbbtv.*(technisat) (.*);/i], [q, n, [p, w]], [/\b(roku)[\dx]*[\)\/]((?:dvp-)?[\d\.]*)/i, /hbbtv\/\d+\.\d+\.\d+ +\([\w\+ ]*; *([\w\d][^;]*);([^;]*)/i], [[q, X], [n, X], [p, w]], [/\b(android tv|smart[- ]?tv|opera tv|tv; rv:)\b/i], [[p, w]], [/(ouya)/i, /(nintendo) ([wids3utch]+)/i], [q, n, [p, t]], [/droid.+; (shield) bui/i], [n, [q, "Nvidia"], [p, t]], [/(playstation [345portablevi]+)/i], [n, [q, N], [p, t]], [/\b(xbox(?: one)?(?!; xbox))[\); ]/i], [n, [q, I], [p, t]], [/((pebble))app/i], [q, n, [p, x]], [/(watch)(?: ?os[,\/]|\d,\d\/)[\d\.]+/i], [n, [q, A], [p, x]], [/droid.+; (glass) \d/i], [n, [q, G], [p, x]], [/droid.+; (wt63?0{2,3})\)/i], [n, [q, P], [p, x]], [/(quest( 2| pro)?)/i], [n, [q, Q], [p, x]], [/(tesla)(?: qtcarbrowser|\/[-\w\.]+)/i], [q, [p, y]], [/(aeobc)\b/i], [n, [q, z], [p, y]], [/droid .+?; ([^;]+?)(?: bui|\) applew).+? mobile safari/i], [n, [p, u]], [/droid .+?; ([^;]+?)(?: bui|\) applew).+?(?! mobile) safari/i], [n, [p, v]], [/\b((tablet|tab)[;\/]|focus\/\d(?!.+mobile))/i], [[p, v]], [/(phone|mobile(?:[;\/]| [ \w\/\.]*safari)|pda(?=.+windows ce))/i], [[p, u]], [/(android[-\w\. ]{0,9});.+buil/i], [n, [q, "Generic"]]], engine: [[/windows.+ edge\/([\w\.]+)/i], [r, [o, "EdgeHTML"]], [/webkit\/537\.36.+chrome\/(?!27)([\w\.]+)/i], [r, [o, "Blink"]], [/(presto)\/([\w\.]+)/i, /(webkit|trident|netfront|netsurf|amaya|lynx|w3m|goanna)\/([\w\.]+)/i, /ekioh(flow)\/([\w\.]+)/i, /(khtml|tasman|links)[\/ ]\(?([\w\.]+)/i, /(icab)[\/ ]([23]\.[\d\.]+)/i, /\b(libweb)/i], [o, r], [/rv\:([\w\.]{1,9})\b.+(gecko)/i], [r, o]], os: [[/microsoft (windows) (vista|xp)/i], [o, r], [/(windows) nt 6\.2; (arm)/i, /(windows (?:phone(?: os)?|mobile))[\/ ]?([\d\.\w ]*)/i, /(windows)[\/ ]?([ntce\d\. ]+\w)(?!.+xbox)/i], [o, [r, Z, $]], [/(win(?=3|9|n)|win 9x )([nt\d\.]+)/i], [[o, "Windows"], [r, Z, $]], [/ip[honead]{2,4}\b(?:.*os ([\w]+) like mac|; opera)/i, /ios;fbsv\/([\d\.]+)/i, /cfnetwork\/.+darwin/i], [[r, /_/g, "."], [o, "iOS"]], [/(mac os x) ?([\w\. ]*)/i, /(macintosh|mac_powerpc\b)(?!.+haiku)/i], [[o, S], [r, /_/g, "."]], [/droid ([\w\.]+)\b.+(android[- ]x86|harmonyos)/i], [r, o], [/(android|webos|qnx|bada|rim tablet os|maemo|meego|sailfish)[-\/ ]?([\w\.]*)/i, /(blackberry)\w*\/([\w\.]*)/i, /(tizen|kaios)[\/ ]([\w\.]+)/i, /\((series40);/i], [o, r], [/\(bb(10);/i], [r, [o, C]], [/(?:symbian ?os|symbos|s60(?=;)|series60)[-\/ ]?([\w\.]*)/i], [r, [o, "Symbian"]], [/mozilla\/[\d\.]+ \((?:mobile|tablet|tv|mobile; [\w ]+); rv:.+ gecko\/([\w\.]+)/i], [r, [o, F + " OS"]], [/web0s;.+rt(tv)/i, /\b(?:hp)?wos(?:browser)?\/([\w\.]+)/i], [r, [o, "webOS"]], [/watch(?: ?os[,\/]|\d,\d\/)([\d\.]+)/i], [r, [o, "watchOS"]], [/crkey\/([\d\.]+)/i], [r, [o, E + "cast"]], [/(cros) [\w]+(?:\)| ([\w\.]+)\b)/i], [[o, R], r], [/panasonic;(viera)/i, /(netrange)mmh/i, /(nettv)\/(\d+\.[\w\.]+)/i, /(nintendo|playstation) ([wids345portablevuch]+)/i, /(xbox); +xbox ([^\);]+)/i, /\b(joli|palm)\b ?(?:os)?\/?([\w\.]*)/i, /(mint)[\/\(\) ]?(\w*)/i, /(mageia|vectorlinux)[; ]/i, /([kxln]?ubuntu|debian|suse|opensuse|gentoo|arch(?= linux)|slackware|fedora|mandriva|centos|pclinuxos|red ?hat|zenwalk|linpus|raspbian|plan 9|minix|risc os|contiki|deepin|manjaro|elementary os|sabayon|linspire)(?: gnu\/linux)?(?: enterprise)?(?:[- ]linux)?(?:-gnu)?[-\/ ]?(?!chrom|package)([-\w\.]*)/i, /(hurd|linux) ?([\w\.]*)/i, /(gnu) ?([\w\.]*)/i, /\b([-frentopcghs]{0,5}bsd|dragonfly)[\/ ]?(?!amd|[ix346]{1,2}86)([\w\.]*)/i, /(haiku) (\w+)/i], [o, r], [/(sunos) ?([\w\.\d]*)/i], [[o, "Solaris"], r], [/((?:open)?solaris)[-\/ ]?([\w\.]*)/i, /(aix) ((\d)(?=\.|\)| )[\w\.])*/i, /\b(beos|os\/2|amigaos|morphos|openvms|fuchsia|hp-ux|serenityos)/i, /(unix) ?([\w\.]*)/i], [o, r]] }, aa = function(a2, b2) {
-            if (typeof a2 === k && (b2 = a2, a2 = void 0), !(this instanceof aa)) return new aa(a2, b2).getResult();
-            var c2 = typeof g2 !== j && g2.navigator ? g2.navigator : void 0, d2 = a2 || (c2 && c2.userAgent ? c2.userAgent : ""), e3 = c2 && c2.userAgentData ? c2.userAgentData : void 0, f3 = b2 ? T(_, b2) : _, h2 = c2 && c2.userAgent == d2;
-            return this.getBrowser = function() {
-              var a3, b3 = {};
-              return b3[o] = void 0, b3[r] = void 0, Y.call(b3, d2, f3.browser), b3[m] = typeof (a3 = b3[r]) === l ? a3.replace(/[^\d\.]/g, "").split(".")[0] : void 0, h2 && c2 && c2.brave && typeof c2.brave.isBrave == i && (b3[o] = "Brave"), b3;
-            }, this.getCPU = function() {
-              var a3 = {};
-              return a3[s] = void 0, Y.call(a3, d2, f3.cpu), a3;
-            }, this.getDevice = function() {
-              var a3 = {};
-              return a3[q] = void 0, a3[n] = void 0, a3[p] = void 0, Y.call(a3, d2, f3.device), h2 && !a3[p] && e3 && e3.mobile && (a3[p] = u), h2 && "Macintosh" == a3[n] && c2 && typeof c2.standalone !== j && c2.maxTouchPoints && c2.maxTouchPoints > 2 && (a3[n] = "iPad", a3[p] = v), a3;
-            }, this.getEngine = function() {
-              var a3 = {};
-              return a3[o] = void 0, a3[r] = void 0, Y.call(a3, d2, f3.engine), a3;
-            }, this.getOS = function() {
-              var a3 = {};
-              return a3[o] = void 0, a3[r] = void 0, Y.call(a3, d2, f3.os), h2 && !a3[o] && e3 && "Unknown" != e3.platform && (a3[o] = e3.platform.replace(/chrome os/i, R).replace(/macos/i, S)), a3;
-            }, this.getResult = function() {
-              return { ua: this.getUA(), browser: this.getBrowser(), engine: this.getEngine(), os: this.getOS(), device: this.getDevice(), cpu: this.getCPU() };
-            }, this.getUA = function() {
-              return d2;
-            }, this.setUA = function(a3) {
-              return d2 = typeof a3 === l && a3.length > 350 ? X(a3, 350) : a3, this;
-            }, this.setUA(d2), this;
-          };
-          aa.VERSION = "1.0.35", aa.BROWSER = U([o, r, m]), aa.CPU = U([s]), aa.DEVICE = U([n, q, p, t, u, w, v, x, y]), aa.ENGINE = aa.OS = U([o, r]), typeof f2 !== j ? (e2.exports && (f2 = e2.exports = aa), f2.UAParser = aa) : c.amdO ? void 0 === (d = function() {
-            return aa;
-          }.call(b, c, b, a)) || (a.exports = d) : typeof g2 !== j && (g2.UAParser = aa);
-          var ab = typeof g2 !== j && (g2.jQuery || g2.Zepto);
-          if (ab && !ab.ua) {
-            var ac = new aa();
-            ab.ua = ac.getResult(), ab.ua.get = function() {
-              return ac.getUA();
-            }, ab.ua.set = function(a2) {
-              ac.setUA(a2);
-              var b2 = ac.getResult();
-              for (var c2 in b2) ab.ua[c2] = b2[c2];
-            };
+            b8 && (f3 = { expire: b8.expire });
           }
-        }("object" == typeof window ? window : this);
-      } }, f = {};
-      function g(a2) {
-        var b2 = f[a2];
-        if (void 0 !== b2) return b2.exports;
-        var c2 = f[a2] = { exports: {} }, d2 = true;
-        try {
-          e[a2].call(c2.exports, c2, c2.exports, g), d2 = false;
-        } finally {
-          d2 && delete f[a2];
+          for (let b8 of d2 || []) a11 ? e2.push(null == b8.updateTags ? void 0 : b8.updateTags.call(b8, h2, f3)) : e2.push(null == b8.updateTags ? void 0 : b8.updateTags.call(b8, h2));
+          b7 && e2.push(b7.revalidateTag(h2, f3));
         }
-        return c2.exports;
+        await Promise.all(e2);
       }
-      g.ab = "//", a.exports = g(226);
-    }, 6076: (a, b, c) => {
+      async function ba(a10, b7) {
+        let c2 = (null == b7 ? void 0 : b7.pendingRevalidatedTags) ?? a10.pendingRevalidatedTags ?? [], d2 = (null == b7 ? void 0 : b7.pendingRevalidates) ?? a10.pendingRevalidates ?? {}, e2 = (null == b7 ? void 0 : b7.pendingRevalidateWrites) ?? a10.pendingRevalidateWrites ?? [];
+        return Promise.all([a9(c2, a10.incrementalCache, a10), ...Object.values(d2), ...e2]);
+      }
+      let bb = Object.defineProperty(Error("Invariant: AsyncLocalStorage accessed in runtime where it is not available"), "__NEXT_ERROR_CODE", { value: "E504", enumerable: false, configurable: true });
+      class bc {
+        disable() {
+          throw bb;
+        }
+        getStore() {
+        }
+        run() {
+          throw bb;
+        }
+        exit() {
+          throw bb;
+        }
+        enterWith() {
+          throw bb;
+        }
+        static bind(a10) {
+          return a10;
+        }
+      }
+      let bd = "u" > typeof globalThis && globalThis.AsyncLocalStorage, be = bd ? new bd() : new bc();
+      class bf {
+        constructor({ waitUntil: a10, onClose: b7, onTaskError: c2 }) {
+          this.workUnitStores = /* @__PURE__ */ new Set(), this.waitUntil = a10, this.onClose = b7, this.onTaskError = c2, this.callbackQueue = new (a1())(), this.callbackQueue.pause();
+        }
+        after(a10) {
+          if (aI(a10)) this.waitUntil || bg(), this.waitUntil(a10.catch((a11) => this.reportTaskError("promise", a11)));
+          else if ("function" == typeof a10) this.addCallback(a10);
+          else throw Object.defineProperty(Error("`after()`: Argument must be a promise or a function"), "__NEXT_ERROR_CODE", { value: "E50", enumerable: false, configurable: true });
+        }
+        addCallback(a10) {
+          var b7;
+          this.waitUntil || bg();
+          let c2 = a_.getStore();
+          c2 && this.workUnitStores.add(c2);
+          let d2 = be.getStore(), e2 = d2 ? d2.rootTaskSpawnPhase : null == c2 ? void 0 : c2.phase;
+          this.runCallbacksOnClosePromise || (this.runCallbacksOnClosePromise = this.runCallbacksOnClose(), this.waitUntil(this.runCallbacksOnClosePromise));
+          let f2 = (b7 = async () => {
+            try {
+              await be.run({ rootTaskSpawnPhase: e2 }, () => a10());
+            } catch (a11) {
+              this.reportTaskError("function", a11);
+            }
+          }, bd ? bd.bind(b7) : bc.bind(b7));
+          this.callbackQueue.add(f2);
+        }
+        async runCallbacksOnClose() {
+          return await new Promise((a10) => this.onClose(a10)), this.runCallbacks();
+        }
+        async runCallbacks() {
+          if (0 === this.callbackQueue.size) return;
+          for (let a11 of this.workUnitStores) a11.phase = "after";
+          let a10 = ao.getStore();
+          if (!a10) throw Object.defineProperty(new a2("Missing workStore in AfterContext.runCallbacks"), "__NEXT_ERROR_CODE", { value: "E547", enumerable: false, configurable: true });
+          return a7(a10, () => (this.callbackQueue.start(), this.callbackQueue.onIdle()));
+        }
+        reportTaskError(a10, b7) {
+          if (console.error("promise" === a10 ? "A promise passed to `after()` rejected:" : "An error occurred in a function passed to `after()`:", b7), this.onTaskError) try {
+            null == this.onTaskError || this.onTaskError.call(this, b7);
+          } catch (a11) {
+            console.error(Object.defineProperty(new a2("`onTaskError` threw while handling an error thrown from an `after` task", { cause: a11 }), "__NEXT_ERROR_CODE", { value: "E569", enumerable: false, configurable: true }));
+          }
+        }
+      }
+      function bg() {
+        throw Object.defineProperty(Error("`after()` will not work correctly, because `waitUntil` is not available in the current environment."), "__NEXT_ERROR_CODE", { value: "E91", enumerable: false, configurable: true });
+      }
+      function bh(a10) {
+        let b7, c2 = { then: (d2, e2) => (b7 || (b7 = Promise.resolve(a10())), b7.then((a11) => {
+          c2.value = a11;
+        }).catch(() => {
+        }), b7.then(d2, e2)) };
+        return c2;
+      }
+      class bi {
+        onClose(a10) {
+          if (this.isClosed) throw Object.defineProperty(Error("Cannot subscribe to a closed CloseController"), "__NEXT_ERROR_CODE", { value: "E365", enumerable: false, configurable: true });
+          this.target.addEventListener("close", a10), this.listeners++;
+        }
+        dispatchClose() {
+          if (this.isClosed) throw Object.defineProperty(Error("Cannot close a CloseController multiple times"), "__NEXT_ERROR_CODE", { value: "E229", enumerable: false, configurable: true });
+          this.listeners > 0 && this.target.dispatchEvent(new Event("close")), this.isClosed = true;
+        }
+        constructor() {
+          this.target = new EventTarget(), this.listeners = 0, this.isClosed = false;
+        }
+      }
+      function bj() {
+        return { previewModeId: process.env.__NEXT_PREVIEW_MODE_ID || "", previewModeSigningKey: process.env.__NEXT_PREVIEW_MODE_SIGNING_KEY || "", previewModeEncryptionKey: process.env.__NEXT_PREVIEW_MODE_ENCRYPTION_KEY || "" };
+      }
+      let bk = Symbol.for("@next/request-context");
+      async function bl(a10, b7, c2) {
+        let d2 = /* @__PURE__ */ new Set();
+        for (let b8 of ((a11) => {
+          let b9 = ["/layout"];
+          if (a11.startsWith("/")) {
+            let c3 = a11.split("/");
+            for (let a12 = 1; a12 < c3.length + 1; a12++) {
+              let d3 = c3.slice(0, a12).join("/");
+              d3 && (d3.endsWith("/page") || d3.endsWith("/route") || (d3 = `${d3}${!d3.endsWith("/") ? "/" : ""}layout`), b9.push(d3));
+            }
+          }
+          return b9;
+        })(a10)) b8 = `${D}${b8}`, d2.add(b8);
+        if (b7.pathname && (!c2 || 0 === c2.size)) {
+          let a11 = `${D}${b7.pathname}`;
+          d2.add(a11);
+        }
+        d2.has(`${D}/`) && d2.add(`${D}/index`), d2.has(`${D}/index`) && d2.add(`${D}/`);
+        let e2 = Array.from(d2);
+        return { tags: e2, expirationsByCacheKind: function(a11) {
+          let b8 = /* @__PURE__ */ new Map(), c3 = a6();
+          if (c3) for (let [d3, e3] of c3) "getExpiration" in e3 && b8.set(d3, bh(async () => e3.getExpiration(a11)));
+          return b8;
+        }(e2) };
+      }
+      class bm extends $ {
+        constructor(a10) {
+          super(a10.input, a10.init), this.sourcePage = a10.page;
+        }
+        get request() {
+          throw Object.defineProperty(new A({ page: this.sourcePage }), "__NEXT_ERROR_CODE", { value: "E394", enumerable: false, configurable: true });
+        }
+        respondWith() {
+          throw Object.defineProperty(new A({ page: this.sourcePage }), "__NEXT_ERROR_CODE", { value: "E394", enumerable: false, configurable: true });
+        }
+        waitUntil() {
+          throw Object.defineProperty(new A({ page: this.sourcePage }), "__NEXT_ERROR_CODE", { value: "E394", enumerable: false, configurable: true });
+        }
+      }
+      let bn = { keys: (a10) => Array.from(a10.keys()), get: (a10, b7) => a10.get(b7) ?? void 0 }, bo = (a10, b7) => aX().withPropagatedContext(a10.headers, b7, bn), bp = false;
+      async function bq(a10) {
+        var b7, d2, e2, f2;
+        let g2, h2, i2, j2, k2;
+        !function() {
+          if (!bp && (bp = true, "true" === process.env.NEXT_PRIVATE_TEST_PROXY)) {
+            let { interceptTestApis: a11, wrapRequestHandler: b8 } = c(233);
+            a11(), bo = b8(bo);
+          }
+        }(), await y();
+        let l2 = void 0 !== globalThis.__BUILD_MANIFEST;
+        a10.request.url = a10.request.url.replace(/\.rsc($|\?)/, "$1");
+        let m2 = a10.bypassNextUrl ? new URL(a10.request.url) : new X(a10.request.url, { headers: a10.request.headers, nextConfig: a10.request.nextConfig });
+        for (let a11 of [...m2.searchParams.keys()]) {
+          let b8 = m2.searchParams.getAll(a11), c2 = function(a12) {
+            for (let b9 of ["nxtP", "nxtI"]) if (a12 !== b9 && a12.startsWith(b9)) return a12.substring(b9.length);
+            return null;
+          }(a11);
+          if (c2) {
+            for (let a12 of (m2.searchParams.delete(c2), b8)) m2.searchParams.append(c2, a12);
+            m2.searchParams.delete(a11);
+          }
+        }
+        let n2 = process.env.__NEXT_BUILD_ID || "";
+        "buildId" in m2 && (n2 = m2.buildId || "", m2.buildId = "");
+        let o2 = function(a11) {
+          let b8 = new Headers();
+          for (let [c2, d3] of Object.entries(a11)) for (let a12 of Array.isArray(d3) ? d3 : [d3]) void 0 !== a12 && ("number" == typeof a12 && (a12 = a12.toString()), b8.append(c2, a12));
+          return b8;
+        }(a10.request.headers), p2 = o2.has("x-nextjs-data"), q2 = "1" === o2.get("rsc");
+        p2 && "/index" === m2.pathname && (m2.pathname = "/");
+        let r2 = /* @__PURE__ */ new Map();
+        if (!l2) for (let a11 of ag) {
+          let b8 = o2.get(a11);
+          null !== b8 && (r2.set(a11, b8), o2.delete(a11));
+        }
+        let s2 = m2.searchParams.get(ah), t2 = new bm({ page: a10.page, input: ((j2 = (i2 = "string" == typeof m2) ? new URL(m2) : m2).searchParams.delete(ah), i2 ? j2.toString() : j2).toString(), init: { body: a10.request.body, headers: o2, method: a10.request.method, nextConfig: a10.request.nextConfig, signal: a10.request.signal } });
+        p2 && Object.defineProperty(t2, "__isData", { enumerable: false, value: true }), !globalThis.__incrementalCacheShared && a10.IncrementalCache && (globalThis.__incrementalCache = new a10.IncrementalCache({ CurCacheHandler: a10.incrementalCacheHandler, minimalMode: true, fetchCacheKeyPrefix: "", dev: false, requestHeaders: a10.request.headers, getPrerenderManifest: () => ({ version: -1, routes: {}, dynamicRoutes: {}, notFoundRoutes: [], preview: bj() }) }));
+        let u2 = a10.request.waitUntil ?? (null == (b7 = null == (k2 = globalThis[bk]) ? void 0 : k2.get()) ? void 0 : b7.waitUntil), v2 = new M({ request: t2, page: a10.page, context: u2 ? { waitUntil: u2 } : void 0 });
+        if ((g2 = await bo(t2, () => {
+          if ("/middleware" === a10.page || "/src/middleware" === a10.page || "/proxy" === a10.page || "/src/proxy" === a10.page) {
+            let b8 = v2.waitUntil.bind(v2), c2 = new bi();
+            return aX().trace(aF.execute, { spanName: `middleware ${t2.method}`, attributes: { "http.target": t2.nextUrl.pathname, "http.method": t2.method } }, async () => {
+              try {
+                var d3, e3, f3, g3, i3, j3;
+                let k3 = bj(), l3 = await bl("/", t2.nextUrl, null), m3 = (i3 = t2.nextUrl, j3 = (a11) => {
+                  h2 = a11;
+                }, function(a11, b9, c3, d4, e4, f4, g4, h3, i4, j4, k4, l4) {
+                  function m4(a12) {
+                    c3 && c3.setHeader("Set-Cookie", a12);
+                  }
+                  let n3 = {};
+                  return { type: "request", phase: a11, implicitTags: f4, url: { pathname: d4.pathname, search: d4.search ?? "" }, rootParams: e4, get headers() {
+                    return n3.headers || (n3.headers = function(a12) {
+                      let b10 = aj.from(a12);
+                      for (let a13 of ag) b10.delete(a13);
+                      return aj.seal(b10);
+                    }(b9.headers)), n3.headers;
+                  }, get cookies() {
+                    if (!n3.cookies) {
+                      let a12 = new Y.RequestCookies(aj.from(b9.headers));
+                      a$(b9, a12), n3.cookies = aq.seal(a12);
+                    }
+                    return n3.cookies;
+                  }, set cookies(value) {
+                    n3.cookies = value;
+                  }, get mutableCookies() {
+                    if (!n3.mutableCookies) {
+                      var o4, p3;
+                      let a12, d5 = (o4 = b9.headers, p3 = g4 || (c3 ? m4 : void 0), a12 = new Y.RequestCookies(aj.from(o4)), as.wrap(a12, p3));
+                      a$(b9, d5), n3.mutableCookies = d5;
+                    }
+                    return n3.mutableCookies;
+                  }, get userspaceMutableCookies() {
+                    if (!n3.userspaceMutableCookies) {
+                      var q3;
+                      let a12;
+                      q3 = this, n3.userspaceMutableCookies = a12 = new Proxy(q3.mutableCookies, { get(b10, c4, d5) {
+                        switch (c4) {
+                          case "delete":
+                            return function(...c5) {
+                              return at(q3, "cookies().delete"), b10.delete(...c5), a12;
+                            };
+                          case "set":
+                            return function(...c5) {
+                              return at(q3, "cookies().set"), b10.set(...c5), a12;
+                            };
+                          default:
+                            return _.get(b10, c4, d5);
+                        }
+                      } });
+                    }
+                    return n3.userspaceMutableCookies;
+                  }, get draftMode() {
+                    return n3.draftMode || (n3.draftMode = new aZ(i4, b9, this.cookies, this.mutableCookies)), n3.draftMode;
+                  }, renderResumeDataCache: null, isHmrRefresh: j4, serverComponentsHmrCache: k4 || globalThis.__serverComponentsHmrCache, devFallbackParams: null };
+                }("action", t2, void 0, i3, {}, l3, j3, null, k3, false, void 0, null)), o3 = function({ page: a11, renderOpts: b9, isPrefetchRequest: c3, buildId: d4, previouslyRevalidatedTags: e4, nonce: f4 }) {
+                  var g4;
+                  let h3 = !b9.shouldWaitOnAllReady && !b9.supportsDynamicResponse && !b9.isDraftMode && !b9.isPossibleServerAction, i4 = b9.dev ?? false, j4 = i4 || h3 && (!!process.env.NEXT_DEBUG_BUILD || "1" === process.env.NEXT_SSG_FETCH_METRICS), k4 = { isStaticGeneration: h3, page: a11, route: (g4 = a11.split("/").reduce((a12, b10, c4, d5) => b10 ? "(" === b10[0] && b10.endsWith(")") || "@" === b10[0] || ("page" === b10 || "route" === b10) && c4 === d5.length - 1 ? a12 : `${a12}/${b10}` : a12, "")).startsWith("/") ? g4 : `/${g4}`, incrementalCache: b9.incrementalCache || globalThis.__incrementalCache, cacheLifeProfiles: b9.cacheLifeProfiles, isBuildTimePrerendering: b9.nextExport, hasReadableErrorStacks: b9.hasReadableErrorStacks, fetchCache: b9.fetchCache, isOnDemandRevalidate: b9.isOnDemandRevalidate, isDraftMode: b9.isDraftMode, isPrefetchRequest: c3, buildId: d4, reactLoadableManifest: (null == b9 ? void 0 : b9.reactLoadableManifest) || {}, assetPrefix: (null == b9 ? void 0 : b9.assetPrefix) || "", nonce: f4, afterContext: function(a12) {
+                    let { waitUntil: b10, onClose: c4, onAfterTaskError: d5 } = a12;
+                    return new bf({ waitUntil: b10, onClose: c4, onTaskError: d5 });
+                  }(b9), cacheComponentsEnabled: b9.cacheComponents, dev: i4, previouslyRevalidatedTags: e4, refreshTagsByCacheKind: function() {
+                    let a12 = /* @__PURE__ */ new Map(), b10 = a6();
+                    if (b10) for (let [c4, d5] of b10) "refreshTags" in d5 && a12.set(c4, bh(async () => d5.refreshTags()));
+                    return a12;
+                  }(), runInCleanSnapshot: bd ? bd.snapshot() : function(a12, ...b10) {
+                    return a12(...b10);
+                  }, shouldTrackFetchMetrics: j4, reactServerErrorsByDigest: /* @__PURE__ */ new Map() };
+                  return b9.store = k4, k4;
+                }({ page: "/", renderOpts: { cacheLifeProfiles: null == (e3 = a10.request.nextConfig) || null == (d3 = e3.experimental) ? void 0 : d3.cacheLife, cacheComponents: false, experimental: { isRoutePPREnabled: false, authInterrupts: !!(null == (g3 = a10.request.nextConfig) || null == (f3 = g3.experimental) ? void 0 : f3.authInterrupts) }, supportsDynamicResponse: true, waitUntil: b8, onClose: c2.onClose.bind(c2), onAfterTaskError: void 0 }, isPrefetchRequest: "1" === t2.headers.get(af), buildId: n2 ?? "", previouslyRevalidatedTags: [] });
+                return await ao.run(o3, () => a_.run(m3, a10.handler, t2, v2));
+              } finally {
+                setTimeout(() => {
+                  c2.dispatchClose();
+                }, 0);
+              }
+            });
+          }
+          return a10.handler(t2, v2);
+        })) && !(g2 instanceof Response)) throw Object.defineProperty(TypeError("Expected an instance of Response to be returned"), "__NEXT_ERROR_CODE", { value: "E567", enumerable: false, configurable: true });
+        g2 && h2 && g2.headers.set("set-cookie", h2);
+        let w2 = null == g2 ? void 0 : g2.headers.get("x-middleware-rewrite");
+        if (g2 && w2 && (q2 || !l2)) {
+          let b8 = new X(w2, { forceLocale: true, headers: a10.request.headers, nextConfig: a10.request.nextConfig });
+          l2 || b8.host !== t2.nextUrl.host || (b8.buildId = n2 || b8.buildId, g2.headers.set("x-middleware-rewrite", String(b8)));
+          let { url: c2, isRelative: h3 } = ae(b8.toString(), m2.toString());
+          !l2 && p2 && g2.headers.set("x-nextjs-rewrite", c2);
+          let i3 = !h3 && (null == (f2 = a10.request.nextConfig) || null == (e2 = f2.experimental) || null == (d2 = e2.clientParamParsingOrigins) ? void 0 : d2.some((a11) => new RegExp(a11).test(b8.origin)));
+          q2 && (h3 || i3) && (m2.pathname !== b8.pathname && g2.headers.set("x-nextjs-rewritten-path", b8.pathname), m2.search !== b8.search && g2.headers.set("x-nextjs-rewritten-query", b8.search.slice(1)));
+        }
+        if (g2 && w2 && q2 && s2) {
+          let a11 = new URL(w2);
+          a11.searchParams.has(ah) || (a11.searchParams.set(ah, s2), g2.headers.set("x-middleware-rewrite", a11.toString()));
+        }
+        let x2 = null == g2 ? void 0 : g2.headers.get("Location");
+        if (g2 && x2 && !l2) {
+          let b8 = new X(x2, { forceLocale: false, headers: a10.request.headers, nextConfig: a10.request.nextConfig });
+          g2 = new Response(g2.body, g2), b8.host === m2.host && (b8.buildId = n2 || b8.buildId, g2.headers.set("Location", ae(b8, m2).url)), p2 && (g2.headers.delete("Location"), g2.headers.set("x-nextjs-redirect", ae(b8.toString(), m2.toString()).url));
+        }
+        let z2 = g2 || ad.next(), A2 = z2.headers.get("x-middleware-override-headers"), B2 = [];
+        if (A2) {
+          for (let [a11, b8] of r2) z2.headers.set(`x-middleware-request-${a11}`, b8), B2.push(a11);
+          B2.length > 0 && z2.headers.set("x-middleware-override-headers", A2 + "," + B2.join(","));
+        }
+        return { response: z2, waitUntil: ("internal" === v2[K].kind ? Promise.all(v2[K].promises).then(() => {
+        }) : void 0) ?? Promise.resolve(), fetchMetrics: t2.fetchMetrics };
+      }
+      c(808), "u" < typeof URLPattern || URLPattern;
+      var br = c(879);
+      if (/* @__PURE__ */ new WeakMap(), br.unstable_postpone, false === ("Route %%% needs to bail out of prerendering at this point because it used ^^^. React throws this special object to indicate where. It should not be caught by your own try/catch. Learn more: https://nextjs.org/docs/messages/ppr-caught-error".includes("needs to bail out of prerendering at this point because it used") && "Route %%% needs to bail out of prerendering at this point because it used ^^^. React throws this special object to indicate where. It should not be caught by your own try/catch. Learn more: https://nextjs.org/docs/messages/ppr-caught-error".includes("Learn more: https://nextjs.org/docs/messages/ppr-caught-error"))) throw Object.defineProperty(Error("Invariant: isDynamicPostpone misidentified a postpone reason. This is a bug in Next.js"), "__NEXT_ERROR_CODE", { value: "E296", enumerable: false, configurable: true });
+      RegExp(`\\n\\s+at Suspense \\(<anonymous>\\)(?:(?!\\n\\s+at (?:body|div|main|section|article|aside|header|footer|nav|form|p|span|h1|h2|h3|h4|h5|h6) \\(<anonymous>\\))[\\s\\S])*?\\n\\s+at __next_root_layout_boundary__ \\([^\\n]*\\)`), RegExp(`\\n\\s+at __next_metadata_boundary__[\\n\\s]`), RegExp(`\\n\\s+at __next_viewport_boundary__[\\n\\s]`), RegExp(`\\n\\s+at __next_outlet_boundary__[\\n\\s]`);
+      let bs = new TextEncoder(), bt = new TextDecoder();
+      function bu(a10) {
+        let b7 = new Uint8Array(a10.length);
+        for (let c2 = 0; c2 < a10.length; c2++) {
+          let d2 = a10.charCodeAt(c2);
+          if (d2 > 127) throw TypeError("non-ASCII string encountered in encode()");
+          b7[c2] = d2;
+        }
+        return b7;
+      }
+      function bv(a10) {
+        if (Uint8Array.fromBase64) return Uint8Array.fromBase64("string" == typeof a10 ? a10 : bt.decode(a10), { alphabet: "base64url" });
+        let b7 = a10;
+        b7 instanceof Uint8Array && (b7 = bt.decode(b7)), b7 = b7.replace(/-/g, "+").replace(/_/g, "/");
+        try {
+          var c2 = b7;
+          if (Uint8Array.fromBase64) return Uint8Array.fromBase64(c2);
+          let a11 = atob(c2), d2 = new Uint8Array(a11.length);
+          for (let b8 = 0; b8 < a11.length; b8++) d2[b8] = a11.charCodeAt(b8);
+          return d2;
+        } catch {
+          throw TypeError("The input to be decoded is not correctly encoded.");
+        }
+      }
+      class bw extends Error {
+        static code = "ERR_JOSE_GENERIC";
+        code = "ERR_JOSE_GENERIC";
+        constructor(a10, b7) {
+          super(a10, b7), this.name = this.constructor.name, Error.captureStackTrace?.(this, this.constructor);
+        }
+      }
+      class bx extends bw {
+        static code = "ERR_JWT_CLAIM_VALIDATION_FAILED";
+        code = "ERR_JWT_CLAIM_VALIDATION_FAILED";
+        claim;
+        reason;
+        payload;
+        constructor(a10, b7, c2 = "unspecified", d2 = "unspecified") {
+          super(a10, { cause: { claim: c2, reason: d2, payload: b7 } }), this.claim = c2, this.reason = d2, this.payload = b7;
+        }
+      }
+      class by extends bw {
+        static code = "ERR_JWT_EXPIRED";
+        code = "ERR_JWT_EXPIRED";
+        claim;
+        reason;
+        payload;
+        constructor(a10, b7, c2 = "unspecified", d2 = "unspecified") {
+          super(a10, { cause: { claim: c2, reason: d2, payload: b7 } }), this.claim = c2, this.reason = d2, this.payload = b7;
+        }
+      }
+      class bz extends bw {
+        static code = "ERR_JOSE_ALG_NOT_ALLOWED";
+        code = "ERR_JOSE_ALG_NOT_ALLOWED";
+      }
+      class bA extends bw {
+        static code = "ERR_JOSE_NOT_SUPPORTED";
+        code = "ERR_JOSE_NOT_SUPPORTED";
+      }
+      class bB extends bw {
+        static code = "ERR_JWS_INVALID";
+        code = "ERR_JWS_INVALID";
+      }
+      class bC extends bw {
+        static code = "ERR_JWT_INVALID";
+        code = "ERR_JWT_INVALID";
+      }
+      class bD extends bw {
+        [Symbol.asyncIterator];
+        static code = "ERR_JWKS_MULTIPLE_MATCHING_KEYS";
+        code = "ERR_JWKS_MULTIPLE_MATCHING_KEYS";
+        constructor(a10 = "multiple matching keys found in the JSON Web Key Set", b7) {
+          super(a10, b7);
+        }
+      }
+      class bE extends bw {
+        static code = "ERR_JWS_SIGNATURE_VERIFICATION_FAILED";
+        code = "ERR_JWS_SIGNATURE_VERIFICATION_FAILED";
+        constructor(a10 = "signature verification failed", b7) {
+          super(a10, b7);
+        }
+      }
+      let bF = (a10, b7 = "algorithm.name") => TypeError(`CryptoKey does not support this operation, its ${b7} must be ${a10}`);
+      function bG(a10) {
+        return parseInt(a10.name.slice(4), 10);
+      }
+      function bH(a10, b7, ...c2) {
+        if ((c2 = c2.filter(Boolean)).length > 2) {
+          let b8 = c2.pop();
+          a10 += `one of type ${c2.join(", ")}, or ${b8}.`;
+        } else 2 === c2.length ? a10 += `one of type ${c2[0]} or ${c2[1]}.` : a10 += `of type ${c2[0]}.`;
+        return null == b7 ? a10 += ` Received ${b7}` : "function" == typeof b7 && b7.name ? a10 += ` Received function ${b7.name}` : "object" == typeof b7 && null != b7 && b7.constructor?.name && (a10 += ` Received an instance of ${b7.constructor.name}`), a10;
+      }
+      let bI = (a10, b7, ...c2) => bH(`Key for the ${a10} algorithm must be `, b7, ...c2);
+      async function bJ(a10, b7, c2) {
+        if (b7 instanceof Uint8Array) {
+          if (!a10.startsWith("HS")) throw TypeError(((a11, ...b8) => bH("Key must be ", a11, ...b8))(b7, "CryptoKey", "KeyObject", "JSON Web Key"));
+          return crypto.subtle.importKey("raw", b7, { hash: `SHA-${a10.slice(-3)}`, name: "HMAC" }, false, [c2]);
+        }
+        return !function(a11, b8, c3) {
+          switch (b8) {
+            case "HS256":
+            case "HS384":
+            case "HS512": {
+              if ("HMAC" !== a11.algorithm.name) throw bF("HMAC");
+              let c4 = parseInt(b8.slice(2), 10);
+              if (bG(a11.algorithm.hash) !== c4) throw bF(`SHA-${c4}`, "algorithm.hash");
+              break;
+            }
+            case "RS256":
+            case "RS384":
+            case "RS512": {
+              if ("RSASSA-PKCS1-v1_5" !== a11.algorithm.name) throw bF("RSASSA-PKCS1-v1_5");
+              let c4 = parseInt(b8.slice(2), 10);
+              if (bG(a11.algorithm.hash) !== c4) throw bF(`SHA-${c4}`, "algorithm.hash");
+              break;
+            }
+            case "PS256":
+            case "PS384":
+            case "PS512": {
+              if ("RSA-PSS" !== a11.algorithm.name) throw bF("RSA-PSS");
+              let c4 = parseInt(b8.slice(2), 10);
+              if (bG(a11.algorithm.hash) !== c4) throw bF(`SHA-${c4}`, "algorithm.hash");
+              break;
+            }
+            case "Ed25519":
+            case "EdDSA":
+              if ("Ed25519" !== a11.algorithm.name) throw bF("Ed25519");
+              break;
+            case "ML-DSA-44":
+            case "ML-DSA-65":
+            case "ML-DSA-87":
+              let d2;
+              if (d2 = a11.algorithm, d2.name !== b8) throw bF(b8);
+              break;
+            case "ES256":
+            case "ES384":
+            case "ES512": {
+              if ("ECDSA" !== a11.algorithm.name) throw bF("ECDSA");
+              let c4 = function(a12) {
+                switch (a12) {
+                  case "ES256":
+                    return "P-256";
+                  case "ES384":
+                    return "P-384";
+                  case "ES512":
+                    return "P-521";
+                  default:
+                    throw Error("unreachable");
+                }
+              }(b8);
+              if (a11.algorithm.namedCurve !== c4) throw bF(c4, "algorithm.namedCurve");
+              break;
+            }
+            default:
+              throw TypeError("CryptoKey does not support this operation");
+          }
+          if (c3 && !a11.usages.includes(c3)) throw TypeError(`CryptoKey does not support this operation, its usages must include ${c3}.`);
+        }(b7, a10, c2), b7;
+      }
+      async function bK(a10, b7, c2, d2) {
+        let e2 = await bJ(a10, b7, "verify");
+        !function(a11, b8) {
+          if (a11.startsWith("RS") || a11.startsWith("PS")) {
+            let { modulusLength: c3 } = b8.algorithm;
+            if ("number" != typeof c3 || c3 < 2048) throw TypeError(`${a11} requires key modulusLength to be 2048 bits or larger`);
+          }
+        }(a10, e2);
+        let f2 = function(a11, b8) {
+          let c3 = `SHA-${a11.slice(-3)}`;
+          switch (a11) {
+            case "HS256":
+            case "HS384":
+            case "HS512":
+              return { hash: c3, name: "HMAC" };
+            case "PS256":
+            case "PS384":
+            case "PS512":
+              return { hash: c3, name: "RSA-PSS", saltLength: parseInt(a11.slice(-3), 10) >> 3 };
+            case "RS256":
+            case "RS384":
+            case "RS512":
+              return { hash: c3, name: "RSASSA-PKCS1-v1_5" };
+            case "ES256":
+            case "ES384":
+            case "ES512":
+              return { hash: c3, name: "ECDSA", namedCurve: b8.namedCurve };
+            case "Ed25519":
+            case "EdDSA":
+              return { name: "Ed25519" };
+            case "ML-DSA-44":
+            case "ML-DSA-65":
+            case "ML-DSA-87":
+              return { name: a11 };
+            default:
+              throw new bA(`alg ${a11} is not supported either by JOSE or your javascript runtime`);
+          }
+        }(a10, e2.algorithm);
+        try {
+          return await crypto.subtle.verify(f2, e2, c2, d2);
+        } catch {
+          return false;
+        }
+      }
+      function bL(a10) {
+        if ("object" != typeof a10 || null === a10 || "[object Object]" !== Object.prototype.toString.call(a10)) return false;
+        if (null === Object.getPrototypeOf(a10)) return true;
+        let b7 = a10;
+        for (; null !== Object.getPrototypeOf(b7); ) b7 = Object.getPrototypeOf(b7);
+        return Object.getPrototypeOf(a10) === b7;
+      }
+      let bM = (a10) => {
+        if (a10?.[Symbol.toStringTag] === "CryptoKey") return true;
+        try {
+          return a10 instanceof CryptoKey;
+        } catch {
+          return false;
+        }
+      }, bN = (a10) => a10?.[Symbol.toStringTag] === "KeyObject", bO = (a10) => bM(a10) || bN(a10), bP = (a10) => bL(a10) && "string" == typeof a10.kty, bQ = (a10) => a10?.[Symbol.toStringTag], bR = (a10, b7, c2) => {
+        if (void 0 !== b7.use) {
+          let a11;
+          switch (c2) {
+            case "sign":
+            case "verify":
+              a11 = "sig";
+              break;
+            case "encrypt":
+            case "decrypt":
+              a11 = "enc";
+          }
+          if (b7.use !== a11) throw TypeError(`Invalid key for this operation, its "use" must be "${a11}" when present`);
+        }
+        if (void 0 !== b7.alg && b7.alg !== a10) throw TypeError(`Invalid key for this operation, its "alg" must be "${a10}" when present`);
+        if (Array.isArray(b7.key_ops)) {
+          let d2;
+          switch (true) {
+            case ("sign" === c2 || "verify" === c2):
+            case "dir" === a10:
+            case a10.includes("CBC-HS"):
+              d2 = c2;
+              break;
+            case a10.startsWith("PBES2"):
+              d2 = "deriveBits";
+              break;
+            case /^A\d{3}(?:GCM)?(?:KW)?$/.test(a10):
+              d2 = !a10.includes("GCM") && a10.endsWith("KW") ? "encrypt" === c2 ? "wrapKey" : "unwrapKey" : c2;
+              break;
+            case ("encrypt" === c2 && a10.startsWith("RSA")):
+              d2 = "wrapKey";
+              break;
+            case "decrypt" === c2:
+              d2 = a10.startsWith("RSA") ? "unwrapKey" : "deriveBits";
+          }
+          if (d2 && b7.key_ops?.includes?.(d2) === false) throw TypeError(`Invalid key for this operation, its "key_ops" must include "${d2}" when present`);
+        }
+        return true;
+      };
+      async function bS(a10) {
+        if (!a10.alg) throw TypeError('"alg" argument is required when "jwk.alg" is not present');
+        let { algorithm: b7, keyUsages: c2 } = function(a11) {
+          let b8, c3;
+          switch (a11.kty) {
+            case "AKP":
+              switch (a11.alg) {
+                case "ML-DSA-44":
+                case "ML-DSA-65":
+                case "ML-DSA-87":
+                  b8 = { name: a11.alg }, c3 = a11.priv ? ["sign"] : ["verify"];
+                  break;
+                default:
+                  throw new bA('Invalid or unsupported JWK "alg" (Algorithm) Parameter value');
+              }
+              break;
+            case "RSA":
+              switch (a11.alg) {
+                case "PS256":
+                case "PS384":
+                case "PS512":
+                  b8 = { name: "RSA-PSS", hash: `SHA-${a11.alg.slice(-3)}` }, c3 = a11.d ? ["sign"] : ["verify"];
+                  break;
+                case "RS256":
+                case "RS384":
+                case "RS512":
+                  b8 = { name: "RSASSA-PKCS1-v1_5", hash: `SHA-${a11.alg.slice(-3)}` }, c3 = a11.d ? ["sign"] : ["verify"];
+                  break;
+                case "RSA-OAEP":
+                case "RSA-OAEP-256":
+                case "RSA-OAEP-384":
+                case "RSA-OAEP-512":
+                  b8 = { name: "RSA-OAEP", hash: `SHA-${parseInt(a11.alg.slice(-3), 10) || 1}` }, c3 = a11.d ? ["decrypt", "unwrapKey"] : ["encrypt", "wrapKey"];
+                  break;
+                default:
+                  throw new bA('Invalid or unsupported JWK "alg" (Algorithm) Parameter value');
+              }
+              break;
+            case "EC":
+              switch (a11.alg) {
+                case "ES256":
+                  b8 = { name: "ECDSA", namedCurve: "P-256" }, c3 = a11.d ? ["sign"] : ["verify"];
+                  break;
+                case "ES384":
+                  b8 = { name: "ECDSA", namedCurve: "P-384" }, c3 = a11.d ? ["sign"] : ["verify"];
+                  break;
+                case "ES512":
+                  b8 = { name: "ECDSA", namedCurve: "P-521" }, c3 = a11.d ? ["sign"] : ["verify"];
+                  break;
+                case "ECDH-ES":
+                case "ECDH-ES+A128KW":
+                case "ECDH-ES+A192KW":
+                case "ECDH-ES+A256KW":
+                  b8 = { name: "ECDH", namedCurve: a11.crv }, c3 = a11.d ? ["deriveBits"] : [];
+                  break;
+                default:
+                  throw new bA('Invalid or unsupported JWK "alg" (Algorithm) Parameter value');
+              }
+              break;
+            case "OKP":
+              switch (a11.alg) {
+                case "Ed25519":
+                case "EdDSA":
+                  b8 = { name: "Ed25519" }, c3 = a11.d ? ["sign"] : ["verify"];
+                  break;
+                case "ECDH-ES":
+                case "ECDH-ES+A128KW":
+                case "ECDH-ES+A192KW":
+                case "ECDH-ES+A256KW":
+                  b8 = { name: a11.crv }, c3 = a11.d ? ["deriveBits"] : [];
+                  break;
+                default:
+                  throw new bA('Invalid or unsupported JWK "alg" (Algorithm) Parameter value');
+              }
+              break;
+            default:
+              throw new bA('Invalid or unsupported JWK "kty" (Key Type) Parameter value');
+          }
+          return { algorithm: b8, keyUsages: c3 };
+        }(a10), d2 = { ...a10 };
+        return "AKP" !== d2.kty && delete d2.alg, delete d2.use, crypto.subtle.importKey("jwk", d2, b7, a10.ext ?? (!a10.d && !a10.priv), a10.key_ops ?? c2);
+      }
+      let bT = async (a10, b7, c2, d2 = false) => {
+        let f2 = (e ||= /* @__PURE__ */ new WeakMap()).get(a10);
+        if (f2?.[c2]) return f2[c2];
+        let g2 = await bS({ ...b7, alg: c2 });
+        return d2 && Object.freeze(a10), f2 ? f2[c2] = g2 : e.set(a10, { [c2]: g2 }), g2;
+      };
+      async function bU(a10, b7) {
+        if (a10 instanceof Uint8Array || bM(a10)) return a10;
+        if (bN(a10)) {
+          if ("secret" === a10.type) return a10.export();
+          if ("toCryptoKey" in a10 && "function" == typeof a10.toCryptoKey) try {
+            return ((a11, b8) => {
+              let c3, d2 = (e ||= /* @__PURE__ */ new WeakMap()).get(a11);
+              if (d2?.[b8]) return d2[b8];
+              let f2 = "public" === a11.type, g2 = !!f2;
+              if ("x25519" === a11.asymmetricKeyType) {
+                switch (b8) {
+                  case "ECDH-ES":
+                  case "ECDH-ES+A128KW":
+                  case "ECDH-ES+A192KW":
+                  case "ECDH-ES+A256KW":
+                    break;
+                  default:
+                    throw TypeError("given KeyObject instance cannot be used for this algorithm");
+                }
+                c3 = a11.toCryptoKey(a11.asymmetricKeyType, g2, f2 ? [] : ["deriveBits"]);
+              }
+              if ("ed25519" === a11.asymmetricKeyType) {
+                if ("EdDSA" !== b8 && "Ed25519" !== b8) throw TypeError("given KeyObject instance cannot be used for this algorithm");
+                c3 = a11.toCryptoKey(a11.asymmetricKeyType, g2, [f2 ? "verify" : "sign"]);
+              }
+              switch (a11.asymmetricKeyType) {
+                case "ml-dsa-44":
+                case "ml-dsa-65":
+                case "ml-dsa-87":
+                  if (b8 !== a11.asymmetricKeyType.toUpperCase()) throw TypeError("given KeyObject instance cannot be used for this algorithm");
+                  c3 = a11.toCryptoKey(a11.asymmetricKeyType, g2, [f2 ? "verify" : "sign"]);
+              }
+              if ("rsa" === a11.asymmetricKeyType) {
+                let d3;
+                switch (b8) {
+                  case "RSA-OAEP":
+                    d3 = "SHA-1";
+                    break;
+                  case "RS256":
+                  case "PS256":
+                  case "RSA-OAEP-256":
+                    d3 = "SHA-256";
+                    break;
+                  case "RS384":
+                  case "PS384":
+                  case "RSA-OAEP-384":
+                    d3 = "SHA-384";
+                    break;
+                  case "RS512":
+                  case "PS512":
+                  case "RSA-OAEP-512":
+                    d3 = "SHA-512";
+                    break;
+                  default:
+                    throw TypeError("given KeyObject instance cannot be used for this algorithm");
+                }
+                if (b8.startsWith("RSA-OAEP")) return a11.toCryptoKey({ name: "RSA-OAEP", hash: d3 }, g2, f2 ? ["encrypt"] : ["decrypt"]);
+                c3 = a11.toCryptoKey({ name: b8.startsWith("PS") ? "RSA-PSS" : "RSASSA-PKCS1-v1_5", hash: d3 }, g2, [f2 ? "verify" : "sign"]);
+              }
+              if ("ec" === a11.asymmetricKeyType) {
+                let d3 = (/* @__PURE__ */ new Map([["prime256v1", "P-256"], ["secp384r1", "P-384"], ["secp521r1", "P-521"]])).get(a11.asymmetricKeyDetails?.namedCurve);
+                if (!d3) throw TypeError("given KeyObject instance cannot be used for this algorithm");
+                "ES256" === b8 && "P-256" === d3 && (c3 = a11.toCryptoKey({ name: "ECDSA", namedCurve: d3 }, g2, [f2 ? "verify" : "sign"])), "ES384" === b8 && "P-384" === d3 && (c3 = a11.toCryptoKey({ name: "ECDSA", namedCurve: d3 }, g2, [f2 ? "verify" : "sign"])), "ES512" === b8 && "P-521" === d3 && (c3 = a11.toCryptoKey({ name: "ECDSA", namedCurve: d3 }, g2, [f2 ? "verify" : "sign"])), b8.startsWith("ECDH-ES") && (c3 = a11.toCryptoKey({ name: "ECDH", namedCurve: d3 }, g2, f2 ? [] : ["deriveBits"]));
+              }
+              if (!c3) throw TypeError("given KeyObject instance cannot be used for this algorithm");
+              return d2 ? d2[b8] = c3 : e.set(a11, { [b8]: c3 }), c3;
+            })(a10, b7);
+          } catch (a11) {
+            if (a11 instanceof TypeError) throw a11;
+          }
+          let c2 = a10.export({ format: "jwk" });
+          return bT(a10, c2, b7);
+        }
+        if (bP(a10)) return a10.k ? bv(a10.k) : bT(a10, a10, b7, true);
+        throw Error("unreachable");
+      }
+      async function bV(a10, b7, c2) {
+        let d2, e2;
+        if (!bL(a10)) throw new bB("Flattened JWS must be an object");
+        if (void 0 === a10.protected && void 0 === a10.header) throw new bB('Flattened JWS must have either of the "protected" or "header" members');
+        if (void 0 !== a10.protected && "string" != typeof a10.protected) throw new bB("JWS Protected Header incorrect type");
+        if (void 0 === a10.payload) throw new bB("JWS Payload missing");
+        if ("string" != typeof a10.signature) throw new bB("JWS Signature missing or incorrect type");
+        if (void 0 !== a10.header && !bL(a10.header)) throw new bB("JWS Unprotected Header incorrect type");
+        let f2 = {};
+        if (a10.protected) try {
+          let b8 = bv(a10.protected);
+          f2 = JSON.parse(bt.decode(b8));
+        } catch {
+          throw new bB("JWS Protected Header is invalid");
+        }
+        if (!function(...a11) {
+          let b8, c3 = a11.filter(Boolean);
+          if (0 === c3.length || 1 === c3.length) return true;
+          for (let a12 of c3) {
+            let c4 = Object.keys(a12);
+            if (!b8 || 0 === b8.size) {
+              b8 = new Set(c4);
+              continue;
+            }
+            for (let a13 of c4) {
+              if (b8.has(a13)) return false;
+              b8.add(a13);
+            }
+          }
+          return true;
+        }(f2, a10.header)) throw new bB("JWS Protected and JWS Unprotected Header Parameter names must be disjoint");
+        let g2 = { ...f2, ...a10.header }, h2 = function(a11, b8, c3, d3, e3) {
+          let f3;
+          if (void 0 !== e3.crit && d3?.crit === void 0) throw new a11('"crit" (Critical) Header Parameter MUST be integrity protected');
+          if (!d3 || void 0 === d3.crit) return /* @__PURE__ */ new Set();
+          if (!Array.isArray(d3.crit) || 0 === d3.crit.length || d3.crit.some((a12) => "string" != typeof a12 || 0 === a12.length)) throw new a11('"crit" (Critical) Header Parameter MUST be an array of non-empty strings when present');
+          for (let g3 of (f3 = void 0 !== c3 ? new Map([...Object.entries(c3), ...b8.entries()]) : b8, d3.crit)) {
+            if (!f3.has(g3)) throw new bA(`Extension Header Parameter "${g3}" is not recognized`);
+            if (void 0 === e3[g3]) throw new a11(`Extension Header Parameter "${g3}" is missing`);
+            if (f3.get(g3) && void 0 === d3[g3]) throw new a11(`Extension Header Parameter "${g3}" MUST be integrity protected`);
+          }
+          return new Set(d3.crit);
+        }(bB, /* @__PURE__ */ new Map([["b64", true]]), c2?.crit, f2, g2), i2 = true;
+        if (h2.has("b64") && "boolean" != typeof (i2 = f2.b64)) throw new bB('The "b64" (base64url-encode payload) Header Parameter must be a boolean');
+        let { alg: j2 } = g2;
+        if ("string" != typeof j2 || !j2) throw new bB('JWS "alg" (Algorithm) Header Parameter missing or invalid');
+        let k2 = c2 && function(a11, b8) {
+          if (void 0 !== b8 && (!Array.isArray(b8) || b8.some((a12) => "string" != typeof a12))) throw TypeError(`"${a11}" option must be an array of strings`);
+          if (b8) return new Set(b8);
+        }("algorithms", c2.algorithms);
+        if (k2 && !k2.has(j2)) throw new bz('"alg" (Algorithm) Header Parameter value not allowed');
+        if (i2) {
+          if ("string" != typeof a10.payload) throw new bB("JWS Payload must be a string");
+        } else if ("string" != typeof a10.payload && !(a10.payload instanceof Uint8Array)) throw new bB("JWS Payload must be a string or an Uint8Array instance");
+        let l2 = false;
+        "function" == typeof b7 && (b7 = await b7(f2, a10), l2 = true);
+        var m2 = b7, n2 = "verify";
+        switch (j2.substring(0, 2)) {
+          case "A1":
+          case "A2":
+          case "di":
+          case "HS":
+          case "PB":
+            ((a11, b8, c3) => {
+              if (!(b8 instanceof Uint8Array)) {
+                if (bP(b8)) {
+                  if ("oct" === b8.kty && "string" == typeof b8.k && bR(a11, b8, c3)) return;
+                  throw TypeError('JSON Web Key for symmetric algorithms must have JWK "kty" (Key Type) equal to "oct" and the JWK "k" (Key Value) present');
+                }
+                if (!bO(b8)) throw TypeError(bI(a11, b8, "CryptoKey", "KeyObject", "JSON Web Key", "Uint8Array"));
+                if ("secret" !== b8.type) throw TypeError(`${bQ(b8)} instances for symmetric algorithms must be of type "secret"`);
+              }
+            })(j2, m2, n2);
+            break;
+          default:
+            ((a11, b8, c3) => {
+              if (bP(b8)) switch (c3) {
+                case "decrypt":
+                case "sign":
+                  if ("oct" !== b8.kty && ("AKP" === b8.kty && "string" == typeof b8.priv || "string" == typeof b8.d) && bR(a11, b8, c3)) return;
+                  throw TypeError("JSON Web Key for this operation must be a private JWK");
+                case "encrypt":
+                case "verify":
+                  if ("oct" !== b8.kty && void 0 === b8.d && void 0 === b8.priv && bR(a11, b8, c3)) return;
+                  throw TypeError("JSON Web Key for this operation must be a public JWK");
+              }
+              if (!bO(b8)) throw TypeError(bI(a11, b8, "CryptoKey", "KeyObject", "JSON Web Key"));
+              if ("secret" === b8.type) throw TypeError(`${bQ(b8)} instances for asymmetric algorithms must not be of type "secret"`);
+              if ("public" === b8.type) switch (c3) {
+                case "sign":
+                  throw TypeError(`${bQ(b8)} instances for asymmetric algorithm signing must be of type "private"`);
+                case "decrypt":
+                  throw TypeError(`${bQ(b8)} instances for asymmetric algorithm decryption must be of type "private"`);
+              }
+              if ("private" === b8.type) switch (c3) {
+                case "verify":
+                  throw TypeError(`${bQ(b8)} instances for asymmetric algorithm verifying must be of type "public"`);
+                case "encrypt":
+                  throw TypeError(`${bQ(b8)} instances for asymmetric algorithm encryption must be of type "public"`);
+              }
+            })(j2, m2, n2);
+        }
+        let o2 = function(...a11) {
+          let b8 = new Uint8Array(a11.reduce((a12, { length: b9 }) => a12 + b9, 0)), c3 = 0;
+          for (let d3 of a11) b8.set(d3, c3), c3 += d3.length;
+          return b8;
+        }(void 0 !== a10.protected ? bu(a10.protected) : new Uint8Array(), bu("."), "string" == typeof a10.payload ? i2 ? bu(a10.payload) : bs.encode(a10.payload) : a10.payload);
+        try {
+          d2 = bv(a10.signature);
+        } catch {
+          throw new bB("Failed to base64url decode the signature");
+        }
+        let p2 = await bU(b7, j2);
+        if (!await bK(j2, p2, d2, o2)) throw new bE();
+        if (i2) try {
+          e2 = bv(a10.payload);
+        } catch {
+          throw new bB("Failed to base64url decode the payload");
+        }
+        else e2 = "string" == typeof a10.payload ? bs.encode(a10.payload) : a10.payload;
+        let q2 = { payload: e2 };
+        return (void 0 !== a10.protected && (q2.protectedHeader = f2), void 0 !== a10.header && (q2.unprotectedHeader = a10.header), l2) ? { ...q2, key: p2 } : q2;
+      }
+      async function bW(a10, b7, c2) {
+        if (a10 instanceof Uint8Array && (a10 = bt.decode(a10)), "string" != typeof a10) throw new bB("Compact JWS must be a string or Uint8Array");
+        let { 0: d2, 1: e2, 2: f2, length: g2 } = a10.split(".");
+        if (3 !== g2) throw new bB("Invalid Compact JWS");
+        let h2 = await bV({ payload: e2, protected: d2, signature: f2 }, b7, c2), i2 = { payload: h2.payload, protectedHeader: h2.protectedHeader };
+        return "function" == typeof b7 ? { ...i2, key: h2.key } : i2;
+      }
+      let bX = /^(\+|\-)? ?(\d+|\d+\.\d+) ?(seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|weeks?|w|years?|yrs?|y)(?: (ago|from now))?$/i;
+      function bY(a10) {
+        let b7, c2 = bX.exec(a10);
+        if (!c2 || c2[4] && c2[1]) throw TypeError("Invalid time period format");
+        let d2 = parseFloat(c2[2]);
+        switch (c2[3].toLowerCase()) {
+          case "sec":
+          case "secs":
+          case "second":
+          case "seconds":
+          case "s":
+            b7 = Math.round(d2);
+            break;
+          case "minute":
+          case "minutes":
+          case "min":
+          case "mins":
+          case "m":
+            b7 = Math.round(60 * d2);
+            break;
+          case "hour":
+          case "hours":
+          case "hr":
+          case "hrs":
+          case "h":
+            b7 = Math.round(3600 * d2);
+            break;
+          case "day":
+          case "days":
+          case "d":
+            b7 = Math.round(86400 * d2);
+            break;
+          case "week":
+          case "weeks":
+          case "w":
+            b7 = Math.round(604800 * d2);
+            break;
+          default:
+            b7 = Math.round(31557600 * d2);
+        }
+        return "-" === c2[1] || "ago" === c2[4] ? -b7 : b7;
+      }
+      let bZ = (a10) => a10.includes("/") ? a10.toLowerCase() : `application/${a10.toLowerCase()}`;
+      async function b$(a10, b7, c2) {
+        let d2 = await bW(a10, b7, c2);
+        if (d2.protectedHeader.crit?.includes("b64") && false === d2.protectedHeader.b64) throw new bC("JWTs MUST NOT use unencoded payload");
+        let e2 = { payload: function(a11, b8, c3 = {}) {
+          var d3, e3;
+          let f2, g2;
+          try {
+            f2 = JSON.parse(bt.decode(b8));
+          } catch {
+          }
+          if (!bL(f2)) throw new bC("JWT Claims Set must be a top-level JSON object");
+          let { typ: h2 } = c3;
+          if (h2 && ("string" != typeof a11.typ || bZ(a11.typ) !== bZ(h2))) throw new bx('unexpected "typ" JWT header value', f2, "typ", "check_failed");
+          let { requiredClaims: i2 = [], issuer: j2, subject: k2, audience: l2, maxTokenAge: m2 } = c3, n2 = [...i2];
+          for (let a12 of (void 0 !== m2 && n2.push("iat"), void 0 !== l2 && n2.push("aud"), void 0 !== k2 && n2.push("sub"), void 0 !== j2 && n2.push("iss"), new Set(n2.reverse()))) if (!(a12 in f2)) throw new bx(`missing required "${a12}" claim`, f2, a12, "missing");
+          if (j2 && !(Array.isArray(j2) ? j2 : [j2]).includes(f2.iss)) throw new bx('unexpected "iss" claim value', f2, "iss", "check_failed");
+          if (k2 && f2.sub !== k2) throw new bx('unexpected "sub" claim value', f2, "sub", "check_failed");
+          if (l2 && (d3 = f2.aud, e3 = "string" == typeof l2 ? [l2] : l2, "string" == typeof d3 ? !e3.includes(d3) : !(Array.isArray(d3) && e3.some(Set.prototype.has.bind(new Set(d3)))))) throw new bx('unexpected "aud" claim value', f2, "aud", "check_failed");
+          switch (typeof c3.clockTolerance) {
+            case "string":
+              g2 = bY(c3.clockTolerance);
+              break;
+            case "number":
+              g2 = c3.clockTolerance;
+              break;
+            case "undefined":
+              g2 = 0;
+              break;
+            default:
+              throw TypeError("Invalid clockTolerance option type");
+          }
+          let { currentDate: o2 } = c3, p2 = Math.floor((o2 || /* @__PURE__ */ new Date()).getTime() / 1e3);
+          if ((void 0 !== f2.iat || m2) && "number" != typeof f2.iat) throw new bx('"iat" claim must be a number', f2, "iat", "invalid");
+          if (void 0 !== f2.nbf) {
+            if ("number" != typeof f2.nbf) throw new bx('"nbf" claim must be a number', f2, "nbf", "invalid");
+            if (f2.nbf > p2 + g2) throw new bx('"nbf" claim timestamp check failed', f2, "nbf", "check_failed");
+          }
+          if (void 0 !== f2.exp) {
+            if ("number" != typeof f2.exp) throw new bx('"exp" claim must be a number', f2, "exp", "invalid");
+            if (f2.exp <= p2 - g2) throw new by('"exp" claim timestamp check failed', f2, "exp", "check_failed");
+          }
+          if (m2) {
+            let a12 = p2 - f2.iat;
+            if (a12 - g2 > ("number" == typeof m2 ? m2 : bY(m2))) throw new by('"iat" claim timestamp check failed (too far in the past)', f2, "iat", "check_failed");
+            if (a12 < 0 - g2) throw new bx('"iat" claim timestamp check failed (it should be in the past)', f2, "iat", "check_failed");
+          }
+          return f2;
+        }(d2.protectedHeader, d2.payload, c2), protectedHeader: d2.protectedHeader };
+        return "function" == typeof b7 ? { ...e2, key: d2.key } : e2;
+      }
+      function b_(a10, b7) {
+        let c2 = a10.headers;
+        return c2.set("X-Frame-Options", "DENY"), c2.set("X-Content-Type-Options", "nosniff"), c2.set("Referrer-Policy", "strict-origin-when-cross-origin"), c2.set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=(), bluetooth=(), interest-cohort=()"), c2.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload"), c2.set("Cross-Origin-Opener-Policy", "same-origin"), c2.set("Cross-Origin-Embedder-Policy", "require-corp"), c2.set("Cross-Origin-Resource-Policy", "same-origin"), c2.set("Cache-Control", "no-store, no-cache, must-revalidate, private"), c2.set("Pragma", "no-cache"), c2.set("Content-Security-Policy", `default-src 'self'; script-src 'self' 'nonce-${b7}'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; worker-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests`), a10;
+      }
+      async function b0(a10) {
+        let { pathname: b7 } = a10.nextUrl;
+        if (!b7.startsWith("/admin")) return ad.next();
+        let c2 = btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(16)))), d2 = crypto.randomUUID(), e2 = (process.env.ADMIN_ALLOWED_IPS ?? "").split(",").map((a11) => a11.trim()).filter(Boolean);
+        if (e2.length > 0) {
+          let b8 = a10.headers.get("cf-connecting-ip") ?? a10.headers.get("x-real-ip") ?? a10.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "";
+          if (!function(a11, b9) {
+            if (!a11 || 0 === b9.length) return true;
+            let c3 = a11.replace(/^::ffff:/, "").trim(), d3 = c3.split(".");
+            if (4 !== d3.length) return false;
+            let e3 = d3.reduce((a12, b10) => a12 << 8 | parseInt(b10, 10), 0) >>> 0;
+            for (let a12 of b9) if (a12.includes("/")) {
+              let b10 = function(a13) {
+                let [b11, c4] = a13.split("/");
+                if (!b11) return null;
+                let d4 = c4 ? parseInt(c4, 10) : 32, e4 = b11.split(".").reduce((a14, b12) => a14 << 8 | parseInt(b12, 10), 0) >>> 0, f3 = 0 === d4 ? 0 : 4294967295 << 32 - d4 >>> 0;
+                return [e4 & f3, f3];
+              }(a12);
+              if (b10 && (e3 & b10[1]) === b10[0]) return true;
+            } else if (a12.trim() === c3) return true;
+            return false;
+          }(b8, e2)) return console.warn(`[middleware] IP blocked: ${b8} \u2014 request ${d2}`), new ad(null, { status: 404 });
+        }
+        if ("/admin/login" === b7) {
+          let a11 = ad.next();
+          return a11.headers.set("x-nonce", c2), a11.headers.set("x-request-id", d2), b_(a11, c2);
+        }
+        let f2 = a10.cookies.get("admin_session")?.value;
+        if (!f2) return ad.redirect(new URL("/admin/login", a10.url));
+        try {
+          let b8 = process.env.ADMIN_JWT_SECRET;
+          if (!b8) return console.error("[middleware] ADMIN_JWT_SECRET not configured"), ad.redirect(new URL("/admin/login", a10.url));
+          let { payload: e3 } = await b$(f2, new TextEncoder().encode(b8), { issuer: "ilbuoncaffe:admin", algorithms: ["HS256"] });
+          if ("admin" !== e3.role) return ad.redirect(new URL("/admin/login", a10.url));
+          let g2 = ad.next();
+          return g2.headers.set("x-nonce", c2), g2.headers.set("x-request-id", d2), b_(g2, c2);
+        } catch {
+          let b8 = ad.redirect(new URL("/admin/login", a10.url));
+          return b8.cookies.delete({ name: "admin_session", path: "/" }), b8;
+        }
+      }
+      let b1 = { matcher: ["/admin/:path*"] };
+      Object.values({ NOT_FOUND: 404, FORBIDDEN: 403, UNAUTHORIZED: 401 });
+      let b2 = { ...s }, b3 = "/src/middleware", b4 = (0, b2.middleware || b2.default);
+      class b5 extends Error {
+        constructor(a10) {
+          super(a10), this.stack = "";
+        }
+      }
+      if ("function" != typeof b4) throw new b5(`The Middleware file "${b3}" must export a function named \`middleware\` or a default function.`);
+      let b6 = (a10) => bq({ ...a10, page: b3, handler: async (...a11) => {
+        try {
+          return await b4(...a11);
+        } catch (e2) {
+          let b7 = a11[0], c2 = new URL(b7.url), d2 = c2.pathname + c2.search;
+          throw await w(e2, { path: d2, method: b7.method, headers: Object.fromEntries(b7.headers.entries()) }, { routerKind: "Pages Router", routePath: "/proxy", routeType: "proxy", revalidateReason: void 0 }), e2;
+        }
+      } });
+    }, 76: (a, b, c) => {
       (() => {
         "use strict";
         let b2, d, e, f, g;
@@ -3565,7 +3390,79 @@ Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime`;
           return g.trace;
         } }), A.default = { context: b2.context, diag: d.diag, metrics: e.metrics, propagation: f.propagation, trace: g.trace }, a.exports = A;
       })();
-    }, 6508: (a) => {
+    }, 120: (a, b, c) => {
+      "use strict";
+      var d = c(356).Buffer;
+      Object.defineProperty(b, "__esModule", { value: true });
+      var e = { handleFetch: function() {
+        return j;
+      }, interceptFetch: function() {
+        return k;
+      }, reader: function() {
+        return h;
+      } };
+      for (var f in e) Object.defineProperty(b, f, { enumerable: true, get: e[f] });
+      let g = c(681), h = { url: (a2) => a2.url, header: (a2, b2) => a2.headers.get(b2) };
+      async function i(a2, b2) {
+        let { url: c2, method: e2, headers: f2, body: g2, cache: h2, credentials: i2, integrity: j2, mode: k2, redirect: l, referrer: m, referrerPolicy: n } = b2;
+        return { testData: a2, api: "fetch", request: { url: c2, method: e2, headers: [...Array.from(f2), ["next-test-stack", function() {
+          let a3 = (Error().stack ?? "").split("\n");
+          for (let b3 = 1; b3 < a3.length; b3++) if (a3[b3].length > 0) {
+            a3 = a3.slice(b3);
+            break;
+          }
+          return (a3 = (a3 = (a3 = a3.filter((a4) => !a4.includes("/next/dist/"))).slice(0, 5)).map((a4) => a4.replace("webpack-internal:///(rsc)/", "").trim())).join("    ");
+        }()]], body: g2 ? d.from(await b2.arrayBuffer()).toString("base64") : null, cache: h2, credentials: i2, integrity: j2, mode: k2, redirect: l, referrer: m, referrerPolicy: n } };
+      }
+      async function j(a2, b2) {
+        let c2 = (0, g.getTestReqInfo)(b2, h);
+        if (!c2) return a2(b2);
+        let { testData: e2, proxyPort: f2 } = c2, j2 = await i(e2, b2), k2 = await a2(`http://localhost:${f2}`, { method: "POST", body: JSON.stringify(j2), next: { internal: true } });
+        if (!k2.ok) throw Object.defineProperty(Error(`Proxy request failed: ${k2.status}`), "__NEXT_ERROR_CODE", { value: "E146", enumerable: false, configurable: true });
+        let l = await k2.json(), { api: m } = l;
+        switch (m) {
+          case "continue":
+            return a2(b2);
+          case "abort":
+          case "unhandled":
+            throw Object.defineProperty(Error(`Proxy request aborted [${b2.method} ${b2.url}]`), "__NEXT_ERROR_CODE", { value: "E145", enumerable: false, configurable: true });
+          case "fetch":
+            return function(a3) {
+              let { status: b3, headers: c3, body: e3 } = a3.response;
+              return new Response(e3 ? d.from(e3, "base64") : null, { status: b3, headers: new Headers(c3) });
+            }(l);
+          default:
+            return m;
+        }
+      }
+      function k(a2) {
+        return c.g.fetch = function(b2, c2) {
+          var d2;
+          return (null == c2 || null == (d2 = c2.next) ? void 0 : d2.internal) ? a2(b2, c2) : j(a2, new Request(b2, c2));
+        }, () => {
+          c.g.fetch = a2;
+        };
+      }
+    }, 233: (a, b, c) => {
+      "use strict";
+      Object.defineProperty(b, "__esModule", { value: true });
+      var d = { interceptTestApis: function() {
+        return h;
+      }, wrapRequestHandler: function() {
+        return i;
+      } };
+      for (var e in d) Object.defineProperty(b, e, { enumerable: true, get: d[e] });
+      let f = c(681), g = c(120);
+      function h() {
+        return (0, g.interceptFetch)(c.g.fetch);
+      }
+      function i(a2) {
+        return (b2, c2) => (0, f.withRequest)(b2, g.reader, () => a2(b2, c2));
+      }
+    }, 356: (a) => {
+      "use strict";
+      a.exports = (init_node_buffer(), __toCommonJS(node_buffer_exports));
+    }, 508: (a) => {
       "use strict";
       var b = Object.defineProperty, c = Object.getOwnPropertyDescriptor, d = Object.getOwnPropertyNames, e = Object.prototype.hasOwnProperty, f = {}, g = { RequestCookies: () => n, ResponseCookies: () => o, parseCookie: () => j, parseSetCookie: () => k, stringifyCookie: () => i };
       for (var h in g) b(f, h, { get: g[h], enumerable: true });
@@ -3709,45 +3606,120 @@ Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime`;
           return [...this._parsed.values()].map(i).join("; ");
         }
       };
-    }, 6975: (a, b, c) => {
+    }, 521: (a) => {
       "use strict";
-      c.d(b, { I: () => d });
-      let d = (0, c(7925).xl)();
-    }, 7094: (a, b, c) => {
+      a.exports = (init_node_async_hooks(), __toCommonJS(node_async_hooks_exports));
+    }, 587: (a, b) => {
       "use strict";
-      c.d(b, { e: () => d });
-      let d = (0, c(7925).xl)();
-    }, 7879: (a, b, c) => {
+      Symbol.for("react.transitional.element"), Symbol.for("react.portal"), Symbol.for("react.fragment"), Symbol.for("react.strict_mode"), Symbol.for("react.profiler"), Symbol.for("react.forward_ref"), Symbol.for("react.suspense"), Symbol.for("react.memo"), Symbol.for("react.lazy"), Symbol.for("react.activity"), Symbol.for("react.view_transition"), Symbol.iterator;
+      Object.prototype.hasOwnProperty;
+    }, 681: (a, b, c) => {
       "use strict";
-      a.exports = c(1587);
-    }, 7925: (a, b, c) => {
-      "use strict";
-      c.d(b, { xl: () => g });
-      let d = Object.defineProperty(Error("Invariant: AsyncLocalStorage accessed in runtime where it is not available"), "__NEXT_ERROR_CODE", { value: "E504", enumerable: false, configurable: true });
-      class e {
-        disable() {
-          throw d;
-        }
-        getStore() {
-        }
-        run() {
-          throw d;
-        }
-        exit() {
-          throw d;
-        }
-        enterWith() {
-          throw d;
-        }
-        static bind(a2) {
-          return a2;
-        }
+      Object.defineProperty(b, "__esModule", { value: true });
+      var d = { getTestReqInfo: function() {
+        return i;
+      }, withRequest: function() {
+        return h;
+      } };
+      for (var e in d) Object.defineProperty(b, e, { enumerable: true, get: d[e] });
+      let f = new (c(521)).AsyncLocalStorage();
+      function g(a2, b2) {
+        let c2 = b2.header(a2, "next-test-proxy-port");
+        if (!c2) return;
+        let d2 = b2.url(a2);
+        return { url: d2, proxyPort: Number(c2), testData: b2.header(a2, "next-test-data") || "" };
       }
-      let f = "u" > typeof globalThis && globalThis.AsyncLocalStorage;
-      function g() {
-        return f ? new f() : new e();
+      function h(a2, b2, c2) {
+        let d2 = g(a2, b2);
+        return d2 ? f.run(d2, c2) : c2();
       }
-    }, 8850: (a) => {
+      function i(a2, b2) {
+        let c2 = f.getStore();
+        return c2 || (a2 && b2 ? g(a2, b2) : void 0);
+      }
+    }, 808: (a, b, c) => {
+      var d, e = { 226: function(e2, f2) {
+        !function(g2, h) {
+          "use strict";
+          var i = "function", j = "undefined", k = "object", l = "string", m = "major", n = "model", o = "name", p = "type", q = "vendor", r = "version", s = "architecture", t = "console", u = "mobile", v = "tablet", w = "smarttv", x = "wearable", y = "embedded", z = "Amazon", A = "Apple", B = "ASUS", C = "BlackBerry", D = "Browser", E = "Chrome", F = "Firefox", G = "Google", H = "Huawei", I = "Microsoft", J = "Motorola", K = "Opera", L = "Samsung", M = "Sharp", N = "Sony", O = "Xiaomi", P = "Zebra", Q = "Facebook", R = "Chromium OS", S = "Mac OS", T = function(a2, b2) {
+            var c2 = {};
+            for (var d2 in a2) b2[d2] && b2[d2].length % 2 == 0 ? c2[d2] = b2[d2].concat(a2[d2]) : c2[d2] = a2[d2];
+            return c2;
+          }, U = function(a2) {
+            for (var b2 = {}, c2 = 0; c2 < a2.length; c2++) b2[a2[c2].toUpperCase()] = a2[c2];
+            return b2;
+          }, V = function(a2, b2) {
+            return typeof a2 === l && -1 !== W(b2).indexOf(W(a2));
+          }, W = function(a2) {
+            return a2.toLowerCase();
+          }, X = function(a2, b2) {
+            if (typeof a2 === l) return a2 = a2.replace(/^\s\s*/, ""), typeof b2 === j ? a2 : a2.substring(0, 350);
+          }, Y = function(a2, b2) {
+            for (var c2, d2, e3, f3, g3, h2, j2 = 0; j2 < b2.length && !g3; ) {
+              var l2 = b2[j2], m2 = b2[j2 + 1];
+              for (c2 = d2 = 0; c2 < l2.length && !g3 && l2[c2]; ) if (g3 = l2[c2++].exec(a2)) for (e3 = 0; e3 < m2.length; e3++) h2 = g3[++d2], typeof (f3 = m2[e3]) === k && f3.length > 0 ? 2 === f3.length ? typeof f3[1] == i ? this[f3[0]] = f3[1].call(this, h2) : this[f3[0]] = f3[1] : 3 === f3.length ? typeof f3[1] !== i || f3[1].exec && f3[1].test ? this[f3[0]] = h2 ? h2.replace(f3[1], f3[2]) : void 0 : this[f3[0]] = h2 ? f3[1].call(this, h2, f3[2]) : void 0 : 4 === f3.length && (this[f3[0]] = h2 ? f3[3].call(this, h2.replace(f3[1], f3[2])) : void 0) : this[f3] = h2 || void 0;
+              j2 += 2;
+            }
+          }, Z = function(a2, b2) {
+            for (var c2 in b2) if (typeof b2[c2] === k && b2[c2].length > 0) {
+              for (var d2 = 0; d2 < b2[c2].length; d2++) if (V(b2[c2][d2], a2)) return "?" === c2 ? void 0 : c2;
+            } else if (V(b2[c2], a2)) return "?" === c2 ? void 0 : c2;
+            return a2;
+          }, $ = { ME: "4.90", "NT 3.11": "NT3.51", "NT 4.0": "NT4.0", 2e3: "NT 5.0", XP: ["NT 5.1", "NT 5.2"], Vista: "NT 6.0", 7: "NT 6.1", 8: "NT 6.2", 8.1: "NT 6.3", 10: ["NT 6.4", "NT 10.0"], RT: "ARM" }, _ = { browser: [[/\b(?:crmo|crios)\/([\w\.]+)/i], [r, [o, "Chrome"]], [/edg(?:e|ios|a)?\/([\w\.]+)/i], [r, [o, "Edge"]], [/(opera mini)\/([-\w\.]+)/i, /(opera [mobiletab]{3,6})\b.+version\/([-\w\.]+)/i, /(opera)(?:.+version\/|[\/ ]+)([\w\.]+)/i], [o, r], [/opios[\/ ]+([\w\.]+)/i], [r, [o, K + " Mini"]], [/\bopr\/([\w\.]+)/i], [r, [o, K]], [/(kindle)\/([\w\.]+)/i, /(lunascape|maxthon|netfront|jasmine|blazer)[\/ ]?([\w\.]*)/i, /(avant |iemobile|slim)(?:browser)?[\/ ]?([\w\.]*)/i, /(ba?idubrowser)[\/ ]?([\w\.]+)/i, /(?:ms|\()(ie) ([\w\.]+)/i, /(flock|rockmelt|midori|epiphany|silk|skyfire|bolt|iron|vivaldi|iridium|phantomjs|bowser|quark|qupzilla|falkon|rekonq|puffin|brave|whale(?!.+naver)|qqbrowserlite|qq|duckduckgo)\/([-\w\.]+)/i, /(heytap|ovi)browser\/([\d\.]+)/i, /(weibo)__([\d\.]+)/i], [o, r], [/(?:\buc? ?browser|(?:juc.+)ucweb)[\/ ]?([\w\.]+)/i], [r, [o, "UC" + D]], [/microm.+\bqbcore\/([\w\.]+)/i, /\bqbcore\/([\w\.]+).+microm/i], [r, [o, "WeChat(Win) Desktop"]], [/micromessenger\/([\w\.]+)/i], [r, [o, "WeChat"]], [/konqueror\/([\w\.]+)/i], [r, [o, "Konqueror"]], [/trident.+rv[: ]([\w\.]{1,9})\b.+like gecko/i], [r, [o, "IE"]], [/ya(?:search)?browser\/([\w\.]+)/i], [r, [o, "Yandex"]], [/(avast|avg)\/([\w\.]+)/i], [[o, /(.+)/, "$1 Secure " + D], r], [/\bfocus\/([\w\.]+)/i], [r, [o, F + " Focus"]], [/\bopt\/([\w\.]+)/i], [r, [o, K + " Touch"]], [/coc_coc\w+\/([\w\.]+)/i], [r, [o, "Coc Coc"]], [/dolfin\/([\w\.]+)/i], [r, [o, "Dolphin"]], [/coast\/([\w\.]+)/i], [r, [o, K + " Coast"]], [/miuibrowser\/([\w\.]+)/i], [r, [o, "MIUI " + D]], [/fxios\/([-\w\.]+)/i], [r, [o, F]], [/\bqihu|(qi?ho?o?|360)browser/i], [[o, "360 " + D]], [/(oculus|samsung|sailfish|huawei)browser\/([\w\.]+)/i], [[o, /(.+)/, "$1 " + D], r], [/(comodo_dragon)\/([\w\.]+)/i], [[o, /_/g, " "], r], [/(electron)\/([\w\.]+) safari/i, /(tesla)(?: qtcarbrowser|\/(20\d\d\.[-\w\.]+))/i, /m?(qqbrowser|baiduboxapp|2345Explorer)[\/ ]?([\w\.]+)/i], [o, r], [/(metasr)[\/ ]?([\w\.]+)/i, /(lbbrowser)/i, /\[(linkedin)app\]/i], [o], [/((?:fban\/fbios|fb_iab\/fb4a)(?!.+fbav)|;fbav\/([\w\.]+);)/i], [[o, Q], r], [/(kakao(?:talk|story))[\/ ]([\w\.]+)/i, /(naver)\(.*?(\d+\.[\w\.]+).*\)/i, /safari (line)\/([\w\.]+)/i, /\b(line)\/([\w\.]+)\/iab/i, /(chromium|instagram)[\/ ]([-\w\.]+)/i], [o, r], [/\bgsa\/([\w\.]+) .*safari\//i], [r, [o, "GSA"]], [/musical_ly(?:.+app_?version\/|_)([\w\.]+)/i], [r, [o, "TikTok"]], [/headlesschrome(?:\/([\w\.]+)| )/i], [r, [o, E + " Headless"]], [/ wv\).+(chrome)\/([\w\.]+)/i], [[o, E + " WebView"], r], [/droid.+ version\/([\w\.]+)\b.+(?:mobile safari|safari)/i], [r, [o, "Android " + D]], [/(chrome|omniweb|arora|[tizenoka]{5} ?browser)\/v?([\w\.]+)/i], [o, r], [/version\/([\w\.\,]+) .*mobile\/\w+ (safari)/i], [r, [o, "Mobile Safari"]], [/version\/([\w(\.|\,)]+) .*(mobile ?safari|safari)/i], [r, o], [/webkit.+?(mobile ?safari|safari)(\/[\w\.]+)/i], [o, [r, Z, { "1.0": "/8", 1.2: "/1", 1.3: "/3", "2.0": "/412", "2.0.2": "/416", "2.0.3": "/417", "2.0.4": "/419", "?": "/" }]], [/(webkit|khtml)\/([\w\.]+)/i], [o, r], [/(navigator|netscape\d?)\/([-\w\.]+)/i], [[o, "Netscape"], r], [/mobile vr; rv:([\w\.]+)\).+firefox/i], [r, [o, F + " Reality"]], [/ekiohf.+(flow)\/([\w\.]+)/i, /(swiftfox)/i, /(icedragon|iceweasel|camino|chimera|fennec|maemo browser|minimo|conkeror|klar)[\/ ]?([\w\.\+]+)/i, /(seamonkey|k-meleon|icecat|iceape|firebird|phoenix|palemoon|basilisk|waterfox)\/([-\w\.]+)$/i, /(firefox)\/([\w\.]+)/i, /(mozilla)\/([\w\.]+) .+rv\:.+gecko\/\d+/i, /(polaris|lynx|dillo|icab|doris|amaya|w3m|netsurf|sleipnir|obigo|mosaic|(?:go|ice|up)[\. ]?browser)[-\/ ]?v?([\w\.]+)/i, /(links) \(([\w\.]+)/i, /panasonic;(viera)/i], [o, r], [/(cobalt)\/([\w\.]+)/i], [o, [r, /master.|lts./, ""]]], cpu: [[/(?:(amd|x(?:(?:86|64)[-_])?|wow|win)64)[;\)]/i], [[s, "amd64"]], [/(ia32(?=;))/i], [[s, W]], [/((?:i[346]|x)86)[;\)]/i], [[s, "ia32"]], [/\b(aarch64|arm(v?8e?l?|_?64))\b/i], [[s, "arm64"]], [/\b(arm(?:v[67])?ht?n?[fl]p?)\b/i], [[s, "armhf"]], [/windows (ce|mobile); ppc;/i], [[s, "arm"]], [/((?:ppc|powerpc)(?:64)?)(?: mac|;|\))/i], [[s, /ower/, "", W]], [/(sun4\w)[;\)]/i], [[s, "sparc"]], [/((?:avr32|ia64(?=;))|68k(?=\))|\barm(?=v(?:[1-7]|[5-7]1)l?|;|eabi)|(?=atmel )avr|(?:irix|mips|sparc)(?:64)?\b|pa-risc)/i], [[s, W]]], device: [[/\b(sch-i[89]0\d|shw-m380s|sm-[ptx]\w{2,4}|gt-[pn]\d{2,4}|sgh-t8[56]9|nexus 10)/i], [n, [q, L], [p, v]], [/\b((?:s[cgp]h|gt|sm)-\w+|sc[g-]?[\d]+a?|galaxy nexus)/i, /samsung[- ]([-\w]+)/i, /sec-(sgh\w+)/i], [n, [q, L], [p, u]], [/(?:\/|\()(ip(?:hone|od)[\w, ]*)(?:\/|;)/i], [n, [q, A], [p, u]], [/\((ipad);[-\w\),; ]+apple/i, /applecoremedia\/[\w\.]+ \((ipad)/i, /\b(ipad)\d\d?,\d\d?[;\]].+ios/i], [n, [q, A], [p, v]], [/(macintosh);/i], [n, [q, A]], [/\b(sh-?[altvz]?\d\d[a-ekm]?)/i], [n, [q, M], [p, u]], [/\b((?:ag[rs][23]?|bah2?|sht?|btv)-a?[lw]\d{2})\b(?!.+d\/s)/i], [n, [q, H], [p, v]], [/(?:huawei|honor)([-\w ]+)[;\)]/i, /\b(nexus 6p|\w{2,4}e?-[atu]?[ln][\dx][012359c][adn]?)\b(?!.+d\/s)/i], [n, [q, H], [p, u]], [/\b(poco[\w ]+)(?: bui|\))/i, /\b; (\w+) build\/hm\1/i, /\b(hm[-_ ]?note?[_ ]?(?:\d\w)?) bui/i, /\b(redmi[\-_ ]?(?:note|k)?[\w_ ]+)(?: bui|\))/i, /\b(mi[-_ ]?(?:a\d|one|one[_ ]plus|note lte|max|cc)?[_ ]?(?:\d?\w?)[_ ]?(?:plus|se|lite)?)(?: bui|\))/i], [[n, /_/g, " "], [q, O], [p, u]], [/\b(mi[-_ ]?(?:pad)(?:[\w_ ]+))(?: bui|\))/i], [[n, /_/g, " "], [q, O], [p, v]], [/; (\w+) bui.+ oppo/i, /\b(cph[12]\d{3}|p(?:af|c[al]|d\w|e[ar])[mt]\d0|x9007|a101op)\b/i], [n, [q, "OPPO"], [p, u]], [/vivo (\w+)(?: bui|\))/i, /\b(v[12]\d{3}\w?[at])(?: bui|;)/i], [n, [q, "Vivo"], [p, u]], [/\b(rmx[12]\d{3})(?: bui|;|\))/i], [n, [q, "Realme"], [p, u]], [/\b(milestone|droid(?:[2-4x]| (?:bionic|x2|pro|razr))?:?( 4g)?)\b[\w ]+build\//i, /\bmot(?:orola)?[- ](\w*)/i, /((?:moto[\w\(\) ]+|xt\d{3,4}|nexus 6)(?= bui|\)))/i], [n, [q, J], [p, u]], [/\b(mz60\d|xoom[2 ]{0,2}) build\//i], [n, [q, J], [p, v]], [/((?=lg)?[vl]k\-?\d{3}) bui| 3\.[-\w; ]{10}lg?-([06cv9]{3,4})/i], [n, [q, "LG"], [p, v]], [/(lm(?:-?f100[nv]?|-[\w\.]+)(?= bui|\))|nexus [45])/i, /\blg[-e;\/ ]+((?!browser|netcast|android tv)\w+)/i, /\blg-?([\d\w]+) bui/i], [n, [q, "LG"], [p, u]], [/(ideatab[-\w ]+)/i, /lenovo ?(s[56]000[-\w]+|tab(?:[\w ]+)|yt[-\d\w]{6}|tb[-\d\w]{6})/i], [n, [q, "Lenovo"], [p, v]], [/(?:maemo|nokia).*(n900|lumia \d+)/i, /nokia[-_ ]?([-\w\.]*)/i], [[n, /_/g, " "], [q, "Nokia"], [p, u]], [/(pixel c)\b/i], [n, [q, G], [p, v]], [/droid.+; (pixel[\daxl ]{0,6})(?: bui|\))/i], [n, [q, G], [p, u]], [/droid.+ (a?\d[0-2]{2}so|[c-g]\d{4}|so[-gl]\w+|xq-a\w[4-7][12])(?= bui|\).+chrome\/(?![1-6]{0,1}\d\.))/i], [n, [q, N], [p, u]], [/sony tablet [ps]/i, /\b(?:sony)?sgp\w+(?: bui|\))/i], [[n, "Xperia Tablet"], [q, N], [p, v]], [/ (kb2005|in20[12]5|be20[12][59])\b/i, /(?:one)?(?:plus)? (a\d0\d\d)(?: b|\))/i], [n, [q, "OnePlus"], [p, u]], [/(alexa)webm/i, /(kf[a-z]{2}wi|aeo[c-r]{2})( bui|\))/i, /(kf[a-z]+)( bui|\)).+silk\//i], [n, [q, z], [p, v]], [/((?:sd|kf)[0349hijorstuw]+)( bui|\)).+silk\//i], [[n, /(.+)/g, "Fire Phone $1"], [q, z], [p, u]], [/(playbook);[-\w\),; ]+(rim)/i], [n, q, [p, v]], [/\b((?:bb[a-f]|st[hv])100-\d)/i, /\(bb10; (\w+)/i], [n, [q, C], [p, u]], [/(?:\b|asus_)(transfo[prime ]{4,10} \w+|eeepc|slider \w+|nexus 7|padfone|p00[cj])/i], [n, [q, B], [p, v]], [/ (z[bes]6[027][012][km][ls]|zenfone \d\w?)\b/i], [n, [q, B], [p, u]], [/(nexus 9)/i], [n, [q, "HTC"], [p, v]], [/(htc)[-;_ ]{1,2}([\w ]+(?=\)| bui)|\w+)/i, /(zte)[- ]([\w ]+?)(?: bui|\/|\))/i, /(alcatel|geeksphone|nexian|panasonic(?!(?:;|\.))|sony(?!-bra))[-_ ]?([-\w]*)/i], [q, [n, /_/g, " "], [p, u]], [/droid.+; ([ab][1-7]-?[0178a]\d\d?)/i], [n, [q, "Acer"], [p, v]], [/droid.+; (m[1-5] note) bui/i, /\bmz-([-\w]{2,})/i], [n, [q, "Meizu"], [p, u]], [/(blackberry|benq|palm(?=\-)|sonyericsson|acer|asus|dell|meizu|motorola|polytron)[-_ ]?([-\w]*)/i, /(hp) ([\w ]+\w)/i, /(asus)-?(\w+)/i, /(microsoft); (lumia[\w ]+)/i, /(lenovo)[-_ ]?([-\w]+)/i, /(jolla)/i, /(oppo) ?([\w ]+) bui/i], [q, n, [p, u]], [/(kobo)\s(ereader|touch)/i, /(archos) (gamepad2?)/i, /(hp).+(touchpad(?!.+tablet)|tablet)/i, /(kindle)\/([\w\.]+)/i, /(nook)[\w ]+build\/(\w+)/i, /(dell) (strea[kpr\d ]*[\dko])/i, /(le[- ]+pan)[- ]+(\w{1,9}) bui/i, /(trinity)[- ]*(t\d{3}) bui/i, /(gigaset)[- ]+(q\w{1,9}) bui/i, /(vodafone) ([\w ]+)(?:\)| bui)/i], [q, n, [p, v]], [/(surface duo)/i], [n, [q, I], [p, v]], [/droid [\d\.]+; (fp\du?)(?: b|\))/i], [n, [q, "Fairphone"], [p, u]], [/(u304aa)/i], [n, [q, "AT&T"], [p, u]], [/\bsie-(\w*)/i], [n, [q, "Siemens"], [p, u]], [/\b(rct\w+) b/i], [n, [q, "RCA"], [p, v]], [/\b(venue[\d ]{2,7}) b/i], [n, [q, "Dell"], [p, v]], [/\b(q(?:mv|ta)\w+) b/i], [n, [q, "Verizon"], [p, v]], [/\b(?:barnes[& ]+noble |bn[rt])([\w\+ ]*) b/i], [n, [q, "Barnes & Noble"], [p, v]], [/\b(tm\d{3}\w+) b/i], [n, [q, "NuVision"], [p, v]], [/\b(k88) b/i], [n, [q, "ZTE"], [p, v]], [/\b(nx\d{3}j) b/i], [n, [q, "ZTE"], [p, u]], [/\b(gen\d{3}) b.+49h/i], [n, [q, "Swiss"], [p, u]], [/\b(zur\d{3}) b/i], [n, [q, "Swiss"], [p, v]], [/\b((zeki)?tb.*\b) b/i], [n, [q, "Zeki"], [p, v]], [/\b([yr]\d{2}) b/i, /\b(dragon[- ]+touch |dt)(\w{5}) b/i], [[q, "Dragon Touch"], n, [p, v]], [/\b(ns-?\w{0,9}) b/i], [n, [q, "Insignia"], [p, v]], [/\b((nxa|next)-?\w{0,9}) b/i], [n, [q, "NextBook"], [p, v]], [/\b(xtreme\_)?(v(1[045]|2[015]|[3469]0|7[05])) b/i], [[q, "Voice"], n, [p, u]], [/\b(lvtel\-)?(v1[12]) b/i], [[q, "LvTel"], n, [p, u]], [/\b(ph-1) /i], [n, [q, "Essential"], [p, u]], [/\b(v(100md|700na|7011|917g).*\b) b/i], [n, [q, "Envizen"], [p, v]], [/\b(trio[-\w\. ]+) b/i], [n, [q, "MachSpeed"], [p, v]], [/\btu_(1491) b/i], [n, [q, "Rotor"], [p, v]], [/(shield[\w ]+) b/i], [n, [q, "Nvidia"], [p, v]], [/(sprint) (\w+)/i], [q, n, [p, u]], [/(kin\.[onetw]{3})/i], [[n, /\./g, " "], [q, I], [p, u]], [/droid.+; (cc6666?|et5[16]|mc[239][23]x?|vc8[03]x?)\)/i], [n, [q, P], [p, v]], [/droid.+; (ec30|ps20|tc[2-8]\d[kx])\)/i], [n, [q, P], [p, u]], [/smart-tv.+(samsung)/i], [q, [p, w]], [/hbbtv.+maple;(\d+)/i], [[n, /^/, "SmartTV"], [q, L], [p, w]], [/(nux; netcast.+smarttv|lg (netcast\.tv-201\d|android tv))/i], [[q, "LG"], [p, w]], [/(apple) ?tv/i], [q, [n, A + " TV"], [p, w]], [/crkey/i], [[n, E + "cast"], [q, G], [p, w]], [/droid.+aft(\w)( bui|\))/i], [n, [q, z], [p, w]], [/\(dtv[\);].+(aquos)/i, /(aquos-tv[\w ]+)\)/i], [n, [q, M], [p, w]], [/(bravia[\w ]+)( bui|\))/i], [n, [q, N], [p, w]], [/(mitv-\w{5}) bui/i], [n, [q, O], [p, w]], [/Hbbtv.*(technisat) (.*);/i], [q, n, [p, w]], [/\b(roku)[\dx]*[\)\/]((?:dvp-)?[\d\.]*)/i, /hbbtv\/\d+\.\d+\.\d+ +\([\w\+ ]*; *([\w\d][^;]*);([^;]*)/i], [[q, X], [n, X], [p, w]], [/\b(android tv|smart[- ]?tv|opera tv|tv; rv:)\b/i], [[p, w]], [/(ouya)/i, /(nintendo) ([wids3utch]+)/i], [q, n, [p, t]], [/droid.+; (shield) bui/i], [n, [q, "Nvidia"], [p, t]], [/(playstation [345portablevi]+)/i], [n, [q, N], [p, t]], [/\b(xbox(?: one)?(?!; xbox))[\); ]/i], [n, [q, I], [p, t]], [/((pebble))app/i], [q, n, [p, x]], [/(watch)(?: ?os[,\/]|\d,\d\/)[\d\.]+/i], [n, [q, A], [p, x]], [/droid.+; (glass) \d/i], [n, [q, G], [p, x]], [/droid.+; (wt63?0{2,3})\)/i], [n, [q, P], [p, x]], [/(quest( 2| pro)?)/i], [n, [q, Q], [p, x]], [/(tesla)(?: qtcarbrowser|\/[-\w\.]+)/i], [q, [p, y]], [/(aeobc)\b/i], [n, [q, z], [p, y]], [/droid .+?; ([^;]+?)(?: bui|\) applew).+? mobile safari/i], [n, [p, u]], [/droid .+?; ([^;]+?)(?: bui|\) applew).+?(?! mobile) safari/i], [n, [p, v]], [/\b((tablet|tab)[;\/]|focus\/\d(?!.+mobile))/i], [[p, v]], [/(phone|mobile(?:[;\/]| [ \w\/\.]*safari)|pda(?=.+windows ce))/i], [[p, u]], [/(android[-\w\. ]{0,9});.+buil/i], [n, [q, "Generic"]]], engine: [[/windows.+ edge\/([\w\.]+)/i], [r, [o, "EdgeHTML"]], [/webkit\/537\.36.+chrome\/(?!27)([\w\.]+)/i], [r, [o, "Blink"]], [/(presto)\/([\w\.]+)/i, /(webkit|trident|netfront|netsurf|amaya|lynx|w3m|goanna)\/([\w\.]+)/i, /ekioh(flow)\/([\w\.]+)/i, /(khtml|tasman|links)[\/ ]\(?([\w\.]+)/i, /(icab)[\/ ]([23]\.[\d\.]+)/i, /\b(libweb)/i], [o, r], [/rv\:([\w\.]{1,9})\b.+(gecko)/i], [r, o]], os: [[/microsoft (windows) (vista|xp)/i], [o, r], [/(windows) nt 6\.2; (arm)/i, /(windows (?:phone(?: os)?|mobile))[\/ ]?([\d\.\w ]*)/i, /(windows)[\/ ]?([ntce\d\. ]+\w)(?!.+xbox)/i], [o, [r, Z, $]], [/(win(?=3|9|n)|win 9x )([nt\d\.]+)/i], [[o, "Windows"], [r, Z, $]], [/ip[honead]{2,4}\b(?:.*os ([\w]+) like mac|; opera)/i, /ios;fbsv\/([\d\.]+)/i, /cfnetwork\/.+darwin/i], [[r, /_/g, "."], [o, "iOS"]], [/(mac os x) ?([\w\. ]*)/i, /(macintosh|mac_powerpc\b)(?!.+haiku)/i], [[o, S], [r, /_/g, "."]], [/droid ([\w\.]+)\b.+(android[- ]x86|harmonyos)/i], [r, o], [/(android|webos|qnx|bada|rim tablet os|maemo|meego|sailfish)[-\/ ]?([\w\.]*)/i, /(blackberry)\w*\/([\w\.]*)/i, /(tizen|kaios)[\/ ]([\w\.]+)/i, /\((series40);/i], [o, r], [/\(bb(10);/i], [r, [o, C]], [/(?:symbian ?os|symbos|s60(?=;)|series60)[-\/ ]?([\w\.]*)/i], [r, [o, "Symbian"]], [/mozilla\/[\d\.]+ \((?:mobile|tablet|tv|mobile; [\w ]+); rv:.+ gecko\/([\w\.]+)/i], [r, [o, F + " OS"]], [/web0s;.+rt(tv)/i, /\b(?:hp)?wos(?:browser)?\/([\w\.]+)/i], [r, [o, "webOS"]], [/watch(?: ?os[,\/]|\d,\d\/)([\d\.]+)/i], [r, [o, "watchOS"]], [/crkey\/([\d\.]+)/i], [r, [o, E + "cast"]], [/(cros) [\w]+(?:\)| ([\w\.]+)\b)/i], [[o, R], r], [/panasonic;(viera)/i, /(netrange)mmh/i, /(nettv)\/(\d+\.[\w\.]+)/i, /(nintendo|playstation) ([wids345portablevuch]+)/i, /(xbox); +xbox ([^\);]+)/i, /\b(joli|palm)\b ?(?:os)?\/?([\w\.]*)/i, /(mint)[\/\(\) ]?(\w*)/i, /(mageia|vectorlinux)[; ]/i, /([kxln]?ubuntu|debian|suse|opensuse|gentoo|arch(?= linux)|slackware|fedora|mandriva|centos|pclinuxos|red ?hat|zenwalk|linpus|raspbian|plan 9|minix|risc os|contiki|deepin|manjaro|elementary os|sabayon|linspire)(?: gnu\/linux)?(?: enterprise)?(?:[- ]linux)?(?:-gnu)?[-\/ ]?(?!chrom|package)([-\w\.]*)/i, /(hurd|linux) ?([\w\.]*)/i, /(gnu) ?([\w\.]*)/i, /\b([-frentopcghs]{0,5}bsd|dragonfly)[\/ ]?(?!amd|[ix346]{1,2}86)([\w\.]*)/i, /(haiku) (\w+)/i], [o, r], [/(sunos) ?([\w\.\d]*)/i], [[o, "Solaris"], r], [/((?:open)?solaris)[-\/ ]?([\w\.]*)/i, /(aix) ((\d)(?=\.|\)| )[\w\.])*/i, /\b(beos|os\/2|amigaos|morphos|openvms|fuchsia|hp-ux|serenityos)/i, /(unix) ?([\w\.]*)/i], [o, r]] }, aa = function(a2, b2) {
+            if (typeof a2 === k && (b2 = a2, a2 = void 0), !(this instanceof aa)) return new aa(a2, b2).getResult();
+            var c2 = typeof g2 !== j && g2.navigator ? g2.navigator : void 0, d2 = a2 || (c2 && c2.userAgent ? c2.userAgent : ""), e3 = c2 && c2.userAgentData ? c2.userAgentData : void 0, f3 = b2 ? T(_, b2) : _, h2 = c2 && c2.userAgent == d2;
+            return this.getBrowser = function() {
+              var a3, b3 = {};
+              return b3[o] = void 0, b3[r] = void 0, Y.call(b3, d2, f3.browser), b3[m] = typeof (a3 = b3[r]) === l ? a3.replace(/[^\d\.]/g, "").split(".")[0] : void 0, h2 && c2 && c2.brave && typeof c2.brave.isBrave == i && (b3[o] = "Brave"), b3;
+            }, this.getCPU = function() {
+              var a3 = {};
+              return a3[s] = void 0, Y.call(a3, d2, f3.cpu), a3;
+            }, this.getDevice = function() {
+              var a3 = {};
+              return a3[q] = void 0, a3[n] = void 0, a3[p] = void 0, Y.call(a3, d2, f3.device), h2 && !a3[p] && e3 && e3.mobile && (a3[p] = u), h2 && "Macintosh" == a3[n] && c2 && typeof c2.standalone !== j && c2.maxTouchPoints && c2.maxTouchPoints > 2 && (a3[n] = "iPad", a3[p] = v), a3;
+            }, this.getEngine = function() {
+              var a3 = {};
+              return a3[o] = void 0, a3[r] = void 0, Y.call(a3, d2, f3.engine), a3;
+            }, this.getOS = function() {
+              var a3 = {};
+              return a3[o] = void 0, a3[r] = void 0, Y.call(a3, d2, f3.os), h2 && !a3[o] && e3 && "Unknown" != e3.platform && (a3[o] = e3.platform.replace(/chrome os/i, R).replace(/macos/i, S)), a3;
+            }, this.getResult = function() {
+              return { ua: this.getUA(), browser: this.getBrowser(), engine: this.getEngine(), os: this.getOS(), device: this.getDevice(), cpu: this.getCPU() };
+            }, this.getUA = function() {
+              return d2;
+            }, this.setUA = function(a3) {
+              return d2 = typeof a3 === l && a3.length > 350 ? X(a3, 350) : a3, this;
+            }, this.setUA(d2), this;
+          };
+          aa.VERSION = "1.0.35", aa.BROWSER = U([o, r, m]), aa.CPU = U([s]), aa.DEVICE = U([n, q, p, t, u, w, v, x, y]), aa.ENGINE = aa.OS = U([o, r]), typeof f2 !== j ? (e2.exports && (f2 = e2.exports = aa), f2.UAParser = aa) : c.amdO ? void 0 === (d = function() {
+            return aa;
+          }.call(b, c, b, a)) || (a.exports = d) : typeof g2 !== j && (g2.UAParser = aa);
+          var ab = typeof g2 !== j && (g2.jQuery || g2.Zepto);
+          if (ab && !ab.ua) {
+            var ac = new aa();
+            ab.ua = ac.getResult(), ab.ua.get = function() {
+              return ac.getUA();
+            }, ab.ua.set = function(a2) {
+              ac.setUA(a2);
+              var b2 = ac.getResult();
+              for (var c2 in b2) ab.ua[c2] = b2[c2];
+            };
+          }
+        }("object" == typeof window ? window : this);
+      } }, f = {};
+      function g(a2) {
+        var b2 = f[a2];
+        if (void 0 !== b2) return b2.exports;
+        var c2 = f[a2] = { exports: {} }, d2 = true;
+        try {
+          e[a2].call(c2.exports, c2, c2.exports, g), d2 = false;
+        } finally {
+          d2 && delete f[a2];
+        }
+        return c2.exports;
+      }
+      g.ab = "//", a.exports = g(226);
+    }, 850: (a) => {
       (() => {
         "use strict";
         var b = { 993: (a2) => {
@@ -4060,8 +4032,11 @@ Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime`;
           e.default = h;
         })(), a.exports = e;
       })();
+    }, 879: (a, b, c) => {
+      "use strict";
+      a.exports = c(587);
     } }, (a) => {
-      var b = a(a.s = 372);
+      var b = a(a.s = 57);
       (_ENTRIES = "u" < typeof _ENTRIES ? {} : _ENTRIES)["middleware_src/middleware"] = b;
     }]);
   }
@@ -4250,14 +4225,14 @@ globalThis.__dirname ??= "";
 var NEXT_DIR = path.join(__dirname, ".next");
 var OPEN_NEXT_DIR = path.join(__dirname, ".open-next");
 debug({ NEXT_DIR, OPEN_NEXT_DIR });
-var NextConfig = { "env": {}, "webpack": null, "typescript": { "ignoreBuildErrors": false }, "typedRoutes": false, "distDir": ".next", "cleanDistDir": true, "assetPrefix": "", "cacheMaxMemorySize": 52428800, "configOrigin": "next.config.mjs", "useFileSystemPublicRoutes": true, "generateEtags": true, "pageExtensions": ["tsx", "ts", "jsx", "js"], "poweredByHeader": true, "compress": true, "images": { "deviceSizes": [640, 750, 828, 1080, 1200, 1920, 2048, 3840], "imageSizes": [32, 48, 64, 96, 128, 256, 384], "path": "/_next/image", "loader": "default", "loaderFile": "", "domains": [], "disableStaticImages": false, "minimumCacheTTL": 14400, "formats": ["image/webp"], "maximumRedirects": 3, "maximumResponseBody": 5e7, "dangerouslyAllowLocalIP": false, "dangerouslyAllowSVG": false, "contentSecurityPolicy": "script-src 'none'; frame-src 'none'; sandbox;", "contentDispositionType": "attachment", "localPatterns": [{ "pathname": "**", "search": "" }], "remotePatterns": [{ "protocol": "https", "hostname": "images.unsplash.com", "pathname": "/**" }, { "protocol": "https", "hostname": "plus.unsplash.com", "pathname": "/**" }, { "protocol": "https", "hostname": "barahonda.com", "pathname": "/**" }], "qualities": [75], "unoptimized": false }, "devIndicators": { "position": "bottom-left" }, "onDemandEntries": { "maxInactiveAge": 6e4, "pagesBufferLength": 5 }, "basePath": "", "sassOptions": {}, "trailingSlash": false, "i18n": null, "productionBrowserSourceMaps": false, "excludeDefaultMomentLocales": true, "reactProductionProfiling": false, "reactStrictMode": null, "reactMaxHeadersLength": 6e3, "httpAgentOptions": { "keepAlive": true }, "logging": {}, "compiler": {}, "expireTime": 31536e3, "staticPageGenerationTimeout": 60, "output": "standalone", "modularizeImports": { "@mui/icons-material": { "transform": "@mui/icons-material/{{member}}" }, "lodash": { "transform": "lodash/{{member}}" } }, "outputFileTracingRoot": "C:\\Users\\User\\Documents\\1PROJEKTY\\Il Buon Caffe", "cacheComponents": false, "cacheLife": { "default": { "stale": 300, "revalidate": 900, "expire": 4294967294 }, "seconds": { "stale": 30, "revalidate": 1, "expire": 60 }, "minutes": { "stale": 300, "revalidate": 60, "expire": 3600 }, "hours": { "stale": 300, "revalidate": 3600, "expire": 86400 }, "days": { "stale": 300, "revalidate": 86400, "expire": 604800 }, "weeks": { "stale": 300, "revalidate": 604800, "expire": 2592e3 }, "max": { "stale": 300, "revalidate": 2592e3, "expire": 31536e3 } }, "cacheHandlers": {}, "experimental": { "useSkewCookie": false, "cssChunking": true, "multiZoneDraftMode": false, "appNavFailHandling": false, "prerenderEarlyExit": true, "serverMinification": true, "linkNoTouchStart": false, "caseSensitiveRoutes": false, "dynamicOnHover": false, "preloadEntriesOnStart": true, "clientRouterFilter": true, "clientRouterFilterRedirects": false, "fetchCacheKeyPrefix": "", "proxyPrefetch": "flexible", "optimisticClientCache": true, "manualClientBasePath": false, "cpus": 19, "memoryBasedWorkersCount": false, "imgOptConcurrency": null, "imgOptTimeoutInSeconds": 7, "imgOptMaxInputPixels": 268402689, "imgOptSequentialRead": null, "imgOptSkipMetadata": null, "isrFlushToDisk": true, "workerThreads": false, "optimizeCss": false, "nextScriptWorkers": false, "scrollRestoration": false, "externalDir": false, "disableOptimizedLoading": false, "gzipSize": true, "craCompat": false, "esmExternals": true, "fullySpecified": false, "swcTraceProfiling": false, "forceSwcTransforms": false, "largePageDataBytes": 128e3, "typedEnv": false, "parallelServerCompiles": false, "parallelServerBuildTraces": false, "ppr": false, "authInterrupts": false, "webpackMemoryOptimizations": false, "optimizeServerReact": true, "viewTransition": false, "removeUncaughtErrorAndRejectionListeners": false, "validateRSCRequestHeaders": false, "staleTimes": { "dynamic": 0, "static": 300 }, "reactDebugChannel": false, "serverComponentsHmrCache": true, "staticGenerationMaxConcurrency": 8, "staticGenerationMinPagesPerWorker": 25, "transitionIndicator": false, "inlineCss": false, "useCache": false, "globalNotFound": false, "browserDebugInfoInTerminal": false, "lockDistDir": true, "isolatedDevBuild": true, "proxyClientMaxBodySize": 10485760, "hideLogsAfterAbort": false, "mcpServer": true, "turbopackFileSystemCacheForDev": true, "turbopackFileSystemCacheForBuild": false, "turbopackInferModuleSideEffects": false, "optimizePackageImports": ["lucide-react", "date-fns", "lodash-es", "ramda", "antd", "react-bootstrap", "ahooks", "@ant-design/icons", "@headlessui/react", "@headlessui-float/react", "@heroicons/react/20/solid", "@heroicons/react/24/solid", "@heroicons/react/24/outline", "@visx/visx", "@tremor/react", "rxjs", "@mui/material", "@mui/icons-material", "recharts", "react-use", "effect", "@effect/schema", "@effect/platform", "@effect/platform-node", "@effect/platform-browser", "@effect/platform-bun", "@effect/sql", "@effect/sql-mssql", "@effect/sql-mysql2", "@effect/sql-pg", "@effect/sql-sqlite-node", "@effect/sql-sqlite-bun", "@effect/sql-sqlite-wasm", "@effect/sql-sqlite-react-native", "@effect/rpc", "@effect/rpc-http", "@effect/typeclass", "@effect/experimental", "@effect/opentelemetry", "@material-ui/core", "@material-ui/icons", "@tabler/icons-react", "mui-core", "react-icons/ai", "react-icons/bi", "react-icons/bs", "react-icons/cg", "react-icons/ci", "react-icons/di", "react-icons/fa", "react-icons/fa6", "react-icons/fc", "react-icons/fi", "react-icons/gi", "react-icons/go", "react-icons/gr", "react-icons/hi", "react-icons/hi2", "react-icons/im", "react-icons/io", "react-icons/io5", "react-icons/lia", "react-icons/lib", "react-icons/lu", "react-icons/md", "react-icons/pi", "react-icons/ri", "react-icons/rx", "react-icons/si", "react-icons/sl", "react-icons/tb", "react-icons/tfi", "react-icons/ti", "react-icons/vsc", "react-icons/wi"], "trustHostHeader": false, "isExperimentalCompile": false }, "htmlLimitedBots": "[\\w-]+-Google|Google-[\\w-]+|Chrome-Lighthouse|Slurp|DuckDuckBot|baiduspider|yandex|sogou|bitlybot|tumblr|vkShare|quora link preview|redditbot|ia_archiver|Bingbot|BingPreview|applebot|facebookexternalhit|facebookcatalog|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|SkypeUriPreview|Yeti|googleweblight", "bundlePagesRouterDependencies": false, "configFileName": "next.config.mjs", "turbopack": { "root": "C:\\Users\\User\\Documents\\1PROJEKTY\\Il Buon Caffe" }, "distDirRoot": ".next", "_originalRewrites": { "beforeFiles": [], "afterFiles": [{ "source": "/api/auth/:path*", "destination": "http://localhost:8788/api/auth/:path*" }, { "source": "/api/products/:path*", "destination": "http://localhost:8788/api/products/:path*" }, { "source": "/api/categories/:path*", "destination": "http://localhost:8788/api/categories/:path*" }, { "source": "/api/orders/:path*", "destination": "http://localhost:8788/api/orders/:path*" }, { "source": "/api/user/:path*", "destination": "http://localhost:8788/api/user/:path*" }, { "source": "/api/legal/:path*", "destination": "http://localhost:8788/api/legal/:path*" }, { "source": "/api/payments/:path*", "destination": "http://localhost:8788/api/payments/:path*" }, { "source": "/api/webhooks/:path*", "destination": "http://localhost:8788/api/webhooks/:path*" }, { "source": "/api/uploads/:path*", "destination": "http://localhost:8788/api/uploads/:path*" }, { "source": "/health", "destination": "http://localhost:8788/health" }], "fallback": [] } };
-var BuildId = "x1emX-YfRNvzESOXzxkb0";
-var RoutesManifest = { "basePath": "", "rewrites": { "beforeFiles": [], "afterFiles": [{ "source": "/api/auth/:path*", "destination": "http://localhost:8788/api/auth/:path*", "regex": "^/api/auth(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$" }, { "source": "/api/products/:path*", "destination": "http://localhost:8788/api/products/:path*", "regex": "^/api/products(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$" }, { "source": "/api/categories/:path*", "destination": "http://localhost:8788/api/categories/:path*", "regex": "^/api/categories(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$" }, { "source": "/api/orders/:path*", "destination": "http://localhost:8788/api/orders/:path*", "regex": "^/api/orders(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$" }, { "source": "/api/user/:path*", "destination": "http://localhost:8788/api/user/:path*", "regex": "^/api/user(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$" }, { "source": "/api/legal/:path*", "destination": "http://localhost:8788/api/legal/:path*", "regex": "^/api/legal(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$" }, { "source": "/api/payments/:path*", "destination": "http://localhost:8788/api/payments/:path*", "regex": "^/api/payments(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$" }, { "source": "/api/webhooks/:path*", "destination": "http://localhost:8788/api/webhooks/:path*", "regex": "^/api/webhooks(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$" }, { "source": "/api/uploads/:path*", "destination": "http://localhost:8788/api/uploads/:path*", "regex": "^/api/uploads(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$" }, { "source": "/health", "destination": "http://localhost:8788/health", "regex": "^/health(?:/)?$" }], "fallback": [] }, "redirects": [{ "source": "/:path+/", "destination": "/:path+", "internal": true, "priority": true, "statusCode": 308, "regex": "^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))/$" }], "routes": { "static": [{ "page": "/", "regex": "^/(?:/)?$", "routeKeys": {}, "namedRegex": "^/(?:/)?$" }, { "page": "/_global-error", "regex": "^/_global\\-error(?:/)?$", "routeKeys": {}, "namedRegex": "^/_global\\-error(?:/)?$" }, { "page": "/_not-found", "regex": "^/_not\\-found(?:/)?$", "routeKeys": {}, "namedRegex": "^/_not\\-found(?:/)?$" }, { "page": "/account", "regex": "^/account(?:/)?$", "routeKeys": {}, "namedRegex": "^/account(?:/)?$" }, { "page": "/account/data-export", "regex": "^/account/data\\-export(?:/)?$", "routeKeys": {}, "namedRegex": "^/account/data\\-export(?:/)?$" }, { "page": "/admin", "regex": "^/admin(?:/)?$", "routeKeys": {}, "namedRegex": "^/admin(?:/)?$" }, { "page": "/admin/allegro", "regex": "^/admin/allegro(?:/)?$", "routeKeys": {}, "namedRegex": "^/admin/allegro(?:/)?$" }, { "page": "/admin/audit", "regex": "^/admin/audit(?:/)?$", "routeKeys": {}, "namedRegex": "^/admin/audit(?:/)?$" }, { "page": "/admin/content", "regex": "^/admin/content(?:/)?$", "routeKeys": {}, "namedRegex": "^/admin/content(?:/)?$" }, { "page": "/admin/customers", "regex": "^/admin/customers(?:/)?$", "routeKeys": {}, "namedRegex": "^/admin/customers(?:/)?$" }, { "page": "/admin/finance", "regex": "^/admin/finance(?:/)?$", "routeKeys": {}, "namedRegex": "^/admin/finance(?:/)?$" }, { "page": "/admin/login", "regex": "^/admin/login(?:/)?$", "routeKeys": {}, "namedRegex": "^/admin/login(?:/)?$" }, { "page": "/admin/marketing/promotions", "regex": "^/admin/marketing/promotions(?:/)?$", "routeKeys": {}, "namedRegex": "^/admin/marketing/promotions(?:/)?$" }, { "page": "/admin/orders", "regex": "^/admin/orders(?:/)?$", "routeKeys": {}, "namedRegex": "^/admin/orders(?:/)?$" }, { "page": "/admin/products", "regex": "^/admin/products(?:/)?$", "routeKeys": {}, "namedRegex": "^/admin/products(?:/)?$" }, { "page": "/admin/settings", "regex": "^/admin/settings(?:/)?$", "routeKeys": {}, "namedRegex": "^/admin/settings(?:/)?$" }, { "page": "/api/admin/logout", "regex": "^/api/admin/logout(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/logout(?:/)?$" }, { "page": "/auth", "regex": "^/auth(?:/)?$", "routeKeys": {}, "namedRegex": "^/auth(?:/)?$" }, { "page": "/checkout", "regex": "^/checkout(?:/)?$", "routeKeys": {}, "namedRegex": "^/checkout(?:/)?$" }, { "page": "/checkout/payment", "regex": "^/checkout/payment(?:/)?$", "routeKeys": {}, "namedRegex": "^/checkout/payment(?:/)?$" }, { "page": "/encyklopedia", "regex": "^/encyklopedia(?:/)?$", "routeKeys": {}, "namedRegex": "^/encyklopedia(?:/)?$" }, { "page": "/encyklopedia/wino", "regex": "^/encyklopedia/wino(?:/)?$", "routeKeys": {}, "namedRegex": "^/encyklopedia/wino(?:/)?$" }, { "page": "/encyklopedia/wino/regiony", "regex": "^/encyklopedia/wino/regiony(?:/)?$", "routeKeys": {}, "namedRegex": "^/encyklopedia/wino/regiony(?:/)?$" }, { "page": "/encyklopedia/wino/szczepy", "regex": "^/encyklopedia/wino/szczepy(?:/)?$", "routeKeys": {}, "namedRegex": "^/encyklopedia/wino/szczepy(?:/)?$" }, { "page": "/kawiarnia", "regex": "^/kawiarnia(?:/)?$", "routeKeys": {}, "namedRegex": "^/kawiarnia(?:/)?$" }, { "page": "/order/confirmation", "regex": "^/order/confirmation(?:/)?$", "routeKeys": {}, "namedRegex": "^/order/confirmation(?:/)?$" }, { "page": "/sklep", "regex": "^/sklep(?:/)?$", "routeKeys": {}, "namedRegex": "^/sklep(?:/)?$" }], "dynamic": [{ "page": "/account/orders/[id]", "regex": "^/account/orders/([^/]+?)(?:/)?$", "routeKeys": { "nxtPid": "nxtPid" }, "namedRegex": "^/account/orders/(?<nxtPid>[^/]+?)(?:/)?$" }, { "page": "/admin/orders/[id]", "regex": "^/admin/orders/([^/]+?)(?:/)?$", "routeKeys": { "nxtPid": "nxtPid" }, "namedRegex": "^/admin/orders/(?<nxtPid>[^/]+?)(?:/)?$" }, { "page": "/admin/products/[sku]", "regex": "^/admin/products/([^/]+?)(?:/)?$", "routeKeys": { "nxtPsku": "nxtPsku" }, "namedRegex": "^/admin/products/(?<nxtPsku>[^/]+?)(?:/)?$" }, { "page": "/admin/products/[sku]/wine", "regex": "^/admin/products/([^/]+?)/wine(?:/)?$", "routeKeys": { "nxtPsku": "nxtPsku" }, "namedRegex": "^/admin/products/(?<nxtPsku>[^/]+?)/wine(?:/)?$" }, { "page": "/api/admin/allegro/[...slug]", "regex": "^/api/admin/allegro/(.+?)(?:/)?$", "routeKeys": { "nxtPslug": "nxtPslug" }, "namedRegex": "^/api/admin/allegro/(?<nxtPslug>.+?)(?:/)?$" }, { "page": "/api/admin/[...slug]", "regex": "^/api/admin/(.+?)(?:/)?$", "routeKeys": { "nxtPslug": "nxtPslug" }, "namedRegex": "^/api/admin/(?<nxtPslug>.+?)(?:/)?$" }, { "page": "/encyklopedia/wino/regiony/[slug]", "regex": "^/encyklopedia/wino/regiony/([^/]+?)(?:/)?$", "routeKeys": { "nxtPslug": "nxtPslug" }, "namedRegex": "^/encyklopedia/wino/regiony/(?<nxtPslug>[^/]+?)(?:/)?$" }, { "page": "/encyklopedia/wino/szczepy/[slug]", "regex": "^/encyklopedia/wino/szczepy/([^/]+?)(?:/)?$", "routeKeys": { "nxtPslug": "nxtPslug" }, "namedRegex": "^/encyklopedia/wino/szczepy/(?<nxtPslug>[^/]+?)(?:/)?$" }, { "page": "/encyklopedia/wino/[section]", "regex": "^/encyklopedia/wino/([^/]+?)(?:/)?$", "routeKeys": { "nxtPsection": "nxtPsection" }, "namedRegex": "^/encyklopedia/wino/(?<nxtPsection>[^/]+?)(?:/)?$" }, { "page": "/encyklopedia/[category]", "regex": "^/encyklopedia/([^/]+?)(?:/)?$", "routeKeys": { "nxtPcategory": "nxtPcategory" }, "namedRegex": "^/encyklopedia/(?<nxtPcategory>[^/]+?)(?:/)?$" }, { "page": "/sklep/[category]", "regex": "^/sklep/([^/]+?)(?:/)?$", "routeKeys": { "nxtPcategory": "nxtPcategory" }, "namedRegex": "^/sklep/(?<nxtPcategory>[^/]+?)(?:/)?$" }, { "page": "/sklep/[category]/[slug]", "regex": "^/sklep/([^/]+?)/([^/]+?)(?:/)?$", "routeKeys": { "nxtPcategory": "nxtPcategory", "nxtPslug": "nxtPslug" }, "namedRegex": "^/sklep/(?<nxtPcategory>[^/]+?)/(?<nxtPslug>[^/]+?)(?:/)?$" }, { "page": "/sklep/[category]/[slug]/opengraph-image", "regex": "^/sklep/([^/]+?)/([^/]+?)/opengraph\\-image(?:/)?$", "routeKeys": { "nxtPcategory": "nxtPcategory", "nxtPslug": "nxtPslug" }, "namedRegex": "^/sklep/(?<nxtPcategory>[^/]+?)/(?<nxtPslug>[^/]+?)/opengraph\\-image(?:/)?$" }], "data": { "static": [], "dynamic": [] } }, "locales": [] };
-var ConfigHeaders = [{ "source": "/:path*", "headers": [{ "key": "X-Content-Type-Options", "value": "nosniff" }, { "key": "X-Frame-Options", "value": "SAMEORIGIN" }, { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }, { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), interest-cohort=()" }, { "key": "Cross-Origin-Opener-Policy", "value": "same-origin-allow-popups" }], "regex": "^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$" }];
-var PrerenderManifest = { "version": 4, "routes": { "/_global-error": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/_global-error", "dataRoute": "/_global-error.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/_not-found": { "initialStatus": 404, "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/_not-found", "dataRoute": "/_not-found.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/account/data-export": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/account/data-export", "dataRoute": "/account/data-export.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/account": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/account", "dataRoute": "/account.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/auth": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/auth", "dataRoute": "/auth.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/checkout": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/checkout", "dataRoute": "/checkout.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/checkout/payment": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/checkout/payment", "dataRoute": "/checkout/payment.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia", "dataRoute": "/encyklopedia.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/degustacja": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/[section]", "dataRoute": "/encyklopedia/wino/degustacja.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/klasyfikacje": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/[section]", "dataRoute": "/encyklopedia/wino/klasyfikacje.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/parowanie": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/[section]", "dataRoute": "/encyklopedia/wino/parowanie.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/podstawy": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/[section]", "dataRoute": "/encyklopedia/wino/podstawy.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/produkcja": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/[section]", "dataRoute": "/encyklopedia/wino/produkcja.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/przechowywanie": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/[section]", "dataRoute": "/encyklopedia/wino/przechowywanie.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/roczniki": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/[section]", "dataRoute": "/encyklopedia/wino/roczniki.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/serwowanie": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/[section]", "dataRoute": "/encyklopedia/wino/serwowanie.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/slownik": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/[section]", "dataRoute": "/encyklopedia/wino/slownik.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/winnice": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/[section]", "dataRoute": "/encyklopedia/wino/winnice.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino", "dataRoute": "/encyklopedia/wino.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/regiony/bordeaux": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/regiony/[slug]", "dataRoute": "/encyklopedia/wino/regiony/bordeaux.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/regiony/burgundia": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/regiony/[slug]", "dataRoute": "/encyklopedia/wino/regiony/burgundia.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/regiony/dolina-rodanu": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/regiony/[slug]", "dataRoute": "/encyklopedia/wino/regiony/dolina-rodanu.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/regiony/mendoza": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/regiony/[slug]", "dataRoute": "/encyklopedia/wino/regiony/mendoza.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/regiony/mosel": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/regiony/[slug]", "dataRoute": "/encyklopedia/wino/regiony/mosel.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/regiony/napa-valley": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/regiony/[slug]", "dataRoute": "/encyklopedia/wino/regiony/napa-valley.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/regiony/piemont": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/regiony/[slug]", "dataRoute": "/encyklopedia/wino/regiony/piemont.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/regiony/ribera-del-duero": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/regiony/[slug]", "dataRoute": "/encyklopedia/wino/regiony/ribera-del-duero.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/regiony/rioja": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/regiony/[slug]", "dataRoute": "/encyklopedia/wino/regiony/rioja.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/regiony/szampania": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/regiony/[slug]", "dataRoute": "/encyklopedia/wino/regiony/szampania.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/regiony/toskania": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/regiony/[slug]", "dataRoute": "/encyklopedia/wino/regiony/toskania.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/regiony/wenecja-euganejska": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/regiony/[slug]", "dataRoute": "/encyklopedia/wino/regiony/wenecja-euganejska.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/regiony": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/regiony", "dataRoute": "/encyklopedia/wino/regiony.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/szczepy/cabernet-sauvignon": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/szczepy/[slug]", "dataRoute": "/encyklopedia/wino/szczepy/cabernet-sauvignon.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/szczepy/chardonnay": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/szczepy/[slug]", "dataRoute": "/encyklopedia/wino/szczepy/chardonnay.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/szczepy/gewurztraminer": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/szczepy/[slug]", "dataRoute": "/encyklopedia/wino/szczepy/gewurztraminer.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/szczepy/malbec": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/szczepy/[slug]", "dataRoute": "/encyklopedia/wino/szczepy/malbec.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/szczepy/merlot": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/szczepy/[slug]", "dataRoute": "/encyklopedia/wino/szczepy/merlot.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/szczepy/nebbiolo": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/szczepy/[slug]", "dataRoute": "/encyklopedia/wino/szczepy/nebbiolo.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/szczepy/pinot-grigio": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/szczepy/[slug]", "dataRoute": "/encyklopedia/wino/szczepy/pinot-grigio.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/szczepy/pinot-noir": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/szczepy/[slug]", "dataRoute": "/encyklopedia/wino/szczepy/pinot-noir.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/szczepy/riesling": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/szczepy/[slug]", "dataRoute": "/encyklopedia/wino/szczepy/riesling.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/szczepy/sangiovese": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/szczepy/[slug]", "dataRoute": "/encyklopedia/wino/szczepy/sangiovese.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/szczepy/sauvignon-blanc": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/szczepy/[slug]", "dataRoute": "/encyklopedia/wino/szczepy/sauvignon-blanc.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/szczepy/syrah": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/szczepy/[slug]", "dataRoute": "/encyklopedia/wino/szczepy/syrah.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/szczepy/tempranillo": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/szczepy/[slug]", "dataRoute": "/encyklopedia/wino/szczepy/tempranillo.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/szczepy/viognier": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/szczepy/[slug]", "dataRoute": "/encyklopedia/wino/szczepy/viognier.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/szczepy": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/szczepy", "dataRoute": "/encyklopedia/wino/szczepy.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/kawiarnia": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/kawiarnia", "dataRoute": "/kawiarnia.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/order/confirmation": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/order/confirmation", "dataRoute": "/order/confirmation.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/", "dataRoute": "/index.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/sklep/alcohol": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": 60, "initialExpireSeconds": 31536e3, "srcRoute": "/sklep/[category]", "dataRoute": "/sklep/alcohol.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/sklep/coffee": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": 60, "initialExpireSeconds": 31536e3, "srcRoute": "/sklep/[category]", "dataRoute": "/sklep/coffee.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/sklep/pantry": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": 60, "initialExpireSeconds": 31536e3, "srcRoute": "/sklep/[category]", "dataRoute": "/sklep/pantry.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/sklep/sweets": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": 60, "initialExpireSeconds": 31536e3, "srcRoute": "/sklep/[category]", "dataRoute": "/sklep/sweets.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/sklep": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": 60, "initialExpireSeconds": 31536e3, "srcRoute": "/sklep", "dataRoute": "/sklep.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] } }, "dynamicRoutes": { "/encyklopedia/wino/[section]": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "routeRegex": "^/encyklopedia/wino/([^/]+?)(?:/)?$", "dataRoute": "/encyklopedia/wino/[section].rsc", "fallback": null, "fallbackRouteParams": [], "dataRouteRegex": "^/encyklopedia/wino/([^/]+?)\\.rsc$", "prefetchDataRoute": null, "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/regiony/[slug]": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "routeRegex": "^/encyklopedia/wino/regiony/([^/]+?)(?:/)?$", "dataRoute": "/encyklopedia/wino/regiony/[slug].rsc", "fallback": null, "fallbackRouteParams": [], "dataRouteRegex": "^/encyklopedia/wino/regiony/([^/]+?)\\.rsc$", "prefetchDataRoute": null, "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/szczepy/[slug]": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "routeRegex": "^/encyklopedia/wino/szczepy/([^/]+?)(?:/)?$", "dataRoute": "/encyklopedia/wino/szczepy/[slug].rsc", "fallback": null, "fallbackRouteParams": [], "dataRouteRegex": "^/encyklopedia/wino/szczepy/([^/]+?)\\.rsc$", "prefetchDataRoute": null, "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/sklep/[category]": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "routeRegex": "^/sklep/([^/]+?)(?:/)?$", "dataRoute": "/sklep/[category].rsc", "fallback": null, "fallbackRouteParams": [], "dataRouteRegex": "^/sklep/([^/]+?)\\.rsc$", "prefetchDataRoute": null, "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] } }, "notFoundRoutes": [], "preview": { "previewModeId": "bf8cc26a9a5863fc636896214e67c7c1", "previewModeSigningKey": "8e273358837836df17d82464892178b50115d8d61a4ea6b2be1bb834cf546cb5", "previewModeEncryptionKey": "e0d406351a55ce30bfbb1230f3bb45d5b3f3f9db88c649eee6059a2455bc110f" } };
-var MiddlewareManifest = { "version": 3, "middleware": { "/": { "files": ["server/edge-runtime-webpack.js", "server/src/middleware.js"], "name": "src/middleware", "page": "/", "matchers": [{ "regexp": "^(?:\\/(_next\\/data\\/[^/]{1,}))?\\/admin(?:\\/((?:[^\\/#\\?]+?)(?:\\/(?:[^\\/#\\?]+?))*))?(\\.json)?[\\/#\\?]?$", "originalSource": "/admin/:path*" }], "wasm": [], "assets": [], "env": { "__NEXT_BUILD_ID": "x1emX-YfRNvzESOXzxkb0", "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY": "odkEPXZQIveiuOr4lpb8DyLKiu61BaVPRMFlJB00Bnw=", "__NEXT_PREVIEW_MODE_ID": "bf8cc26a9a5863fc636896214e67c7c1", "__NEXT_PREVIEW_MODE_SIGNING_KEY": "8e273358837836df17d82464892178b50115d8d61a4ea6b2be1bb834cf546cb5", "__NEXT_PREVIEW_MODE_ENCRYPTION_KEY": "e0d406351a55ce30bfbb1230f3bb45d5b3f3f9db88c649eee6059a2455bc110f" } } }, "functions": { "/sklep/[category]/[slug]/opengraph-image/route": { "files": ["server/middleware-build-manifest.js", "server/middleware-react-loadable-manifest.js", "server/next-font-manifest.js", "server/interception-route-rewrite-manifest.js", "required-server-files.js", "server/edge-runtime-webpack.js", "server/app/sklep/[category]/[slug]/opengraph-image/route.js"], "name": "app/sklep/[category]/[slug]/opengraph-image/route", "page": "/sklep/[category]/[slug]/opengraph-image/route", "matchers": [{ "regexp": "^/sklep/(?<category>[^/]+?)/(?<slug>[^/]+?)/opengraph\\-image$", "originalSource": "/sklep/[category]/[slug]/opengraph-image" }], "wasm": [{ "name": "wasm_77d9faebf7af9e421806970ce10a58e9d83116d7", "filePath": "server/edge-chunks/wasm_77d9faebf7af9e421806970ce10a58e9d83116d7.wasm" }, { "name": "wasm_ef4866ecae192fd87727067cf2c0c0cf9fb8b020", "filePath": "server/edge-chunks/wasm_ef4866ecae192fd87727067cf2c0c0cf9fb8b020.wasm" }], "assets": [{ "name": "noto-sans-v27-latin-regular.5dda3fca77107598.ttf", "filePath": "server/edge-chunks/asset_noto-sans-v27-latin-regular.5dda3fca77107598.ttf" }], "env": { "__NEXT_BUILD_ID": "x1emX-YfRNvzESOXzxkb0", "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY": "odkEPXZQIveiuOr4lpb8DyLKiu61BaVPRMFlJB00Bnw=", "__NEXT_PREVIEW_MODE_ID": "bf8cc26a9a5863fc636896214e67c7c1", "__NEXT_PREVIEW_MODE_SIGNING_KEY": "8e273358837836df17d82464892178b50115d8d61a4ea6b2be1bb834cf546cb5", "__NEXT_PREVIEW_MODE_ENCRYPTION_KEY": "e0d406351a55ce30bfbb1230f3bb45d5b3f3f9db88c649eee6059a2455bc110f" } } }, "sortedMiddleware": ["/"] };
-var AppPathRoutesManifest = { "/_not-found/page": "/_not-found", "/_global-error/page": "/_global-error", "/api/admin/logout/route": "/api/admin/logout", "/api/admin/allegro/[...slug]/route": "/api/admin/allegro/[...slug]", "/api/admin/[...slug]/route": "/api/admin/[...slug]", "/sklep/[category]/[slug]/page": "/sklep/[category]/[slug]", "/auth/page": "/auth", "/kawiarnia/page": "/kawiarnia", "/page": "/", "/sklep/page": "/sklep", "/sklep/[category]/page": "/sklep/[category]", "/account/orders/[id]/page": "/account/orders/[id]", "/account/data-export/page": "/account/data-export", "/admin/allegro/page": "/admin/allegro", "/account/page": "/account", "/admin/orders/page": "/admin/orders", "/admin/page": "/admin", "/admin/audit/page": "/admin/audit", "/admin/content/page": "/admin/content", "/admin/products/[sku]/page": "/admin/products/[sku]", "/admin/orders/[id]/page": "/admin/orders/[id]", "/admin/finance/page": "/admin/finance", "/admin/customers/page": "/admin/customers", "/admin/marketing/promotions/page": "/admin/marketing/promotions", "/admin/products/page": "/admin/products", "/admin/products/[sku]/wine/page": "/admin/products/[sku]/wine", "/admin/settings/page": "/admin/settings", "/checkout/payment/page": "/checkout/payment", "/checkout/page": "/checkout", "/encyklopedia/[category]/page": "/encyklopedia/[category]", "/encyklopedia/wino/[section]/page": "/encyklopedia/wino/[section]", "/encyklopedia/wino/regiony/page": "/encyklopedia/wino/regiony", "/encyklopedia/wino/page": "/encyklopedia/wino", "/encyklopedia/wino/regiony/[slug]/page": "/encyklopedia/wino/regiony/[slug]", "/encyklopedia/wino/szczepy/[slug]/page": "/encyklopedia/wino/szczepy/[slug]", "/encyklopedia/wino/szczepy/page": "/encyklopedia/wino/szczepy", "/order/confirmation/page": "/order/confirmation", "/encyklopedia/page": "/encyklopedia", "/admin/login/page": "/admin/login", "/sklep/[category]/[slug]/opengraph-image/route": "/sklep/[category]/[slug]/opengraph-image" };
-var FunctionsConfigManifest = { "version": 1, "functions": { "/sklep/[category]/[slug]/opengraph-image": {} } };
+var NextConfig = { "env": {}, "webpack": null, "typescript": { "ignoreBuildErrors": false }, "typedRoutes": false, "distDir": ".next", "cleanDistDir": true, "assetPrefix": "", "cacheMaxMemorySize": 52428800, "configOrigin": "next.config.mjs", "useFileSystemPublicRoutes": true, "generateEtags": true, "pageExtensions": ["tsx", "ts", "jsx", "js"], "poweredByHeader": true, "compress": true, "images": { "deviceSizes": [640, 750, 828, 1080, 1200, 1920, 2048, 3840], "imageSizes": [32, 48, 64, 96, 128, 256, 384], "path": "/_next/image", "loader": "default", "loaderFile": "", "domains": [], "disableStaticImages": false, "minimumCacheTTL": 14400, "formats": ["image/webp"], "maximumRedirects": 3, "maximumResponseBody": 5e7, "dangerouslyAllowLocalIP": false, "dangerouslyAllowSVG": false, "contentSecurityPolicy": "script-src 'none'; frame-src 'none'; sandbox;", "contentDispositionType": "attachment", "localPatterns": [{ "pathname": "**", "search": "" }], "remotePatterns": [{ "protocol": "https", "hostname": "images.unsplash.com", "pathname": "/**" }, { "protocol": "https", "hostname": "plus.unsplash.com", "pathname": "/**" }, { "protocol": "https", "hostname": "barahonda.com", "pathname": "/**" }], "qualities": [75], "unoptimized": false }, "devIndicators": { "position": "bottom-left" }, "onDemandEntries": { "maxInactiveAge": 6e4, "pagesBufferLength": 5 }, "basePath": "", "sassOptions": {}, "trailingSlash": false, "i18n": null, "productionBrowserSourceMaps": false, "excludeDefaultMomentLocales": true, "reactProductionProfiling": false, "reactStrictMode": null, "reactMaxHeadersLength": 6e3, "httpAgentOptions": { "keepAlive": true }, "logging": {}, "compiler": {}, "expireTime": 31536e3, "staticPageGenerationTimeout": 60, "output": "standalone", "modularizeImports": { "@mui/icons-material": { "transform": "@mui/icons-material/{{member}}" }, "lodash": { "transform": "lodash/{{member}}" } }, "outputFileTracingRoot": "C:\\Users\\User\\Documents\\1PROJEKTY\\Il Buon Caffe", "cacheComponents": false, "cacheLife": { "default": { "stale": 300, "revalidate": 900, "expire": 4294967294 }, "seconds": { "stale": 30, "revalidate": 1, "expire": 60 }, "minutes": { "stale": 300, "revalidate": 60, "expire": 3600 }, "hours": { "stale": 300, "revalidate": 3600, "expire": 86400 }, "days": { "stale": 300, "revalidate": 86400, "expire": 604800 }, "weeks": { "stale": 300, "revalidate": 604800, "expire": 2592e3 }, "max": { "stale": 300, "revalidate": 2592e3, "expire": 31536e3 } }, "cacheHandlers": {}, "experimental": { "useSkewCookie": false, "cssChunking": true, "multiZoneDraftMode": false, "appNavFailHandling": false, "prerenderEarlyExit": true, "serverMinification": true, "linkNoTouchStart": false, "caseSensitiveRoutes": false, "dynamicOnHover": false, "preloadEntriesOnStart": true, "clientRouterFilter": true, "clientRouterFilterRedirects": false, "fetchCacheKeyPrefix": "", "proxyPrefetch": "flexible", "optimisticClientCache": true, "manualClientBasePath": false, "cpus": 19, "memoryBasedWorkersCount": false, "imgOptConcurrency": null, "imgOptTimeoutInSeconds": 7, "imgOptMaxInputPixels": 268402689, "imgOptSequentialRead": null, "imgOptSkipMetadata": null, "isrFlushToDisk": true, "workerThreads": false, "optimizeCss": false, "nextScriptWorkers": false, "scrollRestoration": false, "externalDir": false, "disableOptimizedLoading": false, "gzipSize": true, "craCompat": false, "esmExternals": true, "fullySpecified": false, "swcTraceProfiling": false, "forceSwcTransforms": false, "largePageDataBytes": 128e3, "typedEnv": false, "parallelServerCompiles": false, "parallelServerBuildTraces": false, "ppr": false, "authInterrupts": false, "webpackMemoryOptimizations": false, "optimizeServerReact": true, "viewTransition": false, "removeUncaughtErrorAndRejectionListeners": false, "validateRSCRequestHeaders": false, "staleTimes": { "dynamic": 0, "static": 300 }, "reactDebugChannel": false, "serverComponentsHmrCache": true, "staticGenerationMaxConcurrency": 8, "staticGenerationMinPagesPerWorker": 25, "transitionIndicator": false, "inlineCss": false, "useCache": false, "globalNotFound": false, "browserDebugInfoInTerminal": false, "lockDistDir": true, "isolatedDevBuild": true, "proxyClientMaxBodySize": 10485760, "hideLogsAfterAbort": false, "mcpServer": true, "turbopackFileSystemCacheForDev": true, "turbopackFileSystemCacheForBuild": false, "turbopackInferModuleSideEffects": false, "optimizePackageImports": ["lucide-react", "date-fns", "lodash-es", "ramda", "antd", "react-bootstrap", "ahooks", "@ant-design/icons", "@headlessui/react", "@headlessui-float/react", "@heroicons/react/20/solid", "@heroicons/react/24/solid", "@heroicons/react/24/outline", "@visx/visx", "@tremor/react", "rxjs", "@mui/material", "@mui/icons-material", "recharts", "react-use", "effect", "@effect/schema", "@effect/platform", "@effect/platform-node", "@effect/platform-browser", "@effect/platform-bun", "@effect/sql", "@effect/sql-mssql", "@effect/sql-mysql2", "@effect/sql-pg", "@effect/sql-sqlite-node", "@effect/sql-sqlite-bun", "@effect/sql-sqlite-wasm", "@effect/sql-sqlite-react-native", "@effect/rpc", "@effect/rpc-http", "@effect/typeclass", "@effect/experimental", "@effect/opentelemetry", "@material-ui/core", "@material-ui/icons", "@tabler/icons-react", "mui-core", "react-icons/ai", "react-icons/bi", "react-icons/bs", "react-icons/cg", "react-icons/ci", "react-icons/di", "react-icons/fa", "react-icons/fa6", "react-icons/fc", "react-icons/fi", "react-icons/gi", "react-icons/go", "react-icons/gr", "react-icons/hi", "react-icons/hi2", "react-icons/im", "react-icons/io", "react-icons/io5", "react-icons/lia", "react-icons/lib", "react-icons/lu", "react-icons/md", "react-icons/pi", "react-icons/ri", "react-icons/rx", "react-icons/si", "react-icons/sl", "react-icons/tb", "react-icons/tfi", "react-icons/ti", "react-icons/vsc", "react-icons/wi"], "trustHostHeader": false, "isExperimentalCompile": false }, "htmlLimitedBots": "[\\w-]+-Google|Google-[\\w-]+|Chrome-Lighthouse|Slurp|DuckDuckBot|baiduspider|yandex|sogou|bitlybot|tumblr|vkShare|quora link preview|redditbot|ia_archiver|Bingbot|BingPreview|applebot|facebookexternalhit|facebookcatalog|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|SkypeUriPreview|Yeti|googleweblight", "bundlePagesRouterDependencies": false, "configFileName": "next.config.mjs", "turbopack": { "root": "C:\\Users\\User\\Documents\\1PROJEKTY\\Il Buon Caffe" }, "distDirRoot": ".next", "_originalRewrites": { "beforeFiles": [], "afterFiles": [{ "source": "/api/auth/:path*", "destination": "https://il-buon-caffe-api.ilbuoncaffe19.workers.dev/api/auth/:path*" }, { "source": "/api/products/:path*", "destination": "https://il-buon-caffe-api.ilbuoncaffe19.workers.dev/api/products/:path*" }, { "source": "/api/categories/:path*", "destination": "https://il-buon-caffe-api.ilbuoncaffe19.workers.dev/api/categories/:path*" }, { "source": "/api/orders/:path*", "destination": "https://il-buon-caffe-api.ilbuoncaffe19.workers.dev/api/orders/:path*" }, { "source": "/api/user/:path*", "destination": "https://il-buon-caffe-api.ilbuoncaffe19.workers.dev/api/user/:path*" }, { "source": "/api/legal/:path*", "destination": "https://il-buon-caffe-api.ilbuoncaffe19.workers.dev/api/legal/:path*" }, { "source": "/api/payments/:path*", "destination": "https://il-buon-caffe-api.ilbuoncaffe19.workers.dev/api/payments/:path*" }, { "source": "/api/webhooks/:path*", "destination": "https://il-buon-caffe-api.ilbuoncaffe19.workers.dev/api/webhooks/:path*" }, { "source": "/api/uploads/:path*", "destination": "https://il-buon-caffe-api.ilbuoncaffe19.workers.dev/api/uploads/:path*" }, { "source": "/health", "destination": "https://il-buon-caffe-api.ilbuoncaffe19.workers.dev/health" }], "fallback": [] } };
+var BuildId = "AeyNuS0dPbfXEpIkaONAN";
+var RoutesManifest = { "basePath": "", "rewrites": { "beforeFiles": [], "afterFiles": [{ "source": "/api/auth/:path*", "destination": "https://il-buon-caffe-api.ilbuoncaffe19.workers.dev/api/auth/:path*", "regex": "^/api/auth(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$" }, { "source": "/api/products/:path*", "destination": "https://il-buon-caffe-api.ilbuoncaffe19.workers.dev/api/products/:path*", "regex": "^/api/products(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$" }, { "source": "/api/categories/:path*", "destination": "https://il-buon-caffe-api.ilbuoncaffe19.workers.dev/api/categories/:path*", "regex": "^/api/categories(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$" }, { "source": "/api/orders/:path*", "destination": "https://il-buon-caffe-api.ilbuoncaffe19.workers.dev/api/orders/:path*", "regex": "^/api/orders(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$" }, { "source": "/api/user/:path*", "destination": "https://il-buon-caffe-api.ilbuoncaffe19.workers.dev/api/user/:path*", "regex": "^/api/user(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$" }, { "source": "/api/legal/:path*", "destination": "https://il-buon-caffe-api.ilbuoncaffe19.workers.dev/api/legal/:path*", "regex": "^/api/legal(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$" }, { "source": "/api/payments/:path*", "destination": "https://il-buon-caffe-api.ilbuoncaffe19.workers.dev/api/payments/:path*", "regex": "^/api/payments(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$" }, { "source": "/api/webhooks/:path*", "destination": "https://il-buon-caffe-api.ilbuoncaffe19.workers.dev/api/webhooks/:path*", "regex": "^/api/webhooks(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$" }, { "source": "/api/uploads/:path*", "destination": "https://il-buon-caffe-api.ilbuoncaffe19.workers.dev/api/uploads/:path*", "regex": "^/api/uploads(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$" }, { "source": "/health", "destination": "https://il-buon-caffe-api.ilbuoncaffe19.workers.dev/health", "regex": "^/health(?:/)?$" }], "fallback": [] }, "redirects": [{ "source": "/:path+/", "destination": "/:path+", "internal": true, "priority": true, "statusCode": 308, "regex": "^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))/$" }], "routes": { "static": [{ "page": "/", "regex": "^/(?:/)?$", "routeKeys": {}, "namedRegex": "^/(?:/)?$" }, { "page": "/_global-error", "regex": "^/_global\\-error(?:/)?$", "routeKeys": {}, "namedRegex": "^/_global\\-error(?:/)?$" }, { "page": "/_not-found", "regex": "^/_not\\-found(?:/)?$", "routeKeys": {}, "namedRegex": "^/_not\\-found(?:/)?$" }, { "page": "/account", "regex": "^/account(?:/)?$", "routeKeys": {}, "namedRegex": "^/account(?:/)?$" }, { "page": "/account/data-export", "regex": "^/account/data\\-export(?:/)?$", "routeKeys": {}, "namedRegex": "^/account/data\\-export(?:/)?$" }, { "page": "/admin", "regex": "^/admin(?:/)?$", "routeKeys": {}, "namedRegex": "^/admin(?:/)?$" }, { "page": "/admin/allegro", "regex": "^/admin/allegro(?:/)?$", "routeKeys": {}, "namedRegex": "^/admin/allegro(?:/)?$" }, { "page": "/admin/audit", "regex": "^/admin/audit(?:/)?$", "routeKeys": {}, "namedRegex": "^/admin/audit(?:/)?$" }, { "page": "/admin/content", "regex": "^/admin/content(?:/)?$", "routeKeys": {}, "namedRegex": "^/admin/content(?:/)?$" }, { "page": "/admin/customers", "regex": "^/admin/customers(?:/)?$", "routeKeys": {}, "namedRegex": "^/admin/customers(?:/)?$" }, { "page": "/admin/finance", "regex": "^/admin/finance(?:/)?$", "routeKeys": {}, "namedRegex": "^/admin/finance(?:/)?$" }, { "page": "/admin/login", "regex": "^/admin/login(?:/)?$", "routeKeys": {}, "namedRegex": "^/admin/login(?:/)?$" }, { "page": "/admin/marketing/promotions", "regex": "^/admin/marketing/promotions(?:/)?$", "routeKeys": {}, "namedRegex": "^/admin/marketing/promotions(?:/)?$" }, { "page": "/admin/orders", "regex": "^/admin/orders(?:/)?$", "routeKeys": {}, "namedRegex": "^/admin/orders(?:/)?$" }, { "page": "/admin/products", "regex": "^/admin/products(?:/)?$", "routeKeys": {}, "namedRegex": "^/admin/products(?:/)?$" }, { "page": "/admin/settings", "regex": "^/admin/settings(?:/)?$", "routeKeys": {}, "namedRegex": "^/admin/settings(?:/)?$" }, { "page": "/api/admin/logout", "regex": "^/api/admin/logout(?:/)?$", "routeKeys": {}, "namedRegex": "^/api/admin/logout(?:/)?$" }, { "page": "/auth", "regex": "^/auth(?:/)?$", "routeKeys": {}, "namedRegex": "^/auth(?:/)?$" }, { "page": "/checkout", "regex": "^/checkout(?:/)?$", "routeKeys": {}, "namedRegex": "^/checkout(?:/)?$" }, { "page": "/checkout/payment", "regex": "^/checkout/payment(?:/)?$", "routeKeys": {}, "namedRegex": "^/checkout/payment(?:/)?$" }, { "page": "/encyklopedia", "regex": "^/encyklopedia(?:/)?$", "routeKeys": {}, "namedRegex": "^/encyklopedia(?:/)?$" }, { "page": "/encyklopedia/wino", "regex": "^/encyklopedia/wino(?:/)?$", "routeKeys": {}, "namedRegex": "^/encyklopedia/wino(?:/)?$" }, { "page": "/encyklopedia/wino/regiony", "regex": "^/encyklopedia/wino/regiony(?:/)?$", "routeKeys": {}, "namedRegex": "^/encyklopedia/wino/regiony(?:/)?$" }, { "page": "/encyklopedia/wino/szczepy", "regex": "^/encyklopedia/wino/szczepy(?:/)?$", "routeKeys": {}, "namedRegex": "^/encyklopedia/wino/szczepy(?:/)?$" }, { "page": "/kawiarnia", "regex": "^/kawiarnia(?:/)?$", "routeKeys": {}, "namedRegex": "^/kawiarnia(?:/)?$" }, { "page": "/order/confirmation", "regex": "^/order/confirmation(?:/)?$", "routeKeys": {}, "namedRegex": "^/order/confirmation(?:/)?$" }, { "page": "/sklep", "regex": "^/sklep(?:/)?$", "routeKeys": {}, "namedRegex": "^/sklep(?:/)?$" }], "dynamic": [{ "page": "/account/orders/[id]", "regex": "^/account/orders/([^/]+?)(?:/)?$", "routeKeys": { "nxtPid": "nxtPid" }, "namedRegex": "^/account/orders/(?<nxtPid>[^/]+?)(?:/)?$" }, { "page": "/admin/orders/[id]", "regex": "^/admin/orders/([^/]+?)(?:/)?$", "routeKeys": { "nxtPid": "nxtPid" }, "namedRegex": "^/admin/orders/(?<nxtPid>[^/]+?)(?:/)?$" }, { "page": "/admin/products/[sku]", "regex": "^/admin/products/([^/]+?)(?:/)?$", "routeKeys": { "nxtPsku": "nxtPsku" }, "namedRegex": "^/admin/products/(?<nxtPsku>[^/]+?)(?:/)?$" }, { "page": "/admin/products/[sku]/wine", "regex": "^/admin/products/([^/]+?)/wine(?:/)?$", "routeKeys": { "nxtPsku": "nxtPsku" }, "namedRegex": "^/admin/products/(?<nxtPsku>[^/]+?)/wine(?:/)?$" }, { "page": "/api/admin/allegro/[...slug]", "regex": "^/api/admin/allegro/(.+?)(?:/)?$", "routeKeys": { "nxtPslug": "nxtPslug" }, "namedRegex": "^/api/admin/allegro/(?<nxtPslug>.+?)(?:/)?$" }, { "page": "/api/admin/[...slug]", "regex": "^/api/admin/(.+?)(?:/)?$", "routeKeys": { "nxtPslug": "nxtPslug" }, "namedRegex": "^/api/admin/(?<nxtPslug>.+?)(?:/)?$" }, { "page": "/encyklopedia/wino/regiony/[slug]", "regex": "^/encyklopedia/wino/regiony/([^/]+?)(?:/)?$", "routeKeys": { "nxtPslug": "nxtPslug" }, "namedRegex": "^/encyklopedia/wino/regiony/(?<nxtPslug>[^/]+?)(?:/)?$" }, { "page": "/encyklopedia/wino/szczepy/[slug]", "regex": "^/encyklopedia/wino/szczepy/([^/]+?)(?:/)?$", "routeKeys": { "nxtPslug": "nxtPslug" }, "namedRegex": "^/encyklopedia/wino/szczepy/(?<nxtPslug>[^/]+?)(?:/)?$" }, { "page": "/encyklopedia/wino/[section]", "regex": "^/encyklopedia/wino/([^/]+?)(?:/)?$", "routeKeys": { "nxtPsection": "nxtPsection" }, "namedRegex": "^/encyklopedia/wino/(?<nxtPsection>[^/]+?)(?:/)?$" }, { "page": "/encyklopedia/[category]", "regex": "^/encyklopedia/([^/]+?)(?:/)?$", "routeKeys": { "nxtPcategory": "nxtPcategory" }, "namedRegex": "^/encyklopedia/(?<nxtPcategory>[^/]+?)(?:/)?$" }, { "page": "/sklep/[category]", "regex": "^/sklep/([^/]+?)(?:/)?$", "routeKeys": { "nxtPcategory": "nxtPcategory" }, "namedRegex": "^/sklep/(?<nxtPcategory>[^/]+?)(?:/)?$" }, { "page": "/sklep/[category]/[slug]", "regex": "^/sklep/([^/]+?)/([^/]+?)(?:/)?$", "routeKeys": { "nxtPcategory": "nxtPcategory", "nxtPslug": "nxtPslug" }, "namedRegex": "^/sklep/(?<nxtPcategory>[^/]+?)/(?<nxtPslug>[^/]+?)(?:/)?$" }, { "page": "/sklep/[category]/[slug]/opengraph-image", "regex": "^/sklep/([^/]+?)/([^/]+?)/opengraph\\-image(?:/)?$", "routeKeys": { "nxtPcategory": "nxtPcategory", "nxtPslug": "nxtPslug" }, "namedRegex": "^/sklep/(?<nxtPcategory>[^/]+?)/(?<nxtPslug>[^/]+?)/opengraph\\-image(?:/)?$" }], "data": { "static": [], "dynamic": [] } }, "locales": [] };
+var ConfigHeaders = [{ "source": "/:path*", "headers": [{ "key": "X-Content-Type-Options", "value": "nosniff" }, { "key": "X-Frame-Options", "value": "DENY" }, { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }, { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), interest-cohort=()" }, { "key": "Cross-Origin-Opener-Policy", "value": "same-origin-allow-popups" }, { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains; preload" }, { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests" }], "regex": "^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$" }];
+var PrerenderManifest = { "version": 4, "routes": { "/_global-error": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/_global-error", "dataRoute": "/_global-error.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/_not-found": { "initialStatus": 404, "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/_not-found", "dataRoute": "/_not-found.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/account/data-export": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/account/data-export", "dataRoute": "/account/data-export.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/account": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/account", "dataRoute": "/account.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/auth": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/auth", "dataRoute": "/auth.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/checkout": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/checkout", "dataRoute": "/checkout.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/checkout/payment": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/checkout/payment", "dataRoute": "/checkout/payment.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia", "dataRoute": "/encyklopedia.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/degustacja": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/[section]", "dataRoute": "/encyklopedia/wino/degustacja.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/klasyfikacje": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/[section]", "dataRoute": "/encyklopedia/wino/klasyfikacje.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/parowanie": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/[section]", "dataRoute": "/encyklopedia/wino/parowanie.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/podstawy": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/[section]", "dataRoute": "/encyklopedia/wino/podstawy.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/produkcja": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/[section]", "dataRoute": "/encyklopedia/wino/produkcja.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/przechowywanie": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/[section]", "dataRoute": "/encyklopedia/wino/przechowywanie.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/roczniki": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/[section]", "dataRoute": "/encyklopedia/wino/roczniki.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/serwowanie": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/[section]", "dataRoute": "/encyklopedia/wino/serwowanie.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/slownik": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/[section]", "dataRoute": "/encyklopedia/wino/slownik.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/winnice": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/[section]", "dataRoute": "/encyklopedia/wino/winnice.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino", "dataRoute": "/encyklopedia/wino.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/regiony/bordeaux": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/regiony/[slug]", "dataRoute": "/encyklopedia/wino/regiony/bordeaux.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/regiony/burgundia": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/regiony/[slug]", "dataRoute": "/encyklopedia/wino/regiony/burgundia.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/regiony/dolina-rodanu": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/regiony/[slug]", "dataRoute": "/encyklopedia/wino/regiony/dolina-rodanu.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/regiony/mendoza": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/regiony/[slug]", "dataRoute": "/encyklopedia/wino/regiony/mendoza.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/regiony/mosel": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/regiony/[slug]", "dataRoute": "/encyklopedia/wino/regiony/mosel.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/regiony/napa-valley": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/regiony/[slug]", "dataRoute": "/encyklopedia/wino/regiony/napa-valley.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/regiony/piemont": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/regiony/[slug]", "dataRoute": "/encyklopedia/wino/regiony/piemont.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/regiony/ribera-del-duero": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/regiony/[slug]", "dataRoute": "/encyklopedia/wino/regiony/ribera-del-duero.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/regiony/rioja": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/regiony/[slug]", "dataRoute": "/encyklopedia/wino/regiony/rioja.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/regiony/szampania": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/regiony/[slug]", "dataRoute": "/encyklopedia/wino/regiony/szampania.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/regiony/toskania": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/regiony/[slug]", "dataRoute": "/encyklopedia/wino/regiony/toskania.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/regiony/wenecja-euganejska": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/regiony/[slug]", "dataRoute": "/encyklopedia/wino/regiony/wenecja-euganejska.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/regiony": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/regiony", "dataRoute": "/encyklopedia/wino/regiony.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/szczepy/cabernet-sauvignon": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/szczepy/[slug]", "dataRoute": "/encyklopedia/wino/szczepy/cabernet-sauvignon.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/szczepy/chardonnay": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/szczepy/[slug]", "dataRoute": "/encyklopedia/wino/szczepy/chardonnay.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/szczepy/gewurztraminer": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/szczepy/[slug]", "dataRoute": "/encyklopedia/wino/szczepy/gewurztraminer.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/szczepy/malbec": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/szczepy/[slug]", "dataRoute": "/encyklopedia/wino/szczepy/malbec.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/szczepy/merlot": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/szczepy/[slug]", "dataRoute": "/encyklopedia/wino/szczepy/merlot.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/szczepy/nebbiolo": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/szczepy/[slug]", "dataRoute": "/encyklopedia/wino/szczepy/nebbiolo.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/szczepy/pinot-grigio": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/szczepy/[slug]", "dataRoute": "/encyklopedia/wino/szczepy/pinot-grigio.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/szczepy/pinot-noir": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/szczepy/[slug]", "dataRoute": "/encyklopedia/wino/szczepy/pinot-noir.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/szczepy/riesling": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/szczepy/[slug]", "dataRoute": "/encyklopedia/wino/szczepy/riesling.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/szczepy/sangiovese": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/szczepy/[slug]", "dataRoute": "/encyklopedia/wino/szczepy/sangiovese.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/szczepy/sauvignon-blanc": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/szczepy/[slug]", "dataRoute": "/encyklopedia/wino/szczepy/sauvignon-blanc.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/szczepy/syrah": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/szczepy/[slug]", "dataRoute": "/encyklopedia/wino/szczepy/syrah.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/szczepy/tempranillo": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/szczepy/[slug]", "dataRoute": "/encyklopedia/wino/szczepy/tempranillo.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/szczepy/viognier": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/szczepy/[slug]", "dataRoute": "/encyklopedia/wino/szczepy/viognier.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/szczepy": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/encyklopedia/wino/szczepy", "dataRoute": "/encyklopedia/wino/szczepy.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/kawiarnia": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/kawiarnia", "dataRoute": "/kawiarnia.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/order/confirmation": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": false, "srcRoute": "/order/confirmation", "dataRoute": "/order/confirmation.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": 1800, "initialExpireSeconds": 31536e3, "srcRoute": "/", "dataRoute": "/index.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/sklep/kawa/brazil-santos-1kg": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": 3600, "initialExpireSeconds": 31536e3, "srcRoute": "/sklep/[category]/[slug]", "dataRoute": "/sklep/kawa/brazil-santos-1kg.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/sklep/kawa/colombia-supremo": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": 3600, "initialExpireSeconds": 31536e3, "srcRoute": "/sklep/[category]/[slug]", "dataRoute": "/sklep/kawa/colombia-supremo.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/sklep/kawa/ethiopia-yirgacheffe": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": 3600, "initialExpireSeconds": 31536e3, "srcRoute": "/sklep/[category]/[slug]", "dataRoute": "/sklep/kawa/ethiopia-yirgacheffe.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/sklep/slodycze/cantucci-alle-mandorle": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": 3600, "initialExpireSeconds": 31536e3, "srcRoute": "/sklep/[category]/[slug]", "dataRoute": "/sklep/slodycze/cantucci-alle-mandorle.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/sklep/slodycze/panettone-tradizionale": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": 3600, "initialExpireSeconds": 31536e3, "srcRoute": "/sklep/[category]/[slug]", "dataRoute": "/sklep/slodycze/panettone-tradizionale.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/sklep/spizarnia/oliwa-extra-virgin-dop": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": 3600, "initialExpireSeconds": 31536e3, "srcRoute": "/sklep/[category]/[slug]", "dataRoute": "/sklep/spizarnia/oliwa-extra-virgin-dop.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/sklep/spizarnia/parmigiano-reggiano-24m": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": 3600, "initialExpireSeconds": 31536e3, "srcRoute": "/sklep/[category]/[slug]", "dataRoute": "/sklep/spizarnia/parmigiano-reggiano-24m.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/sklep/wino/barahonda-organic-barrica": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": 3600, "initialExpireSeconds": 31536e3, "srcRoute": "/sklep/[category]/[slug]", "dataRoute": "/sklep/wino/barahonda-organic-barrica.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/sklep/wino/brunello-di-montalcino-2018": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": 3600, "initialExpireSeconds": 31536e3, "srcRoute": "/sklep/[category]/[slug]", "dataRoute": "/sklep/wino/brunello-di-montalcino-2018.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/sklep/wino/chianti-classico-riserva-2020": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": 3600, "initialExpireSeconds": 31536e3, "srcRoute": "/sklep/[category]/[slug]", "dataRoute": "/sklep/wino/chianti-classico-riserva-2020.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/sklep/alcohol": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": 300, "initialExpireSeconds": 31536e3, "srcRoute": "/sklep/[category]", "dataRoute": "/sklep/alcohol.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/sklep/coffee": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": 300, "initialExpireSeconds": 31536e3, "srcRoute": "/sklep/[category]", "dataRoute": "/sklep/coffee.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/sklep/pantry": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": 300, "initialExpireSeconds": 31536e3, "srcRoute": "/sklep/[category]", "dataRoute": "/sklep/pantry.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/sklep/sweets": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": 300, "initialExpireSeconds": 31536e3, "srcRoute": "/sklep/[category]", "dataRoute": "/sklep/sweets.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/sklep": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "initialRevalidateSeconds": 300, "initialExpireSeconds": 31536e3, "srcRoute": "/sklep", "dataRoute": "/sklep.rsc", "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] } }, "dynamicRoutes": { "/encyklopedia/wino/[section]": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "routeRegex": "^/encyklopedia/wino/([^/]+?)(?:/)?$", "dataRoute": "/encyklopedia/wino/[section].rsc", "fallback": null, "fallbackRouteParams": [], "dataRouteRegex": "^/encyklopedia/wino/([^/]+?)\\.rsc$", "prefetchDataRoute": null, "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/regiony/[slug]": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "routeRegex": "^/encyklopedia/wino/regiony/([^/]+?)(?:/)?$", "dataRoute": "/encyklopedia/wino/regiony/[slug].rsc", "fallback": null, "fallbackRouteParams": [], "dataRouteRegex": "^/encyklopedia/wino/regiony/([^/]+?)\\.rsc$", "prefetchDataRoute": null, "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/encyklopedia/wino/szczepy/[slug]": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "routeRegex": "^/encyklopedia/wino/szczepy/([^/]+?)(?:/)?$", "dataRoute": "/encyklopedia/wino/szczepy/[slug].rsc", "fallback": null, "fallbackRouteParams": [], "dataRouteRegex": "^/encyklopedia/wino/szczepy/([^/]+?)\\.rsc$", "prefetchDataRoute": null, "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/sklep/[category]/[slug]": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "routeRegex": "^/sklep/([^/]+?)/([^/]+?)(?:/)?$", "dataRoute": "/sklep/[category]/[slug].rsc", "fallback": null, "fallbackRouteParams": [], "dataRouteRegex": "^/sklep/([^/]+?)/([^/]+?)\\.rsc$", "prefetchDataRoute": null, "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] }, "/sklep/[category]": { "experimentalBypassFor": [{ "type": "header", "key": "next-action" }, { "type": "header", "key": "content-type", "value": "multipart/form-data;.*" }], "routeRegex": "^/sklep/([^/]+?)(?:/)?$", "dataRoute": "/sklep/[category].rsc", "fallback": null, "fallbackRouteParams": [], "dataRouteRegex": "^/sklep/([^/]+?)\\.rsc$", "prefetchDataRoute": null, "allowHeader": ["host", "x-matched-path", "x-prerender-revalidate", "x-prerender-revalidate-if-generated", "x-next-revalidated-tags", "x-next-revalidate-tag-token"] } }, "notFoundRoutes": [], "preview": { "previewModeId": "bf8cc26a9a5863fc636896214e67c7c1", "previewModeSigningKey": "8e273358837836df17d82464892178b50115d8d61a4ea6b2be1bb834cf546cb5", "previewModeEncryptionKey": "e0d406351a55ce30bfbb1230f3bb45d5b3f3f9db88c649eee6059a2455bc110f" } };
+var MiddlewareManifest = { "version": 3, "middleware": { "/": { "files": ["server/edge-runtime-webpack.js", "server/src/middleware.js"], "name": "src/middleware", "page": "/", "matchers": [{ "regexp": "^(?:\\/(_next\\/data\\/[^/]{1,}))?\\/admin(?:\\/((?:[^\\/#\\?]+?)(?:\\/(?:[^\\/#\\?]+?))*))?(\\.json)?[\\/#\\?]?$", "originalSource": "/admin/:path*" }], "wasm": [], "assets": [], "env": { "__NEXT_BUILD_ID": "AeyNuS0dPbfXEpIkaONAN", "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY": "odkEPXZQIveiuOr4lpb8DyLKiu61BaVPRMFlJB00Bnw=", "__NEXT_PREVIEW_MODE_ID": "bf8cc26a9a5863fc636896214e67c7c1", "__NEXT_PREVIEW_MODE_SIGNING_KEY": "8e273358837836df17d82464892178b50115d8d61a4ea6b2be1bb834cf546cb5", "__NEXT_PREVIEW_MODE_ENCRYPTION_KEY": "e0d406351a55ce30bfbb1230f3bb45d5b3f3f9db88c649eee6059a2455bc110f" } } }, "functions": {}, "sortedMiddleware": ["/"] };
+var AppPathRoutesManifest = { "/_not-found/page": "/_not-found", "/_global-error/page": "/_global-error", "/api/admin/logout/route": "/api/admin/logout", "/api/admin/[...slug]/route": "/api/admin/[...slug]", "/api/admin/allegro/[...slug]/route": "/api/admin/allegro/[...slug]", "/sklep/[category]/[slug]/opengraph-image/route": "/sklep/[category]/[slug]/opengraph-image", "/auth/page": "/auth", "/kawiarnia/page": "/kawiarnia", "/page": "/", "/sklep/page": "/sklep", "/sklep/[category]/page": "/sklep/[category]", "/sklep/[category]/[slug]/page": "/sklep/[category]/[slug]", "/account/data-export/page": "/account/data-export", "/account/orders/[id]/page": "/account/orders/[id]", "/account/page": "/account", "/admin/allegro/page": "/admin/allegro", "/admin/content/page": "/admin/content", "/admin/customers/page": "/admin/customers", "/admin/marketing/promotions/page": "/admin/marketing/promotions", "/admin/audit/page": "/admin/audit", "/admin/orders/page": "/admin/orders", "/admin/products/[sku]/page": "/admin/products/[sku]", "/admin/finance/page": "/admin/finance", "/admin/orders/[id]/page": "/admin/orders/[id]", "/admin/products/page": "/admin/products", "/admin/page": "/admin", "/checkout/payment/page": "/checkout/payment", "/admin/products/[sku]/wine/page": "/admin/products/[sku]/wine", "/admin/settings/page": "/admin/settings", "/checkout/page": "/checkout", "/encyklopedia/[category]/page": "/encyklopedia/[category]", "/encyklopedia/page": "/encyklopedia", "/encyklopedia/wino/page": "/encyklopedia/wino", "/encyklopedia/wino/regiony/page": "/encyklopedia/wino/regiony", "/encyklopedia/wino/[section]/page": "/encyklopedia/wino/[section]", "/encyklopedia/wino/regiony/[slug]/page": "/encyklopedia/wino/regiony/[slug]", "/encyklopedia/wino/szczepy/page": "/encyklopedia/wino/szczepy", "/encyklopedia/wino/szczepy/[slug]/page": "/encyklopedia/wino/szczepy/[slug]", "/order/confirmation/page": "/order/confirmation", "/admin/login/page": "/admin/login" };
+var FunctionsConfigManifest = { "version": 1, "functions": {} };
 var PagesManifest = { "/404": "pages/404.html", "/500": "pages/500.html" };
 process.env.NEXT_BUILD_ID = BuildId;
 process.env.NEXT_PREVIEW_MODE_ID = PrerenderManifest?.preview?.previewModeId;

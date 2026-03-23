@@ -1,0 +1,1 @@
+self.__SSG_MANIFEST=new Set(["\u002Fencyklopedia\u002Fwino\u002F[section]","\u002Fencyklopedia\u002Fwino\u002Fregiony\u002F[slug]","\u002Fencyklopedia\u002Fwino\u002Fszczepy\u002F[slug]","\u002Fsklep\u002F[category]","\u002Fsklep\u002F[category]\u002F[slug]"]);self.__SSG_MANIFEST_CB&&self.__SSG_MANIFEST_CB()
