@@ -5,7 +5,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const API_ORIGIN = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8787'
 
-// Security headers applied to all routes.
+// Security headers applied to all routes.222222
+223
 // Admin routes receive additional hardened headers (CSP nonce, COOP/COEP/CORP)
 // via the Edge middleware in src/middleware.ts — these values are intentionally overridden there.
 //
