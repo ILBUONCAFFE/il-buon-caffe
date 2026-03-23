@@ -48,9 +48,6 @@ jobs:
 
       - name: Build web app (OpenNext)
         run: cd apps/web && npm run cf:build
-        env:
-          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
-          NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
 
       - name: Deploy Web Worker
         run: npx wrangler deploy

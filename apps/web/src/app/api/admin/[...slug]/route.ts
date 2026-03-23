@@ -33,7 +33,15 @@ async function proxyAdminRequest(
 ): Promise<NextResponse> {
   // Read env vars at request time (not module load time) so that
   // Cloudflare Workers vars are available via process.env.
-  const API_ORIGIN = process.env.INTERNAL_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'https://api.ilbuoncaffe.pl'
+  const API_ORIGIN = process.env.INTERNAL_API_URL
+  if (!API_ORIGIN) {
+    console.error('[admin proxy] INTERNAL_API_URL is not configured')
+    return NextResponse.json(
+      { error: { code: 'MISCONFIGURED', message: 'INTERNAL_API_URL not configured' } },
+      { status: 503 },
+    )
+  }
+
   const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET ?? ''
 
   // 1. Verify admin session server-side
