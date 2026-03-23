@@ -23,7 +23,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminSession } from '@/lib/auth/jwt'
 
-const API_ORIGIN = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8787'
+// INTERNAL_API_URL is a non-NEXT_PUBLIC_ var so it is NOT baked in at build time —
+// it is read from Cloudflare Workers vars at runtime, which is what we want here.
+const API_ORIGIN = process.env.INTERNAL_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8787'
 const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET ?? ''
 
 // ── Shared proxy logic ────────────────────────────────────────────────────────
