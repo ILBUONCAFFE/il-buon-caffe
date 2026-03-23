@@ -125,8 +125,9 @@ app.route('/api/payments', paymentsRouter)
 app.route('/api/webhooks', webhooksRouter)
 
 // ── Admin API ─────────────────────────────────────────────────────────────
-app.route('/admin',          adminRouter)
-app.route('/api/admin/allegro', allegroRouter)
+app.route('/admin',             adminRouter)
+app.route('/admin/allegro',     allegroRouter)   // reached via generic /admin/[...slug] Next.js proxy
+app.route('/api/admin/allegro', allegroRouter)   // reached via specific allegro Next.js proxy
 
 // ── Asset uploads (R2) ───────────────────────────────────────────────────
 app.route('/api/uploads', uploadsRouter)

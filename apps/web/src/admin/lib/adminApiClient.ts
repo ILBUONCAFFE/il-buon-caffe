@@ -43,7 +43,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     const body = await res.json().catch(() => ({}))
     const errObj = body?.error
     const code    = errObj?.code    ?? 'HTTP_ERROR'
-    const message = errObj?.message ?? (typeof errObj === 'string' ? errObj : null) ?? res.statusText
+    const message = errObj?.message ?? (typeof errObj === 'string' ? errObj : null) ?? res.statusText || `Błąd HTTP ${res.status}`
     throw new ApiError(res.status, code, message)
   }
 

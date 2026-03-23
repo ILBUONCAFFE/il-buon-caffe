@@ -83,6 +83,17 @@ async function proxyAllegroRequest(
   const contentType = upstreamRes.headers.get('Content-Type') ?? 'application/json'
   const responseBody = await upstreamRes.text()
 
+  // Guard: if upstream returned non-JSON (e.g. Cloudflare HTML error page), surface a proper error
+  if (!contentType.includes('application/json')) {
+    console.error(
+      `[allegro proxy] Upstream returned non-JSON content-type "${contentType}" with status ${upstreamRes.status} for ${upstreamUrl}`,
+    )
+    return NextResponse.json(
+      { error: { code: 'UPSTREAM_INVALID_RESPONSE', message: `Błąd API (HTTP ${upstreamRes.status})` } },
+      { status: 502 },
+    )
+  }
+
   return new NextResponse(responseBody, {
     status: upstreamRes.status,
     headers: { 'Content-Type': contentType },
