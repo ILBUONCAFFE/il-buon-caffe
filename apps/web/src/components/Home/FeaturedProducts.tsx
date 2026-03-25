@@ -131,13 +131,16 @@ export const FeaturedProducts = () => {
       smoothWheel: true,
     });
 
+    let rafId: number;
+
     function raf(time: number) {
       horizontalLenis.raf(time);
-      requestAnimationFrame(raf);
+      rafId = requestAnimationFrame(raf);
     }
-    requestAnimationFrame(raf);
+    rafId = requestAnimationFrame(raf);
 
     return () => {
+      cancelAnimationFrame(rafId);
       horizontalLenis.destroy();
     };
   }, []);

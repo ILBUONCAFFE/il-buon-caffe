@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ShoppingCart, Package, Store, ShoppingBag } from 'lucide-react'
+import { Store, ShoppingBag } from 'lucide-react'
 import { Dropdown } from '../../../components/ui/Dropdown'
 import { OrderDetailModal } from '../../../components/OrderDetailModal'
 import { getStatusBadge } from '../../../utils/getStatusBadge'
@@ -10,20 +10,20 @@ import type { AdminOrder } from '../../../types/admin-api'
 
 function relativeTime(iso: string): string {
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
-  if (diff < 60) return `${diff} s`
-  if (diff < 3600) return `${Math.floor(diff / 60)} min`
-  if (diff < 86400) return `${Math.floor(diff / 3600)} godz.`
-  return `${Math.floor(diff / 86400)} dni`
+  if (diff < 60) return `${diff}s`
+  if (diff < 3600) return `${Math.floor(diff / 60)}min`
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h`
+  return `${Math.floor(diff / 86400)}d`
 }
 
-const SourceBadge = ({ source }: { source: AdminOrder['source'] }) =>
+const SourceTag = ({ source }: { source: AdminOrder['source'] }) =>
   source === 'allegro' ? (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#FFF7ED] text-[#EA580C] text-xs font-medium border border-[#FED7AA]">
-      <ShoppingBag size={10} />Allegro
+    <span className="inline-flex items-center gap-1 text-[11px] text-[#EA580C] font-medium">
+      <ShoppingBag size={10} />A
     </span>
   ) : (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#EFF6FF] text-[#0066CC] text-xs font-medium border border-[#BFDBFE]">
-      <Store size={10} />Sklep
+    <span className="inline-flex items-center gap-1 text-[11px] text-[#0066CC] font-medium">
+      <Store size={10} />S
     </span>
   )
 
@@ -43,37 +43,71 @@ export const OrdersTable = () => {
   ]
 
   return (
-    <div className="card-light p-6 hover:shadow-lg transition-shadow duration-300">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-h3 text-[#1A1A1A]">Ostatnie zamówienia</h3>
-        <div className="flex items-center gap-4">
-          <Dropdown options={statusOptions} value={statusFilter} onChange={setStatusFilter} label="Status" />
-          <button className="btn-ghost">Zobacz wszystkie →</button>
+    <section className="mb-8">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-base font-semibold text-[#1A1A1A]">Ostatnie zamówienia</h2>
+        <div className="flex items-center gap-3">
+          <Dropdown
+            options={statusOptions}
+            value={statusFilter}
+            onChange={setStatusFilter}
+            label="Status"
+          />
+          <a
+            href="/admin/orders"
+            className="text-sm text-[#737373] hover:text-[#0066CC] transition-colors"
+          >
+            Wszystkie →
+          </a>
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full">
+      <div className="overflow-x-auto rounded-xl border border-[#E5E4E1]">
+        <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-[#E5E4E1]">
-              <th className="text-left text-label pb-4 pr-4">Klient</th>
-              <th className="text-left text-label pb-4 pr-4">Produkty</th>
-              <th className="text-right text-label pb-4 pr-4">Kwota</th>
-              <th className="text-center text-label pb-4 pr-4">Status</th>
-              <th className="text-right text-label pb-4">Czas</th>
+            <tr className="bg-[#FAFAF9]">
+              <th className="text-left font-medium text-[#737373] text-xs uppercase tracking-wider py-3 px-4">
+                Zamówienie
+              </th>
+              <th className="text-left font-medium text-[#737373] text-xs uppercase tracking-wider py-3 px-4">
+                Produkty
+              </th>
+              <th className="text-right font-medium text-[#737373] text-xs uppercase tracking-wider py-3 px-4">
+                Kwota
+              </th>
+              <th className="text-center font-medium text-[#737373] text-xs uppercase tracking-wider py-3 px-4">
+                Status
+              </th>
+              <th className="text-right font-medium text-[#737373] text-xs uppercase tracking-wider py-3 px-4 w-16">
+                Czas
+              </th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-[#F5F4F1]">
             {error ? (
-              <tr><td colSpan={5} className="py-8 text-center text-[#DC2626] text-sm">{error}</td></tr>
+              <tr>
+                <td colSpan={5} className="py-8 text-center text-[#DC2626] text-sm">
+                  {error}
+                </td>
+              </tr>
             ) : loading ? (
               Array.from({ length: 5 }, (_, i) => (
-                <tr key={i} className="border-b border-[#E5E4E1]/50 animate-pulse">
-                  <td className="py-4 pr-4"><div className="h-4 bg-[#E5E4E1] rounded w-32" /></td>
-                  <td className="py-4 pr-4"><div className="h-4 bg-[#E5E4E1] rounded w-24" /></td>
-                  <td className="py-4 pr-4"><div className="h-4 bg-[#E5E4E1] rounded w-16 ml-auto" /></td>
-                  <td className="py-4 pr-4"><div className="h-5 bg-[#E5E4E1] rounded-full w-20 mx-auto" /></td>
-                  <td className="py-4"><div className="h-4 bg-[#E5E4E1] rounded w-12 ml-auto" /></td>
+                <tr key={i} className="animate-pulse">
+                  <td className="py-3.5 px-4">
+                    <div className="h-4 bg-[#E5E4E1] rounded w-32" />
+                  </td>
+                  <td className="py-3.5 px-4">
+                    <div className="h-4 bg-[#E5E4E1] rounded w-24" />
+                  </td>
+                  <td className="py-3.5 px-4">
+                    <div className="h-4 bg-[#E5E4E1] rounded w-16 ml-auto" />
+                  </td>
+                  <td className="py-3.5 px-4">
+                    <div className="h-5 bg-[#E5E4E1] rounded-full w-20 mx-auto" />
+                  </td>
+                  <td className="py-3.5 px-4">
+                    <div className="h-4 bg-[#E5E4E1] rounded w-8 ml-auto" />
+                  </td>
                 </tr>
               ))
             ) : orders.length > 0 ? (
@@ -88,38 +122,41 @@ export const OrdersTable = () => {
                   <tr
                     key={order.id}
                     onClick={() => setSelectedOrder(order)}
-                    className="border-b border-[#E5E4E1]/50 cursor-pointer transition-colors hover:bg-[#F5F4F1]"
+                    className="cursor-pointer hover:bg-[#FAFAF9] transition-colors"
                   >
-                    <td className="py-4 pr-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-[#F5F4F1] flex items-center justify-center">
-                          <ShoppingCart size={14} className="text-[#525252]" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-[#1A1A1A]">{order.customerData.name}</p>
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            <p className="text-xs text-[#737373] font-mono">{order.orderNumber}</p>
-                            <SourceBadge source={order.source} />
-                          </div>
+                    <td className="py-3 px-4">
+                      <div>
+                        <span className="font-medium text-[#1A1A1A]">
+                          {order.customerData.name}
+                        </span>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="text-xs text-[#A3A3A3] font-mono">
+                            {order.orderNumber}
+                          </span>
+                          <SourceTag source={order.source} />
                         </div>
                       </div>
                     </td>
-                    <td className="py-4 pr-4">
-                      <span className="text-[#525252] text-sm">{itemLabel}</span>
+                    <td className="py-3 px-4 text-[#525252]">{itemLabel}</td>
+                    <td className="py-3 px-4 text-right">
+                      <span className="font-mono font-semibold text-[#1A1A1A]">
+                        {Number(order.total).toLocaleString()} zł
+                      </span>
                     </td>
-                    <td className="py-4 pr-4 text-right">
-                      <span className="font-mono font-semibold text-[#1A1A1A]">{Number(order.total).toLocaleString()} PLN</span>
+                    <td className="py-3 px-4 text-center">
+                      {getStatusBadge(order.status)}
                     </td>
-                    <td className="py-4 pr-4 text-center">{getStatusBadge(order.status)}</td>
-                    <td className="py-4 text-right">
-                      <span className="text-sm text-[#737373]">{relativeTime(order.paidAt ?? order.createdAt)}</span>
+                    <td className="py-3 px-4 text-right text-xs text-[#A3A3A3]">
+                      {relativeTime(order.paidAt ?? order.createdAt)}
                     </td>
                   </tr>
                 )
               })
             ) : (
               <tr>
-                <td colSpan={5} className="py-8 text-center text-[#737373]">Brak zamówień dla wybranego statusu</td>
+                <td colSpan={5} className="py-8 text-center text-[#737373]">
+                  Brak zamówień
+                </td>
               </tr>
             )}
           </tbody>
@@ -131,7 +168,6 @@ export const OrdersTable = () => {
         isOpen={!!selectedOrder}
         onClose={() => setSelectedOrder(null)}
       />
-    </div>
+    </section>
   )
 }
-

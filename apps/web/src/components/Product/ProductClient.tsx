@@ -70,7 +70,7 @@ export const ProductClient = ({ initialProduct }: ProductClientProps) => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-brand-beige flex items-center justify-center">
-        <div role="status" aria-label="\u0141adowanie produktu" className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-900" />
+        <div role="status" aria-label="Ładowanie produktu" className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand-900" />
       </div>
     );
   }
@@ -173,7 +173,7 @@ export const ProductClient = ({ initialProduct }: ProductClientProps) => {
               <div className="flex items-center bg-white rounded-xl border border-brand-200 h-14 w-36">
                 <button 
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  aria-label="Zmniejsz ilo\u015b\u0107"
+                  aria-label="Zmniejsz ilość"
                   className="w-12 h-full flex items-center justify-center text-brand-700 hover:text-brand-900 transition-colors"
                 >
                   <Minus size={18} aria-hidden="true" />
@@ -181,7 +181,7 @@ export const ProductClient = ({ initialProduct }: ProductClientProps) => {
                 <span aria-live="polite" aria-atomic="true" className="flex-1 text-center font-bold text-lg text-brand-900">{quantity}</span>
                 <button 
                   onClick={() => setQuantity(quantity + 1)}
-                  aria-label="Zwi\u0119ksz ilo\u015b\u0107"
+                  aria-label="Zwiększ ilość"
                   className="w-12 h-full flex items-center justify-center text-brand-700 hover:text-brand-900 transition-colors"
                 >
                   <Plus size={18} aria-hidden="true" />
@@ -218,7 +218,7 @@ export const ProductClient = ({ initialProduct }: ProductClientProps) => {
                 <Heart size={18} aria-hidden="true" />
                 Ulubione
               </button>
-              <button aria-label="Udost\u0119pnij produkt" className="flex items-center gap-2 text-sm text-brand-700 hover:text-brand-900 transition-colors">
+              <button aria-label="Udostępnij produkt" className="flex items-center gap-2 text-sm text-brand-700 hover:text-brand-900 transition-colors">
                 <Share2 size={18} aria-hidden="true" />
                 Udostępnij
               </button>

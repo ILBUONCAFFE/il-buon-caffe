@@ -15,11 +15,7 @@ const MAX_FAILED_ATTEMPTS = 5;                   // lock after 5 wrong passwords
 const LOCKOUT_DURATION_MS = 30 * 60 * 1000;     // 30 minutes
 const GENERIC_ERROR = 'Nieprawidłowy email lub hasło';
 
-/**
- * Expected origin for CSRF validation.
- * Falls back to localhost for development.
- */
-async function getExpectedOrigin(): Promise<string> {
+async function getExpectedOrigin(): Promise<string[]> {
   let url = process.env.NEXT_PUBLIC_SITE_URL;
   try {
     const { getCloudflareContext } = require('@opennextjs/cloudflare');
@@ -30,7 +26,14 @@ async function getExpectedOrigin(): Promise<string> {
   } catch (e) {
     // Local dev or setup issue
   }
-  return (url ?? 'http://localhost:3000').replace(/\/$/, '');
+  
+  const expectedUrls = [(url ?? 'http://localhost:3000').replace(/\/$/, '')];
+  
+  if (process.env.NODE_ENV !== 'production' && !expectedUrls.includes('http://localhost:3000')) {
+    expectedUrls.push('http://localhost:3000');
+  }
+  
+  return expectedUrls;
 }
 
 export interface LoginResult {
@@ -98,8 +101,8 @@ export async function adminLoginAction(formData: FormData): Promise<LoginResult>
       try { effectiveOrigin = new URL(referer).origin; } catch { effectiveOrigin = null; }
     }
 
-    if (!effectiveOrigin || effectiveOrigin !== expectedOrigin) {
-      console.warn(`[adminLoginAction] CSRF block: origin=${origin ?? 'null'} referer=${referer ?? 'null'} expected=${expectedOrigin}`);
+    if (!effectiveOrigin || !expectedOrigin.includes(effectiveOrigin)) {
+      console.warn(`[adminLoginAction] CSRF block: origin=${origin ?? 'null'} referer=${referer ?? 'null'} expected=${expectedOrigin.join(', ')}`);
       return { success: false, error: GENERIC_ERROR };
     }
 

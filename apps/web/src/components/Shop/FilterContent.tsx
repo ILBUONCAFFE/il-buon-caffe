@@ -78,8 +78,8 @@ export const FilterContent: React.FC<FilterContentProps> = ({
       <div className="relative">
         <input
           type="text"
-          aria-label="Szukaj produkt\u00f3w"
-          placeholder="Szukaj produkt\u00f3w..."
+          aria-label="Szukaj produktów"
+          placeholder="Szukaj produktów..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full bg-brand-50 border border-brand-100 rounded-xl py-3.5 pl-11 pr-4 text-sm focus:ring-2 focus:ring-brand-700 focus:border-transparent outline-none transition-all placeholder:text-brand-400"
@@ -91,7 +91,7 @@ export const FilterContent: React.FC<FilterContentProps> = ({
         {searchQuery && (
           <button
             onClick={() => setSearchQuery("")}
-            aria-label="Wyczy\u015b\u0107 wyszukiwanie"
+            aria-label="Wyczyść wyszukiwanie"
             className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-brand-200 flex items-center justify-center hover:bg-brand-300 transition-colors"
           >
             <X size={12} aria-hidden="true" className="text-brand-600" />
@@ -106,7 +106,7 @@ export const FilterContent: React.FC<FilterContentProps> = ({
         onClick={clearAllFilters}
         className="w-full text-center text-xs font-bold uppercase tracking-wider text-brand-700 hover:text-brand-700 mb-4 py-2 border border-brand-200 rounded-lg hover:bg-brand-50 transition-all"
       >
-        Wyczy\u015b\u0107 filtry
+        Wyczyść filtry
       </button>
     )}
 

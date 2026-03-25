@@ -72,7 +72,7 @@ export const WineSelectDropdown: React.FC<{
             <span
               role="button"
               tabIndex={0}
-              aria-label={`Wyczy\u015B\u0107 ${label}`}
+              aria-label={`Wyczyść ${label}`}
               onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); onChange(null); setIsOpen(false); }}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); onChange(null); setIsOpen(false); } }}
               className="w-5 h-5 rounded-full bg-brand-100 hover:bg-brand-200 flex items-center justify-center transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-700"

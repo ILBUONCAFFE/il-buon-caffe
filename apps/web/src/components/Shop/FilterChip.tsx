@@ -13,7 +13,7 @@ export const FilterChip: React.FC<{
     animate={{ opacity: 1, scale: 1 }}
     exit={{ opacity: 0, scale: 0.9 }}
     onClick={onRemove}
-    aria-label={`Usu\u0144 filtr: ${label}`}
+    aria-label={`Usuń filtr: ${label}`}
     className="inline-flex items-center bg-white border border-brand-200 text-brand-700 shadow-sm rounded-full px-4 py-1.5 text-xs font-medium hover:border-brand-900 hover:text-brand-900 transition-all gap-2"
   >
     {label}

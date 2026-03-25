@@ -577,7 +577,7 @@ export const ShopClient = ({ initialData }: ShopClientProps) => {
                     onClick={clearAllFilters}
                     className="text-xs font-medium text-brand-700 hover:text-brand-700 underline underline-offset-2 px-2"
                   >
-                    Wyczy\u015b\u0107 wszystko
+                    Wyczyść wszystko
                   </button>
                 </motion.div>
               )}
@@ -590,7 +590,7 @@ export const ShopClient = ({ initialData }: ShopClientProps) => {
                   <motion.div
                     key="loading"
                     role="status"
-                    aria-label="\u0141adowanie produkt\u00f3w"
+                    aria-label="Ładowanie produktów"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
@@ -637,17 +637,17 @@ export const ShopClient = ({ initialData }: ShopClientProps) => {
                       <Search size={32} className="text-brand-400" />
                     </div>
                     <h3 className="text-2xl font-serif text-brand-900 mb-2">
-                      Brak wynik\u00f3w
+                      Brak wyników
                     </h3>
                     <p className="text-brand-700 mb-8 max-w-md mx-auto">
-                      Nie znale\u017ali\u015bmy produkt\u00f3w spe\u0142niaj\u0105cych Twoje kryteria. Spr\u00f3buj
-                      zmieni\u0107 filtry lub wyszuka\u0107 co\u015b innego.
+                      Nie znaleźliśmy produktów spełniających Twoje kryteria. Spróbuj
+                      zmienić filtry lub wyszukać coś innego.
                     </p>
                     <button
                       onClick={clearAllFilters}
                       className="px-8 py-3 bg-brand-900 text-white text-sm font-bold uppercase tracking-wider rounded-full hover:bg-brand-700 transition-all inline-flex items-center gap-2"
                     >
-                      Wyczy\u015b\u0107 filtry
+                      Wyczyść filtry
                       <ArrowRight size={16} />
                     </button>
                   </motion.div>

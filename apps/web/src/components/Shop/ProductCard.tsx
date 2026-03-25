@@ -57,12 +57,12 @@ export const ProductCard: React.FC<{
         <span className="font-serif font-bold text-lg">18+</span>
       </div>
       <p className="text-xs font-bold text-brand-900 uppercase tracking-wider mb-2">
-        Tre\u015b\u0107 dost\u0119pna dla pe\u0142noletnich
+        Treść dostępna dla pełnoletnich
       </p>
       <button
         className="text-[10px] underline text-brand-600 hover:text-brand-900 transition-colors"
       >
-        Potwierd\u017a wiek
+        Potwierdź wiek
       </button>
     </div>
   );
@@ -97,7 +97,7 @@ export const ProductCard: React.FC<{
           />
           {product.isNew && !isRestricted && (
             <span className="absolute top-2 left-2 px-2 py-0.5 bg-brand-700 text-white text-[10px] font-bold uppercase tracking-wider rounded-md">
-              New
+              Nowość
             </span>
           )}
         </div>
@@ -115,7 +115,7 @@ export const ProductCard: React.FC<{
           <div className="flex items-center justify-between mt-auto">
             <span className="font-bold text-brand-900 text-2xl">
               {product.price.toFixed(2)}{" "}
-              <span className="text-base font-normal text-brand-600">z\u0142</span>
+              <span className="text-base font-normal text-brand-600">zł</span>
             </span>
             <button
               onClick={(e) => {
@@ -157,10 +157,10 @@ export const ProductCard: React.FC<{
               <span className="font-serif font-bold text-xl">18+</span>
             </div>
             <p className="text-sm font-bold text-brand-900 uppercase tracking-wider mb-2">
-              Tylko dla doros\u0142ych
+              Tylko dla dorosłych
             </p>
             <span className="text-xs text-brand-600 underline">
-              Kliknij, aby potwierdzi\u0107 wiek
+              Kliknij, aby potwierdzić wiek
             </span>
           </div>
         )}
@@ -185,7 +185,7 @@ export const ProductCard: React.FC<{
             <div className="absolute top-3 left-3 flex flex-col gap-2">
               {product.isNew && (
                 <span className="px-3 py-1 bg-brand-700 text-white text-[10px] font-bold uppercase tracking-wider rounded-full shadow-lg">
-                  Nowo\u015b\u0107
+                  Nowość
                 </span>
               )}
             </div>
@@ -254,7 +254,7 @@ export const ProductCard: React.FC<{
         <div className="mt-auto pt-4">
           <span className="font-bold text-brand-900 text-xl">
             {product.price.toFixed(2)}{" "}
-            <span className="text-base font-normal text-brand-600">z\u0142</span>
+            <span className="text-base font-normal text-brand-600">zł</span>
           </span>
         </div>
       </div>
