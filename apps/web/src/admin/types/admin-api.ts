@@ -1,3 +1,6 @@
+import type { AllegroSalesQuality, AllegroSalesQualityResponse } from '@repo/types'
+export type { AllegroSalesQuality, AllegroSalesQualityResponse }
+
 // ── Shared wrappers ───────────────────────────────────────────────────────────
 export interface ApiListMeta {
   total: number
