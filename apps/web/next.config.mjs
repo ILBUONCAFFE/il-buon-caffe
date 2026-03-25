@@ -42,6 +42,7 @@ const SECURITY_HEADERS = [
       "img-src 'self' data: https:",
       "font-src 'self' data:",
       "connect-src 'self' https:",
+      "frame-src https://www.google.com",
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
