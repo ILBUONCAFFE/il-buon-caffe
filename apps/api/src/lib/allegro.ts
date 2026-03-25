@@ -191,11 +191,12 @@ export async function verifySignedState(
 // ── KV key constants ──────────────────────────────────────────────────────────
 
 export const KV_KEYS = {
-  ACCESS_TOKEN:  'allegro:access_token',
-  REFRESH_TOKEN: 'allegro:refresh_token',
-  ENVIRONMENT:   'allegro:environment',
-  STATUS:        'allegro:status',       // { connected, expiresAt, environment }
-  STATE_PREFIX:  'allegro:state:',       // + uuid → CSRF state (TTL 10 min)
+  ACCESS_TOKEN:   'allegro:access_token',
+  REFRESH_TOKEN:  'allegro:refresh_token',
+  ENVIRONMENT:    'allegro:environment',
+  STATUS:         'allegro:status',       // { connected, expiresAt, environment }
+  STATE_PREFIX:   'allegro:state:',       // + uuid → CSRF state (TTL 10 min)
+  QUALITY_CACHE:  'allegro:quality:cache', // AllegroSalesQuality — refreshed daily
 } as const
 
 // ── Status object ─────────────────────────────────────────────────────────────
