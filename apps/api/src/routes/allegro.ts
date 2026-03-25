@@ -765,6 +765,12 @@ async function fetchAllegroQualityData(
     ? await returnsResp.json() as Record<string, unknown>
     : {}
 
+  // TEMP: log raw responses to verify field names — remove after Task 9
+  console.log('[Quality DEBUG] /sale/quality:', JSON.stringify(quality))
+  console.log('[Quality DEBUG] /sale/user-ratings pos:', JSON.stringify(posRatings))
+  console.log('[Quality DEBUG] /sale/user-ratings neg:', JSON.stringify(negRatings))
+  console.log('[Quality DEBUG] /order/returns:', JSON.stringify(returns_))
+
   // NOTE: Adjust these field paths after verifying against actual Allegro sandbox responses.
   const score = (quality.score as number) ?? 0
   const maxScore = (quality.maxScore as number) ?? 500
