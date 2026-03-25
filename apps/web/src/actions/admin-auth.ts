@@ -19,8 +19,18 @@ const GENERIC_ERROR = 'Nieprawidłowy email lub hasło';
  * Expected origin for CSRF validation.
  * Falls back to localhost for development.
  */
-function getExpectedOrigin(): string {
-  return (process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000').replace(/\/$/, '');
+async function getExpectedOrigin(): Promise<string> {
+  let url = process.env.NEXT_PUBLIC_SITE_URL;
+  try {
+    const { getCloudflareContext } = require('@opennextjs/cloudflare');
+    const cfCtx = await getCloudflareContext({ async: true });
+    if (cfCtx?.env?.NEXT_PUBLIC_SITE_URL) {
+      url = cfCtx.env.NEXT_PUBLIC_SITE_URL;
+    }
+  } catch (e) {
+    // Local dev or setup issue
+  }
+  return (url ?? 'http://localhost:3000').replace(/\/$/, '');
 }
 
 export interface LoginResult {
@@ -76,7 +86,7 @@ export async function adminLoginAction(formData: FormData): Promise<LoginResult>
     const headerStore = await headers();
     const origin = headerStore.get('origin');
     const referer = headerStore.get('referer');
-    const expectedOrigin = getExpectedOrigin();
+    const expectedOrigin = await getExpectedOrigin();
 
     // Fail CLOSED: a legitimate browser form submission always includes
     // Origin or Referer. If both are absent (e.g., stripped by a rogue proxy),

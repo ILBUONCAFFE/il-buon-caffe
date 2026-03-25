@@ -19,7 +19,7 @@ categoriesRouter.get('/', async (c) => {
     const cached   = await cache.match(cacheKey)
     if (cached) return cached
 
-    const db = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db = createDb(c.env.DATABASE_URL)
 
     const rows = await db
       .select({
@@ -75,7 +75,7 @@ categoriesRouter.get('/', async (c) => {
 // ============================================
 categoriesRouter.get('/:slug', async (c) => {
   try {
-    const db   = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db   = createDb(c.env.DATABASE_URL)
     const slug = c.req.param('slug')
 
     const cat = await db.query.categories.findFirst({

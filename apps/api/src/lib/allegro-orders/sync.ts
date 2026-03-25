@@ -34,7 +34,7 @@ export async function syncAllegroOrders(env: Env): Promise<void> {
   // For token resolution we may need a quick DB read — use HTTP driver (1 subrequest)
   let accessToken: string | null
   try {
-    const connStr = env.HYPERDRIVE?.connectionString ?? env.DATABASE_URL
+    const connStr = env.DATABASE_URL
     setHttpMode(true, connStr)
     const httpDb = createDb(connStr)
     accessToken = await resolveAccessToken(kv, httpDb, env)
@@ -96,7 +96,7 @@ export async function syncAllegroOrders(env: Env): Promise<void> {
   // Lazy WS pool — only opened when we actually have events to process
   let _pool: { db: ReturnType<typeof createDb>; end: () => Promise<void> } | null = null
   function getPool() {
-    if (!_pool) _pool = createDbWsPool(env.HYPERDRIVE?.connectionString ?? env.DATABASE_URL)
+    if (!_pool) _pool = createDbWsPool(env.DATABASE_URL)
     return _pool.db
   }
 

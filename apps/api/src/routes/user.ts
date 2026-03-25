@@ -32,7 +32,7 @@ export const userRouter = new Hono<{ Bindings: Env }>()
 userRouter.get('/profile', requireAuth(), async (c) => {
   try {
     const payload = c.get('user')
-    const db      = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db      = createDb(c.env.DATABASE_URL)
 
     const user = await db.query.users.findFirst({
       columns: {
@@ -63,7 +63,7 @@ userRouter.patch('/profile', requireAuth(), async (c) => {
     if (sizeErr) return sizeErr
 
     const payload = c.get('user')
-    const db      = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db      = createDb(c.env.DATABASE_URL)
     const body    = await c.req.json<{ name?: string }>()
     const name    = sanitize(body.name, 100)
 
@@ -86,7 +86,7 @@ userRouter.patch('/profile', requireAuth(), async (c) => {
 userRouter.get('/consents', requireAuth(), async (c) => {
   try {
     const payload = c.get('user')
-    const db      = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db      = createDb(c.env.DATABASE_URL)
     const userId  = parseInt(payload.sub)
 
     // Latest consent per type
@@ -134,7 +134,7 @@ userRouter.post('/consents', requireAuth(), async (c) => {
 
     const payload    = c.get('user')
     const userId     = parseInt(payload.sub)
-    const db         = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db         = createDb(c.env.DATABASE_URL)
     const body       = await c.req.json<Partial<Record<UpdatableConsent, boolean>>>()
     const ipAddress  = getClientIp(c)
     const userAgent  = sanitize(c.req.header('User-Agent'), 500) || 'unknown'
@@ -189,7 +189,7 @@ userRouter.delete('/consents/:type', requireAuth(), async (c) => {
     const payload    = c.get('user')
     const userId     = parseInt(payload.sub)
     const type       = c.req.param('type') as UpdatableConsent
-    const db         = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db         = createDb(c.env.DATABASE_URL)
     const ipAddress  = getClientIp(c)
     const userAgent  = sanitize(c.req.header('User-Agent'), 500) || 'unknown'
 
@@ -228,7 +228,7 @@ userRouter.get('/export', requireAuth(), exportRateLimiter, async (c) => {
   try {
     const payload = c.get('user')
     const userId  = parseInt(payload.sub)
-    const db      = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db      = createDb(c.env.DATABASE_URL)
     const ip      = getClientIp(c)
     const ua      = sanitize(c.req.header('User-Agent'), 500) || 'unknown'
 
@@ -311,7 +311,7 @@ userRouter.post('/anonymize', requireAuth(), async (c) => {
 
     const payload = c.get('user')
     const userId  = parseInt(payload.sub)
-    const db      = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db      = createDb(c.env.DATABASE_URL)
 
     const body         = await c.req.json<{ confirmEmail: string; reason?: string }>()
     const confirmEmail = sanitize(body.confirmEmail || '').toLowerCase()

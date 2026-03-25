@@ -51,7 +51,7 @@ ordersRouter.post('/', requireAuth(), async (c) => {
 
     const user    = c.get('user')
     const userId  = parseInt(user.sub)
-    const db      = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db      = createDb(c.env.DATABASE_URL)
 
     // ── Idempotency check ────────────────────────────────────────────────
     const existingOrder = await db.query.orders.findFirst({
@@ -263,7 +263,7 @@ ordersRouter.get('/', requireAuth(), async (c) => {
   try {
     const user   = c.get('user')
     const userId = parseInt(user.sub)
-    const db     = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db     = createDb(c.env.DATABASE_URL)
 
     const { page, limit } = parsePagination(c, { maxLimit: 50, defaultLimit: 20 })
     const statusQ  = c.req.query('status') || ''
@@ -323,8 +323,8 @@ ordersRouter.get('/:id', requireAuth(), async (c) => {
   try {
     const user    = c.get('user')
     const userId  = parseInt(user.sub)
-    const orderId = parseInt(c.req.param('id'))
-    const db      = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const orderId = parseInt(c.req.param('') as string)
+    const db      = createDb(c.env.DATABASE_URL)
 
     if (isNaN(orderId)) {
       return c.json({ error: 'Nieprawidłowe ID zamówienia' }, 400)

@@ -165,7 +165,7 @@ async function autoRefreshAllegroToken(env: Env): Promise<void> {
       }
     }
 
-    const { db, end } = createDbWithPool(env.HYPERDRIVE?.connectionString ?? env.DATABASE_URL)
+    const { db, end } = createDbWithPool(env.DATABASE_URL)
     try {
 
     const [cred] = await db
@@ -263,7 +263,7 @@ async function dataRetentionCleanup(env: Env): Promise<void> {
     if (hoursSince < 23) return   // Already ran today
   }
 
-  const { db, end } = createDbWithPool(env.HYPERDRIVE?.connectionString ?? env.DATABASE_URL)
+  const { db, end } = createDbWithPool(env.DATABASE_URL)
   try {
     const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
     const oneYearAgo    = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)

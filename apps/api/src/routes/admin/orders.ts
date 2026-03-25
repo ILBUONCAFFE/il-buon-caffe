@@ -21,7 +21,7 @@ adminOrdersRouter.use('*', requireAdminOrProxy())
 // ============================================
 adminOrdersRouter.get('/', auditLogMiddleware('view_order'), async (c) => {
   try {
-    const db               = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db               = createDb(c.env.DATABASE_URL)
     const { page, limit } = parsePagination(c)
     const source   = c.req.query('source')   || ''
     const status   = c.req.query('status')   || ''
@@ -94,8 +94,8 @@ adminOrdersRouter.get('/', auditLogMiddleware('view_order'), async (c) => {
 // ============================================
 adminOrdersRouter.get('/:id', auditLogMiddleware('view_order'), async (c) => {
   try {
-    const db      = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
-    const orderId = parseInt(c.req.param('id'))
+    const db      = createDb(c.env.DATABASE_URL)
+    const orderId = parseInt(c.req.param('') as string)
 
     if (isNaN(orderId)) return c.json({ error: 'Nieprawidłowe ID' }, 400)
 
@@ -132,8 +132,8 @@ adminOrdersRouter.get('/:id', auditLogMiddleware('view_order'), async (c) => {
 adminOrdersRouter.patch('/:id/status', async (c) => {
   try {
     const adminUser = c.get('user')
-    const db        = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
-    const orderId   = parseInt(c.req.param('id'))
+    const db        = createDb(c.env.DATABASE_URL)
+    const orderId   = parseInt(c.req.param('') as string)
 
     if (isNaN(orderId)) return c.json({ error: 'Nieprawidłowe ID zamówienia' }, 400)
 

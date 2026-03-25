@@ -22,16 +22,10 @@ export function dbMiddleware() {
     const env = c.env as DbEnv
     const isLocal = env.LOCAL_DEV === 'true'
 
-    let db
-    if (isLocal || !env.HYPERDRIVE) {
-      // Local dev or no Hyperdrive binding: use Neon HTTP driver directly
-      setHttpMode(true, env.DATABASE_URL)
-      db = createDb(env.DATABASE_URL)
-    } else {
-      // Production: WebSocket Pool via Hyperdrive (persistent edge-side connection pool)
-      setHttpMode(false)
-      db = createDb(env.HYPERDRIVE.connectionString)
-    }
+    // HTTP Driver is used universally because WebSocket Serverless Pool throws exceptions natively
+    // when paired with the local Hyperdrive TCP Proxy endpoint.
+    setHttpMode(true, env.DATABASE_URL)
+    const db = createDb(env.DATABASE_URL)
 
     c.set('db', db)
     await next()

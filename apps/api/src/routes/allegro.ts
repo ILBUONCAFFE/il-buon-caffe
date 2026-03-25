@@ -141,7 +141,7 @@ async function buildStatus(db: ReturnType<typeof createDb>): Promise<AllegroConn
 // ── GET /status ───────────────────────────────────────────────────────────────
 allegroRouter.get('/status', requireAdminOrProxy(), async (c) => {
   const env = c.env as AllegroEnv
-  const db  = createDb(env.HYPERDRIVE?.connectionString ?? env.DATABASE_URL)
+  const db  = createDb(env.DATABASE_URL)
 
   try {
     // Try KV cache first (TTL 5 min) — guard against unconfigured KV binding
@@ -304,7 +304,7 @@ allegroRouter.get('/callback', async (c) => {
 // ── POST /disconnect ──────────────────────────────────────────────────────────
 allegroRouter.post('/disconnect', requireAdminOrProxy(), async (c) => {
   const env = c.env as AllegroEnv
-  const db  = createDb(env.HYPERDRIVE?.connectionString ?? env.DATABASE_URL)
+  const db  = createDb(env.DATABASE_URL)
 
   try {
     await db.update(allegroCredentials)
@@ -330,7 +330,7 @@ allegroRouter.post('/disconnect', requireAdminOrProxy(), async (c) => {
 // ── POST /refresh ─────────────────────────────────────────────────────────────
 allegroRouter.post('/refresh', requireAdminOrProxy(), async (c) => {
   const env = c.env as AllegroEnv
-  const db  = createDb(env.HYPERDRIVE?.connectionString ?? env.DATABASE_URL)
+  const db  = createDb(env.DATABASE_URL)
 
   try {
     // Get active credentials from DB
@@ -389,7 +389,7 @@ allegroRouter.post('/refresh', requireAdminOrProxy(), async (c) => {
     if (err instanceof AllegroInvalidGrantError) {
       console.warn('[Allegro] Refresh token wygasł/unieważniony — czyszczę dane uwierzytelniania')
       const env = c.env as AllegroEnv
-      const db2 = createDb(env.HYPERDRIVE?.connectionString ?? env.DATABASE_URL)
+      const db2 = createDb(env.DATABASE_URL)
       await Promise.allSettled([
         db2.update(allegroCredentials).set({ isActive: false, updatedAt: new Date() }).where(eq(allegroCredentials.isActive, true)),
         env.ALLEGRO_KV.delete(KV_KEYS.ACCESS_TOKEN),
@@ -409,7 +409,7 @@ allegroRouter.post('/refresh', requireAdminOrProxy(), async (c) => {
 // Verify token by calling Allegro GET /me
 allegroRouter.get('/me', requireAdminOrProxy(), async (c) => {
   const env = c.env as AllegroEnv
-  const db  = createDb(env.HYPERDRIVE?.connectionString ?? env.DATABASE_URL)
+  const db  = createDb(env.DATABASE_URL)
 
   try {
     // Get access token (KV first, then DB)
@@ -528,7 +528,7 @@ allegroRouter.put('/orders/:id/fulfillment', requireAdminOrProxy(), async (c) =>
     }
 
     // Update local order status based on fulfillment
-    const db = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db = createDb(c.env.DATABASE_URL)
     const statusMap: Record<string, string> = {
       PROCESSING:          'processing',
       READY_FOR_SHIPMENT:  'processing',
@@ -675,7 +675,7 @@ allegroRouter.get('/orders/:id/tracking', requireAdminOrProxy(), async (c) => {
 
     // 4. Update tracking number in local DB
     if (waybill) {
-      const db = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+      const db = createDb(c.env.DATABASE_URL)
       await db.update(orders)
         .set({ trackingNumber: waybill, updatedAt: new Date() })
         .where(eq(orders.externalId, checkoutFormId!))

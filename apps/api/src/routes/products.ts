@@ -18,7 +18,7 @@ productsRouter.get('/', async (c) => {
     const cached   = await cache.match(cacheKey)
     if (cached) return cached
 
-    const db = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db = createDb(c.env.DATABASE_URL)
 
     // Parse query params
     const categorySlug = c.req.query('category')
@@ -124,7 +124,7 @@ productsRouter.get('/:slug', async (c) => {
     const cached   = await cache.match(cacheKey)
     if (cached) return cached
 
-    const db   = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db   = createDb(c.env.DATABASE_URL)
     const slug = c.req.param('slug')
 
     const product = await db.query.products.findFirst({

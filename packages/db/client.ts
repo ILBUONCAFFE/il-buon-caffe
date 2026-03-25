@@ -44,13 +44,18 @@ export function setHttpMode(on: boolean, connStr?: string) {
 // so the WS branch is only taken in local dev (wrangler dev without Hyperdrive).
 // Explicit return type avoids union-type overload resolution issues in TypeScript.
 export function createDb(connectionString: string): NeonHttpDatabase<typeof schema> {
-  if (_httpMode) {
-    const url = _httpConnectionString ?? connectionString;
-    const sql = neon(url);
-    return drizzleHttp({ client: sql, schema });
+  // FORCE HTTP mode to bypass Hyperdrive TCP proxy incompatible with Cloudflare WebSocket Pool
+  // The HTTP driver correctly resolves via standard stateless fetch connections to Neon.
+  let url = connectionString;
+  
+  // If a Hyperdrive proxy connection string was accidentally provided, fallback to the direct URL if possible
+  // In Cloudflare environments, we can gracefully fallback to DATABASE_URL if available
+  if (url.includes('hyperdrive')) {
+      url = _httpConnectionString || url; 
   }
-  const pool = new Pool({ connectionString });
-  return drizzleWs({ client: pool, schema }) as unknown as NeonHttpDatabase<typeof schema>;
+  
+  const sql = neon(_httpConnectionString ?? url);
+  return drizzleHttp({ client: sql, schema });
 }
 
 /**

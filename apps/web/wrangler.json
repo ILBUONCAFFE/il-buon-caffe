@@ -7,6 +7,12 @@
 		"directory": ".open-next/assets",
 		"binding": "ASSETS"
 	},
+	"services": [
+		{
+			"binding": "API_WORKER",
+			"service": "il-buon-caffe-api"
+		}
+	],
 	"vars": {
 		"INTERNAL_API_URL": "https://il-buon-caffe-api.ilbuoncaffe19.workers.dev",
 		"NEXT_PUBLIC_API_URL": "https://il-buon-caffe-api.ilbuoncaffe19.workers.dev",

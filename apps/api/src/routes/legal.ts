@@ -24,7 +24,7 @@ legalRouter.get('/:type', async (c) => {
       return c.json({ error: 'Nieprawidłowy typ dokumentu. Dozwolone: privacy-policy, terms, cookies' }, 400)
     }
 
-    const db     = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db     = createDb(c.env.DATABASE_URL)
     const dbType = toDbType(type)
 
     const doc = await db.query.legalDocuments.findFirst({
@@ -66,7 +66,7 @@ legalRouter.get('/:type/history', async (c) => {
       return c.json({ error: 'Nieprawidłowy typ dokumentu' }, 400)
     }
 
-    const db     = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db     = createDb(c.env.DATABASE_URL)
     const dbType = toDbType(type)
 
     const docs = await db

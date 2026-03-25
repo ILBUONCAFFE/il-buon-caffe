@@ -18,7 +18,7 @@ adminCustomersRouter.use('*', requireAdminOrProxy())
 // ============================================
 adminCustomersRouter.get('/', auditLogMiddleware('view_customer'), async (c) => {
   try {
-    const db               = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db               = createDb(c.env.DATABASE_URL)
     const { page, limit } = parsePagination(c)
     const search = sanitize(c.req.query('search') || '', 100)
 
@@ -64,8 +64,8 @@ adminCustomersRouter.get('/', auditLogMiddleware('view_customer'), async (c) => 
 // ============================================
 adminCustomersRouter.get('/:userId', auditLogMiddleware('view_customer'), async (c) => {
   try {
-    const db     = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
-    const userId = parseInt(c.req.param('userId'))
+    const db     = createDb(c.env.DATABASE_URL)
+    const userId = parseInt(c.req.param('') as string)
 
     if (isNaN(userId)) return c.json({ error: 'Nieprawidłowe ID użytkownika' }, 400)
 
@@ -131,9 +131,9 @@ adminCustomersRouter.get('/:userId', auditLogMiddleware('view_customer'), async 
 // ============================================
 adminCustomersRouter.post('/:userId/unlock', async (c) => {
   try {
-    const db     = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db     = createDb(c.env.DATABASE_URL)
     const admin  = c.get('user')
-    const userId = parseInt(c.req.param('userId'))
+    const userId = parseInt(c.req.param('') as string)
 
     if (isNaN(userId)) return c.json({ error: 'Nieprawidłowe ID' }, 400)
 
@@ -163,9 +163,9 @@ adminCustomersRouter.post('/:userId/unlock', async (c) => {
 // ============================================
 adminCustomersRouter.post('/:userId/anonymize', async (c) => {
   try {
-    const db     = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db     = createDb(c.env.DATABASE_URL)
     const admin  = c.get('user')
-    const userId = parseInt(c.req.param('userId'))
+    const userId = parseInt(c.req.param('') as string)
 
     if (isNaN(userId)) return c.json({ error: 'Nieprawidłowe ID' }, 400)
 
@@ -215,7 +215,7 @@ adminCustomersRouter.post('/:userId/anonymize', async (c) => {
 // ============================================
 adminCustomersRouter.get('/gdpr/anonymize-preview', async (c) => {
   try {
-    const db          = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db          = createDb(c.env.DATABASE_URL)
     const daysOverdue = parseInt(c.req.query('daysOverdue') || '0', 10)
     const cutoff      = new Date()
     cutoff.setDate(cutoff.getDate() - Math.max(0, daysOverdue))

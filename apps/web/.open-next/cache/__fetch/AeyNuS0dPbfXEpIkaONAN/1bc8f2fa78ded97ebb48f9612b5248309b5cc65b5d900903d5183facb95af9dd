@@ -1,1 +1,0 @@
-{"kind":"FETCH","data":{"headers":{},"body":"{\"products\":[],\"totalCount\":0,\"availableOrigins\":[],\"priceRange\":{\"min\":0,\"max\":0},\"wineFilterOptions\":{\"countries\":[],\"regions\":[],\"grapes\":[]}}","status":200,"url":""},"revalidate":300,"tags":["products"]}

@@ -72,7 +72,7 @@ paymentsRouter.post('/p24/initiate', requireAuth(), async (c) => {
   try {
     const payload = c.get('user')
     const userId  = parseInt(payload.sub)
-    const db      = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db      = createDb(c.env.DATABASE_URL)
 
     const body = await c.req.json<{
       orderId: number
@@ -194,8 +194,8 @@ paymentsRouter.get('/p24/status/:orderId', requireAuth(), async (c) => {
   try {
     const payload = c.get('user')
     const userId  = parseInt(payload.sub)
-    const orderId = parseInt(c.req.param('orderId'))
-    const db      = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const orderId = parseInt(c.req.param('') as string)
+    const db      = createDb(c.env.DATABASE_URL)
 
     if (isNaN(orderId)) return c.json({ error: 'Nieprawidłowe ID zamówienia' }, 400)
 

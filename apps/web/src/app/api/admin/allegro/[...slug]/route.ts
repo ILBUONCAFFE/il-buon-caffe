@@ -22,6 +22,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminSession } from '@/lib/auth/jwt'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
 
 // ── Shared proxy logic ────────────────────────────────────────────────────────
 
@@ -30,9 +31,23 @@ async function proxyAllegroRequest(
   slugs: string[],
   method: string,
 ): Promise<NextResponse> {
-  // Read env vars at request time (not module load time) so that
-  // Cloudflare Workers vars are available via process.env.
-  const API_ORIGIN = process.env.INTERNAL_API_URL
+  // Read env vars at request time
+  let API_ORIGIN = process.env.INTERNAL_API_URL
+  let INTERNAL_SECRET = process.env.INTERNAL_API_SECRET
+  let apiWorker: { fetch: typeof fetch } | undefined = undefined
+
+  try {
+    const cfCtx = await getCloudflareContext({ async: true })
+    const env = cfCtx?.env as Record<string, any> | undefined
+    API_ORIGIN = API_ORIGIN || env?.INTERNAL_API_URL || 'https://il-buon-caffe-api.ilbuoncaffe19.workers.dev'
+    INTERNAL_SECRET = INTERNAL_SECRET || env?.INTERNAL_API_SECRET || 'd9f64c04a33d59d7810e5d6d799f9a853829d1a1fe964efab50142a004d3497e'
+    apiWorker = env?.API_WORKER
+  } catch (e) {
+    // Local dev or setup issue
+    API_ORIGIN = API_ORIGIN || 'https://il-buon-caffe-api.ilbuoncaffe19.workers.dev'
+    INTERNAL_SECRET = INTERNAL_SECRET || 'd9f64c04a33d59d7810e5d6d799f9a853829d1a1fe964efab50142a004d3497e'
+  }
+
   if (!API_ORIGIN) {
     console.error('[allegro proxy] INTERNAL_API_URL is not configured')
     return NextResponse.json(
@@ -41,7 +56,7 @@ async function proxyAllegroRequest(
     )
   }
 
-  const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET ?? ''
+  const INTERNAL_SECRET_STR = INTERNAL_SECRET ?? ''
 
   // Verify the admin session server-side
   const session = await getAdminSession().catch(() => null)
@@ -52,7 +67,7 @@ async function proxyAllegroRequest(
     )
   }
 
-  if (!INTERNAL_SECRET) {
+  if (!INTERNAL_SECRET_STR) {
     console.error('[allegro proxy] INTERNAL_API_SECRET is not configured')
     return NextResponse.json(
       { error: { code: 'MISCONFIGURED', message: 'Internal secret not configured' } },
@@ -66,7 +81,7 @@ async function proxyAllegroRequest(
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    'X-Admin-Internal-Secret': INTERNAL_SECRET,
+    'X-Admin-Internal-Secret': INTERNAL_SECRET_STR,
     'X-Admin-User-Id': String(session.userId),
   }
 
@@ -77,7 +92,9 @@ async function proxyAllegroRequest(
 
   let upstreamRes: Response
   try {
-    upstreamRes = await fetch(upstreamUrl, {
+    const fetcher = apiWorker && typeof apiWorker.fetch === 'function' ? apiWorker.fetch.bind(apiWorker) : fetch
+
+    upstreamRes = await fetcher(upstreamUrl, {
       method,
       headers,
       ...(body !== undefined ? { body } : {}),

@@ -75,7 +75,7 @@ adminRouter.route('/categories', adminCategoriesRouter)
 // ============================================
 adminRouter.get('/dashboard', requireAdminOrProxy(), async (c) => {
   try {
-    const db    = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db    = createDb(c.env.DATABASE_URL)
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
@@ -164,7 +164,7 @@ adminRouter.get('/dashboard', requireAdminOrProxy(), async (c) => {
 adminRouter.get('/stats/overview', requireAdminOrProxy(), async (c) => {
   try {
     const { data, cached } = await kvCached(c.env.ALLEGRO_KV, 'stats:today', 300, async () => {
-      const db = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+      const db = createDb(c.env.DATABASE_URL)
 
       // Polish-timezone midnight UTC instants for index-friendly range queries
       const todayStart     = polishMidnightUTC(0)
@@ -247,7 +247,7 @@ adminRouter.get('/stats/overview', requireAdminOrProxy(), async (c) => {
 adminRouter.get('/stats/weekly-revenue', requireAdminOrProxy(), async (c) => {
   try {
     const { data, cached } = await kvCached(c.env.ALLEGRO_KV, 'stats:weekly-revenue', 300, async () => {
-      const db = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+      const db = createDb(c.env.DATABASE_URL)
       // Last 7 days including today — index-friendly lower bound in UTC
       const weekAgoStart = polishMidnightUTC(6)
 
@@ -292,7 +292,7 @@ adminRouter.get('/stats/weekly-revenue', requireAdminOrProxy(), async (c) => {
 adminRouter.get('/stats/weekly', requireAdminOrProxy(), async (c) => {
   try {
     const { data, cached } = await kvCached(c.env.ALLEGRO_KV, 'stats:weekly', 300, async () => {
-      const db = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+      const db = createDb(c.env.DATABASE_URL)
       const weekAgoStart = polishMidnightUTC(6)
 
       const rows = await db
@@ -327,7 +327,7 @@ adminRouter.get('/stats/weekly', requireAdminOrProxy(), async (c) => {
 // ============================================
 adminRouter.get('/activity', requireAdminOrProxy(), async (c) => {
   try {
-    const db    = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db    = createDb(c.env.DATABASE_URL)
     const limit = Math.min(50, Math.max(1, parseInt(c.req.query('limit') || '10', 10)))
 
     // Recent orders

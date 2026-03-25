@@ -20,7 +20,7 @@ adminCategoriesRouter.use('*', requireAdminOrProxy())
 // ============================================
 adminCategoriesRouter.get('/', async (c) => {
   try {
-    const db = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db = createDb(c.env.DATABASE_URL)
 
     const rows = await db
       .select({
@@ -57,7 +57,7 @@ adminCategoriesRouter.post('/', async (c) => {
     const sizeErr = checkContentLength(c, MAX_BODY)
     if (sizeErr) return sizeErr
 
-    const db   = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db   = createDb(c.env.DATABASE_URL)
     const body = await c.req.json<{
       name: string; description?: string; imageUrl?: string
       layoutConfig?: CategoryLayoutConfig; isActive?: boolean; sortOrder?: number
@@ -92,7 +92,7 @@ adminCategoriesRouter.put('/:id', async (c) => {
     const sizeErr = checkContentLength(c, MAX_BODY)
     if (sizeErr) return sizeErr
 
-    const db  = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db  = createDb(c.env.DATABASE_URL)
     const id  = parseInt(c.req.param('id'))
     if (isNaN(id)) return c.json({ error: 'Nieprawidłowe ID' }, 400)
 
@@ -125,7 +125,7 @@ adminCategoriesRouter.put('/:id', async (c) => {
 // ============================================
 adminCategoriesRouter.delete('/:id', async (c) => {
   try {
-    const db = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db = createDb(c.env.DATABASE_URL)
     const id = parseInt(c.req.param('id'))
     if (isNaN(id)) return c.json({ error: 'Nieprawidłowe ID' }, 400)
 

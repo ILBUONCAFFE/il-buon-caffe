@@ -15,7 +15,7 @@ adminAuditRouter.use('*', requireAdminOrProxy())
 // ============================================
 adminAuditRouter.get('/', async (c) => {
   try {
-    const db               = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db               = createDb(c.env.DATABASE_URL)
     const { page, limit } = parsePagination(c)
     const action    = c.req.query('action')  || ''
     const adminIdQ  = c.req.query('adminId') || ''
@@ -64,7 +64,7 @@ adminAuditRouter.get('/', async (c) => {
 // ============================================
 adminAuditRouter.get('/stats', async (c) => {
   try {
-    const db   = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db   = createDb(c.env.DATABASE_URL)
     const days = Math.min(90, Math.max(1, parseInt(c.req.query('days') || '7', 10)))
     const from = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
 

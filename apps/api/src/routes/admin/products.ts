@@ -20,7 +20,7 @@ adminProductsRouter.use('*', requireAdminOrProxy())
 // ============================================
 adminProductsRouter.get('/', async (c) => {
   try {
-    const db               = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db               = createDb(c.env.DATABASE_URL)
     const { page, limit } = parsePagination(c, { maxLimit: 200 })
     const search   = sanitize(c.req.query('search') || '', 100)
     const activeQ  = c.req.query('active')
@@ -72,7 +72,7 @@ adminProductsRouter.get('/', async (c) => {
 // ============================================
 adminProductsRouter.get('/:sku', async (c) => {
   try {
-    const db  = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db  = createDb(c.env.DATABASE_URL)
     const sku = sanitize(c.req.param('sku'), 50)
 
     const product = await db.query.products.findFirst({
@@ -108,7 +108,7 @@ adminProductsRouter.post('/', async (c) => {
     const sizeErr = checkContentLength(c, MAX_BODY)
     if (sizeErr) return sizeErr
 
-    const db   = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db   = createDb(c.env.DATABASE_URL)
     const body = await c.req.json<{
       sku: string; name: string; description?: string; longDescription?: string
       categoryId?: number; price: number; compareAtPrice?: number | null
@@ -178,7 +178,7 @@ adminProductsRouter.put('/:sku', async (c) => {
     const sizeErr = checkContentLength(c, MAX_BODY)
     if (sizeErr) return sizeErr
 
-    const db  = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db  = createDb(c.env.DATABASE_URL)
     const sku = sanitize(c.req.param('sku'), 50).toUpperCase()
 
     const existing = await db.query.products.findFirst({
@@ -247,7 +247,7 @@ adminProductsRouter.put('/:sku/stock', async (c) => {
     const sizeErr = checkContentLength(c, MAX_BODY)
     if (sizeErr) return sizeErr
 
-    const db    = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db    = createDb(c.env.DATABASE_URL)
     const sku   = sanitize(c.req.param('sku'), 50).toUpperCase()
     const admin = c.get('user')
     const adminIp = getClientIp(c)
@@ -326,7 +326,7 @@ adminProductsRouter.put('/:sku/stock', async (c) => {
 // ============================================
 adminProductsRouter.delete('/:sku', async (c) => {
   try {
-    const db    = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db    = createDb(c.env.DATABASE_URL)
     const sku   = sanitize(c.req.param('sku'), 50).toUpperCase()
     const admin   = c.get('user')
     const adminIp = getClientIp(c)
@@ -360,7 +360,7 @@ adminProductsRouter.delete('/:sku', async (c) => {
 // ============================================
 adminProductsRouter.post('/:sku/images', async (c) => {
   try {
-    const db  = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db  = createDb(c.env.DATABASE_URL)
     const sku = sanitize(c.req.param('sku'), 50).toUpperCase()
 
     const product = await db.query.products.findFirst({
@@ -403,7 +403,7 @@ adminProductsRouter.post('/:sku/images', async (c) => {
 // ============================================
 adminProductsRouter.delete('/:sku/images/:imageId', async (c) => {
   try {
-    const db      = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+    const db      = createDb(c.env.DATABASE_URL)
     const sku     = sanitize(c.req.param('sku'), 50).toUpperCase()
     const imageId = parseInt(c.req.param('imageId'))
 

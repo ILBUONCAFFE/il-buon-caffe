@@ -57,7 +57,7 @@ export const webhooksRouter = new Hono<{ Bindings: WebhookEnv }>()
 // Notyfikacja P24 o statusie transakcji
 // ============================================
 webhooksRouter.post('/przelewy24', async (c) => {
-  const db = createDb(c.env.HYPERDRIVE?.connectionString ?? c.env.DATABASE_URL)
+  const db = createDb(c.env.DATABASE_URL)
 
   let body: {
     merchantId: number; posId: number; sessionId: string
