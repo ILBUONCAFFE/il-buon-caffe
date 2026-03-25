@@ -94,6 +94,7 @@ export function requireAdminOrProxy() {
       const proxyUserIdRaw = c.req.header('X-Admin-User-Id')
       const proxyUserId = proxyUserIdRaw ? parseInt(proxyUserIdRaw, 10) : NaN
       if (!proxyUserIdRaw || isNaN(proxyUserId) || proxyUserId <= 0) {
+        console.warn(`[auth] Proxy request rejected: Invalid X-Admin-User-Id = "${proxyUserIdRaw}"`)
         return c.json({ error: 'Nieautoryzowany dostęp' }, 401)
       }
 
@@ -105,6 +106,7 @@ export function requireAdminOrProxy() {
       })
 
       if (!userRow || userRow.role !== 'admin' || userRow.anonymized) {
+        console.warn(`[auth] Proxy request rejected for User ID: ${proxyUserId}. DB row:`, userRow)
         return c.json({ error: 'Nieautoryzowany dostęp' }, 403)
       }
 
@@ -117,6 +119,8 @@ export function requireAdminOrProxy() {
         exp: Math.floor(Date.now() / 1000) + 60,
       } as import('../lib/jwt').TokenPayload)
       return next()
+    } else if (requestSecret) {
+      console.warn(`[auth] Mismatch: requestSecret='${requestSecret}' vs internalSecret='${internalSecret}'`)
     }
 
     // Fall back to standard JWT admin auth

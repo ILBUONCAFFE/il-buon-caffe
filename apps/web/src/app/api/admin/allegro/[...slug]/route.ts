@@ -59,7 +59,15 @@ async function proxyAllegroRequest(
   const INTERNAL_SECRET_STR = INTERNAL_SECRET ?? ''
 
   // Verify the admin session server-side
-  const session = await getAdminSession().catch(() => null)
+  let session = null
+  let sessionError: unknown = null
+  try {
+    session = await getAdminSession()
+  } catch (e) {
+    sessionError = e
+  }
+  console.log('[allegro proxy] session result:', session ? `userId=${session.userId}` : 'null', sessionError ? `error=${String(sessionError)}` : '')
+  console.log('[allegro proxy] env check — ADMIN_JWT_SECRET set:', !!process.env.ADMIN_JWT_SECRET, '| DATABASE_URL set:', !!process.env.DATABASE_URL)
   if (!session) {
     return NextResponse.json(
       { error: { code: 'UNAUTHORIZED', message: 'Admin session required' } },

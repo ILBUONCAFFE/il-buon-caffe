@@ -44,9 +44,18 @@ export const SmoothScroll = ({ children }: SmoothScrollProps) => {
 
   // Scroll to top on route change
   useEffect(() => {
+    window.scrollTo(0, 0);
     if (lenisRef.current) {
       lenisRef.current.scrollTo(0, { immediate: true });
     }
+
+    // Deferred execution to ensure we override Next.js scroll restoration
+    requestAnimationFrame(() => {
+      window.scrollTo(0, 0);
+      if (lenisRef.current) {
+        lenisRef.current.scrollTo(0, { immediate: true });
+      }
+    });
   }, [pathname]);
 
   return <>{children}</>;

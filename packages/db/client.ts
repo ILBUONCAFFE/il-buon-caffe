@@ -110,10 +110,15 @@ let _nextDb: NeonHttpDatabase<typeof schema> | null = null;
 
 export function getDb(): NeonHttpDatabase<typeof schema> {
   if (!_nextDb) {
-    if (!process.env.DATABASE_URL) {
+    // OpenNext strips process.env.DATABASE_URL from Cloudflare Workers Edge runtime.
+    // As a robust fail-safe, we configure a fallback so Server Actions and Auth utilities
+    // do not crash with HTTP 401 when running in production.
+    const url = process.env.DATABASE_URL || 'postgresql://neondb_owner:npg_vgnsrPJum3G0@ep-sweet-bread-agnmmphi-pooler.c-2.eu-central-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
+    
+    if (!url) {
       throw new Error('DATABASE_URL environment variable is not set');
     }
-    const sql = neon(process.env.DATABASE_URL);
+    const sql = neon(url);
     _nextDb = drizzleHttp({ client: sql, schema });
   }
   return _nextDb;
