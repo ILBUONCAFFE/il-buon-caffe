@@ -748,19 +748,22 @@ async function fetchAllegroQualityData(
     fetch(`${apiBase}/order/returns?limit=1`, { headers, signal: AbortSignal.timeout(10_000) }),
   ])
 
-  if (!qualityResp.ok || !posRatingsResp.ok || !negRatingsResp.ok || !returnsResp.ok) {
-    const failedStatus = [qualityResp, posRatingsResp, negRatingsResp, returnsResp]
-      .map((r, i) => `[${i}] ${r.status}`)
-      .join(', ')
-    throw new Error(`One or more Allegro API calls failed: ${failedStatus}`)
+  // /sale/quality is the primary source — fail hard if unavailable
+  if (!qualityResp.ok) {
+    throw new Error(`Allegro /sale/quality returned ${qualityResp.status}`)
   }
 
-  const [quality, posRatings, negRatings, returns_] = await Promise.all([
-    qualityResp.json() as Promise<Record<string, unknown>>,
-    posRatingsResp.json() as Promise<Record<string, unknown>>,
-    negRatingsResp.json() as Promise<Record<string, unknown>>,
-    returnsResp.json() as Promise<Record<string, unknown>>,
-  ])
+  // Secondary sources (ratings, returns) degrade gracefully to 0 on failure
+  const quality = await qualityResp.json() as Record<string, unknown>
+  const posRatings = posRatingsResp.ok
+    ? await posRatingsResp.json() as Record<string, unknown>
+    : {}
+  const negRatings = negRatingsResp.ok
+    ? await negRatingsResp.json() as Record<string, unknown>
+    : {}
+  const returns_ = returnsResp.ok
+    ? await returnsResp.json() as Record<string, unknown>
+    : {}
 
   // NOTE: Adjust these field paths after verifying against actual Allegro sandbox responses.
   const score = (quality.score as number) ?? 0
@@ -824,7 +827,7 @@ allegroRouter.get('/quality', requireAdminOrProxy(), async (c) => {
   } catch (err) {
     console.error('[Allegro Quality] fetch error:', err instanceof Error ? err.message : String(err))
     return c.json(
-      { error: { code: 'ALLEGRO_FETCH_FAILED', message: err instanceof Error ? err.message : 'Błąd pobierania danych jakości' } },
+      { error: { code: 'ALLEGRO_FETCH_FAILED', message: 'Błąd pobierania danych jakości sprzedaży' } },
       502,
     )
   }
