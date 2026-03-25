@@ -533,3 +533,29 @@ export interface Article {
   content: string;
   readTime: string;
 }
+
+// ============================================
+// ALLEGRO SALES QUALITY TYPES
+// ============================================
+
+export interface AllegroSalesQuality {
+  score: number
+  maxScore: number
+  fetchedAt: string                              // ISO timestamp
+  fulfillment: {
+    onTimePercent: number                        // e.g. 94.2
+  }
+  returns: {
+    count: number                                // e.g. 12
+    ratePercent: number                          // e.g. 1.2 — from /sale/quality component
+  }
+  ratings: {
+    positive: number                             // totalCount from /sale/user-ratings?recommended=true
+    negative: number                             // totalCount from /sale/user-ratings?recommended=false
+    negativePercent: number                      // mapped from /sale/quality negativeFeedbackRatePercent
+  }
+}
+
+export interface AllegroSalesQualityResponse {
+  data: AllegroSalesQuality | null
+}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { adminApi } from '../lib/adminApiClient'
-import type { DashboardStats, DashboardOverview, WeeklyRevenuePoint, WeeklyPoint, OrdersQueryParams, AdminOrder, ActivityItem, AllegroConnectionStatus } from '../types/admin-api'
+import type { DashboardStats, DashboardOverview, WeeklyRevenuePoint, WeeklyPoint, OrdersQueryParams, AdminOrder, ActivityItem, AllegroConnectionStatus, AllegroSalesQuality } from '../types/admin-api'
 
 // ── Generic async state ───────────────────────────────────────────────────────
 interface AsyncState<T> {
@@ -93,6 +93,25 @@ export function useOrders(params: OrdersQueryParams = {}) {
   useEffect(() => { fetch() }, [fetch])
 
   return { orders, meta, loading, error, refetch: fetch }
+}
+
+// ── Allegro sales quality ─────────────────────────────────────────────────────
+export function useSalesQuality() {
+  const [forceCount, setForceCount] = useState(0)
+
+  const { data, loading, error } = useAsync(
+    () => adminApi.getAllegroQuality(forceCount > 0).then(r => r.data),
+    [forceCount],
+  )
+
+  const refetch = useCallback(() => setForceCount(n => n + 1), [])
+
+  return {
+    quality: data as AllegroSalesQuality | null,
+    loading,
+    error,
+    refetch,
+  }
 }
 
 // ── Activity feed ─────────────────────────────────────────────────────────────

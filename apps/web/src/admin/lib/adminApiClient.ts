@@ -11,6 +11,7 @@ import type {
   AllegroConnectUrlResponse,
   AllegroRefreshResponse,
   AllegroEnvironment,
+  AllegroSalesQualityResponse,
 } from '../types/admin-api'
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
@@ -110,6 +111,11 @@ export const adminApi = {
   getAllegroStatus: () =>
     allegroRequest<AllegroStatusResponse>('/api/admin/allegro/status'),
 
+  getAllegroQuality: (force = false) =>
+    allegroRequest<AllegroSalesQualityResponse>(
+      `/api/admin/allegro/quality${force ? '?force=true' : ''}`,
+    ),
+
   getAllegroConnectUrl: (environment: AllegroEnvironment = 'production') =>
     allegroRequest<AllegroConnectUrlResponse>(`/api/admin/allegro/connect/url?environment=${environment}`),
 
@@ -156,4 +162,5 @@ export type {
   AllegroEnvironment,
   AllegroOrderDetails,
   AllegroTrackingData,
+  AllegroSalesQualityResponse,
 } from '../types/admin-api'

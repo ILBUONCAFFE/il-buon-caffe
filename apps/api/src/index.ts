@@ -16,6 +16,7 @@ import { allegroCredentials, allegroSyncLog, auditLog } from '@repo/db/schema'
 import { eq, desc, lt, sql } from 'drizzle-orm'
 import { refreshAllegroToken, KV_KEYS, type AllegroEnvironment } from './lib/allegro'
 import { syncAllegroOrders } from './lib/allegro-orders'
+import { preWarmAllegroQualityCache } from './routes/allegro'
 import { encryptText, decryptText } from './lib/crypto'
 import { securityHeaders, corsConfig, secFetchGuard } from './middleware/security'
 import { apiRateLimiter } from './middleware/rateLimit'
@@ -301,8 +302,12 @@ export default {
 
     // "0 * * * *"   — hourly token refresh + daily retention cleanup
     // "*/5 * * * *" — every 5 min Allegro order polling (was every 1 min — reduced for CU savings)
+    // "0 5 * * *"   — daily at 06:00 CET (05:00 UTC) — pre-warm Allegro sales quality cache
     if (event.cron === '*/5 * * * *') {
       ctx.waitUntil(syncAllegroOrders(env))
+    } else if (event.cron === '0 5 * * *') {
+      // Daily at 06:00 CET (05:00 UTC) — pre-warm Allegro sales quality cache
+      ctx.waitUntil(preWarmAllegroQualityCache(env))
     } else {
       // Default: hourly token refresh + data retention (runs once/day)
       ctx.waitUntil(autoRefreshAllegroToken(env))
