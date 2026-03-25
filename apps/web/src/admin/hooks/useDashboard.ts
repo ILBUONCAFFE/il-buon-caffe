@@ -97,20 +97,14 @@ export function useOrders(params: OrdersQueryParams = {}) {
 
 // ── Allegro sales quality ─────────────────────────────────────────────────────
 export function useSalesQuality() {
-  const [force, setForce] = useState(false)
+  const [forceCount, setForceCount] = useState(0)
 
   const { data, loading, error } = useAsync(
-    () => adminApi.getAllegroQuality(force).then(r => r.data),
-    [force],
+    () => adminApi.getAllegroQuality(forceCount > 0).then(r => r.data),
+    [forceCount],
   )
 
-  // Reset force flag after the fetch triggered by it completes,
-  // so subsequent automatic re-renders don't bypass KV cache.
-  useEffect(() => {
-    if (!loading && force) setForce(false)
-  }, [loading, force])
-
-  const refetch = useCallback(() => setForce(true), [])
+  const refetch = useCallback(() => setForceCount(n => n + 1), [])
 
   return {
     quality: data as AllegroSalesQuality | null,
