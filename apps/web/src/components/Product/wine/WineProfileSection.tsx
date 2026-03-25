@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { motion } from 'motion/react';
-import { Wine, Star } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Section } from './Section';
 import { CharacteristicBar } from './CharacteristicBar';
 import type { PaletteType } from './palette';
@@ -13,20 +12,14 @@ interface WineProfileSectionProps {
   palette: PaletteType;
 }
 
+const TABS = [
+  { key: 'eye' as const, label: 'Oko' },
+  { key: 'nose' as const, label: 'Nos' },
+  { key: 'palate' as const, label: 'Podniebienie' },
+];
+
 export const WineProfileSection = ({ wineDetails, palette }: WineProfileSectionProps) => {
   const [activeTab, setActiveTab] = useState<'eye' | 'nose' | 'palate'>('nose');
-
-  const tabIcons = {
-    eye: '👁️',
-    nose: '👃',
-    palate: '👅',
-  };
-
-  const tabLabels = {
-    eye: 'Oko',
-    nose: 'Nos',
-    palate: 'Podniebienie',
-  };
 
   return (
     <section className="py-24" style={{ backgroundColor: palette.bgWarm }}>
@@ -35,14 +28,12 @@ export const WineProfileSection = ({ wineDetails, palette }: WineProfileSectionP
 
           {/* Left: Characteristics */}
           <Section>
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: palette.accentSoft }}>
-                <Wine size={16} style={{ color: palette.accent }} />
-              </div>
-              <span className="uppercase tracking-[0.3em] text-[11px] font-semibold" style={{ color: palette.accent }}>
-                Profil Wina
-              </span>
-            </div>
+            <span
+              className="uppercase tracking-[0.2em] text-[11px] font-semibold block mb-2"
+              style={{ color: palette.textDim }}
+            >
+              Profil Wina
+            </span>
             <h2 className="text-3xl md:text-4xl font-serif mb-10" style={{ color: palette.text }}>
               Charakterystyka
             </h2>
@@ -57,53 +48,66 @@ export const WineProfileSection = ({ wineDetails, palette }: WineProfileSectionP
 
           {/* Right: Tasting Notes */}
           <Section delay={0.15}>
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: palette.accentSoft }}>
-                <Star size={16} style={{ color: palette.accent }} />
-              </div>
-              <span className="uppercase tracking-[0.3em] text-[11px] font-semibold" style={{ color: palette.accent }}>
-                Degustacja
-              </span>
-            </div>
+            <span
+              className="uppercase tracking-[0.2em] text-[11px] font-semibold block mb-2"
+              style={{ color: palette.textDim }}
+            >
+              Degustacja
+            </span>
             <h2 className="text-3xl md:text-4xl font-serif mb-8" style={{ color: palette.text }}>
               Nuty Smakowe
             </h2>
 
-            {/* Tab Navigation */}
-            <div className="flex gap-2 mb-8">
-              {(['eye', 'nose', 'palate'] as const).map((tab) => (
+            {/* Tab Navigation — text-only, no emojis */}
+            <div
+              className="inline-flex rounded-lg p-1 mb-8"
+              style={{ backgroundColor: palette.bgMuted }}
+            >
+              {TABS.map((tab) => (
                 <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className="flex items-center gap-2 px-5 py-3 text-sm transition-all duration-300 rounded-xl font-medium"
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className="relative px-5 py-2 text-[13px] font-medium transition-colors duration-200 rounded-md"
                   style={{
-                    backgroundColor: activeTab === tab ? palette.accent : palette.bgCard,
-                    color: activeTab === tab ? '#fff' : palette.textMuted,
-                    border: `1px solid ${activeTab === tab ? palette.accent : palette.border}`,
+                    color: activeTab === tab.key ? palette.text : palette.textMuted,
                   }}
                 >
-                  <span>{tabIcons[tab]}</span>
-                  {tabLabels[tab]}
+                  {activeTab === tab.key && (
+                    <motion.div
+                      layoutId="tasting-tab-indicator"
+                      className="absolute inset-0 rounded-md"
+                      style={{
+                        backgroundColor: palette.bgCard,
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+                      }}
+                      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                    />
+                  )}
+                  <span className="relative z-10">{tab.label}</span>
                 </button>
               ))}
             </div>
 
             {/* Tab Content */}
-            <motion.div
-              key={activeTab}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
-              className="p-6 rounded-2xl"
-              style={{ backgroundColor: palette.bgCard, border: `1px solid ${palette.borderLight}`, boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}
-            >
-              <p
-                className="text-lg leading-relaxed font-serif italic"
-                style={{ color: palette.textSecondary }}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.25 }}
               >
-                &ldquo;{wineDetails.tastingNotes[activeTab]}&rdquo;
-              </p>
-            </motion.div>
+                <blockquote
+                  className="text-lg leading-relaxed font-serif italic pl-5"
+                  style={{
+                    color: palette.textSecondary,
+                    borderLeft: `2px solid ${palette.accent}`,
+                  }}
+                >
+                  {wineDetails.tastingNotes[activeTab]}
+                </blockquote>
+              </motion.div>
+            </AnimatePresence>
           </Section>
         </div>
       </div>

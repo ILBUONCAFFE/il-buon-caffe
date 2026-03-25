@@ -711,8 +711,8 @@ allegroRouter.get('/orders/:id/tracking', requireAdminOrProxy(), async (c) => {
  *
  * NOTE: Verify exact Allegro API response field names against sandbox before prod deploy.
  * - /sale/quality            → score, maxScore, and component percentage rates
- * - /sale/user-ratings       → count.total (filtered by recommended param)
- * - /order/returns           → count.total
+ * - /sale/user-ratings       → totalCount
+ * - /order/customer-returns  → count
  */
 export async function preWarmAllegroQualityCache(env: Env): Promise<void> {
   const kv = env.ALLEGRO_KV
@@ -743,9 +743,9 @@ async function fetchAllegroQualityData(
 
   const [qualityResp, posRatingsResp, negRatingsResp, returnsResp] = await Promise.all([
     fetch(`${apiBase}/sale/quality`, { headers, signal: AbortSignal.timeout(10_000) }),
-    fetch(`${apiBase}/sale/user-ratings?recommended=true&limit=1`, { headers, signal: AbortSignal.timeout(10_000) }),
-    fetch(`${apiBase}/sale/user-ratings?recommended=false&limit=1`, { headers, signal: AbortSignal.timeout(10_000) }),
-    fetch(`${apiBase}/order/returns?limit=1`, { headers, signal: AbortSignal.timeout(10_000) }),
+    fetch(`${apiBase}/sale/user-ratings?recommended=true&limit=1`, { headers, signal: AbortSignal.timeout(15_000) }),
+    fetch(`${apiBase}/sale/user-ratings?recommended=false&limit=1`, { headers, signal: AbortSignal.timeout(15_000) }),
+    fetch(`${apiBase}/order/customer-returns?limit=1`, { headers, signal: AbortSignal.timeout(10_000) }),
   ])
 
   // /sale/quality is the primary source — fail hard if unavailable
@@ -754,44 +754,61 @@ async function fetchAllegroQualityData(
   }
 
   // Secondary sources (ratings, returns) degrade gracefully to 0 on failure
-  const quality = await qualityResp.json() as Record<string, unknown>
-  const posRatings = posRatingsResp.ok
-    ? await posRatingsResp.json() as Record<string, unknown>
-    : {}
-  const negRatings = negRatingsResp.ok
-    ? await negRatingsResp.json() as Record<string, unknown>
-    : {}
-  const returns_ = returnsResp.ok
-    ? await returnsResp.json() as Record<string, unknown>
-    : {}
+  const quality = await qualityResp.json() as any
+  const posRatings = posRatingsResp.ok ? await posRatingsResp.json() as any : { totalCount: 0 }
+  const negRatings = negRatingsResp.ok ? await negRatingsResp.json() as any : { totalCount: 0 }
+  const returns_ = returnsResp.ok ? await returnsResp.json() as any : { count: 0 }
 
-  // TEMP: log raw responses to verify field names — remove after Task 9
-  console.log('[Quality DEBUG] /sale/quality:', JSON.stringify(quality))
-  console.log('[Quality DEBUG] /sale/user-ratings pos:', JSON.stringify(posRatings))
-  console.log('[Quality DEBUG] /sale/user-ratings neg:', JSON.stringify(negRatings))
-  console.log('[Quality DEBUG] /order/returns:', JSON.stringify(returns_))
+  // Extract latest quality entry (today's date)
+  const qualityArr = Array.isArray(quality.quality) ? quality.quality : []
+  const latestQuality = qualityArr[0] ?? {}
 
-  // NOTE: Adjust these field paths after verifying against actual Allegro sandbox responses.
-  const score = (quality.score as number) ?? 0
-  const maxScore = (quality.maxScore as number) ?? 500
-  const metrics = (quality.metrics as Record<string, { value: number }>) ?? {}
+  const score    = (latestQuality.score    as number) ?? 0
+  const maxScore = (latestQuality.maxScore as number) ?? 500
+  const metrics: Array<{ code: string; score: number; maxScore: number }> =
+    Array.isArray(latestQuality.metrics) ? latestQuality.metrics : []
+
+  // Helpers to get metric values
+  const getMetric = (code: string) => metrics.find(x => x.code === code)
+  const getMetricPct = (code: string): number => {
+    const m = getMetric(code)
+    if (!m || !m.maxScore) return 0
+    return (m.score / m.maxScore) * 100
+  }
+
+  // Indicators mapping
+  const onTimePercent = getMetricPct('DISPATCH_IN_TIME')
+  
+  // Total counts from ratings endpoint (reliable totalCount even with limit=1)
+  const posCount = (posRatings.totalCount as number) ?? 0
+  const negCount = (negRatings.totalCount as number) ?? 0
+  const totalRatings = posCount + negCount
+  const negativePercent = totalRatings > 0 ? (negCount / totalRatings) * 100 : 0
+
+  // Optional: check if we have buyer satisfaction score as well
+  const satisfactionMetric = getMetric('BUYER_SATISFACTION')
+
+  const returnsCount = (returns_.count as number) ?? 
+    (Array.isArray(returns_.customerReturns) ? returns_.customerReturns.length : 0)
 
   return {
     score,
     maxScore,
     fetchedAt: new Date().toISOString(),
     fulfillment: {
-      onTimePercent: metrics.fulfillmentTime?.value ?? 0,
+      onTimePercent,
     },
     returns: {
-      count: ((returns_.count as Record<string, number>)?.total) ?? 0,
-      ratePercent: metrics.returns?.value ?? 0,
+      count: returnsCount,
+      ratePercent: 0, 
     },
     ratings: {
-      positive: ((posRatings.count as Record<string, number>)?.total) ?? 0,
-      negative: ((negRatings.count as Record<string, number>)?.total) ?? 0,
-      negativePercent: metrics.negativeFeedback?.value ?? 0,
+      positive: posCount,
+      negative: negCount,
+      negativePercent,
     },
+    // Add grade info if available for extra context
+    grade: latestQuality.grade,
   }
 }
 

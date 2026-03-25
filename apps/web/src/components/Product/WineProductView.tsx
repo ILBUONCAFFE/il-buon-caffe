@@ -157,29 +157,7 @@ export const WineProductView = ({ product, categoryName }: WineProductViewProps)
                   />
                 </motion.div>
 
-                {/* Vintage Badge */}
-                {product.year && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.8, rotate: -15, x: 20 }}
-                    animate={{ opacity: 1, scale: 1, rotate: 0, x: 0 }}
-                    transition={{ delay: 0.9, duration: 0.8, ease: "easeOut" }}
-                    className="absolute top-[15%] -left-4 lg:-left-12 z-20"
-                  >
-                    <div
-                      className="w-20 h-20 lg:w-24 lg:h-24 rounded-full flex flex-col items-center justify-center backdrop-blur-md"
-                      style={{
-                        background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.8) 100%)',
-                        border: '1px solid rgba(255, 255, 255, 1)',
-                        boxShadow: '0 10px 30px rgba(28, 23, 20, 0.08)',
-                      }}
-                    >
-                      <span className="text-2xl lg:text-3xl font-serif font-medium bg-clip-text text-transparent" style={{ backgroundImage: `linear-gradient(135deg, ${palette.accent}, #60212E)` }}>
-                        {product.year}
-                      </span>
-                      <span className="text-[8px] lg:text-[9px] uppercase tracking-[0.25em] font-bold mt-0.5" style={{ color: palette.textDim }}>Rocznik</span>
-                    </div>
-                  </motion.div>
-                )}
+
               </div>
             </motion.div>
 
@@ -213,24 +191,35 @@ export const WineProductView = ({ product, categoryName }: WineProductViewProps)
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.4 }}
-                className="flex items-center gap-4 mb-4"
+                className="mb-4"
               >
-                <div className="h-px w-8" style={{ backgroundColor: palette.accent }} />
-                <span className="uppercase tracking-[0.3em] text-[10px] font-bold" style={{ color: palette.accent }}>
-                  Selekcja Premium
+                <span className="uppercase tracking-[0.2em] text-[11px] font-semibold" style={{ color: palette.textDim }}>
+                  Wino czerwone
                 </span>
               </motion.div>
 
-              {/* Title */}
-              <motion.h1
+              {/* Title & Vintage */}
+              <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                className="text-4xl md:text-5xl lg:text-5xl xl:text-6xl 2xl:text-[4.5rem] font-serif font-normal mb-8 leading-[1.05] tracking-[-0.01em]"
-                style={{ color: palette.text, wordSpacing: '-0.1em' }}
+                className="mb-8"
               >
-                {product.name}
-              </motion.h1>
+                <h1
+                  className="text-4xl md:text-5xl lg:text-5xl xl:text-6xl 2xl:text-[4.5rem] font-serif font-normal leading-[1.05] tracking-[-0.01em]"
+                  style={{ color: palette.text, wordSpacing: '-0.1em' }}
+                >
+                  {product.name}
+                </h1>
+                {product.year && (
+                  <p 
+                    className="text-2xl md:text-3xl font-serif italic mt-3"
+                    style={{ color: palette.textMuted }}
+                  >
+                    Rocznik {product.year}
+                  </p>
+                )}
+              </motion.div>
 
               {/* Minimalist Properties: Origin, Grape, Alcohol */}
               <motion.div
@@ -375,21 +364,6 @@ export const WineProductView = ({ product, categoryName }: WineProductViewProps)
                   }}
                   whileTap={{ scale: availableToBuy === 0 ? 1 : 0.98 }}
                 >
-                  {/* Shimmer effect for premium feel */}
-                  {!isAdded && availableToBuy !== 0 && (
-                    <motion.div
-                      className="absolute inset-0 w-[50%] skew-x-[-20deg] bg-gradient-to-r from-transparent via-white/20 to-transparent"
-                      initial={{ x: '-200%' }}
-                      animate={{ x: '300%' }}
-                      transition={{
-                        repeat: Infinity,
-                        repeatType: 'loop',
-                        duration: 3,
-                        repeatDelay: 5,
-                        ease: "easeInOut"
-                      }}
-                    />
-                  )}
 
                   {isAdded ? (
                     <motion.div
@@ -462,23 +436,7 @@ export const WineProductView = ({ product, categoryName }: WineProductViewProps)
           </div>
         </div>
 
-        {/* Scroll Indicator */}
-        <motion.div
-          className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3"
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.5, duration: 1 }}
-        >
-          <span className="text-[9px] font-bold uppercase tracking-[0.35em]" style={{ color: palette.textDim }}>Przewiń</span>
-          <div className="w-px h-16 overflow-hidden relative">
-            <motion.div
-              className="absolute inset-0 w-full"
-              style={{ background: `linear-gradient(to bottom, transparent, ${palette.accent}, transparent)` }}
-              animate={{ y: ['-100%', '100%'] }}
-              transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-            />
-          </div>
-        </motion.div>
+
       </section>
 
       {/* ═══════════════════════════════════════════════════════════

@@ -1,239 +1,405 @@
 "use client";
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronRight } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { Section } from './Section';
 import type { PaletteType } from './palette';
+import type { WineFoodPairing } from '@/content/products/wineData';
 
-const INITIAL_VISIBLE = 4;
+/* ═══════════════════════════════════════════════════════════
+   CATEGORY CONFIG
+   ═══════════════════════════════════════════════════════════ */
+
+const CATEGORY_META: Record<string, { label: string; icon: string }> = {
+  'mięso':       { label: 'Mięso',          icon: '🥩' },
+  'ryba':        { label: 'Ryby',           icon: '🐟' },
+  'makaron':     { label: 'Makarony',       icon: '🍝' },
+  'sery':        { label: 'Sery',           icon: '🧀' },
+  'warzywa':     { label: 'Warzywa',        icon: '🥬' },
+  'owoce morza': { label: 'Owoce morza',    icon: '🦐' },
+  'drób':        { label: 'Drób',           icon: '🍗' },
+  'deser':       { label: 'Desery',         icon: '🍰' },
+  'wędliny':     { label: 'Wędliny',        icon: '🥓' },
+  'dziczyzna':   { label: 'Dziczyzna',      icon: '🦌' },
+};
+
+const FEATURED_COUNT = 3;
+const INITIAL_LIST_COUNT = 6;
+
+/* ═══════════════════════════════════════════════════════════
+   SUBCOMPONENTS
+   ═══════════════════════════════════════════════════════════ */
+
+/** Featured card — large layout, image + description visible */
+const FeaturedCard = ({
+  item,
+  index,
+  palette,
+}: {
+  item: WineFoodPairing;
+  index: number;
+  palette: PaletteType;
+}) => {
+  const [imgError, setImgError] = useState(false);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-40px" }}
+      transition={{ duration: 0.6, delay: index * 0.1, ease: [0.22, 1, 0.36, 1] }}
+      className="group relative overflow-hidden rounded-2xl"
+      style={{
+        backgroundColor: palette.bgCard,
+        border: `1px solid ${palette.borderLight}`,
+      }}
+    >
+      {/* Image area */}
+      <div
+        className="relative w-full overflow-hidden"
+        style={{
+          aspectRatio: '4 / 5',
+          backgroundColor: palette.bgMuted,
+        }}
+      >
+        {item.imageUrl && !imgError ? (
+          <img
+            src={encodeURI(item.imageUrl)}
+            alt={item.name}
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+            loading="lazy"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <div
+            className="absolute inset-0 flex items-center justify-center"
+            style={{
+              background: `linear-gradient(145deg, ${palette.bgMuted} 0%, ${palette.bgWarm} 100%)`,
+            }}
+          >
+            <span className="text-5xl opacity-25 transition-transform duration-500 group-hover:scale-110">
+              {CATEGORY_META[item.category ?? '']?.icon ?? '🍷'}
+            </span>
+          </div>
+        )}
+
+        {/* Gradient overlay */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: 'linear-gradient(to top, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.15) 40%, transparent 70%)',
+          }}
+        />
+
+        {/* Category tag */}
+        {item.category && CATEGORY_META[item.category] && (
+          <div
+            className="absolute top-4 left-4 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-[0.15em] backdrop-blur-md"
+            style={{
+              backgroundColor: 'rgba(255,255,255,0.85)',
+              color: palette.textSecondary,
+            }}
+          >
+            {CATEGORY_META[item.category].label}
+          </div>
+        )}
+
+        {/* Title on image */}
+        <div className="absolute bottom-0 left-0 right-0 px-5 pb-4 pt-8">
+          <h3
+            className="font-serif text-lg md:text-xl leading-snug"
+            style={{ color: '#fff' }}
+          >
+            {item.name}
+          </h3>
+        </div>
+      </div>
+
+      {/* Description */}
+      <div className="px-5 py-4">
+        <p
+          className="text-[13px] leading-relaxed"
+          style={{ color: palette.textMuted }}
+        >
+          {item.description}
+        </p>
+      </div>
+    </motion.div>
+  );
+};
+
+
+/** Compact list item — for the remaining items */
+const ListItem = ({
+  item,
+  index,
+  palette,
+}: {
+  item: WineFoodPairing;
+  index: number;
+  palette: PaletteType;
+}) => {
+  const [imgError, setImgError] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-20px" }}
+      transition={{ duration: 0.4, delay: index * 0.04, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <button
+        onClick={() => setIsOpen(o => !o)}
+        className="w-full text-left group"
+      >
+        <div
+          className="flex items-center gap-4 py-3.5 px-4 rounded-xl transition-colors duration-200"
+          style={{
+            backgroundColor: isOpen ? palette.bgCard : 'transparent',
+            boxShadow: isOpen ? '0 2px 12px rgba(0,0,0,0.04)' : 'none',
+          }}
+        >
+          {/* Thumbnail */}
+          <div
+            className="w-12 h-12 rounded-lg overflow-hidden shrink-0 flex items-center justify-center"
+            style={{ backgroundColor: palette.bgMuted }}
+          >
+            {item.imageUrl && !imgError ? (
+              <img
+                src={encodeURI(item.imageUrl)}
+                alt=""
+                className="w-full h-full object-cover"
+                loading="lazy"
+                onError={() => setImgError(true)}
+              />
+            ) : (
+              <span className="text-lg opacity-40">
+                {CATEGORY_META[item.category ?? '']?.icon ?? '🍷'}
+              </span>
+            )}
+          </div>
+
+          {/* Name + category */}
+          <div className="flex-1 min-w-0">
+            <span
+              className="font-serif text-[15px] leading-tight block truncate transition-colors duration-200"
+              style={{ color: isOpen ? palette.text : palette.textSecondary }}
+            >
+              {item.name}
+            </span>
+            {item.category && CATEGORY_META[item.category] && (
+              <span
+                className="text-[11px] tracking-wide uppercase mt-0.5 block"
+                style={{ color: palette.textDim }}
+              >
+                {CATEGORY_META[item.category].label}
+              </span>
+            )}
+          </div>
+
+          {/* Chevron */}
+          <motion.div
+            animate={{ rotate: isOpen ? 180 : 0 }}
+            transition={{ duration: 0.25 }}
+            className="shrink-0"
+          >
+            <ChevronDown size={16} style={{ color: palette.textDim }} />
+          </motion.div>
+        </div>
+      </button>
+
+      {/* Expandable description */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden"
+          >
+            <p
+              className="text-[13px] leading-relaxed pl-20 pr-4 pb-3"
+              style={{ color: palette.textMuted }}
+            >
+              {item.description}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+};
+
+
+/* ═══════════════════════════════════════════════════════════
+   MAIN SECTION
+   ═══════════════════════════════════════════════════════════ */
 
 interface FoodPairingSectionProps {
-  items: import('@/content/products/wineData').WineFoodPairing[];
+  items: WineFoodPairing[];
   palette: PaletteType;
 }
 
 export const FoodPairingSection = ({ items, palette }: FoodPairingSectionProps) => {
-  const [expanded, setExpanded] = useState(false);
-  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
-  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number; side: 'top' | 'bottom' }>({ x: 0, y: 0, side: 'top' });
-  const cardRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  const [showAll, setShowAll] = useState(false);
 
-  const baseItems = items.slice(0, INITIAL_VISIBLE);
-  const extraItems = items.slice(INITIAL_VISIBLE);
-  const hasMore = extraItems.length > 0;
+  // Split into featured (first 3) and remaining
+  const featured = useMemo(() => items.slice(0, FEATURED_COUNT), [items]);
+  const remaining = useMemo(() => items.slice(FEATURED_COUNT), [items]);
+  const visibleRemaining = showAll ? remaining : remaining.slice(0, INITIAL_LIST_COUNT);
+  const hiddenCount = remaining.length - INITIAL_LIST_COUNT;
 
-  const handleMouseEnter = useCallback((idx: number) => {
-    const el = cardRefs.current.get(idx);
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const spaceBelow = window.innerHeight - rect.bottom;
-    const side = spaceBelow < 160 ? 'bottom' : 'top';
-    setTooltipPos({ x: rect.left + rect.width / 2, y: side === 'top' ? rect.bottom : rect.top, side });
-    setHoveredIdx(idx);
-  }, []);
+  // Group remaining by category for section dividers
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    remaining.forEach(item => {
+      const cat = item.category ?? 'inne';
+      counts[cat] = (counts[cat] || 0) + 1;
+    });
+    return counts;
+  }, [remaining]);
 
-  const handleMouseLeave = useCallback(() => setHoveredIdx(null), []);
-  const hovered = hoveredIdx !== null ? items[hoveredIdx] : null;
-
-  const cardVariants = {
-    hidden: { opacity: 0, scale: 0.88, y: 12 },
-    visible: (i: number) => ({
-      opacity: 1, scale: 1, y: 0,
-      transition: { duration: 0.32, delay: i * 0.055, ease: [0.22, 1, 0.36, 1] as const },
-    }),
-    exit: { opacity: 0, scale: 0.88, y: 10, transition: { duration: 0.2, ease: [0.55, 0, 1, 0.45] as const } },
-  };
+  const categoryChips = useMemo(() => {
+    return Object.entries(categoryCounts)
+      .sort(([, a], [, b]) => b - a)
+      .map(([cat, count]) => ({
+        key: cat,
+        label: CATEGORY_META[cat]?.label ?? cat,
+        icon: CATEGORY_META[cat]?.icon ?? '🍽️',
+        count,
+      }));
+  }, [categoryCounts]);
 
   return (
-    <section className="py-24" style={{ backgroundColor: palette.bgWarm }}>
+    <section className="py-20 md:py-28" style={{ backgroundColor: palette.bgWarm }}>
       <div className="container mx-auto px-6 md:px-12 lg:px-20">
 
-        {/* Header */}
-        <Section className="mb-12">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: palette.accentSoft }}>
-              <span className="text-sm">🍽️</span>
-            </div>
-            <span className="uppercase tracking-[0.3em] text-[11px] font-semibold" style={{ color: palette.accent }}>
-              Parowanie
-            </span>
-          </div>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-serif" style={{ color: palette.text }}>
+        {/* ── Header ── */}
+        <Section className="mb-14">
+          <span
+            className="uppercase tracking-[0.2em] text-[11px] font-semibold block mb-2 text-center"
+            style={{ color: palette.textDim }}
+          >
             Idealne Połączenia
+          </span>
+          <h2
+            className="text-3xl md:text-4xl lg:text-5xl font-serif text-center"
+            style={{ color: palette.text }}
+          >
+            Z Czym Podawać
           </h2>
+          <p
+            className="text-center mt-4 text-[15px] leading-relaxed max-w-xl mx-auto"
+            style={{ color: palette.textMuted }}
+          >
+            Starannie dobrane dania, które wydobywają pełnię aromatu
+            i&nbsp;idealnie&nbsp;harmonizują z&nbsp;charakterem tego wina.
+          </p>
         </Section>
 
-        {/* Siatka */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+        {/* ── Featured cards (masonry-style top row) ── */}
+        {featured.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5 mb-12">
+            {featured.map((item, idx) => (
+              <FeaturedCard
+                key={item.name}
+                item={item}
+                index={idx}
+                palette={palette}
+              />
+            ))}
+          </div>
+        )}
 
-          {/* Zawsze widoczne 4 karty */}
-          {baseItems.map((item, idx) => (
-            <motion.div
-              key={item.name}
-              ref={el => { if (el) cardRefs.current.set(idx, el); else cardRefs.current.delete(idx); }}
-              custom={idx}
-              variants={cardVariants}
-              initial="hidden"
-              animate="visible"
-              onMouseEnter={() => handleMouseEnter(idx)}
-              onMouseLeave={handleMouseLeave}
-              className="rounded-2xl overflow-hidden cursor-default flex flex-col"
-              style={{
-                backgroundColor: palette.bgCard,
-                border: `1px solid ${hoveredIdx === idx ? palette.accent + '40' : palette.borderLight}`,
-                boxShadow: hoveredIdx === idx ? `0 8px 32px ${palette.accent}18` : '0 1px 4px rgba(0,0,0,0.04)',
-                transition: 'border-color 0.25s, box-shadow 0.25s, transform 0.25s',
-                transform: hoveredIdx === idx ? 'translateY(-4px)' : 'translateY(0)',
-              }}
-            >
-              <div className="w-full overflow-hidden flex items-center justify-center" style={{ aspectRatio: '1 / 1', backgroundColor: palette.bgMuted }}>
-                <img
-                  src={encodeURI(item.imageUrl ?? '')}
-                  alt={item.name}
-                  className="max-w-full max-h-full object-contain"
-                  style={{ transition: 'transform 0.4s ease', transform: hoveredIdx === idx ? 'scale(1.07)' : 'scale(1)' }}
-                  loading="lazy"
-                />
-              </div>
-              <div className="px-3 py-2.5">
+        {/* ── Remaining list ── */}
+        {remaining.length > 0 && (
+          <Section delay={0.1}>
+            {/* Category summary chips */}
+            <div className="flex flex-wrap items-center gap-2 mb-6">
+              <span
+                className="text-[12px] font-medium mr-1"
+                style={{ color: palette.textDim }}
+              >
+                Kategorie:
+              </span>
+              {categoryChips.map(chip => (
                 <span
-                  className="font-serif text-sm leading-snug transition-colors duration-200 block"
-                  style={{ color: hoveredIdx === idx ? palette.text : palette.textSecondary }}
-                >
-                  {item.name}
-                </span>
-              </div>
-            </motion.div>
-          ))}
-
-          {/* Wysuwane karty z AnimatePresence */}
-          <AnimatePresence>
-            {expanded && extraItems.map((item, i) => {
-              const idx = INITIAL_VISIBLE + i;
-              return (
-                <motion.div
-                  key={item.name}
-                  ref={el => { if (el) cardRefs.current.set(idx, el); else cardRefs.current.delete(idx); }}
-                  custom={i}
-                  variants={cardVariants}
-                  initial="hidden"
-                  animate="visible"
-                  exit="exit"
-                  onMouseEnter={() => handleMouseEnter(idx)}
-                  onMouseLeave={handleMouseLeave}
-                  className="rounded-2xl overflow-hidden cursor-default flex flex-col"
+                  key={chip.key}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-medium"
                   style={{
                     backgroundColor: palette.bgCard,
-                    border: `1px solid ${hoveredIdx === idx ? palette.accent + '40' : palette.borderLight}`,
-                    boxShadow: hoveredIdx === idx ? `0 8px 32px ${palette.accent}18` : '0 1px 4px rgba(0,0,0,0.04)',
-                    transition: 'border-color 0.25s, box-shadow 0.25s, transform 0.25s',
-                    transform: hoveredIdx === idx ? 'translateY(-4px)' : 'translateY(0)',
+                    color: palette.textSecondary,
+                    border: `1px solid ${palette.borderLight}`,
                   }}
                 >
-                  <div className="w-full overflow-hidden flex items-center justify-center" style={{ aspectRatio: '1 / 1', backgroundColor: palette.bgMuted }}>
-                    <img
-                      src={encodeURI(item.imageUrl ?? '')}
-                      alt={item.name}
-                      className="max-w-full max-h-full object-contain"
-                      style={{ transition: 'transform 0.4s ease', transform: hoveredIdx === idx ? 'scale(1.07)' : 'scale(1)' }}
-                      loading="lazy"
-                    />
-                  </div>
-                  <div className="px-3 py-2.5">
-                    <span
-                      className="font-serif text-sm leading-snug transition-colors duration-200 block"
-                      style={{ color: hoveredIdx === idx ? palette.text : palette.textSecondary }}
-                    >
-                      {item.name}
-                    </span>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
+                  <span className="text-xs">{chip.icon}</span>
+                  {chip.label}
+                  <span
+                    className="text-[10px] ml-0.5 font-normal"
+                    style={{ color: palette.textDim }}
+                  >
+                    ({chip.count})
+                  </span>
+                </span>
+              ))}
+            </div>
 
-        </div>
-
-        {/* Rozwiń */}
-        {hasMore && (
-          <motion.button
-            layout
-            className="mt-8 flex items-center gap-2 text-sm font-medium transition-colors duration-200"
-            style={{ color: palette.textMuted }}
-            onClick={() => setExpanded(e => !e)}
-            whileHover={{ color: palette.accent }}
-          >
-            <motion.div
-              className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
-              style={{ border: '1.5px solid currentColor' }}
-              animate={{ rotate: expanded ? 180 : 0 }}
-              transition={{ duration: 0.3 }}
+            {/* Accordion list */}
+            <div
+              className="rounded-2xl overflow-hidden divide-y"
+              style={{
+                backgroundColor: palette.bgWarm,
+                borderColor: palette.borderLight,
+                border: `1px solid ${palette.borderLight}`,
+              }}
             >
-              <ChevronRight size={11} className="-rotate-90" style={{ display: 'block' }} />
-            </motion.div>
-            {expanded ? 'Zwiń' : `Pokaż wszystkie ${items.length} połączeń`}
-          </motion.button>
+              {visibleRemaining.map((item, i) => (
+                <div
+                  key={item.name}
+                  style={{ borderColor: palette.borderLight }}
+                >
+                  <ListItem
+                    item={item}
+                    index={i}
+                    palette={palette}
+                  />
+                </div>
+              ))}
+            </div>
+
+            {/* Show more */}
+            {hiddenCount > 0 && (
+              <motion.button
+                className="mt-6 mx-auto flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200"
+                style={{
+                  color: palette.textMuted,
+                  backgroundColor: palette.bgCard,
+                  border: `1px solid ${palette.borderLight}`,
+                }}
+                onClick={() => setShowAll(s => !s)}
+                whileHover={{
+                  borderColor: palette.accent + '60',
+                  color: palette.accent,
+                }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <motion.div
+                  animate={{ rotate: showAll ? 180 : 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <ChevronDown size={14} />
+                </motion.div>
+                {showAll
+                  ? 'Pokaż mniej'
+                  : `Pokaż pozostałe ${hiddenCount} ${hiddenCount === 1 ? 'danie' : hiddenCount < 5 ? 'dania' : 'dań'}`}
+              </motion.button>
+            )}
+          </Section>
         )}
       </div>
-
-      {/* Floating tooltip */}
-      {hovered && (
-        <motion.div
-          key={hoveredIdx}
-          initial={{ opacity: 0, y: tooltipPos.side === 'top' ? 6 : -6, scale: 0.97 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-          className="fixed z-50 pointer-events-none"
-          style={{
-            left: tooltipPos.x,
-            ...(tooltipPos.side === 'top'
-              ? { top: tooltipPos.y + 8 }
-              : { bottom: window.innerHeight - tooltipPos.y + 8 }),
-            transform: 'translateX(-50%)',
-            width: 220,
-          }}
-        >
-          <div
-            className="rounded-xl overflow-hidden shadow-2xl"
-            style={{ backgroundColor: palette.bgCard, border: `1px solid ${palette.border}` }}
-          >
-            <div className="px-4 py-3">
-              <p className="text-[11px] font-semibold uppercase tracking-widest mb-1" style={{ color: palette.accent }}>
-                {hovered.name}
-              </p>
-              <p className="text-xs leading-relaxed" style={{ color: palette.textMuted }}>
-                {hovered.description}
-              </p>
-            </div>
-          </div>
-          {/* Strzałka */}
-          <div
-            className="absolute left-1/2 -translate-x-1/2"
-            style={{
-              ...(tooltipPos.side === 'top' ? { top: -6 } : { bottom: -6 }),
-              width: 0, height: 0,
-              borderLeft: '6px solid transparent',
-              borderRight: '6px solid transparent',
-              ...(tooltipPos.side === 'top'
-                ? { borderBottom: `6px solid ${palette.border}` }
-                : { borderTop: `6px solid ${palette.border}` }),
-            }}
-          />
-          <div
-            className="absolute left-1/2 -translate-x-1/2"
-            style={{
-              ...(tooltipPos.side === 'top' ? { top: -5 } : { bottom: -5 }),
-              width: 0, height: 0,
-              borderLeft: '5px solid transparent',
-              borderRight: '5px solid transparent',
-              ...(tooltipPos.side === 'top'
-                ? { borderBottom: `5px solid ${palette.bgCard}` }
-                : { borderTop: `5px solid ${palette.bgCard}` }),
-            }}
-          />
-        </motion.div>
-      )}
     </section>
   );
 };

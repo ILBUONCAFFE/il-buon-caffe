@@ -36,9 +36,16 @@ export const SalesQualityCard = () => {
         <h2 className="text-base font-semibold text-[#1A1A1A]">Jakość sprzedaży</h2>
         <div className="flex items-center gap-2">
           {quality && (
-            <span className="text-xs font-medium" style={{ color: ql.color }}>
-              {ql.label}
-            </span>
+            <div className="flex flex-col items-end gap-0.5">
+              <span className="text-xs font-medium" style={{ color: ql.color }}>
+                {ql.label}
+              </span>
+              {quality.grade && (
+                <span className="text-[10px] text-[#A3A3A3] font-normal leading-none">
+                  {quality.grade === 'SUPER_SELLER' ? 'Super Sprzedawca' : quality.grade}
+                </span>
+              )}
+            </div>
           )}
           {loading ? (
             <Loader2 size={14} className="text-[#A3A3A3] animate-spin" />

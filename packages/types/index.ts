@@ -541,18 +541,19 @@ export interface Article {
 export interface AllegroSalesQuality {
   score: number
   maxScore: number
+  grade?: string                                 // e.g. "SUPER_SELLER" (from /sale/quality)
   fetchedAt: string                              // ISO timestamp
   fulfillment: {
-    onTimePercent: number                        // e.g. 94.2
+    onTimePercent: number                        // e.g. 94.2 (from DISPATCH_IN_TIME metric)
   }
   returns: {
-    count: number                                // e.g. 12
-    ratePercent: number                          // e.g. 1.2 — from /sale/quality component
+    count: number                                // e.g. 12 (from /order/customer-returns)
+    ratePercent: number                          // e.g. 1.2
   }
   ratings: {
     positive: number                             // totalCount from /sale/user-ratings?recommended=true
     negative: number                             // totalCount from /sale/user-ratings?recommended=false
-    negativePercent: number                      // mapped from /sale/quality negativeFeedbackRatePercent
+    negativePercent: number                      // calculated or from buyer satisfaction metric
   }
 }
 
