@@ -10,6 +10,7 @@
  *   GET  /me              — verify token by calling GET /me on Allegro (auth required)
  */
 
+import type { AllegroSalesQuality } from '@repo/types'
 import { Hono } from 'hono'
 import { createDb, createDbHttp } from '@repo/db/client'
 import { allegroCredentials, allegroState, orders } from '@repo/db/schema'
@@ -699,5 +700,132 @@ allegroRouter.get('/orders/:id/tracking', requireAdminOrProxy(), async (c) => {
   } catch (err) {
     console.error('[Allegro] tracking error:', err instanceof Error ? err.message : String(err))
     return c.json({ success: false, error: err instanceof Error ? err.message : 'Błąd' }, 500)
+  }
+})
+
+// ── Helpers: quality aggregation ─────────────────────────────────────────────
+
+/**
+ * Fetches and aggregates Allegro sales quality data from 4 parallel API calls.
+ * Exported for use in cron pre-warm (apps/api/src/index.ts).
+ *
+ * NOTE: Verify exact Allegro API response field names against sandbox before prod deploy.
+ * - /sale/quality            → score, maxScore, and component percentage rates
+ * - /sale/user-ratings       → count.total (filtered by recommended param)
+ * - /order/returns           → count.total
+ */
+export async function preWarmAllegroQualityCache(env: Env): Promise<void> {
+  const kv = env.ALLEGRO_KV
+  if (!kv) return
+
+  const accessToken = await kv.get(KV_KEYS.ACCESS_TOKEN)
+  const environment = ((await kv.get(KV_KEYS.ENVIRONMENT)) ?? 'sandbox') as AllegroEnvironment
+  if (!accessToken) return
+
+  try {
+    const data = await fetchAllegroQualityData(accessToken, environment)
+    await kv.put(KV_KEYS.QUALITY_CACHE, JSON.stringify(data), { expirationTtl: 86400 })
+    console.log('[Allegro Quality] Cache pre-warmed at', data.fetchedAt)
+  } catch (err) {
+    console.error('[Allegro Quality] Pre-warm failed:', err instanceof Error ? err.message : String(err))
+  }
+}
+
+async function fetchAllegroQualityData(
+  accessToken: string,
+  environment: AllegroEnvironment,
+): Promise<AllegroSalesQuality> {
+  const apiBase = getAllegroApiBase(environment)
+  const headers = {
+    Authorization: `Bearer ${accessToken}`,
+    Accept: 'application/vnd.allegro.public.v1+json',
+  }
+
+  const [qualityResp, posRatingsResp, negRatingsResp, returnsResp] = await Promise.all([
+    fetch(`${apiBase}/sale/quality`, { headers, signal: AbortSignal.timeout(10_000) }),
+    fetch(`${apiBase}/sale/user-ratings?recommended=true&limit=1`, { headers, signal: AbortSignal.timeout(10_000) }),
+    fetch(`${apiBase}/sale/user-ratings?recommended=false&limit=1`, { headers, signal: AbortSignal.timeout(10_000) }),
+    fetch(`${apiBase}/order/returns?limit=1`, { headers, signal: AbortSignal.timeout(10_000) }),
+  ])
+
+  if (!qualityResp.ok || !posRatingsResp.ok || !negRatingsResp.ok || !returnsResp.ok) {
+    const failedStatus = [qualityResp, posRatingsResp, negRatingsResp, returnsResp]
+      .map((r, i) => `[${i}] ${r.status}`)
+      .join(', ')
+    throw new Error(`One or more Allegro API calls failed: ${failedStatus}`)
+  }
+
+  const [quality, posRatings, negRatings, returns_] = await Promise.all([
+    qualityResp.json() as Promise<Record<string, unknown>>,
+    posRatingsResp.json() as Promise<Record<string, unknown>>,
+    negRatingsResp.json() as Promise<Record<string, unknown>>,
+    returnsResp.json() as Promise<Record<string, unknown>>,
+  ])
+
+  // NOTE: Adjust these field paths after verifying against actual Allegro sandbox responses.
+  const score = (quality.score as number) ?? 0
+  const maxScore = (quality.maxScore as number) ?? 500
+  const metrics = (quality.metrics as Record<string, { value: number }>) ?? {}
+
+  return {
+    score,
+    maxScore,
+    fetchedAt: new Date().toISOString(),
+    fulfillment: {
+      onTimePercent: metrics.fulfillmentTime?.value ?? 0,
+    },
+    returns: {
+      count: ((returns_.count as Record<string, number>)?.total) ?? 0,
+      ratePercent: metrics.returns?.value ?? 0,
+    },
+    ratings: {
+      positive: ((posRatings.count as Record<string, number>)?.total) ?? 0,
+      negative: ((negRatings.count as Record<string, number>)?.total) ?? 0,
+      negativePercent: metrics.negativeFeedback?.value ?? 0,
+    },
+  }
+}
+
+// ── GET /quality ──────────────────────────────────────────────────────────────
+
+allegroRouter.get('/quality', requireAdminOrProxy(), async (c) => {
+  const env   = c.env as Env
+  const kv    = env.ALLEGRO_KV
+  const force = c.req.query('force') === 'true'
+
+  try {
+    // Check connection
+    const accessToken = await kv?.get(KV_KEYS.ACCESS_TOKEN)
+    if (!accessToken) {
+      return c.json({ data: null })
+    }
+
+    // KV cache hit (skip if force=true)
+    if (!force && kv) {
+      const cached = await kv.get<AllegroSalesQuality>(KV_KEYS.QUALITY_CACHE, 'json')
+      if (cached) {
+        return c.json({ data: cached })
+      }
+    }
+
+    // Cache miss or forced refresh — fetch live
+    const environment = ((await kv?.get(KV_KEYS.ENVIRONMENT)) ?? 'sandbox') as AllegroEnvironment
+    const data = await fetchAllegroQualityData(accessToken, environment)
+
+    // Write to KV non-blocking (don't delay the response)
+    if (kv) {
+      c.executionCtx.waitUntil(
+        kv.put(KV_KEYS.QUALITY_CACHE, JSON.stringify(data), { expirationTtl: 86400 })
+          .catch(err => console.error('[Allegro Quality] KV write failed:', err))
+      )
+    }
+
+    return c.json({ data })
+  } catch (err) {
+    console.error('[Allegro Quality] fetch error:', err instanceof Error ? err.message : String(err))
+    return c.json(
+      { error: { code: 'ALLEGRO_FETCH_FAILED', message: err instanceof Error ? err.message : 'Błąd pobierania danych jakości' } },
+      502,
+    )
   }
 })
