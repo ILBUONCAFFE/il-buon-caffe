@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { adminApi } from '../lib/adminApiClient'
-import type { DashboardStats, DashboardOverview, WeeklyRevenuePoint, WeeklyPoint, OrdersQueryParams, AdminOrder, ActivityItem, AllegroConnectionStatus } from '../types/admin-api'
+import type { DashboardStats, DashboardOverview, WeeklyRevenuePoint, WeeklyPoint, OrdersQueryParams, AdminOrder, ActivityItem, AllegroConnectionStatus, AllegroSalesQuality } from '../types/admin-api'
 
 // ── Generic async state ───────────────────────────────────────────────────────
 interface AsyncState<T> {
@@ -93,6 +93,31 @@ export function useOrders(params: OrdersQueryParams = {}) {
   useEffect(() => { fetch() }, [fetch])
 
   return { orders, meta, loading, error, refetch: fetch }
+}
+
+// ── Allegro sales quality ─────────────────────────────────────────────────────
+export function useSalesQuality() {
+  const [force, setForce] = useState(false)
+
+  const { data, loading, error } = useAsync(
+    () => adminApi.getAllegroQuality(force).then(r => r.data),
+    [force],
+  )
+
+  // Reset force flag after the fetch triggered by it completes,
+  // so subsequent automatic re-renders don't bypass KV cache.
+  useEffect(() => {
+    if (!loading && force) setForce(false)
+  }, [loading, force])
+
+  const refetch = useCallback(() => setForce(true), [])
+
+  return {
+    quality: data as AllegroSalesQuality | null,
+    loading,
+    error,
+    refetch,
+  }
 }
 
 // ── Activity feed ─────────────────────────────────────────────────────────────
