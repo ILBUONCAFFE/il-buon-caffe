@@ -181,21 +181,21 @@ adminRouter.get('/stats/overview', requireAdminOrProxy(), async (c) => {
       const [todayRow, ydayRow, avg30Row, avgPrior30Row, todayCntRow, ydayCntRow] = await Promise.all([
         // Today: total + allegro breakdown (paidAt in today's Polish calendar day)
         db.select({
-          total:        sql<number>`COALESCE(SUM(COALESCE(CAST(${orders.totalPln} AS NUMERIC), CAST(${orders.total} AS NUMERIC))), 0)`,
-          allegroTotal: sql<number>`COALESCE(SUM(COALESCE(CAST(${orders.totalPln} AS NUMERIC), CAST(${orders.total} AS NUMERIC))) FILTER (WHERE ${orders.source} = 'allegro'), 0)`,
+          total:        sql<number>`COALESCE(SUM(COALESCE(CAST(${orders.totalPln} AS NUMERIC), CASE WHEN ${orders.currency} = 'PLN' THEN CAST(${orders.total} AS NUMERIC) ELSE NULL END)), 0)`,
+          allegroTotal: sql<number>`COALESCE(SUM(COALESCE(CAST(${orders.totalPln} AS NUMERIC), CASE WHEN ${orders.currency} = 'PLN' THEN CAST(${orders.total} AS NUMERIC) ELSE NULL END)) FILTER (WHERE ${orders.source} = 'allegro'), 0)`,
           allegroCount: sql<number>`COALESCE(COUNT(*) FILTER (WHERE ${orders.source} = 'allegro'), 0)`,
         }).from(orders).where(and(PAID, gte(orders.paidAt, todayStart), lt(orders.paidAt, tomorrowStart))),
 
         // Yesterday revenue (for % change)
-        db.select({ v: sql<number>`COALESCE(SUM(COALESCE(CAST(${orders.totalPln} AS NUMERIC), CAST(${orders.total} AS NUMERIC))),0)` })
+        db.select({ v: sql<number>`COALESCE(SUM(COALESCE(CAST(${orders.totalPln} AS NUMERIC), CASE WHEN ${orders.currency} = 'PLN' THEN CAST(${orders.total} AS NUMERIC) ELSE NULL END)),0)` })
           .from(orders).where(and(PAID, gte(orders.paidAt, yesterdayStart), lt(orders.paidAt, todayStart))),
 
         // Avg order value — last 30 days (paid)
-        db.select({ v: sql<number>`COALESCE(AVG(COALESCE(CAST(${orders.totalPln} AS NUMERIC), CAST(${orders.total} AS NUMERIC))),0)` })
+        db.select({ v: sql<number>`COALESCE(AVG(COALESCE(CAST(${orders.totalPln} AS NUMERIC), CASE WHEN ${orders.currency} = 'PLN' THEN CAST(${orders.total} AS NUMERIC) ELSE NULL END)),0)` })
           .from(orders).where(and(PAID, gte(orders.paidAt, day30agoStart), lt(orders.paidAt, tomorrowStart))),
 
         // Avg order value — prior 30 days (for % change)
-        db.select({ v: sql<number>`COALESCE(AVG(COALESCE(CAST(${orders.totalPln} AS NUMERIC), CAST(${orders.total} AS NUMERIC))),0)` })
+        db.select({ v: sql<number>`COALESCE(AVG(COALESCE(CAST(${orders.totalPln} AS NUMERIC), CASE WHEN ${orders.currency} = 'PLN' THEN CAST(${orders.total} AS NUMERIC) ELSE NULL END)),0)` })
           .from(orders).where(and(PAID, gte(orders.paidAt, day60agoStart), lt(orders.paidAt, day30agoStart))),
 
         // Today paid order count (shipments paid today in PL time)
@@ -257,8 +257,8 @@ adminRouter.get('/stats/weekly-revenue', requireAdminOrProxy(), async (c) => {
         .select({
           // Group by calendar date in Warsaw timezone for correct PL-midnight boundaries
           day:     sql<string>`DATE(${orders.paidAt} AT TIME ZONE 'Europe/Warsaw')`,
-          shop:    sql<number>`COALESCE(SUM(COALESCE(CAST(${orders.totalPln} AS NUMERIC), CAST(${orders.total} AS NUMERIC))) FILTER (WHERE ${orders.source} = 'shop'), 0)`,
-          allegro: sql<number>`COALESCE(SUM(COALESCE(CAST(${orders.totalPln} AS NUMERIC), CAST(${orders.total} AS NUMERIC))) FILTER (WHERE ${orders.source} = 'allegro'), 0)`,
+          shop:    sql<number>`COALESCE(SUM(COALESCE(CAST(${orders.totalPln} AS NUMERIC), CASE WHEN ${orders.currency} = 'PLN' THEN CAST(${orders.total} AS NUMERIC) ELSE NULL END)) FILTER (WHERE ${orders.source} = 'shop'), 0)`,
+          allegro: sql<number>`COALESCE(SUM(COALESCE(CAST(${orders.totalPln} AS NUMERIC), CASE WHEN ${orders.currency} = 'PLN' THEN CAST(${orders.total} AS NUMERIC) ELSE NULL END)) FILTER (WHERE ${orders.source} = 'allegro'), 0)`,
         })
         .from(orders)
         .where(and(
