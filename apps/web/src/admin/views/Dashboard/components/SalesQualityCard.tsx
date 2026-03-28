@@ -144,7 +144,7 @@ export const SalesQualityCard = () => {
             </div>
             {/* Ratings */}
             <div>
-              <p className="text-[#A3A3A3] mb-1">Oceny</p>
+              <p className="text-[#A3A3A3] mb-1">Oceny (łącznie)</p>
               <p className="font-semibold text-[#059669] tabular-nums">{quality.ratings.positive} ✓</p>
               <p className="font-semibold text-[#DC2626] tabular-nums">{quality.ratings.negative} ✗</p>
               <p className="text-[#A3A3A3] tabular-nums">({quality.ratings.negativePercent.toFixed(1)}%)</p>
