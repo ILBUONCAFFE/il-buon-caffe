@@ -547,8 +547,8 @@ export interface AllegroSalesQuality {
     onTimePercent: number                        // e.g. 94.2 (from DISPATCH_IN_TIME metric)
   }
   returns: {
-    count: number                                // e.g. 12 (from /order/customer-returns)
-    ratePercent: number                          // e.g. 1.2
+    count: number        // from /order/customer-returns (FINISHED, 90-day window)
+    ratePercent?: number // undefined when DB ordersCount === 0 (incomplete sync guard)
   }
   ratings: {
     positive: number                             // from /users/{userId}/ratings-summary .recommended.total
