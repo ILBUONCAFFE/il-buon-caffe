@@ -408,7 +408,9 @@ export const orders = pgTable('orders', {
   taxAmount: decimal('tax_amount', { precision: 10, scale: 2 }),
   total: decimal('total', { precision: 10, scale: 2 }).notNull(),
   currency: varchar('currency', { length: 3 }).notNull().default('PLN'),
-  totalPln: decimal('total_pln', { precision: 10, scale: 2 }),
+  totalPln:     decimal('total_pln',     { precision: 10, scale: 2 }),
+  exchangeRate: decimal('exchange_rate', { precision: 10, scale: 6 }),
+  rateDate:     date('rate_date'),
 
   // ===== Płatność (Przelewy24) =====
   paymentMethod: varchar('payment_method', { length: 50 }),
