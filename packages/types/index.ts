@@ -231,6 +231,10 @@ export interface Order {
   subtotal: number;
   shippingCost: number;
   total: number;
+  currency: string;
+  totalPln: number | null;
+  exchangeRate: number | null;
+  rateDate: string | null;
   paymentMethod?: string;
   p24SessionId?: string;       // Przelewy24 session ID
   p24OrderId?: string;          // Przelewy24 order ID (z webhook)
