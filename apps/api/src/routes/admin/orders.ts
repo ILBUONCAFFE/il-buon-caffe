@@ -53,6 +53,7 @@ adminOrdersRouter.get('/', auditLogMiddleware('view_order'), async (c) => {
         columns: {
           id: true, orderNumber: true, source: true, externalId: true,
           status: true, total: true, subtotal: true, shippingCost: true,
+          currency: true, totalPln: true,
           customerData: true, paymentMethod: true, shippingMethod: true,
           trackingNumber: true, paidAt: true, shippedAt: true, createdAt: true,
           updatedAt: true, internalNotes: true, notes: true,
@@ -79,6 +80,7 @@ adminOrdersRouter.get('/', auditLogMiddleware('view_order'), async (c) => {
       total:        Number(o.total),
       subtotal:     Number(o.subtotal),
       shippingCost: Number(o.shippingCost ?? 0),
+      totalPln:     o.totalPln != null ? Number(o.totalPln) : null,
       itemsCount:   o.items.length,
     }))
 
@@ -118,6 +120,9 @@ adminOrdersRouter.get('/:id', auditLogMiddleware('view_order'), async (c) => {
         total:        Number(order.total),
         subtotal:     Number(order.subtotal),
         shippingCost: Number(order.shippingCost ?? 0),
+        totalPln:     order.totalPln     != null ? Number(order.totalPln)     : null,
+        exchangeRate: order.exchangeRate != null ? Number(order.exchangeRate) : null,
+        rateDate:     order.rateDate     ?? null,
       },
     })
   } catch (err) {
