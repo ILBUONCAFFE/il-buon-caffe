@@ -8,6 +8,10 @@ import { getStatusBadge } from '../../../utils/getStatusBadge'
 import { useOrders } from '../../../hooks/useDashboard'
 import type { AdminOrder } from '../../../types/admin-api'
 
+function formatAmount(amount: string | number, currency = 'PLN'): string {
+  return `${Number(amount).toLocaleString('pl-PL', { minimumFractionDigits: 2 })} ${currency}`
+}
+
 function relativeTime(iso: string): string {
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
   if (diff < 60) return `${diff}s`
@@ -140,7 +144,7 @@ export const OrdersTable = () => {
                     <td className="py-3 px-4 text-[#525252]">{itemLabel}</td>
                     <td className="py-3 px-4 text-right">
                       <span className="font-mono font-semibold text-[#1A1A1A]">
-                        {Number(order.total).toLocaleString()} zł
+                        {formatAmount(order.total, order.currency)}
                       </span>
                     </td>
                     <td className="py-3 px-4 text-center">

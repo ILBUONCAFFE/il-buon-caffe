@@ -12,6 +12,10 @@ import type { AdminOrder, AllegroOrderDetails, AllegroTrackingData } from '../ty
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+function formatAmount(amount: string | number, currency = 'PLN'): string {
+  return `${Number(amount).toLocaleString('pl-PL', { minimumFractionDigits: 2 })} ${currency}`
+}
+
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('pl-PL', {
     timeZone: 'Europe/Warsaw',
@@ -298,14 +302,14 @@ export function OrderDetailModal({ order, isOpen, onClose }: Props) {
                       <td className="px-4 py-3">
                         <p className="font-medium text-[#1A1A1A]">{item.productName}</p>
                         <p className="text-[11px] text-[#A3A3A3] mt-0.5">
-                          {item.productSku} · {Number(item.unitPrice).toFixed(2)} zł/szt
+                          {item.productSku} · {formatAmount(item.unitPrice, order.currency)}/szt
                         </p>
                       </td>
                       <td className="px-4 py-3 text-center text-[#525252] tabular-nums">
                         {item.quantity}
                       </td>
                       <td className="px-4 py-3 text-right font-semibold text-[#1A1A1A] font-mono tabular-nums">
-                        {Number(item.totalPrice).toFixed(2)} zł
+                        {formatAmount(item.totalPrice, order.currency)}
                       </td>
                     </tr>
                   ))
@@ -323,7 +327,7 @@ export function OrderDetailModal({ order, isOpen, onClose }: Props) {
                     Razem
                   </td>
                   <td className="px-4 py-3 text-right font-bold text-[#1A1A1A] font-mono tabular-nums">
-                    {Number(order.total).toFixed(2)} zł
+                    {formatAmount(order.total, order.currency)}
                   </td>
                 </tr>
               </tfoot>
