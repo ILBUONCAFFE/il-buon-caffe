@@ -13,6 +13,35 @@ import {
 import { eq, and, or } from 'drizzle-orm'
 import type { AllegroCheckoutForm, AllegroOrderEvent } from './types'
 import { generateOrderNumber, buildShippingAddress, fetchCheckoutForm } from './helpers'
+import { getRate, type ForeignCurrency } from '../nbp'
+
+// ── Shared rate resolution ─────────────────────────────────────────────────
+
+async function resolveRateFields(
+  totalAmount: string,
+  currency: string,
+  orderDate: Date,
+  kv: KVNamespace,
+): Promise<{ totalPln: string | null; exchangeRate: string | null; rateDate: string | null }> {
+  if (currency === 'PLN') {
+    return {
+      totalPln:     totalAmount,
+      exchangeRate: '1.000000',
+      rateDate:     orderDate.toISOString().slice(0, 10),
+    }
+  }
+  try {
+    const nbp = await getRate(currency as ForeignCurrency, orderDate, kv)
+    return {
+      totalPln:     (parseFloat(totalAmount) * nbp.rate).toFixed(2),
+      exchangeRate: nbp.rate.toFixed(6),
+      rateDate:     nbp.rateDate,
+    }
+  } catch (err) {
+    console.warn(`[AllegroOrders] NBP unavailable for ${currency}:`, err instanceof Error ? err.message : err)
+    return { totalPln: null, exchangeRate: null, rateDate: null }
+  }
+}
 
 // ── Event handlers ────────────────────────────────────────────────────────
 
@@ -23,6 +52,7 @@ import { generateOrderNumber, buildShippingAddress, fetchCheckoutForm } from './
 export async function handleBought(
   db: ReturnType<typeof createDb>,
   form: AllegroCheckoutForm,
+  kv: KVNamespace,
 ): Promise<void> {
   // Idempotency — skip if already exists
   const [existing] = await db
@@ -34,6 +64,8 @@ export async function handleBought(
 
   const totalAmount    = form.summary.totalToPay.amount
   const currency       = form.summary.totalToPay.currency
+  const orderDate = new Date()
+  const { totalPln, exchangeRate, rateDate } = await resolveRateFields(totalAmount, currency, orderDate, kv)
   const shippingAmount = form.delivery.cost?.amount ?? '0'
   const subtotal       = (parseFloat(totalAmount) - parseFloat(shippingAmount)).toFixed(2)
 
@@ -61,7 +93,9 @@ export async function handleBought(
     shippingCost:   shippingAmount,
     total:          totalAmount,
     currency,
-    totalPln:       currency === 'PLN' ? totalAmount : null,
+    totalPln,
+    exchangeRate,
+    rateDate,
     paymentMethod:  form.payment.type ?? 'allegro',
     shippingMethod: form.delivery.method?.name ?? null,
     notes:          form.messageToSeller ?? null,
@@ -100,6 +134,7 @@ export async function handleBought(
 export async function handleFilledIn(
   db: ReturnType<typeof createDb>,
   form: AllegroCheckoutForm,
+  kv: KVNamespace,
 ): Promise<void> {
   const [existing] = await db
     .select({ id: orders.id })
@@ -109,7 +144,7 @@ export async function handleFilledIn(
 
   if (!existing) {
     // Edge case: missed BOUGHT event — treat like BOUGHT
-    await handleBought(db, form)
+    await handleBought(db, form, kv)
     return
   }
 
@@ -138,6 +173,7 @@ export async function handleFilledIn(
 export async function handleReadyForProcessing(
   db: ReturnType<typeof createDb>,
   form: AllegroCheckoutForm,
+  kv: KVNamespace,
 ): Promise<void> {
   const [existing] = await db
     .select({ id: orders.id, status: orders.status })
@@ -156,6 +192,8 @@ export async function handleReadyForProcessing(
     // Missed BOUGHT/FILLED_IN — create directly as paid
     const totalAmount    = form.summary.totalToPay.amount
     const currency       = form.summary.totalToPay.currency
+    const orderDate = new Date()
+    const { totalPln, exchangeRate, rateDate } = await resolveRateFields(totalAmount, currency, orderDate, kv)
     const shippingAmount = form.delivery.cost?.amount ?? '0'
     const subtotal       = (parseFloat(totalAmount) - parseFloat(shippingAmount)).toFixed(2)
 
@@ -185,7 +223,9 @@ export async function handleReadyForProcessing(
       shippingCost:   shippingAmount,
       total:          totalAmount,
       currency,
-      totalPln:       currency === 'PLN' ? totalAmount : null,
+      totalPln,
+      exchangeRate,
+      rateDate,
       paymentMethod:  form.payment.type ?? 'allegro',
       shippingMethod: form.delivery.method?.name ?? null,
       paidAt,
@@ -209,7 +249,7 @@ export async function handleReadyForProcessing(
       }
       await db
         .update(orders)
-        .set({ status: 'paid', paidAt, updatedAt: new Date() })
+        .set({ status: 'paid', paidAt, totalPln, exchangeRate, rateDate, updatedAt: new Date() })
         .where(eq(orders.externalId, form.id))
       orderId = reFetched.id
     }
@@ -219,9 +259,13 @@ export async function handleReadyForProcessing(
     return
   } else {
     // Exists as pending → mark paid
+    const totalAmount    = form.summary.totalToPay.amount
+    const currency       = form.summary.totalToPay.currency
+    const orderDate = new Date()
+    const { totalPln, exchangeRate, rateDate } = await resolveRateFields(totalAmount, currency, orderDate, kv)
     await db
       .update(orders)
-      .set({ status: 'paid', paidAt, updatedAt: new Date() })
+      .set({ status: 'paid', paidAt, totalPln, exchangeRate, rateDate, updatedAt: new Date() })
       .where(eq(orders.externalId, form.id))
     orderId = existing.id
   }
@@ -381,6 +425,7 @@ export async function processEvent(
   apiBase: string,
   accessToken: string,
   event: AllegroOrderEvent,
+  kv: KVNamespace,
 ): Promise<boolean> {
   const checkoutFormId = event.order.checkoutForm.id
 
@@ -398,13 +443,13 @@ export async function processEvent(
 
   switch (event.type) {
     case 'BOUGHT':
-      await handleBought(db, form)
+      await handleBought(db, form, kv)
       break
     case 'FILLED_IN':
-      await handleFilledIn(db, form)
+      await handleFilledIn(db, form, kv)
       break
     case 'READY_FOR_PROCESSING':
-      await handleReadyForProcessing(db, form)
+      await handleReadyForProcessing(db, form, kv)
       break
     case 'BUYER_CANCELLED':
     case 'AUTO_CANCELLED':

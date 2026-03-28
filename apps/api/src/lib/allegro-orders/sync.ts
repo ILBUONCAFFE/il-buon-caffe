@@ -182,7 +182,7 @@ export async function syncAllegroOrders(env: Env): Promise<void> {
       }
 
       try {
-        const ok = await processEvent(db, apiBase, accessToken, event)
+        const ok = await processEvent(db, apiBase, accessToken, event, kv)
         if (ok) lastCursor = event.id
         totalProcessed++
         fetchesDone++

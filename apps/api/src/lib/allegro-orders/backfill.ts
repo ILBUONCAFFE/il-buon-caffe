@@ -142,11 +142,11 @@ async function _backfillInner(
           if (isCancelled) {
             await handleCancelled(db, form, 'AUTO_CANCELLED')
           } else if (isPaid) {
-            await handleReadyForProcessing(db, form)
+            await handleReadyForProcessing(db, form, kv)
           } else {
-            await handleBought(db, form)
+            await handleBought(db, form, kv)
             if (form.delivery?.address) {
-              await handleFilledIn(db, form)
+              await handleFilledIn(db, form, kv)
             }
           }
         }, 3)
