@@ -716,13 +716,14 @@ allegroRouter.get('/orders/:id/tracking', requireAdminOrProxy(), async (c) => {
 // ── Helpers: quality aggregation ─────────────────────────────────────────────
 
 /**
- * Fetches and aggregates Allegro sales quality data from 4 parallel API calls.
+ * Fetches and aggregates Allegro sales quality data from parallel API calls.
  * Exported for use in cron pre-warm (apps/api/src/index.ts).
  *
- * NOTE: Verify exact Allegro API response field names against sandbox before prod deploy.
- * - /sale/quality            → score, maxScore, and component percentage rates
- * - /sale/user-ratings       → totalCount
- * - /order/customer-returns  → count
+ * Data sources:
+ * - /me                           → get userId for authenticated seller
+ * - /sale/quality                 → score, maxScore, and component percentage rates
+ * - /users/{userId}/ratings-summary → per-period rating counts (lastThreeMonths, lastSixMonths, lastTwelveMonths)
+ * - /order/customer-returns       → return count
  */
 export async function preWarmAllegroQualityCache(env: Env): Promise<void> {
   const kv = env.ALLEGRO_KV

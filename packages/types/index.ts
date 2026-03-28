@@ -554,9 +554,9 @@ export interface AllegroSalesQuality {
     positive: number                             // all-time: from /users/{userId}/ratings-summary .all.recommended
     negative: number                             // all-time: from /users/{userId}/ratings-summary .all.notRecommended
     negativePercent: number                      // calculated: negative / (positive + negative) * 100
-    lastThreeMonths?: { positive: number; negative: number }
-    lastSixMonths?: { positive: number; negative: number }
-    lastTwelveMonths?: { positive: number; negative: number }
+    lastThreeMonths: { positive: number; negative: number }
+    lastSixMonths: { positive: number; negative: number }
+    lastTwelveMonths: { positive: number; negative: number }
   }
 }
 
