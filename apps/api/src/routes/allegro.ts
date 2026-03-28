@@ -773,6 +773,9 @@ async function fetchAllegroQualityData(
   }
   const me      = meResp.ok ? await meResp.json() as any : null
   const userId  = (me?.id as string | undefined) ?? null
+  if (!meResp.ok) {
+    console.warn('[Allegro Quality] /me returned', meResp.status, '— ratings will default to 0')
+  }
 
   let ratingsResp: Response | null = null
   if (userId) {
@@ -806,21 +809,11 @@ async function fetchAllegroQualityData(
   const onTimePercent = getMetricPct('DISPATCH_IN_TIME')
   
   // Parse ratings-summary — degrade gracefully to zero if unavailable
-  // Expected shape: { all: { recommended, notRecommended }, lastThreeMonths: ..., ... }
+  // Actual shape: { recommended: { unique, total }, notRecommended: { unique, total }, ... }
   const ratingsSummary = ratingsResp?.ok ? await ratingsResp.json() as any : null
 
-  const toEntry = (obj: any): { positive: number; negative: number } => ({
-    positive: (obj?.recommended    as number) ?? 0,
-    negative: (obj?.notRecommended as number) ?? 0,
-  })
-
-  const allEntry    = toEntry(ratingsSummary?.all)
-  const last3Entry  = toEntry(ratingsSummary?.lastThreeMonths)
-  const last6Entry  = toEntry(ratingsSummary?.lastSixMonths)
-  const last12Entry = toEntry(ratingsSummary?.lastTwelveMonths)
-
-  const posCount        = allEntry.positive
-  const negCount        = allEntry.negative
+  const posCount        = (ratingsSummary?.recommended?.total    as number) ?? 0
+  const negCount        = (ratingsSummary?.notRecommended?.total as number) ?? 0
   const totalRatings    = posCount + negCount
   const negativePercent = totalRatings > 0 ? (negCount / totalRatings) * 100 : 0
 
@@ -839,12 +832,9 @@ async function fetchAllegroQualityData(
       ratePercent: 0, 
     },
     ratings: {
-      positive:         posCount,
-      negative:         negCount,
+      positive: posCount,
+      negative: negCount,
       negativePercent,
-      lastThreeMonths:  last3Entry,
-      lastSixMonths:    last6Entry,
-      lastTwelveMonths: last12Entry,
     },
     // Add grade info if available for extra context
     grade: latestQuality.grade,

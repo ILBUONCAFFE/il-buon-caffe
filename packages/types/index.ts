@@ -551,12 +551,9 @@ export interface AllegroSalesQuality {
     ratePercent: number                          // e.g. 1.2
   }
   ratings: {
-    positive: number                             // all-time: from /users/{userId}/ratings-summary .all.recommended
-    negative: number                             // all-time: from /users/{userId}/ratings-summary .all.notRecommended
+    positive: number                             // from /users/{userId}/ratings-summary .recommended.total
+    negative: number                             // from /users/{userId}/ratings-summary .notRecommended.total
     negativePercent: number                      // calculated: negative / (positive + negative) * 100
-    lastThreeMonths: { positive: number; negative: number }
-    lastSixMonths: { positive: number; negative: number }
-    lastTwelveMonths: { positive: number; negative: number }
   }
 }
 
