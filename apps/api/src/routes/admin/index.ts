@@ -104,8 +104,10 @@ adminRouter.get('/dashboard', requireAdminOrProxy(), async (c) => {
         .from(orders)
         .where(eq(orders.status, 'processing')),
 
-      // Monthly revenue (paid + processing + shipped + delivered)
-      db.select({ total: sql<number>`SUM(CAST(${orders.total} AS NUMERIC))` })
+      // Monthly revenue — PLN-normalised (uses total_pln when available)
+      db.select({
+        total: sql<number>`COALESCE(SUM(COALESCE(CAST(${orders.totalPln} AS NUMERIC), CASE WHEN ${orders.currency} = 'PLN' THEN CAST(${orders.total} AS NUMERIC) ELSE NULL END)), 0)`,
+      })
         .from(orders)
         .where(and(
           gte(orders.createdAt, thirtyDaysAgo),
@@ -347,7 +349,7 @@ adminRouter.get('/activity', requireAdminOrProxy(), async (c) => {
       .limit(limit)
 
     // Currency symbol map — extend when adding new markets
-    const currencySymbol: Record<string, string> = { PLN: 'zł', EUR: '€', CZK: 'Kč' }
+    const currencySymbol: Record<string, string> = { PLN: 'zł', EUR: '€', CZK: 'Kč', HUF: 'Ft' }
 
     const activityItems = recentOrders.map(o => {
       const customer = (o.customerData as { name?: string } | null)?.name ?? 'Klient'
