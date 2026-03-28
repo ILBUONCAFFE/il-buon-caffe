@@ -166,7 +166,10 @@ export const OrdersView = () => {
     paid: orders.filter(o => o.status === 'paid').length,
     processing: orders.filter(o => o.status === 'processing').length,
     shipped: orders.filter(o => o.status === 'shipped').length,
-    revenue: orders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + Number(o.total), 0),
+    revenue: orders.filter(o => o.status !== 'cancelled').reduce(
+      (s, o) => s + Number(o.totalPln ?? (o.currency === 'PLN' ? o.total : 0)),
+      0,
+    ),
   }
 
   const statusTabs = [
@@ -344,7 +347,7 @@ export const OrdersView = () => {
                       {/* Kwota */}
                       <td className="px-4 py-3.5 text-right pr-5">
                         <div className="font-semibold text-[#1A1A1A] font-mono text-sm">
-                          {formatAmount(order.total)}
+                          {formatAmount(order.total, order.currency)}
                         </div>
                       </td>
                     </tr>

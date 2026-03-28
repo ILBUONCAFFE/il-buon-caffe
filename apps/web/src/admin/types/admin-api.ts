@@ -99,6 +99,10 @@ export interface AdminOrder {
   externalId: string | null    // Allegro order ID
   status: OrderStatus
   total: number
+  currency:     string
+  totalPln:     number | null
+  exchangeRate: number | null
+  rateDate:     string | null
   subtotal?: number
   shippingCost?: number
   customerData: CustomerData
