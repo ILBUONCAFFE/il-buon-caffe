@@ -12,11 +12,12 @@
 
 import type { AllegroSalesQuality } from '@repo/types'
 import { Hono } from 'hono'
-import { createDb, createDbHttp } from '@repo/db/client'
+import { createDb, createDbHttp, type Database } from '@repo/db/client'
 import { allegroCredentials, allegroState, orders } from '@repo/db/schema'
-import { eq, desc, and, lt } from 'drizzle-orm'
+import { eq, desc, and, lt, ne, gte, count } from 'drizzle-orm'
 import type { Env } from '../index'
 import { requireAdminOrProxy } from '../middleware/auth'
+import { dbMiddleware } from '../middleware/db'
 import {
   buildAuthorizationUrl,
   exchangeCodeForTokens,
@@ -734,7 +735,8 @@ export async function preWarmAllegroQualityCache(env: Env): Promise<void> {
   if (!accessToken) return
 
   try {
-    const data = await fetchAllegroQualityData(accessToken, environment)
+    const db = createDb(env.DATABASE_URL)
+    const data = await fetchAllegroQualityData(accessToken, environment, db)
     await kv.put(KV_KEYS.QUALITY_CACHE, JSON.stringify(data), { expirationTtl: 86400 })
     console.log('[Allegro Quality] Cache pre-warmed at', data.fetchedAt)
   } catch (err) {
@@ -745,6 +747,7 @@ export async function preWarmAllegroQualityCache(env: Env): Promise<void> {
 async function fetchAllegroQualityData(
   accessToken: string,
   environment: AllegroEnvironment,
+  db: Database,
 ): Promise<AllegroSalesQuality> {
   const apiBase = getAllegroApiBase(environment)
   const headers = {
@@ -752,10 +755,12 @@ async function fetchAllegroQualityData(
     Accept: 'application/vnd.allegro.public.v1+json',
   }
 
+  const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
+
   const [qualityResp, meResp, returnsResp] = await Promise.all([
     fetch(`${apiBase}/sale/quality`,                    { headers, signal: AbortSignal.timeout(10_000) }),
     fetch(`${apiBase}/me`,                              { headers, signal: AbortSignal.timeout(10_000) }),
-    fetch(`${apiBase}/order/customer-returns?limit=1`,  { headers, signal: AbortSignal.timeout(10_000) }),
+    fetch(`${apiBase}/order/customer-returns?status=FINISHED&createdAt.gte=${ninetyDaysAgo.toISOString()}&limit=1`,  { headers, signal: AbortSignal.timeout(10_000) }),
   ])
 
   // /sale/quality is the primary source — fail hard if unavailable
@@ -817,8 +822,25 @@ async function fetchAllegroQualityData(
   const totalRatings    = posCount + negCount
   const negativePercent = totalRatings > 0 ? (negCount / totalRatings) * 100 : 0
 
-  const returnsCount = (returns_.count as number) ?? 
+  const returnsCount = (returns_.count as number) ??
     (Array.isArray(returns_.customerReturns) ? returns_.customerReturns.length : 0)
+
+  // Count synced Allegro orders in the same 90-day window for the denominator
+  let ordersCount = 0
+  try {
+    const result = await db
+      .select({ count: count() })
+      .from(orders)
+      .where(and(
+        eq(orders.source, 'allegro'),
+        ne(orders.status, 'cancelled'),
+        gte(orders.createdAt, ninetyDaysAgo),
+      ))
+    ordersCount = Number(result[0]?.count ?? 0)
+  } catch (err) {
+    console.warn('[Allegro Quality] DB orders count failed — ratePercent will be undefined', err)
+  }
+  const ratePercent = ordersCount > 0 ? (returnsCount / ordersCount) * 100 : undefined
 
   return {
     score,
@@ -829,7 +851,7 @@ async function fetchAllegroQualityData(
     },
     returns: {
       count: returnsCount,
-      ratePercent: 0, 
+      ratePercent,
     },
     ratings: {
       positive: posCount,
@@ -843,7 +865,7 @@ async function fetchAllegroQualityData(
 
 // ── GET /quality ──────────────────────────────────────────────────────────────
 
-allegroRouter.get('/quality', requireAdminOrProxy(), async (c) => {
+allegroRouter.get('/quality', dbMiddleware(), requireAdminOrProxy(), async (c) => {
   const env   = c.env as Env
   const kv    = env.ALLEGRO_KV
   const force = c.req.query('force') === 'true'
@@ -865,7 +887,7 @@ allegroRouter.get('/quality', requireAdminOrProxy(), async (c) => {
 
     // Cache miss or forced refresh — fetch live
     const environment = ((await kv?.get(KV_KEYS.ENVIRONMENT)) ?? 'sandbox') as AllegroEnvironment
-    const data = await fetchAllegroQualityData(accessToken, environment)
+    const data = await fetchAllegroQualityData(accessToken, environment, c.var.db)
 
     // Write to KV non-blocking (don't delay the response)
     if (kv) {
