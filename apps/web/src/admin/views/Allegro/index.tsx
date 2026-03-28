@@ -226,11 +226,11 @@ export const AllegroConnectView = () => {
     }
   }
 
-  const handleSyncOrders = async (reset = false) => {
+  const handleSyncOrders = async (full = false) => {
     setSyncing(true)
     try {
-      const result = await adminApi.forceAllegroSync(reset)
-      showFeedback('success', result.message + (result.cursorReset ? ' (kursor zresetowany)' : ''))
+      const result = await adminApi.backfillAllegroOrders(full)
+      showFeedback('success', result.message)
     } catch (e) {
       showFeedback('error', e instanceof Error ? e.message : 'Błąd synchronizacji zamówień')
     } finally {

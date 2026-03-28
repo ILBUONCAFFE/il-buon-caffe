@@ -52,7 +52,14 @@ export async function resolveAccessToken(
 
   if (cred.expiresAt <= new Date()) {
     // Token expired — try refresh
-    const rawRefresh = encKey ? await decryptText(cred.refreshToken, encKey) : cred.refreshToken
+    let rawRefresh: string
+    try {
+      rawRefresh = encKey ? await decryptText(cred.refreshToken, encKey) : cred.refreshToken
+    } catch (e) {
+      console.error('[AllegroOrders] Błąd odświeżania wygasłego tokenu:', e instanceof Error ? e.message : e)
+      console.error('[AllegroOrders] Klucz ALLEGRO_TOKEN_ENCRYPTION_KEY nie pasuje do tokenu w bazie. Wymagana ponowna autoryzacja Allegro OAuth.')
+      return null
+    }
     const tokens = await refreshAllegroToken({
       refreshToken: rawRefresh,
       clientId:     env.ALLEGRO_CLIENT_ID,
@@ -65,7 +72,15 @@ export async function resolveAccessToken(
     await kv.put(KV_KEYS.ACCESS_TOKEN, accessToken, { expirationTtl: ttl }).catch(() => {})
   } else {
     // Token still valid in DB — restore to KV
-    accessToken = encKey ? await decryptText(cred.accessToken, encKey) : cred.accessToken
+    let rawAccess: string
+    try {
+      rawAccess = encKey ? await decryptText(cred.accessToken, encKey) : cred.accessToken
+    } catch (e) {
+      console.error('[AllegroOrders] Błąd odczytu tokenu dostępu:', e instanceof Error ? e.message : e)
+      console.error('[AllegroOrders] Klucz ALLEGRO_TOKEN_ENCRYPTION_KEY nie pasuje do tokenu w bazie. Wymagana ponowna autoryzacja Allegro OAuth.')
+      return null
+    }
+    accessToken = rawAccess
     const ttl = Math.max(Math.floor((cred.expiresAt.getTime() - Date.now()) / 1000), 60)
     await kv.put(KV_KEYS.ACCESS_TOKEN, accessToken, { expirationTtl: ttl }).catch(() => {})
   }

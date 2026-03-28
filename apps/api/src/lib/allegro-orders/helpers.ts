@@ -95,7 +95,7 @@ export async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promis
       return await fn()
     } catch (err) {
       if (attempt === maxRetries) throw err
-      const delay = 500 * Math.pow(2, attempt - 1)
+      const delay = Math.min(500 * Math.pow(2, attempt - 1), 4000)
       console.warn(`[Retry] attempt ${attempt}/${maxRetries} failed, retrying in ${delay}ms:`, err instanceof Error ? err.message : err)
       await sleep(delay)
     }

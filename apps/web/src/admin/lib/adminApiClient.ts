@@ -141,6 +141,14 @@ export const adminApi = {
       `/api/admin/allegro/sync/force${resetCursor ? '?reset=true' : ''}`,
       { method: 'POST' },
     ),
+
+  /** Backfill: imports missing orders from Allegro up to the last saved in DB.
+   *  full=true → imports ALL orders regardless (full re-import, may take longer). */
+  backfillAllegroOrders: (full = false) =>
+    allegroRequest<{ success: boolean; message: string; data: { imported: number; skipped: number; errors: number; stoppedReason: string } }>(
+      `/api/admin/allegro/backfill${full ? '?full=true' : ''}`,
+      { method: 'POST' },
+    ),
 }
 
 // ── Re-export types so components can import from one place ──────────────────
