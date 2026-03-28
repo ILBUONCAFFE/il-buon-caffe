@@ -473,20 +473,30 @@ allegroRouter.post('/sync/force', requireAdminOrProxy(), async (c) => {
 })
 
 // ── POST /backfill ────────────────────────────────────────────────────────────
-// One-time order backfill: fetch all Allegro orders until the last saved one.
-// Idempotent — safe to call multiple times, skips already-imported orders.
+// On-demand order backfill: fetch Allegro orders until the last saved one.
+// Idempotent — skips already-imported orders.
+// ?full=true — imports ALL orders regardless of what's in DB (full re-import)
 allegroRouter.post('/backfill', requireAdminOrProxy(), async (c) => {
   try {
-    const result = await backfillAllegroOrders(c.env)
+    const full = c.req.query('full') === 'true'
+    const result = await backfillAllegroOrders(c.env, full)
+
+    const reasonLabel: Record<string, string> = {
+      caught_up:  'Synchronizacja do ostatniego zapisanego zamówienia',
+      end_of_data: 'Pobrano wszystkie dostępne zamówienia',
+      auth_error:  'Błąd autoryzacji — połącz Allegro ponownie',
+      api_error:   'Błąd Allegro API — część zamówień mogła nie zostać pobrana',
+    }
+
     return c.json({
       success: true,
-      message: `Backfill zakończony: ${result.imported} zaimportowano, ${result.skipped} pominięto (już istniały), ${result.errors} błędów`,
+      message: `${reasonLabel[result.stoppedReason] ?? 'Zakończono'} — zaimportowano: ${result.imported}, pominięto (istniały): ${result.skipped}, błędy: ${result.errors}`,
       data: result,
     })
   } catch (err) {
     console.error('[Allegro] backfill error:', err instanceof Error ? err.message : String(err))
     const msg = err instanceof Error ? err.message : 'Błąd backfill'
-    return c.json({ success: false, error: msg }, 500)
+    return c.json({ success: false, error: { code: 'BACKFILL_ERROR', message: msg } }, 500)
   }
 })
 
@@ -741,11 +751,10 @@ async function fetchAllegroQualityData(
     Accept: 'application/vnd.allegro.public.v1+json',
   }
 
-  const [qualityResp, posRatingsResp, negRatingsResp, returnsResp] = await Promise.all([
-    fetch(`${apiBase}/sale/quality`, { headers, signal: AbortSignal.timeout(10_000) }),
-    fetch(`${apiBase}/sale/user-ratings?recommended=true&limit=1`, { headers, signal: AbortSignal.timeout(15_000) }),
-    fetch(`${apiBase}/sale/user-ratings?recommended=false&limit=1`, { headers, signal: AbortSignal.timeout(15_000) }),
-    fetch(`${apiBase}/order/customer-returns?limit=1`, { headers, signal: AbortSignal.timeout(10_000) }),
+  const [qualityResp, meResp, returnsResp] = await Promise.all([
+    fetch(`${apiBase}/sale/quality`,                    { headers, signal: AbortSignal.timeout(10_000) }),
+    fetch(`${apiBase}/me`,                              { headers, signal: AbortSignal.timeout(10_000) }),
+    fetch(`${apiBase}/order/customer-returns?limit=1`,  { headers, signal: AbortSignal.timeout(10_000) }),
   ])
 
   // /sale/quality is the primary source — fail hard if unavailable
@@ -753,11 +762,27 @@ async function fetchAllegroQualityData(
     throw new Error(`Allegro /sale/quality returned ${qualityResp.status}`)
   }
 
-  // Secondary sources (ratings, returns) degrade gracefully to 0 on failure
-  const quality = await qualityResp.json() as any
-  const posRatings = posRatingsResp.ok ? await posRatingsResp.json() as any : { totalCount: 0 }
-  const negRatings = negRatingsResp.ok ? await negRatingsResp.json() as any : { totalCount: 0 }
-  const returns_ = returnsResp.ok ? await returnsResp.json() as any : { count: 0 }
+  // Secondary sources degrade gracefully to 0 on failure
+  const quality   = await qualityResp.json() as any
+  const returns_  = returnsResp.ok ? await returnsResp.json() as any : { count: 0 }
+
+  // Get userId from /me, then fetch ratings-summary
+  if (!meResp.ok) {
+    console.warn('[Allegro Quality] /me returned', meResp.status, '— ratings will default to 0')
+  }
+  const me      = meResp.ok ? await meResp.json() as any : null
+  const userId  = (me?.id as string | undefined) ?? null
+
+  let ratingsResp: Response | null = null
+  if (userId) {
+    ratingsResp = await fetch(
+      `${apiBase}/users/${userId}/ratings-summary`,
+      { headers, signal: AbortSignal.timeout(10_000) },
+    )
+    if (!ratingsResp.ok) {
+      console.warn('[Allegro Quality] /users/ratings-summary returned', ratingsResp.status, '— ratings will default to 0')
+    }
+  }
 
   // Extract latest quality entry (today's date)
   const qualityArr = Array.isArray(quality.quality) ? quality.quality : []
@@ -779,14 +804,24 @@ async function fetchAllegroQualityData(
   // Indicators mapping
   const onTimePercent = getMetricPct('DISPATCH_IN_TIME')
   
-  // Total counts from ratings endpoint (reliable totalCount even with limit=1)
-  const posCount = (posRatings.totalCount as number) ?? 0
-  const negCount = (negRatings.totalCount as number) ?? 0
-  const totalRatings = posCount + negCount
-  const negativePercent = totalRatings > 0 ? (negCount / totalRatings) * 100 : 0
+  // Parse ratings-summary — degrade gracefully to zero if unavailable
+  // Expected shape: { all: { recommended, notRecommended }, lastThreeMonths: ..., ... }
+  const ratingsSummary = ratingsResp?.ok ? await ratingsResp.json() as any : null
 
-  // Optional: check if we have buyer satisfaction score as well
-  const satisfactionMetric = getMetric('BUYER_SATISFACTION')
+  const toEntry = (obj: any): { positive: number; negative: number } => ({
+    positive: (obj?.recommended    as number) ?? 0,
+    negative: (obj?.notRecommended as number) ?? 0,
+  })
+
+  const allEntry    = toEntry(ratingsSummary?.all)
+  const last3Entry  = toEntry(ratingsSummary?.lastThreeMonths)
+  const last6Entry  = toEntry(ratingsSummary?.lastSixMonths)
+  const last12Entry = toEntry(ratingsSummary?.lastTwelveMonths)
+
+  const posCount        = allEntry.positive
+  const negCount        = allEntry.negative
+  const totalRatings    = posCount + negCount
+  const negativePercent = totalRatings > 0 ? (negCount / totalRatings) * 100 : 0
 
   const returnsCount = (returns_.count as number) ?? 
     (Array.isArray(returns_.customerReturns) ? returns_.customerReturns.length : 0)
@@ -803,9 +838,12 @@ async function fetchAllegroQualityData(
       ratePercent: 0, 
     },
     ratings: {
-      positive: posCount,
-      negative: negCount,
+      positive:         posCount,
+      negative:         negCount,
       negativePercent,
+      lastThreeMonths:  last3Entry,
+      lastSixMonths:    last6Entry,
+      lastTwelveMonths: last12Entry,
     },
     // Add grade info if available for extra context
     grade: latestQuality.grade,
