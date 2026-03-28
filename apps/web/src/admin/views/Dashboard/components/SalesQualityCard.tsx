@@ -131,7 +131,7 @@ export const SalesQualityCard = () => {
           <div className="grid grid-cols-3 gap-2 text-[11px]">
             {/* Fulfillment */}
             <div>
-              <p className="text-[#A3A3A3] mb-1">Czas realizacji</p>
+              <p className="text-[#A3A3A3] mb-1">Wysyłka w terminie</p>
               <p className="font-semibold text-[#1A1A1A] tabular-nums">
                 {quality.fulfillment.onTimePercent.toFixed(1)}%
               </p>
@@ -140,7 +140,9 @@ export const SalesQualityCard = () => {
             <div>
               <p className="text-[#A3A3A3] mb-1">Zwroty</p>
               <p className="font-semibold text-[#1A1A1A] tabular-nums">{quality.returns.count}</p>
-              <p className="text-[#A3A3A3] tabular-nums">({quality.returns.ratePercent.toFixed(1)}%)</p>
+              {quality.returns.ratePercent != null && (
+                <p className="text-[#A3A3A3] tabular-nums">({quality.returns.ratePercent.toFixed(1)}%)</p>
+              )}
             </div>
             {/* Ratings */}
             <div>
