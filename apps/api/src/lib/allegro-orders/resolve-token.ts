@@ -9,7 +9,7 @@ import { createDb } from '@repo/db/client'
 import { allegroCredentials } from '@repo/db/schema'
 import { eq, desc } from 'drizzle-orm'
 import { KV_KEYS, refreshAllegroToken, AllegroInvalidGrantError, type AllegroEnvironment } from '../allegro'
-import { decryptText } from '../crypto'
+import { decryptText, encryptText } from '../crypto'
 import type { Env } from '../../index'
 
 export interface ResolveTokenResult {
@@ -69,7 +69,29 @@ export async function resolveAccessToken(
     accessToken = tokens.access_token
     const expiresAt = new Date(Date.now() + tokens.expires_in * 1000)
     const ttl = Math.max(Math.floor((expiresAt.getTime() - Date.now()) / 1000), 60)
-    await kv.put(KV_KEYS.ACCESS_TOKEN, accessToken, { expirationTtl: ttl }).catch(() => {})
+
+    // Persist new tokens to DB and KV — prevents hourly cron from using the
+    // now-invalidated refresh token (Allegro rotates refresh tokens on every use)
+    const encAccess  = encKey ? await encryptText(tokens.access_token,  encKey) : tokens.access_token
+    const encRefresh = encKey ? await encryptText(tokens.refresh_token, encKey) : tokens.refresh_token
+    await db.update(allegroCredentials)
+      .set({ isActive: false })
+      .where(eq(allegroCredentials.isActive, true))
+    await db.insert(allegroCredentials).values({
+      accessToken:  encAccess,
+      refreshToken: encRefresh,
+      expiresAt,
+      tokenType:    'Bearer',
+      scope:        cred.scope,
+      isActive:     true,
+      environment:  allegroEnvCred,
+      updatedAt:    new Date(),
+    })
+    await Promise.all([
+      kv.put(KV_KEYS.ACCESS_TOKEN,  tokens.access_token,  { expirationTtl: ttl }),
+      kv.put(KV_KEYS.REFRESH_TOKEN, tokens.refresh_token),
+      kv.put('allegro:token_expires_at', expiresAt.toISOString()),
+    ]).catch(() => {})
   } else {
     // Token still valid in DB — restore to KV
     let rawAccess: string
