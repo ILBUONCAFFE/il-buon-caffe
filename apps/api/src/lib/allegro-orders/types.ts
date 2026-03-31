@@ -63,8 +63,12 @@ export interface AllegroInvoice {
 }
 
 export interface AllegroCheckoutForm {
-  id:     string
-  status: string
+  id:        string
+  status:    string
+  revision?: string
+  fulfillment?: {
+    status: string  // NEW | PROCESSING | READY_FOR_SHIPMENT | READY_FOR_PICKUP | SENT | PICKED_UP | CANCELLED | SUSPENDED | RETURNED
+  }
   buyer: {
     id:            string
     email:         string
