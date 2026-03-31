@@ -39,6 +39,29 @@ export interface AllegroAddress {
   countryCode:  string
 }
 
+export interface AllegroInvoiceAddress {
+  company?: {
+    name:  string
+    taxId: string
+  }
+  naturalPerson?: {
+    firstName: string
+    lastName:  string
+  }
+  address?: {
+    street:      string
+    city:        string
+    zipCode?:    string
+    postCode?:   string
+    countryCode: string
+  }
+}
+
+export interface AllegroInvoice {
+  required: boolean
+  address?: AllegroInvoiceAddress
+}
+
 export interface AllegroCheckoutForm {
   id:     string
   status: string
@@ -74,6 +97,7 @@ export interface AllegroCheckoutForm {
     totalToPay: { amount: string; currency: string }
   }
   messageToSeller?: string
+  invoice?: AllegroInvoice
 }
 
 // ── Backfill result ──────────────────────────────────────────────────────
