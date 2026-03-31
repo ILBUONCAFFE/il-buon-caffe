@@ -244,6 +244,7 @@ export interface Order {
   shippedAt?: string;
   items: OrderItem[];
   notes?: string;
+  invoiceRequired?: boolean;   // czy zamówienie wymaga faktury VAT
   reservationExpiresAt?: string;
   createdAt: string;
   updatedAt: string;
@@ -259,11 +260,14 @@ export interface OrderItem {
 }
 
 export interface CustomerData {
-  email: string;
-  name?: string;
-  phone?: string;
+  email:            string;
+  name?:            string;
+  phone?:           string;
   shippingAddress?: ShippingAddress;
-  billingAddress?: ShippingAddress;
+  billingAddress?:  ShippingAddress;
+  companyName?:     string;        // nazwa firmy (faktura VAT)
+  taxId?:           string;        // NIP (faktura VAT)
+  allegroLogin?:    string;        // login kupującego na Allegro
 }
 
 export interface ShippingAddress {
