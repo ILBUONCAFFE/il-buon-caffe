@@ -402,6 +402,10 @@ export const orders = pgTable('orders', {
   source: orderSourceEnum('source').notNull().default('shop'),
   externalId: varchar('external_id', { length: 100 }),
 
+  // ===== Allegro reconciliation =====
+  allegroRevision: varchar('allegro_revision', { length: 50 }),
+  allegroFulfillmentStatus: varchar('allegro_fulfillment_status', { length: 50 }),
+
   // ===== Kwoty =====
   subtotal: decimal('subtotal', { precision: 10, scale: 2 }).notNull(),
   shippingCost: decimal('shipping_cost', { precision: 10, scale: 2 }).notNull().default('0'),
