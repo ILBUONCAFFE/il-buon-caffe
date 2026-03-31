@@ -131,6 +131,7 @@ export interface CustomerData {
   billingAddress?: ShippingAddress;
   companyName?: string;
   taxId?: string;
+  allegroLogin?: string;
 }
 
 // ============================================
@@ -441,6 +442,9 @@ export const orders = pgTable('orders', {
   notes: text('notes'),
   internalNotes: text('internal_notes'),
 
+  // ===== Faktura =====
+  invoiceRequired: boolean('invoice_required').notNull().default(false),
+
   reservationExpiresAt: timestamp('reservation_expires_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
@@ -453,6 +457,7 @@ export const orders = pgTable('orders', {
   createdIdx: index('orders_created_idx').on(table.createdAt),
   reservationIdx: index('orders_reservation_idx').on(table.reservationExpiresAt),
   retentionIdx: index('orders_retention_idx').on(table.retentionStatus, table.createdAt),
+  invoiceIdx: index('orders_invoice_idx').on(table.invoiceRequired),
 }));
 
 // ============================================
