@@ -102,3 +102,54 @@ export async function withRetry<T>(fn: () => Promise<T>, maxRetries = 3): Promis
   }
   throw new Error('unreachable')
 }
+
+// ── Customer data builder ─────────────────────────────────────────────────
+
+/**
+ * Build customerData from an Allegro checkout form.
+ * Includes invoice/billing fields when Allegro sends them.
+ */
+export function buildCustomerData(form: AllegroCheckoutForm): {
+  email:           string
+  name:            string
+  phone?:          string
+  shippingAddress: ReturnType<typeof buildShippingAddress> | undefined
+  billingAddress?: {
+    name:       string
+    street:     string
+    city:       string
+    postalCode: string
+    country:    string
+  } | undefined
+  companyName?:    string
+  taxId?:          string
+  allegroLogin:    string
+} {
+  const inv = form.invoice
+
+  const billingAddress = inv?.address?.address
+    ? {
+        name:       inv.address.company?.name
+                    ?? (inv.address.naturalPerson
+                      ? `${inv.address.naturalPerson.firstName} ${inv.address.naturalPerson.lastName}`.trim()
+                      : form.buyer.firstName && form.buyer.lastName
+                        ? `${form.buyer.firstName} ${form.buyer.lastName}`.trim()
+                        : form.buyer.login),
+        street:     inv.address.address.street,
+        city:       inv.address.address.city,
+        postalCode: inv.address.address.zipCode ?? inv.address.address.postCode ?? '',
+        country:    inv.address.address.countryCode,
+      }
+    : undefined
+
+  return {
+    email:           form.buyer.email,
+    name:            `${form.buyer.firstName ?? ''} ${form.buyer.lastName ?? ''}`.trim() || form.buyer.login,
+    phone:           form.buyer.phoneNumber ?? form.buyer.address?.phoneNumber,
+    shippingAddress: buildShippingAddress(form.delivery.address),
+    billingAddress,
+    companyName:     inv?.address?.company?.name,
+    taxId:           inv?.address?.company?.taxId,
+    allegroLogin:    form.buyer.login,
+  }
+}
