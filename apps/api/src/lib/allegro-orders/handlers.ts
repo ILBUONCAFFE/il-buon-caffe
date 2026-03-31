@@ -15,6 +15,18 @@ import type { AllegroCheckoutForm, AllegroOrderEvent } from './types'
 import { generateOrderNumber, buildShippingAddress, fetchCheckoutForm } from './helpers'
 import { getRate, type ForeignCurrency } from '../nbp'
 
+// ── Extract real purchase date from Allegro checkout form ─────────────────
+
+function extractAllegroOrderDate(form: AllegroCheckoutForm): Date {
+  // Best source: lineItems[0].boughtAt (actual purchase timestamp)
+  const boughtAt = form.lineItems?.[0]?.boughtAt
+  if (boughtAt) return new Date(boughtAt)
+  // Fallback: payment finish date
+  if (form.payment?.finishedAt) return new Date(form.payment.finishedAt)
+  // Last resort: current time (only for live sync, not backfill)
+  return new Date()
+}
+
 // ── Shared rate resolution ─────────────────────────────────────────────────
 
 async function resolveRateFields(
@@ -64,7 +76,7 @@ export async function handleBought(
 
   const totalAmount    = form.summary.totalToPay.amount
   const currency       = form.summary.totalToPay.currency
-  const orderDate = new Date()
+  const orderDate = extractAllegroOrderDate(form)
   const { totalPln, exchangeRate, rateDate } = await resolveRateFields(totalAmount, currency, orderDate, kv)
   const shippingAmount = form.delivery.cost?.amount ?? '0'
   const subtotal       = (parseFloat(totalAmount) - parseFloat(shippingAmount)).toFixed(2)
@@ -100,6 +112,7 @@ export async function handleBought(
     shippingMethod: form.delivery.method?.name ?? null,
     notes:          form.messageToSeller ?? null,
     internalNotes,
+    createdAt:      orderDate,
   }).onConflictDoNothing().returning({ id: orders.id })
 
   if (inserted.length === 0) return // already exists (race condition)
@@ -165,8 +178,8 @@ export async function handleFilledIn(
 }
 
 /**
- * READY_FOR_PROCESSING — Payment confirmed, order ready to fulfil.
- * Action: Create order if missing, set status=paid, deduct stock.
+ * READY_FOR_PROCESSING — Payment confirmed (or COD), order ready to fulfil.
+ * Action: Create order if missing, set status=paid (or processing for COD), deduct stock.
  * Note: neon-http driver does NOT support db.transaction() — we use
  * sequential idempotent operations instead.
  */
@@ -181,10 +194,14 @@ export async function handleReadyForProcessing(
     .where(eq(orders.externalId, form.id))
     .limit(1)
 
+  // COD orders are ready to ship but payment hasn't been received yet
+  const isCod = form.payment.type === 'CASH_ON_DELIVERY'
+  const readyStatus = isCod ? 'processing' : 'paid'
+
   // Better payment date inference (like Electron app — multiple API versions)
-  const paidAt = form.payment.finishedAt
-    ? new Date(form.payment.finishedAt)
-    : new Date()
+  const paidAt = !isCod
+    ? (form.payment.finishedAt ? new Date(form.payment.finishedAt) : new Date())
+    : null
 
   let orderId: number
 
@@ -192,7 +209,7 @@ export async function handleReadyForProcessing(
     // Missed BOUGHT/FILLED_IN — create directly as paid
     const totalAmount    = form.summary.totalToPay.amount
     const currency       = form.summary.totalToPay.currency
-    const orderDate = new Date()
+    const orderDate = extractAllegroOrderDate(form)
     const { totalPln, exchangeRate, rateDate } = await resolveRateFields(totalAmount, currency, orderDate, kv)
     const shippingAmount = form.delivery.cost?.amount ?? '0'
     const subtotal       = (parseFloat(totalAmount) - parseFloat(shippingAmount)).toFixed(2)
@@ -215,7 +232,7 @@ export async function handleReadyForProcessing(
     const inserted = await db.insert(orders).values({
       orderNumber:    generateOrderNumber(form.id),
       source:         'allegro',
-      status:         'paid',
+      status:         readyStatus,
       externalId:     form.id,
       idempotencyKey: `allegro-${form.id}`,
       customerData,
@@ -231,6 +248,7 @@ export async function handleReadyForProcessing(
       paidAt,
       notes:          form.messageToSeller ?? null,
       internalNotes,
+      createdAt:      orderDate,
     }).onConflictDoNothing().returning({ id: orders.id })
 
     if (inserted.length > 0) {
@@ -249,7 +267,7 @@ export async function handleReadyForProcessing(
       }
       await db
         .update(orders)
-        .set({ status: 'paid', paidAt, totalPln, exchangeRate, rateDate, updatedAt: new Date() })
+        .set({ status: readyStatus, paidAt, totalPln, exchangeRate, rateDate, updatedAt: new Date() })
         .where(eq(orders.externalId, form.id))
       orderId = reFetched.id
     }
@@ -258,14 +276,14 @@ export async function handleReadyForProcessing(
     console.log(`[AllegroOrders] READY_FOR_PROCESSING już przetworzone (status: ${existing.status}, allegro id: ${form.id})`)
     return
   } else {
-    // Exists as pending → mark paid
+    // Exists as pending → mark paid (or processing for COD)
     const totalAmount    = form.summary.totalToPay.amount
     const currency       = form.summary.totalToPay.currency
-    const orderDate = new Date()
+    const orderDate = extractAllegroOrderDate(form)
     const { totalPln, exchangeRate, rateDate } = await resolveRateFields(totalAmount, currency, orderDate, kv)
     await db
       .update(orders)
-      .set({ status: 'paid', paidAt, totalPln, exchangeRate, rateDate, updatedAt: new Date() })
+      .set({ status: readyStatus, paidAt, totalPln, exchangeRate, rateDate, updatedAt: new Date() })
       .where(eq(orders.externalId, form.id))
     orderId = existing.id
   }
@@ -339,7 +357,7 @@ export async function handleReadyForProcessing(
     responsePayload: { orderId, orderNumber: `AL-...` },
   })
 
-  console.log(`[AllegroOrders] READY_FOR_PROCESSING → paid (allegro id: ${form.id})`)
+  console.log(`[AllegroOrders] READY_FOR_PROCESSING → ${readyStatus} (allegro id: ${form.id})`)
 }
 
 /**
@@ -418,6 +436,123 @@ export async function handleCancelled(
   console.log(`[AllegroOrders] ${eventType} → cancelled (allegro id: ${form.id})`)
 }
 
+// ── Reconcile order state after every event ───────────────────────────────
+
+/**
+ * reconcileOrder — Idempotent status sync for ANY event type.
+ *
+ * Called after every event (including unknown types). Fetches current
+ * checkout-form state and syncs status + fulfillmentStatus if revision changed.
+ *
+ * Status mapping:
+ *   Allegro status CANCELLED             → local 'cancelled' (+ stock restore if was paid)
+ *   Allegro fulfillment.status CANCELLED → local 'cancelled' (+ stock restore if was paid)
+ *   Allegro fulfillment.status SENT/PICKED_UP → local 'shipped'
+ *   Other changes                        → update allegroFulfillmentStatus only
+ */
+export async function reconcileOrder(
+  db: ReturnType<typeof createDb>,
+  form: AllegroCheckoutForm,
+): Promise<void> {
+  const [existing] = await db
+    .select({
+      id:                       orders.id,
+      status:                   orders.status,
+      allegroRevision:          orders.allegroRevision,
+      allegroFulfillmentStatus: orders.allegroFulfillmentStatus,
+    })
+    .from(orders)
+    .where(eq(orders.externalId, form.id))
+    .limit(1)
+
+  if (!existing) return // not our order
+
+  // Skip if nothing changed (revision is the same)
+  if (form.revision && form.revision === existing.allegroRevision) return
+
+  const allegroStatus     = form.status
+  const fulfillmentStatus = form.fulfillment?.status ?? null
+
+  const isCancelled =
+    allegroStatus === 'CANCELLED' ||
+    fulfillmentStatus === 'CANCELLED'
+
+  const isSent =
+    fulfillmentStatus === 'SENT' || fulfillmentStatus === 'PICKED_UP'
+
+  let newLocalStatus: string | null = null
+
+  if (isCancelled && existing.status !== 'cancelled') {
+    newLocalStatus = 'cancelled'
+  } else if (
+    isSent &&
+    existing.status !== 'cancelled' &&
+    existing.status !== 'shipped' &&
+    existing.status !== 'delivered'
+  ) {
+    newLocalStatus = 'shipped'
+  }
+
+  const updatePayload: Record<string, unknown> = {
+    allegroRevision:          form.revision ?? null,
+    allegroFulfillmentStatus: fulfillmentStatus,
+    updatedAt:                new Date(),
+  }
+
+  if (newLocalStatus) {
+    updatePayload.status = newLocalStatus
+    if (newLocalStatus === 'shipped') {
+      updatePayload.shippedAt = new Date()
+    }
+  }
+
+  await db
+    .update(orders)
+    .set(updatePayload)
+    .where(eq(orders.externalId, form.id))
+
+  // If newly cancelled AND was previously paid → restore stock
+  if (
+    newLocalStatus === 'cancelled' &&
+    (existing.status === 'paid' || existing.status === 'processing' || existing.status === 'shipped')
+  ) {
+    const items = await db
+      .select({ productSku: orderItems.productSku, quantity: orderItems.quantity })
+      .from(orderItems)
+      .where(eq(orderItems.orderId, existing.id))
+
+    for (const item of items) {
+      const [product] = await db
+        .select({ sku: products.sku, stock: products.stock })
+        .from(products)
+        .where(eq(products.sku, item.productSku))
+        .limit(1)
+
+      if (!product) continue
+
+      const newStock = product.stock + item.quantity
+      await db
+        .update(products)
+        .set({ stock: newStock, updatedAt: new Date() })
+        .where(eq(products.sku, product.sku))
+
+      await db.insert(stockChanges).values({
+        productSku:    product.sku,
+        previousStock: product.stock,
+        newStock,
+        change:        item.quantity,
+        reason:        'order',
+        orderId:       existing.id,
+        notes:         `Zwrot stocku: reconcile (${allegroStatus}/${fulfillmentStatus ?? '-'})`,
+      })
+    }
+  }
+
+  if (newLocalStatus) {
+    console.log(`[AllegroOrders] reconcile → ${newLocalStatus} (allegro id: ${form.id}, fulfillment: ${fulfillmentStatus ?? '-'})`)
+  }
+}
+
 // ── Process a single event ────────────────────────────────────────────────
 
 export async function processEvent(
@@ -456,6 +591,11 @@ export async function processEvent(
       await handleCancelled(db, form, event.type)
       break
   }
+
+  // ★ Reconcile for ALL event types — catches manual seller changes,
+  //   fulfillment status updates, and any future Allegro event types.
+  //   Idempotent: revision check prevents unnecessary DB writes.
+  await reconcileOrder(db, form)
 
   return true
 }
