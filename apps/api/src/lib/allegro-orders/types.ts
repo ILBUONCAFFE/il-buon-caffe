@@ -7,16 +7,6 @@
 export const CURSOR_KV_KEY = 'allegro:cursor:orders'
 export const CURSOR_DB_KEY = 'order_events_cursor'
 
-// ── Allegro API event types we handle ────────────────────────────────────
-
-export const HANDLED_EVENT_TYPES = new Set([
-  'BOUGHT',
-  'FILLED_IN',
-  'READY_FOR_PROCESSING',
-  'BUYER_CANCELLED',
-  'AUTO_CANCELLED',
-])
-
 // ── Allegro API response types ────────────────────────────────────────────
 
 export interface AllegroOrderEvent {
