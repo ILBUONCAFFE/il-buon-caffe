@@ -125,20 +125,29 @@ export function buildCustomerData(form: AllegroCheckoutForm): {
   taxId?:          string
   allegroLogin:    string
 } {
-  const inv = form.invoice
+  const inv     = form.invoice
+  const invAddr = inv?.address?.address
 
-  const billingAddress = inv?.address?.address
+  const billingName = (() => {
+    if (inv?.address?.company?.name) return inv.address.company.name
+    const np = inv?.address?.naturalPerson
+    if (np) {
+      const n = `${np.firstName} ${np.lastName}`.trim()
+      if (n) return n
+    }
+    if (form.buyer.firstName && form.buyer.lastName) {
+      return `${form.buyer.firstName} ${form.buyer.lastName}`.trim()
+    }
+    return form.buyer.login
+  })()
+
+  const billingAddress = invAddr
     ? {
-        name:       inv.address.company?.name
-                    ?? (inv.address.naturalPerson
-                      ? `${inv.address.naturalPerson.firstName} ${inv.address.naturalPerson.lastName}`.trim()
-                      : form.buyer.firstName && form.buyer.lastName
-                        ? `${form.buyer.firstName} ${form.buyer.lastName}`.trim()
-                        : form.buyer.login),
-        street:     inv.address.address.street,
-        city:       inv.address.address.city,
-        postalCode: inv.address.address.zipCode ?? inv.address.address.postCode ?? '',
-        country:    inv.address.address.countryCode,
+        name:       billingName,
+        street:     invAddr.street      ?? '',
+        city:       invAddr.city        ?? '',
+        postalCode: invAddr.zipCode     ?? invAddr.postCode ?? '',
+        country:    invAddr.countryCode ?? '',
       }
     : undefined
 
