@@ -470,6 +470,19 @@ export async function reconcileOrder(
   // Skip if nothing changed (revision is the same)
   if (form.revision && form.revision === existing.allegroRevision) return
 
+  // When revision is absent, skip if fulfillment status is already in sync and no cancellation/shipment
+  if (!form.revision) {
+    const allegroStatusNow     = form.status
+    const fulfillmentStatusNow = form.fulfillment?.status ?? null
+    const noStatusChange =
+      fulfillmentStatusNow === existing.allegroFulfillmentStatus &&
+      allegroStatusNow !== 'CANCELLED' &&
+      fulfillmentStatusNow !== 'CANCELLED' &&
+      fulfillmentStatusNow !== 'SENT' &&
+      fulfillmentStatusNow !== 'PICKED_UP'
+    if (noStatusChange) return
+  }
+
   const allegroStatus     = form.status
   const fulfillmentStatus = form.fulfillment?.status ?? null
 
@@ -480,7 +493,7 @@ export async function reconcileOrder(
   const isSent =
     fulfillmentStatus === 'SENT' || fulfillmentStatus === 'PICKED_UP'
 
-  let newLocalStatus: string | null = null
+  let newLocalStatus: 'cancelled' | 'shipped' | null = null
 
   if (isCancelled && existing.status !== 'cancelled') {
     newLocalStatus = 'cancelled'
@@ -493,22 +506,15 @@ export async function reconcileOrder(
     newLocalStatus = 'shipped'
   }
 
-  const updatePayload: Record<string, unknown> = {
-    allegroRevision:          form.revision ?? null,
-    allegroFulfillmentStatus: fulfillmentStatus,
-    updatedAt:                new Date(),
-  }
-
-  if (newLocalStatus) {
-    updatePayload.status = newLocalStatus
-    if (newLocalStatus === 'shipped') {
-      updatePayload.shippedAt = new Date()
-    }
-  }
-
   await db
     .update(orders)
-    .set(updatePayload)
+    .set({
+      allegroRevision:          form.revision ?? null,
+      allegroFulfillmentStatus: fulfillmentStatus,
+      ...(newLocalStatus === 'cancelled' && { status: 'cancelled' as const }),
+      ...(newLocalStatus === 'shipped'   && { status: 'shipped' as const, shippedAt: new Date() }),
+      updatedAt: new Date(),
+    })
     .where(eq(orders.externalId, form.id))
 
   // If newly cancelled AND was previously paid → restore stock
