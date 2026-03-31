@@ -17,7 +17,7 @@ import { createDb, createDbWsPool, setHttpMode } from '@repo/db/client'
 import { allegroSyncLog } from '@repo/db/schema'
 import { getAllegroApiBase, type AllegroEnvironment } from '../allegro'
 import type { Env } from '../../index'
-import { CURSOR_KV_KEY, HANDLED_EVENT_TYPES, type AllegroOrderEvent } from './types'
+import { CURSOR_KV_KEY, type AllegroOrderEvent } from './types'
 import { readCursor, writeCursor, allegroHeaders, sleep } from './helpers'
 import { processEvent } from './handlers'
 import { resolveAccessToken } from './resolve-token'
@@ -127,22 +127,11 @@ export async function syncAllegroOrders(env: Env): Promise<void> {
     }
 
     const allEvents = eventsJson.events ?? []
-    const events = allEvents.filter(e => HANDLED_EVENT_TYPES.has(e.type))
 
     // ★ No events at all — we're caught up. No DB connection needed.
     if (allEvents.length === 0) break
 
-    // If only non-handled events, just advance KV cursor (no DB)
-    if (events.length === 0) {
-      const pageLastId = allEvents[allEvents.length - 1]?.id
-      if (pageLastId && pageLastId !== nextFrom) {
-        await kv.put(CURSOR_KV_KEY, pageLastId)
-      }
-      if (allEvents.length < PAGE_SIZE) break
-      nextFrom = pageLastId ?? nextFrom
-      pagesProcessed++
-      continue
-    }
+    const events = allEvents // process ALL event types (reconcileOrder handles unknowns)
 
     // ── Deduplicate: group events by checkoutFormId, keep only the highest-priority event ──
     // Multiple events for the same order (BOUGHT → FILLED_IN → READY_FOR_PROCESSING) produce
