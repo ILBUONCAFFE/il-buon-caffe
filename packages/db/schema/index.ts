@@ -26,7 +26,7 @@ import {
   uuid,
   inet
 } from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 
 // ============================================
 // ENUMS
@@ -457,7 +457,7 @@ export const orders = pgTable('orders', {
   createdIdx: index('orders_created_idx').on(table.createdAt),
   reservationIdx: index('orders_reservation_idx').on(table.reservationExpiresAt),
   retentionIdx: index('orders_retention_idx').on(table.retentionStatus, table.createdAt),
-  invoiceIdx: index('orders_invoice_idx').on(table.invoiceRequired),
+  invoiceIdx: index('orders_invoice_idx').on(table.invoiceRequired).where(sql`${table.invoiceRequired} = true`),
 }));
 
 // ============================================
