@@ -10,7 +10,7 @@ import {
 } from '@dnd-kit/sortable'
 import {
   Search, LayoutList, LayoutGrid, Package,
-  Truck, RefreshCw, Loader2, AlertTriangle, Store, ShoppingBag,
+  Truck, RefreshCw, Loader2, AlertTriangle, Store, ShoppingBag, FileText,
   ChevronLeft, ChevronRight, Clock,
 } from 'lucide-react'
 import { Dropdown } from '../../components/ui/Dropdown'
@@ -363,6 +363,11 @@ export const OrdersView = () => {
                           {order.orderNumber}
                         </span>
                         <SourceBadge source={order.source} />
+                        {order.invoiceRequired && (
+                          <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1 py-0.5 rounded bg-[#DBEAFE] text-[#1D4ED8]">
+                            <FileText size={9} />FV
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td className="px-4 py-3.5">
