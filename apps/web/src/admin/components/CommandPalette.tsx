@@ -60,22 +60,22 @@ export const CommandPalette = ({ isOpen, onClose }: CommandPaletteProps) => {
     <div className="fixed inset-0 z-[100] flex items-start justify-center pt-[15vh]" onClick={onClose}>
       <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" />
       <div
-        className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden animate-in zoom-in-95 duration-200"
+        className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-[#E5E4E1] overflow-hidden animate-in zoom-in-95 duration-200"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
-          <Search size={20} className="text-gray-400" />
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-[#E5E4E1]">
+          <Search size={18} className="text-[#A3A3A3]" />
           <input
             ref={inputRef}
             type="text"
             value={search}
             onChange={e => { setSearch(e.target.value); setSelectedIndex(0) }}
             placeholder="Szukaj akcji, klientów, zamówień..."
-            className="flex-1 bg-transparent outline-none text-gray-900 placeholder-gray-400"
+            className="flex-1 bg-transparent outline-none text-sm text-[#1A1A1A] placeholder:text-[#A3A3A3]"
           />
-          <kbd className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">ESC</kbd>
+          <kbd className="text-xs text-[#A3A3A3] bg-[#F5F4F1] px-2 py-1 rounded-lg">ESC</kbd>
         </div>
-        <div className="max-h-80 overflow-y-auto py-2">
+        <div className="max-h-80 overflow-y-auto py-1.5">
           {filteredActions.length > 0 ? (
             filteredActions.map((action, index) => {
               const Icon = action.icon
@@ -83,34 +83,34 @@ export const CommandPalette = ({ isOpen, onClose }: CommandPaletteProps) => {
                 <button
                   key={action.id}
                   className={`w-full flex items-center gap-3 px-5 py-3 text-left transition-colors ${
-                    index === selectedIndex ? 'bg-[#0066CC]/10 text-[#0066CC]' : 'text-gray-700 hover:bg-gray-50'
+                    index === selectedIndex ? 'bg-[#F5F4F1] text-[#1A1A1A]' : 'text-[#525252] hover:bg-[#FAFAF9]'
                   }`}
                   onClick={onClose}
                 >
-                  <div className={`p-2 rounded-lg ${index === selectedIndex ? 'bg-[#0066CC]/20' : 'bg-gray-100'}`}>
+                  <div className={`p-2 rounded-xl ${index === selectedIndex ? 'bg-white border border-[#E5E4E1]' : 'bg-[#F5F4F1]'}`}>
                     <Icon size={16} />
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium">{action.label}</p>
-                    <p className="text-xs text-gray-400">{action.category}</p>
+                    <p className="text-sm font-medium">{action.label}</p>
+                    <p className="text-xs text-[#A3A3A3]">{action.category}</p>
                   </div>
                   {index === selectedIndex && (
-                    <span className="text-xs text-gray-400">Wybierz</span>
+                    <span className="text-xs text-[#A3A3A3]">Wybierz</span>
                   )}
                 </button>
               )
             })
           ) : (
-            <div className="px-5 py-8 text-center text-gray-400">
+            <div className="px-5 py-8 text-center text-[#A3A3A3]">
               <Zap size={24} className="mx-auto mb-2" />
-              <p>Brak wyników dla &ldquo;{search}&rdquo;</p>
+              <p className="text-sm">Brak wyników dla &ldquo;{search}&rdquo;</p>
             </div>
           )}
         </div>
-        <div className="flex items-center gap-4 px-5 py-3 border-t border-gray-100 text-xs text-gray-400">
-          <span className="flex items-center gap-1"><kbd className="bg-gray-100 px-1.5 py-0.5 rounded">↑↓</kbd> Nawigacja</span>
-          <span className="flex items-center gap-1"><kbd className="bg-gray-100 px-1.5 py-0.5 rounded">↵</kbd> Wybierz</span>
-          <span className="flex items-center gap-1"><kbd className="bg-gray-100 px-1.5 py-0.5 rounded">esc</kbd> Zamknij</span>
+        <div className="flex items-center gap-4 px-5 py-3 border-t border-[#E5E4E1] text-xs text-[#A3A3A3]">
+          <span className="flex items-center gap-1"><kbd className="bg-[#F5F4F1] px-1.5 py-0.5 rounded-md">↑↓</kbd> Nawigacja</span>
+          <span className="flex items-center gap-1"><kbd className="bg-[#F5F4F1] px-1.5 py-0.5 rounded-md">↵</kbd> Wybierz</span>
+          <span className="flex items-center gap-1"><kbd className="bg-[#F5F4F1] px-1.5 py-0.5 rounded-md">esc</kbd> Zamknij</span>
         </div>
       </div>
     </div>

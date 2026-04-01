@@ -33,7 +33,7 @@ export const CustomersView = () => {
           <h2 className="text-h2 text-[#1A1A1A]">Klienci (Profil 360°)</h2>
           <p className="text-sm text-[#737373] mt-1">Zarządzaj bazą klientów i analizuj ich historię zakupową.</p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#0066CC] hover:bg-[#0052A3] transition-colors text-sm font-medium text-white shadow-sm">
+        <button className="btn-accent">
           <UserPlus size={16} />Dodaj klienta
         </button>
       </div>
@@ -47,7 +47,7 @@ export const CustomersView = () => {
               <input
                 type="text"
                 placeholder="Szukaj klienta..."
-                className="w-full pl-9 pr-4 py-2 rounded-lg bg-[#F5F4F1] border-none focus:ring-2 focus:ring-[#0066CC]/20 outline-none text-sm text-[#1A1A1A] placeholder:text-[#A3A3A3] transition-all"
+                className="admin-input w-full pl-9"
               />
             </div>
           </div>
@@ -92,8 +92,8 @@ export const CustomersView = () => {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <button className="p-2 rounded-lg border border-[#E5E4E1] text-[#525252] hover:bg-white transition-colors" title="Wyślij wiadomość"><MessageSquare size={16} /></button>
-                      <button className="p-2 rounded-lg border border-[#E5E4E1] text-[#525252] hover:bg-white transition-colors" title="Edytuj profil"><Edit size={16} /></button>
+                      <button className="btn-icon" title="Wyślij wiadomość"><MessageSquare size={16} /></button>
+                      <button className="btn-icon" title="Edytuj profil"><Edit size={16} /></button>
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-4 mt-6">
@@ -170,7 +170,7 @@ export const CustomersView = () => {
                       <span className="px-3 py-1 bg-white border border-[#E5E4E1] rounded-full text-sm text-[#525252] flex items-center gap-1"><Award size={12} className="text-[#059669]"/> Lojalny</span>
                       <span className="px-3 py-1 bg-white border border-[#E5E4E1] rounded-full text-sm text-[#525252]">Kawa ziarnista</span>
                       <span className="px-3 py-1 bg-white border border-[#E5E4E1] rounded-full text-sm text-[#525252]">Akcesoria</span>
-                      <button className="px-3 py-1 bg-white border border-dashed border-[#A3A3A3] rounded-full text-sm text-[#0066CC] hover:bg-[#F5F4F1] transition-colors flex items-center gap-1">
+                      <button className="px-3 py-1 bg-white border border-dashed border-[#A3A3A3] rounded-full text-sm text-[#0066CC] hover:bg-[#F5F4F1] transition-all duration-300 hover:scale-105 active:scale-95 flex items-center gap-1">
                         <Plus size={12} /> Dodaj tag
                       </button>
                     </div>

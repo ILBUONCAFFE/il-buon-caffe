@@ -229,7 +229,7 @@ export const OrdersView = () => {
         <div className="flex items-center gap-3 p-4 rounded-xl border bg-[#FFF7ED] border-[#F97316]/20 text-[#9A3412] mb-8">
           <AlertTriangle size={16} className="shrink-0" />
           <p className="text-sm flex-1">{error}</p>
-          <button onClick={() => fetchOrders(1)} className="text-xs font-medium px-3 py-1.5 rounded-lg bg-[#F97316]/10 hover:bg-[#F97316]/20 transition-colors shrink-0">
+          <button onClick={() => fetchOrders(1)} className="text-xs font-medium px-3 py-1.5 rounded-lg bg-[#F97316]/10 hover:bg-[#F97316]/20 transition-all duration-300 hover:scale-[1.02] active:scale-95 shrink-0">
             Ponów
           </button>
         </div>
@@ -244,7 +244,7 @@ export const OrdersView = () => {
               <button
                 key={tab.value}
                 onClick={() => setStatusFilter(tab.value)}
-                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all duration-300 hover:scale-[1.02] active:scale-95 whitespace-nowrap ${
                   statusFilter === tab.value
                     ? 'text-[#1A1A1A] bg-[#F5F4F1]'
                     : 'text-[#A3A3A3] hover:text-[#737373]'
@@ -257,7 +257,7 @@ export const OrdersView = () => {
           <div className="flex p-0.5 rounded-lg border border-[#E5E4E1] shrink-0">
             <button
               onClick={() => setViewMode('list')}
-              className={`p-1.5 rounded-md transition-colors ${
+              className={`p-1.5 rounded-md transition-all duration-300 hover:scale-105 active:scale-95 ${
                 viewMode === 'list' ? 'bg-[#F5F4F1] text-[#1A1A1A]' : 'text-[#A3A3A3] hover:text-[#525252]'
               }`}
               title="Lista"
@@ -266,7 +266,7 @@ export const OrdersView = () => {
             </button>
             <button
               onClick={() => setViewMode('kanban')}
-              className={`p-1.5 rounded-md transition-colors ${
+              className={`p-1.5 rounded-md transition-all duration-300 hover:scale-105 active:scale-95 ${
                 viewMode === 'kanban' ? 'bg-[#F5F4F1] text-[#1A1A1A]' : 'text-[#A3A3A3] hover:text-[#525252]'
               }`}
               title="Kanban"
@@ -378,7 +378,9 @@ export const OrdersView = () => {
                     <td className="px-4 py-3.5 whitespace-nowrap">
                       <span className="text-sm text-[#525252]">{formatDateShort(order.paidAt ?? order.createdAt)}</span>
                     </td>
-                    <td className="px-4 py-3.5 text-center">{getStatusBadge(order.status)}</td>
+                    <td className="px-4 py-3.5 text-center">
+                      {getStatusBadge(order.status, order.paymentMethod, order.paidAt)}
+                    </td>
                     <td className="px-4 py-3.5 text-right pr-5">
                       <div className="flex items-center justify-end gap-1.5">
                         {order.status === 'pending' && (
@@ -426,7 +428,7 @@ export const OrdersView = () => {
                   <button
                     onClick={() => fetchOrders(meta.page - 1)}
                     disabled={meta.page <= 1}
-                    className="px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-30 text-[#737373] hover:text-[#1A1A1A] hover:bg-[#F5F4F1] transition-colors flex items-center gap-1"
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-30 text-[#737373] hover:text-[#1A1A1A] hover:bg-[#F5F4F1] transition-all duration-300 hover:scale-[1.02] active:scale-95 flex items-center gap-1"
                   >
                     <ChevronLeft size={13} /> Poprzednia
                   </button>
@@ -434,7 +436,7 @@ export const OrdersView = () => {
                   <button
                     onClick={() => fetchOrders(meta.page + 1)}
                     disabled={meta.page >= meta.totalPages}
-                    className="px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-30 text-[#737373] hover:text-[#1A1A1A] hover:bg-[#F5F4F1] transition-colors flex items-center gap-1"
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-30 text-[#737373] hover:text-[#1A1A1A] hover:bg-[#F5F4F1] transition-all duration-300 hover:scale-[1.02] active:scale-95 flex items-center gap-1"
                   >
                     Następna <ChevronRight size={13} />
                   </button>

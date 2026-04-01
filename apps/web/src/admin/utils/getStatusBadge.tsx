@@ -1,4 +1,21 @@
-export const getStatusBadge = (status: string) => {
+export const getStatusBadge = (status: string, paymentMethod?: string | null, paidAt?: string | null) => {
+  const isCod = paymentMethod === 'CASH_ON_DELIVERY'
+
+  if (isCod) {
+    const isPaid = status === 'delivered' || status === 'completed' || !!paidAt
+    const paymentBadge = isPaid
+      ? <span className="badge-success">Opłacone</span>
+      : <span className="badge-success">Płatność przy odbiorze</span>
+
+    if (status === 'cancelled') {
+      return <span className="badge-neutral text-[#DC2626] bg-[#FEF2F2]">Anulowane</span>
+    }
+
+    if (status === 'shipped') return <span className="badge-neutral">Wysłane</span>
+    if (status === 'delivered' || status === 'completed') return <span className="badge-success">Dostarczone</span>
+    return paymentBadge
+  }
+
   switch (status) {
     case 'completed':
     case 'delivered':

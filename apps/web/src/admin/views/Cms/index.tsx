@@ -13,7 +13,7 @@ export const CmsView = () => {
           <h2 className="text-h2 text-[#1A1A1A]">Zmiana CMS</h2>
           <p className="text-sm text-[#737373] mt-1">Zarządzaj wyglądem i treścią swojej strony internetowej w czasie rzeczywistym.</p>
         </div>
-        <button className="px-4 py-2.5 rounded-xl bg-[#0066CC] hover:bg-[#0052A3] transition-colors text-sm font-medium text-white shadow-sm">
+        <button className="btn-accent">
           Opublikuj zmiany
         </button>
       </div>
@@ -24,13 +24,13 @@ export const CmsView = () => {
           <div className="flex border-b border-[#E5E4E1] bg-[#FAF9F7]">
             <button
               onClick={() => setActiveTab('hero')}
-              className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'hero' ? 'border-[#0066CC] text-[#0066CC]' : 'border-transparent text-[#525252] hover:text-[#1A1A1A]'}`}
+              className={`flex-1 py-3 text-sm font-medium border-b-2 transition-all duration-300 hover:bg-gray-50/50 ${activeTab === 'hero' ? 'border-[#0066CC] text-[#0066CC]' : 'border-transparent text-[#525252] hover:text-[#1A1A1A]'}`}
             >
               Sekcja Główna
             </button>
             <button
               onClick={() => setActiveTab('products')}
-              className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'products' ? 'border-[#0066CC] text-[#0066CC]' : 'border-transparent text-[#525252] hover:text-[#1A1A1A]'}`}
+              className={`flex-1 py-3 text-sm font-medium border-b-2 transition-all duration-300 hover:bg-gray-50/50 ${activeTab === 'products' ? 'border-[#0066CC] text-[#0066CC]' : 'border-transparent text-[#525252] hover:text-[#1A1A1A]'}`}
             >
               Produkty
             </button>
@@ -41,23 +41,23 @@ export const CmsView = () => {
               <div className="space-y-4 animate-in fade-in">
                 <div>
                   <label className="block text-sm font-medium text-[#1A1A1A] mb-1.5">Nagłówek główny (H1)</label>
-                  <input type="text" defaultValue="Odkryj nową kolekcję" className="w-full px-3 py-2 rounded-lg bg-[#F5F4F1] border border-[#E5E4E1] focus:ring-2 focus:ring-[#0066CC]/20 outline-none text-sm" />
+                  <input type="text" defaultValue="Odkryj nową kolekcję" className="admin-input w-full" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-[#1A1A1A] mb-1.5">Tekst pomocniczy</label>
-                  <textarea rows={3} defaultValue="Najwyższa jakość i nowoczesny design. Sprawdź nasze nowości i wybierz coś dla siebie." className="w-full px-3 py-2 rounded-lg bg-[#F5F4F1] border border-[#E5E4E1] focus:ring-2 focus:ring-[#0066CC]/20 outline-none text-sm resize-none"></textarea>
+                  <textarea rows={3} defaultValue="Najwyższa jakość i nowoczesny design. Sprawdź nasze nowości i wybierz coś dla siebie." className="admin-textarea"></textarea>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-[#1A1A1A] mb-1.5">Tekst przycisku (CTA)</label>
-                  <input type="text" defaultValue="Kup teraz" className="w-full px-3 py-2 rounded-lg bg-[#F5F4F1] border border-[#E5E4E1] focus:ring-2 focus:ring-[#0066CC]/20 outline-none text-sm" />
+                  <input type="text" defaultValue="Kup teraz" className="admin-input w-full" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-[#1A1A1A] mb-1.5">Kolor motywu</label>
                   <div className="flex gap-2">
-                    <button className="w-8 h-8 rounded-full bg-[#1A1A1A] ring-2 ring-offset-2 ring-[#1A1A1A]"></button>
-                    <button className="w-8 h-8 rounded-full bg-[#0066CC]"></button>
-                    <button className="w-8 h-8 rounded-full bg-[#059669]"></button>
-                    <button className="w-8 h-8 rounded-full bg-[#D97706]"></button>
+                    <button className="w-8 h-8 rounded-full bg-[#1A1A1A] ring-2 ring-offset-2 ring-[#1A1A1A] transition-all duration-300 hover:scale-110 active:scale-95"></button>
+                    <button className="w-8 h-8 rounded-full bg-[#0066CC] transition-all duration-300 hover:scale-110 active:scale-95"></button>
+                    <button className="w-8 h-8 rounded-full bg-[#059669] transition-all duration-300 hover:scale-110 active:scale-95"></button>
+                    <button className="w-8 h-8 rounded-full bg-[#D97706] transition-all duration-300 hover:scale-110 active:scale-95"></button>
                   </div>
                 </div>
               </div>
@@ -72,7 +72,7 @@ export const CmsView = () => {
                         <div className="w-10 h-10 bg-[#E5E4E1] rounded-lg"></div>
                         <span className="text-sm font-medium">Produkt polecany #{i}</span>
                       </div>
-                      <button className="text-[#0066CC] text-sm font-medium">Zmień</button>
+                      <button className="text-[#0066CC] text-sm font-medium transition-all duration-300 hover:scale-105 active:scale-95">Zmień</button>
                     </div>
                   ))}
                 </div>
@@ -108,7 +108,7 @@ export const CmsView = () => {
                 <span className="text-xs font-bold tracking-widest uppercase text-gray-400 mb-4">Nowa kolekcja 2026</span>
                 <h1 className="text-5xl font-serif font-bold text-gray-900 mb-6 leading-tight">Odkryj nową kolekcję</h1>
                 <p className="text-lg text-gray-500 mb-8">Najwyższa jakość i nowoczesny design. Sprawdź nasze nowości i wybierz coś dla siebie.</p>
-                <button className="px-8 py-4 bg-gray-900 text-white rounded-full font-medium hover:bg-gray-800 transition-colors">
+                <button className="px-8 py-4 bg-gray-900 text-white rounded-full font-medium transition-all duration-300 hover:bg-gray-800 hover:scale-105 hover:-translate-y-1 hover:shadow-lg active:scale-95 active:translate-y-0 active:shadow-none">
                   Kup teraz
                 </button>
               </div>

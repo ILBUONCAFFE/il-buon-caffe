@@ -10,7 +10,7 @@ export const PromotionsView = () => {
           <h2 className="text-h2 text-[#1A1A1A]">Kreator Promocji</h2>
           <p className="text-sm text-[#737373] mt-1">Twórz zaawansowane reguły rabatowe w prosty sposób.</p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#0066CC] hover:bg-[#0052A3] transition-colors text-sm font-medium text-white shadow-sm">
+        <button className="btn-accent">
           <Plus size={16} />Nowa reguła
         </button>
       </div>
@@ -68,39 +68,39 @@ export const PromotionsView = () => {
                   <h4 className="text-sm font-semibold text-[#1A1A1A] mb-3 uppercase tracking-wider">Warunki (JEŚLI)</h4>
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
-                      <select className="px-3 py-2 rounded-lg bg-[#F5F4F1] border border-[#E5E4E1] text-sm text-[#1A1A1A] outline-none focus:ring-2 focus:ring-[#0066CC]/20">
+                      <select className="admin-select w-auto">
                         <option>Wartość koszyka</option>
                         <option>Kategoria produktu</option>
                         <option>Tag klienta</option>
                       </select>
-                      <select className="px-3 py-2 rounded-lg bg-[#F5F4F1] border border-[#E5E4E1] text-sm text-[#1A1A1A] outline-none focus:ring-2 focus:ring-[#0066CC]/20">
+                      <select className="admin-select w-auto">
                         <option>jest większa niż</option>
                         <option>jest mniejsza niż</option>
                         <option>równa się</option>
                       </select>
                       <div className="relative">
-                        <input type="text" defaultValue="200" className="w-24 px-3 py-2 rounded-lg bg-[#F5F4F1] border border-[#E5E4E1] text-sm text-[#1A1A1A] outline-none focus:ring-2 focus:ring-[#0066CC]/20" />
+                        <input type="text" defaultValue="200" className="admin-input w-24 !pr-10" />
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[#737373]">PLN</span>
                       </div>
-                      <button className="p-2 text-[#A3A3A3] hover:text-[#DC2626] transition-colors"><X size={16} /></button>
+                      <button className="p-2 text-[#A3A3A3] hover:text-[#DC2626] transition-all duration-300 hover:scale-110 active:scale-95"><X size={16} /></button>
                     </div>
                     <div className="flex items-center gap-3 pl-2">
                       <span className="text-xs font-bold text-[#0066CC] uppercase bg-[#EFF6FF] px-2 py-1 rounded">ORAZ</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <select className="px-3 py-2 rounded-lg bg-[#F5F4F1] border border-[#E5E4E1] text-sm text-[#1A1A1A] outline-none focus:ring-2 focus:ring-[#0066CC]/20">
+                      <select className="admin-select w-auto">
                         <option>Tag klienta</option>
                         <option>Wartość koszyka</option>
                         <option>Kategoria produktu</option>
                       </select>
-                      <select className="px-3 py-2 rounded-lg bg-[#F5F4F1] border border-[#E5E4E1] text-sm text-[#1A1A1A] outline-none focus:ring-2 focus:ring-[#0066CC]/20">
+                      <select className="admin-select w-auto">
                         <option>zawiera</option>
                         <option>nie zawiera</option>
                       </select>
-                      <input type="text" defaultValue="VIP" className="w-32 px-3 py-2 rounded-lg bg-[#F5F4F1] border border-[#E5E4E1] text-sm text-[#1A1A1A] outline-none focus:ring-2 focus:ring-[#0066CC]/20" />
-                      <button className="p-2 text-[#A3A3A3] hover:text-[#DC2626] transition-colors"><X size={16} /></button>
+                      <input type="text" defaultValue="VIP" className="admin-input w-32" />
+                      <button className="p-2 text-[#A3A3A3] hover:text-[#DC2626] transition-all duration-300 hover:scale-110 active:scale-95"><X size={16} /></button>
                     </div>
-                    <button className="mt-2 flex items-center gap-2 text-sm font-medium text-[#0066CC] hover:underline">
+                    <button className="mt-2 flex items-center gap-2 text-sm font-medium text-[#0066CC] transition-all duration-300 hover:scale-[1.02] active:scale-95">
                       <PlusCircle size={16} /> Dodaj warunek
                     </button>
                   </div>
@@ -118,14 +118,14 @@ export const PromotionsView = () => {
                   <h4 className="text-sm font-semibold text-[#1A1A1A] mb-3 uppercase tracking-wider">Akcja (TO)</h4>
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
-                      <select className="px-3 py-2 rounded-lg bg-[#F5F4F1] border border-[#E5E4E1] text-sm text-[#1A1A1A] outline-none focus:ring-2 focus:ring-[#0066CC]/20">
+                      <select className="admin-select w-auto">
                         <option>Darmowa dostawa</option>
                         <option>Rabat procentowy</option>
                         <option>Rabat kwotowy</option>
                         <option>Darmowy produkt</option>
                       </select>
                       <span className="text-sm text-[#737373]">na</span>
-                      <select className="px-3 py-2 rounded-lg bg-[#F5F4F1] border border-[#E5E4E1] text-sm text-[#1A1A1A] outline-none focus:ring-2 focus:ring-[#0066CC]/20">
+                      <select className="admin-select w-auto">
                         <option>Całe zamówienie</option>
                         <option>Najtańszy produkt</option>
                         <option>Wybraną kategorię</option>
@@ -138,8 +138,8 @@ export const PromotionsView = () => {
           </div>
 
           <div className="p-4 border-t border-[#E5E4E1] bg-white rounded-b-2xl flex justify-end gap-3">
-            <button className="px-4 py-2 rounded-xl border border-[#E5E4E1] text-[#525252] font-medium hover:bg-[#F5F4F1] transition-colors">Anuluj</button>
-            <button className="px-4 py-2 rounded-xl bg-[#0066CC] text-white font-medium hover:bg-[#0052A3] transition-colors">Zapisz i aktywuj</button>
+            <button className="btn-secondary">Anuluj</button>
+            <button className="btn-primary">Zapisz i aktywuj</button>
           </div>
         </div>
       </div>

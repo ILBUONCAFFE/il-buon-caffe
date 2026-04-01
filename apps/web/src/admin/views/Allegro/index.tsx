@@ -273,7 +273,7 @@ export const AllegroConnectView = () => {
           </div>
           <button
             onClick={fetchStatus}
-            className="shrink-0 flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-[#F97316]/10 hover:bg-[#F97316]/20 transition-colors"
+            className="shrink-0 flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-[#F97316]/10 hover:bg-[#F97316]/20 transition-all duration-300 hover:scale-[1.02] active:scale-95"
           >
             <RefreshCw size={12} /> Ponów
           </button>
@@ -327,12 +327,12 @@ export const AllegroConnectView = () => {
             <div className="flex flex-wrap gap-3">
               {!status?.connected ? (
                 <>
-                  <div className="flex items-center gap-2 p-3 rounded-xl bg-[#FAF9F7] border border-[#E5E4E1]">
+                  <div className="flex items-center gap-2">
                     <label className="text-xs font-medium text-[#737373]">Środowisko:</label>
                     <select
                       value={environment}
                       onChange={e => setEnvironment(e.target.value as AllegroEnvironment)}
-                      className="text-sm font-medium text-[#1A1A1A] bg-transparent outline-none cursor-pointer"
+                      className="admin-select w-auto font-medium"
                     >
                       <option value="sandbox">Sandbox (testy)</option>
                       <option value="production">Produkcja</option>
@@ -341,7 +341,7 @@ export const AllegroConnectView = () => {
                   <button
                     onClick={handleConnect}
                     disabled={actionLoading}
-                    className="btn-primary flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="btn-accent"
                   >
                     {actionLoading ? <Loader2 size={16} className="animate-spin" /> : <Link2 size={16} />}
                     Połącz z Allegro
@@ -350,13 +350,11 @@ export const AllegroConnectView = () => {
                 </>
               ) : (
                 <>
-                  <button onClick={handleVerifyMe} disabled={verifying}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-[#EFF6FF] text-[#0066CC] hover:bg-[#DBEAFE] transition-colors disabled:opacity-60">
+                  <button onClick={handleVerifyMe} disabled={verifying} className="btn-secondary">
                     {verifying ? <Loader2 size={16} className="animate-spin" /> : <User size={16} />}
                     Zweryfikuj konto
                   </button>
-                  <button onClick={() => handleSyncOrders(false)} disabled={syncing}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-[#FF5A00]/10 text-[#FF5A00] hover:bg-[#FF5A00]/20 transition-colors disabled:opacity-60">
+                  <button onClick={() => handleSyncOrders(false)} disabled={syncing} className="btn-secondary">
                     {syncing ? <Loader2 size={16} className="animate-spin" /> : <Package size={16} />}
                     Synchronizuj zamówienia
                   </button>
@@ -367,19 +365,17 @@ export const AllegroConnectView = () => {
                       }
                     }}
                     disabled={syncing}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-[#7C3AED]/10 text-[#7C3AED] hover:bg-[#7C3AED]/20 transition-colors disabled:opacity-60"
+                    className="btn-secondary"
                     title="Resetuje kursor i importuje wszystkie zamówienia z ostatnich 365 dni"
                   >
                     {syncing ? <Loader2 size={16} className="animate-spin" /> : <Package size={16} />}
                     Pełna synchronizacja
                   </button>
-                  <button onClick={handleRefresh} disabled={actionLoading}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-[#F0F9FF] text-[#0284C7] hover:bg-[#E0F2FE] transition-colors disabled:opacity-60">
+                  <button onClick={handleRefresh} disabled={actionLoading} className="btn-ghost">
                     {actionLoading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
                     Odśwież token
                   </button>
-                  <button onClick={handleDisconnect} disabled={actionLoading}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-[#FEF2F2] text-[#DC2626] hover:bg-[#FECACA] transition-colors disabled:opacity-60">
+                  <button onClick={handleDisconnect} disabled={actionLoading} className="btn-danger">
                     <Link2Off size={16} /> Rozłącz
                   </button>
                 </>

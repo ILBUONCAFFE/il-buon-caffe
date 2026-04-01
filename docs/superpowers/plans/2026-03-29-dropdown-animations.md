@@ -1,3 +1,25 @@
+# Dropdown Animations & Selection Fill — Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Upgrade `Dropdown` component with Framer Motion enter/exit animations, press feedback on trigger, and filled-highlight for selected item.
+
+**Architecture:** Single file edit — `Dropdown.tsx`. Replace conditional render with `AnimatePresence` + `motion.div` for panel, wrap trigger in `motion.button` with `whileTap`, update item classNames for selection fill.
+
+**Tech Stack:** `motion/react` v12 (`motion`, `AnimatePresence`), Tailwind CSS 4
+
+---
+
+### Task 1: Rewrite Dropdown component
+
+**Files:**
+- Modify: `apps/web/src/admin/components/ui/Dropdown.tsx`
+
+- [ ] **Step 1: Replace component with animated version**
+
+Full replacement of `apps/web/src/admin/components/ui/Dropdown.tsx`:
+
+```tsx
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
@@ -51,7 +73,10 @@ export const Dropdown = ({ options, value, onChange, label }: DropdownProps) => 
             initial={{ opacity: 0, scale: 0.95, y: -4 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -4 }}
-            transition={{ duration: 0.15, ease: 'easeOut' }}
+            transition={{
+              duration: isOpen ? 0.15 : 0.12,
+              ease: isOpen ? 'easeOut' : 'easeIn',
+            }}
             style={{ transformOrigin: 'top right' }}
             className="absolute right-0 top-full mt-2 w-56 bg-white/90 backdrop-blur-xl rounded-xl shadow-2xl border border-[#E5E4E1] overflow-hidden z-50"
           >
@@ -80,3 +105,19 @@ export const Dropdown = ({ options, value, onChange, label }: DropdownProps) => 
     </div>
   )
 }
+```
+
+- [ ] **Step 2: Verify no type errors**
+
+```bash
+cd "C:/Users/User/Documents/1PROJEKTY/Il Buon Caffe" && npx turbo type-check --filter=web
+```
+
+Expected: no errors related to `Dropdown.tsx`
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add apps/web/src/admin/components/ui/Dropdown.tsx
+git commit -m "feat(web): animate admin Dropdown with motion/react, add selection fill"
+```

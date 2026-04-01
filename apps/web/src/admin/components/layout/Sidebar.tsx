@@ -18,6 +18,7 @@ const navItems = [
       { id: 'orders-complaints', path: '/admin/orders/complaints', label: 'Reklamacje', icon: AlertTriangle }
     ]
   },
+  { id: 'shipping', path: '/admin/shipping', icon: Truck, label: 'Centrum przesyłek', destination: 'Zarządzanie wysyłkami' },
   {
     id: 'inventory', icon: Package, label: 'Magazyn', destination: 'Stan magazynowy',
     children: [
@@ -27,9 +28,6 @@ const navItems = [
   },
   { id: 'customers', path: '/admin/customers', icon: Users, label: 'Klienci', destination: 'Baza klientów' },
   { id: 'finance', path: '/admin/finance', icon: DollarSign, label: 'Finanse', destination: 'Transakcje i raporty' },
-  { id: 'statistics', path: '/admin/statistics', icon: BarChart3, label: 'Statystyka', destination: 'Analizy i statystyki' },
-  { id: 'analytics', path: '/admin/analytics', icon: Activity, label: 'Analityka API', destination: 'Cloudflare Analytics Engine' },
-  { id: 'shipping', path: '/admin/shipping', icon: Truck, label: 'Centrum przesyłek', destination: 'Zarządzanie wysyłkami' },
   {
     id: 'marketing', icon: Tag, label: 'Marketing', destination: 'Promocje i kampanie',
     children: [
@@ -43,6 +41,8 @@ const navItems = [
       { id: 'website-cms', path: '/admin/content', label: 'Zmiana CMS', icon: Edit }
     ]
   },
+  { id: 'statistics', path: '/admin/statistics', icon: BarChart3, label: 'Statystyka', destination: 'Analizy i statystyki' },
+  { id: 'analytics', path: '/admin/analytics', icon: Activity, label: 'Analityka API', destination: 'Cloudflare Analytics Engine' },
   { id: 'settings', path: '/admin/settings', icon: Settings, label: 'Ustawienia', destination: 'Konfiguracja systemu' }
 ]
 

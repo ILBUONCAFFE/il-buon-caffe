@@ -4,6 +4,7 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { GripVertical, ShoppingBag, Store } from 'lucide-react'
 import type { AdminOrder } from '../../../types/admin-api'
+import { getStatusBadge } from '../../../utils/getStatusBadge'
 
 type SortableKanbanItemProps = {
   order: AdminOrder
@@ -30,31 +31,34 @@ export const SortableKanbanItem = ({ order, onClick }: SortableKanbanItemProps) 
     <div
       ref={setNodeRef}
       style={style}
-      className="bg-white p-4 rounded-xl border border-[#E5E4E1] shadow-sm mb-3 group relative cursor-pointer hover:border-[#0066CC] transition-colors"
+      className="bg-white p-4 rounded-xl border border-[#E5E4E1] group relative cursor-pointer hover:border-[#D4D3D0] transition-colors"
       onClick={onClick}
     >
       <div
         {...attributes}
         {...listeners}
-        className="absolute left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing p-1 text-[#A3A3A3] hover:text-[#525252]"
+        className="absolute left-1.5 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing p-1 text-[#D4D3D0] hover:text-[#A3A3A3]"
         onClick={(e) => e.stopPropagation()}
       >
-        <GripVertical size={16} />
+        <GripVertical size={14} />
       </div>
-      <div className="pl-6">
-        <div className="flex justify-between items-start mb-2">
+      <div className="pl-5">
+        <div className="flex justify-between items-center mb-2">
           <div className="flex items-center gap-1.5">
-            <span className="font-mono text-xs font-medium text-[#0066CC]">{order.orderNumber}</span>
+            <span className="font-mono text-xs font-medium text-[#525252]">{order.orderNumber}</span>
             {order.source === 'allegro'
-              ? <ShoppingBag size={12} className="text-[#FF5A00]" />
-              : <Store size={12} className="text-[#0066CC]" />}
+              ? <ShoppingBag size={10} className="text-[#EA580C]" />
+              : <Store size={10} className="text-[#0066CC]" />}
           </div>
-          <span className="text-xs text-[#737373]">{date}</span>
+          <span className="text-[11px] text-[#A3A3A3]">{date}</span>
         </div>
-        <p className="font-medium text-[#1A1A1A] text-sm mb-1">{customerName}</p>
-        <p className="text-xs text-[#525252] mb-3 line-clamp-1">{itemsSummary}</p>
-        <div className="flex justify-between items-center mt-auto pt-3 border-t border-[#E5E4E1]/50">
-          <span className="font-mono font-semibold text-[#1A1A1A] text-sm">{Number(order.total).toLocaleString('pl-PL', { minimumFractionDigits: 2 })} PLN</span>
+        <p className="font-medium text-[#1A1A1A] text-sm">{customerName}</p>
+        <p className="text-xs text-[#737373] mt-0.5 line-clamp-1">{itemsSummary}</p>
+        <div className="flex justify-between items-center mt-3 pt-3 border-t border-[#F0EFEC]">
+          <span className="font-mono font-semibold text-[#1A1A1A] text-sm tabular-nums">
+            {Number(order.total).toLocaleString('pl-PL', { minimumFractionDigits: 2 })} {order.currency}
+          </span>
+          {getStatusBadge(order.status, order.paymentMethod, order.paidAt)}
         </div>
       </div>
     </div>
