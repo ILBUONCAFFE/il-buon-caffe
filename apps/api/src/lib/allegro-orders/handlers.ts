@@ -12,7 +12,7 @@ import {
 } from '@repo/db/schema'
 import { eq, and, or } from 'drizzle-orm'
 import type { AllegroCheckoutForm, AllegroOrderEvent } from './types'
-import { generateOrderNumber, buildShippingAddress, fetchCheckoutForm } from './helpers'
+import { generateOrderNumber, buildShippingAddress, buildCustomerData, fetchCheckoutForm } from './helpers'
 import { getRate, type ForeignCurrency } from '../nbp'
 
 // ── Extract real purchase date from Allegro checkout form ─────────────────
@@ -81,13 +81,8 @@ export async function handleBought(
   const shippingAmount = form.delivery.cost?.amount ?? '0'
   const subtotal       = (parseFloat(totalAmount) - parseFloat(shippingAmount)).toFixed(2)
 
-  const customerData = {
-    email:        form.buyer.email,
-    name:         `${form.buyer.firstName ?? ''} ${form.buyer.lastName ?? ''}`.trim() || form.buyer.login,
-    phone:        form.buyer.phoneNumber ?? form.buyer.address?.phoneNumber,
-    shippingAddress: buildShippingAddress(form.delivery.address),
-    allegroLogin: form.buyer.login,
-  }
+  const customerData    = buildCustomerData(form)
+  const invoiceRequired = form.invoice?.required === true
 
   const internalNotes = JSON.stringify({
     allegroCheckoutFormId: form.id,
@@ -112,6 +107,7 @@ export async function handleBought(
     shippingMethod: form.delivery.method?.name ?? null,
     notes:          form.messageToSeller ?? null,
     internalNotes,
+    invoiceRequired,
     createdAt:      orderDate,
   }).onConflictDoNothing().returning({ id: orders.id })
 
@@ -161,17 +157,12 @@ export async function handleFilledIn(
     return
   }
 
-  const customerData = {
-    email:           form.buyer.email,
-    name:            `${form.buyer.firstName ?? ''} ${form.buyer.lastName ?? ''}`.trim() || form.buyer.login,
-    phone:           form.buyer.phoneNumber ?? form.buyer.address?.phoneNumber,
-    shippingAddress: buildShippingAddress(form.delivery.address),
-    allegroLogin:    form.buyer.login,
-  }
+  const customerData    = buildCustomerData(form)
+  const invoiceRequired = form.invoice?.required === true
 
   await db
     .update(orders)
-    .set({ customerData, updatedAt: new Date() })
+    .set({ customerData, invoiceRequired, updatedAt: new Date() })
     .where(eq(orders.externalId, form.id))
 
   console.log(`[AllegroOrders] FILLED_IN → address updated (allegro id: ${form.id})`)
@@ -214,13 +205,8 @@ export async function handleReadyForProcessing(
     const shippingAmount = form.delivery.cost?.amount ?? '0'
     const subtotal       = (parseFloat(totalAmount) - parseFloat(shippingAmount)).toFixed(2)
 
-    const customerData = {
-      email:           form.buyer.email,
-      name:            `${form.buyer.firstName ?? ''} ${form.buyer.lastName ?? ''}`.trim() || form.buyer.login,
-      phone:           form.buyer.phoneNumber ?? form.buyer.address?.phoneNumber,
-      shippingAddress: buildShippingAddress(form.delivery.address),
-      allegroLogin:    form.buyer.login,
-    }
+    const customerData    = buildCustomerData(form)
+    const invoiceRequired = form.invoice?.required === true
 
     const internalNotes = JSON.stringify({
       allegroCheckoutFormId: form.id,
@@ -248,6 +234,7 @@ export async function handleReadyForProcessing(
       paidAt,
       notes:          form.messageToSeller ?? null,
       internalNotes,
+      invoiceRequired,
       createdAt:      orderDate,
     }).onConflictDoNothing().returning({ id: orders.id })
 
@@ -267,7 +254,7 @@ export async function handleReadyForProcessing(
       }
       await db
         .update(orders)
-        .set({ status: readyStatus, paidAt, totalPln, exchangeRate, rateDate, updatedAt: new Date() })
+        .set({ status: readyStatus, paidAt, totalPln, exchangeRate, rateDate, invoiceRequired, updatedAt: new Date() })
         .where(eq(orders.externalId, form.id))
       orderId = reFetched.id
     }
@@ -279,11 +266,12 @@ export async function handleReadyForProcessing(
     // Exists as pending → mark paid (or processing for COD)
     const totalAmount    = form.summary.totalToPay.amount
     const currency       = form.summary.totalToPay.currency
-    const orderDate = extractAllegroOrderDate(form)
+    const orderDate      = extractAllegroOrderDate(form)
+    const invoiceRequired = form.invoice?.required === true
     const { totalPln, exchangeRate, rateDate } = await resolveRateFields(totalAmount, currency, orderDate, kv)
     await db
       .update(orders)
-      .set({ status: readyStatus, paidAt, totalPln, exchangeRate, rateDate, updatedAt: new Date() })
+      .set({ status: readyStatus, paidAt, totalPln, exchangeRate, rateDate, invoiceRequired, updatedAt: new Date() })
       .where(eq(orders.externalId, form.id))
     orderId = existing.id
   }
