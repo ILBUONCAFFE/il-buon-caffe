@@ -56,7 +56,7 @@ adminOrdersRouter.get('/', auditLogMiddleware('view_order'), async (c) => {
           currency: true, totalPln: true,
           customerData: true, paymentMethod: true, shippingMethod: true,
           trackingNumber: true, paidAt: true, shippedAt: true, createdAt: true,
-          updatedAt: true, internalNotes: true, notes: true,
+          updatedAt: true, internalNotes: true, notes: true, invoiceRequired: true,
         },
         with: {
           items: {

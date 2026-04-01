@@ -89,6 +89,8 @@ export interface CustomerData {
   phone?: string
   shippingAddress?: ShippingAddress
   billingAddress?: ShippingAddress
+  companyName?: string
+  taxId?: string
   allegroLogin?: string
 }
 
@@ -114,6 +116,7 @@ export interface AdminOrder {
   internalNotes?: string
   paidAt?: string | null
   shippedAt?: string | null
+  invoiceRequired?: boolean
   createdAt: string
   updatedAt?: string
 }

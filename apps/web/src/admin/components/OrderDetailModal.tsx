@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import {
   User, Mail, Phone, MapPin, Truck, Receipt, Edit,
-  ShoppingBag, Store, Loader2, Package, CreditCard,
+  ShoppingBag, Store, Loader2, Package, CreditCard, FileText, Building2,
 } from 'lucide-react'
 import { GlassModal } from './ui/GlassModal'
 import { getStatusBadge } from '../utils/getStatusBadge'
@@ -139,7 +139,7 @@ export function OrderDetailModal({ order, isOpen, onClose }: Props) {
               {formatDate(order.paidAt ?? order.createdAt)}
             </p>
           </div>
-          {getStatusBadge(order.status)}
+          {getStatusBadge(order.status, order.paymentMethod, order.paidAt)}
         </div>
 
         {/* Allegro loading indicator */}
@@ -277,6 +277,41 @@ export function OrderDetailModal({ order, isOpen, onClose }: Props) {
           </div>
         )}
 
+        {/* ── Invoice ────────────────────────────────────────────────── */}
+        {order.invoiceRequired && (
+          <div className="py-3 px-4 rounded-xl bg-[#EFF6FF] border border-[#BFDBFE]">
+            <div className="flex items-center gap-2 mb-2">
+              <FileText size={13} className="text-[#1D4ED8]" />
+              <p className="text-[11px] font-semibold text-[#1D4ED8] uppercase tracking-wider">
+                Faktura VAT
+              </p>
+            </div>
+            <div className="space-y-1">
+              {order.customerData?.companyName && (
+                <div className="flex items-center gap-2">
+                  <Building2 size={12} className="text-[#3B82F6] shrink-0" />
+                  <span className="text-sm font-medium text-[#1E3A8A]">
+                    {order.customerData.companyName}
+                  </span>
+                </div>
+              )}
+              {order.customerData?.taxId && (
+                <p className="text-sm text-[#1E40AF] ml-[20px]">
+                  NIP: <span className="font-mono font-semibold">{order.customerData.taxId}</span>
+                </p>
+              )}
+              {order.customerData?.billingAddress && (
+                <p className="text-xs text-[#3B82F6] ml-[20px]">
+                  {order.customerData.billingAddress.street}, {order.customerData.billingAddress.postalCode} {order.customerData.billingAddress.city}
+                </p>
+              )}
+              {!order.customerData?.companyName && !order.customerData?.taxId && (
+                <p className="text-sm text-[#1E40AF] ml-[20px]">Faktura dla osoby prywatnej</p>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* ── Products ───────────────────────────────────────────────── */}
         <div>
           <SectionLabel>Produkty</SectionLabel>
@@ -342,7 +377,7 @@ export function OrderDetailModal({ order, isOpen, onClose }: Props) {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-[#1A1A1A]">{order.paymentMethod}</p>
             </div>
-            {getStatusBadge(order.status)}
+            {getStatusBadge(order.status, order.paymentMethod, order.paidAt)}
           </div>
         )}
 
@@ -358,13 +393,13 @@ export function OrderDetailModal({ order, isOpen, onClose }: Props) {
 
         {/* ── Actions ────────────────────────────────────────────────── */}
         <div className="flex gap-2 pt-4 border-t border-[#F0EFEC]">
-          <button className="flex-1 px-4 py-2.5 bg-[#1A1A1A] text-white rounded-xl text-sm font-medium hover:bg-[#333] transition-colors flex items-center justify-center gap-2">
+          <button className="btn-primary flex-1">
             <Edit size={14} /> Edytuj
           </button>
-          <button className="flex-1 px-4 py-2.5 bg-white border border-[#E5E4E1] text-[#1A1A1A] rounded-xl text-sm font-medium hover:bg-[#F5F4F1] transition-colors flex items-center justify-center gap-2">
+          <button className="btn-secondary flex-1">
             <Truck size={14} /> Nadaj
           </button>
-          <button className="px-4 py-2.5 bg-white border border-[#E5E4E1] text-[#525252] rounded-xl text-sm font-medium hover:bg-[#F5F4F1] transition-colors flex items-center justify-center gap-2">
+          <button className="btn-secondary">
             <Receipt size={14} /> Faktura
           </button>
         </div>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Store, ShoppingBag } from 'lucide-react'
+import { Store, ShoppingBag, FileText } from 'lucide-react'
 import { Dropdown } from '../../../components/ui/Dropdown'
 import { OrderDetailModal } from '../../../components/OrderDetailModal'
 import { getStatusBadge } from '../../../utils/getStatusBadge'
@@ -138,6 +138,11 @@ export const OrdersTable = () => {
                             {order.orderNumber}
                           </span>
                           <SourceTag source={order.source} />
+                          {order.invoiceRequired && (
+                            <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1 py-0.5 rounded bg-[#DBEAFE] text-[#1D4ED8]">
+                              <FileText size={9} />FV
+                            </span>
+                          )}
                         </div>
                       </div>
                     </td>
@@ -148,7 +153,7 @@ export const OrdersTable = () => {
                       </span>
                     </td>
                     <td className="py-3 px-4 text-center">
-                      {getStatusBadge(order.status)}
+                      {getStatusBadge(order.status, order.paymentMethod, order.paidAt)}
                     </td>
                     <td className="py-3 px-4 text-right text-xs text-[#A3A3A3]">
                       {relativeTime(order.paidAt ?? order.createdAt)}
