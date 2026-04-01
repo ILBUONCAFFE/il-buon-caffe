@@ -14,6 +14,7 @@ import {
   ChevronLeft, ChevronRight, Clock,
 } from 'lucide-react'
 import { Dropdown } from '../../components/ui/Dropdown'
+import { DateRangePicker } from '../../components/ui/DateRangePicker'
 import { OrderDetailModal } from '../../components/OrderDetailModal'
 import { getStatusBadge } from '../../utils/getStatusBadge'
 import { adminApi, ApiError } from '../../lib/adminApiClient'
@@ -83,6 +84,18 @@ export const OrdersView = () => {
   const [meta, setMeta] = useState<ApiListMeta>({ total: 0, page: 1, limit: 50, totalPages: 0 })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const tbodyRef = useRef<HTMLTableSectionElement>(null)
+  const scrollTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => {
+    const onScroll = () => {
+      tbodyRef.current?.classList.remove('group/table')
+      if (scrollTimer.current) clearTimeout(scrollTimer.current)
+      scrollTimer.current = setTimeout(() => tbodyRef.current?.classList.add('group/table'), 200)
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
 
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const handleSearchChange = useCallback((value: string) => {
@@ -288,20 +301,10 @@ export const OrdersView = () => {
               className="admin-input w-full pl-9"
             />
           </div>
-          <input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-            className="admin-input w-36"
-            title="Od"
-          />
-          <span className="text-[#D4D3D0] text-sm">–</span>
-          <input
-            type="date"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-            className="admin-input w-36"
-            title="Do"
+          <DateRangePicker
+            from={dateFrom}
+            to={dateTo}
+            onChange={(from, to) => { setDateFrom(from); setDateTo(to) }}
           />
           <Dropdown
             options={sourceOptions}
@@ -336,6 +339,9 @@ export const OrdersView = () => {
                     Produkty
                   </th>
                   <th className="text-left font-medium text-[#737373] text-xs uppercase tracking-wider py-3 px-4">
+                    Dostawa
+                  </th>
+                  <th className="text-left font-medium text-[#737373] text-xs uppercase tracking-wider py-3 px-4">
                     Data
                   </th>
                   <th className="text-center font-medium text-[#737373] text-xs uppercase tracking-wider py-3 px-4">
@@ -346,20 +352,20 @@ export const OrdersView = () => {
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#F5F4F1]">
+              <tbody ref={tbodyRef} className="divide-y divide-[#F5F4F1] group/table">
                 {filteredOrders.length > 0 ? filteredOrders.map((order) => (
                   <tr
                     key={order.id}
                     onClick={() => { play('modal-open'); setSelectedOrder(order) }}
-                    className={`transition-colors cursor-pointer group ${
+                    className={`[transition:background-color_150ms_ease,opacity_200ms_ease_500ms] cursor-pointer group/row group-hover/table:opacity-40 hover:!opacity-100 ${
                       order.status === 'pending'
-                        ? 'border-l-2 border-amber-400 bg-amber-50/30 hover:bg-amber-50/50'
-                        : 'hover:bg-[#FAFAF9]'
+                        ? 'border-l-2 border-amber-400 bg-amber-50/30 hover:bg-amber-50/60'
+                        : 'hover:bg-[#F5F4F1]'
                     }`}
                   >
                     <td className="px-4 py-3.5 pl-5">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-medium text-[#1A1A1A] group-hover:text-[#0066CC] transition-colors">
+                        <span className="font-mono text-xs font-medium text-[#1A1A1A] group-hover/row:text-[#0066CC] transition-colors">
                           {order.orderNumber}
                         </span>
                         <SourceBadge source={order.source} />
@@ -378,6 +384,23 @@ export const OrdersView = () => {
                       <span className="text-[#525252] text-sm truncate block">{getItemsSummary(order)}</span>
                       {order.items?.length > 1 && (
                         <span className="text-xs text-[#A3A3A3]">{order.items.length} pozycje</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3.5 max-w-[160px]">
+                      {order.shippingMethod ? (
+                        <div>
+                          <div className="flex items-center gap-1">
+                            <Truck size={11} className="text-[#A3A3A3] shrink-0" />
+                            <span className="text-xs text-[#525252] truncate">{order.shippingMethod}</span>
+                          </div>
+                          {order.trackingNumber && (
+                            <span className="text-[11px] text-[#A3A3A3] font-mono mt-0.5 block truncate">
+                              {order.trackingNumber}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-[#D4D3D0]">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3.5 whitespace-nowrap">
@@ -399,7 +422,7 @@ export const OrdersView = () => {
                   </tr>
                 )) : (
                   <tr>
-                    <td colSpan={6} className="px-5 py-20 text-center">
+                    <td colSpan={7} className="px-5 py-20 text-center">
                       <div className="flex flex-col items-center gap-3 text-[#A3A3A3]">
                         <Package size={32} strokeWidth={1.5} />
                         <div>
