@@ -11,7 +11,7 @@ import {
 import {
   Search, LayoutList, LayoutGrid, Package,
   Truck, RefreshCw, Loader2, AlertTriangle, Store, ShoppingBag, FileText,
-  ChevronLeft, ChevronRight, Clock,
+  ChevronLeft, ChevronRight, Clock, X,
 } from 'lucide-react'
 import { Dropdown } from '../../components/ui/Dropdown'
 import { DateRangePicker } from '../../components/ui/DateRangePicker'
@@ -85,19 +85,7 @@ export const OrdersView = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const tbodyRef = useRef<HTMLTableSectionElement>(null)
-  const scrollTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  useEffect(() => {
-    const onScroll = () => {
-      tbodyRef.current?.classList.remove('group/table')
-      if (scrollTimer.current) clearTimeout(scrollTimer.current)
-      scrollTimer.current = setTimeout(() => tbodyRef.current?.classList.add('group/table'), 200)
-    }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
-
-  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const handleSearchChange = useCallback((value: string) => {
     setSearchQuery(value)
     if (searchTimer.current) clearTimeout(searchTimer.current)
@@ -292,14 +280,33 @@ export const OrdersView = () => {
         {/* Search + date + source */}
         <div className="flex items-center gap-3">
           <div className="relative flex-1">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A3A3A3]" />
+            <Search
+              size={15}
+              className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors duration-200 ${
+                searchQuery ? 'text-[#0066CC]' : 'text-[#A3A3A3]'
+              }`}
+            />
             <input
               type="text"
-              placeholder="Szukaj po nr zamówienia lub kliencie…"
+              placeholder="Szukaj: nr zamówienia, e-mail, NIP, produkt, nr śledzenia…"
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
-              className="admin-input w-full pl-9"
+              className={`admin-input w-full pl-9 pr-8 transition-all duration-200 ${
+                searchQuery ? 'border-[#0066CC]/40 bg-white' : ''
+              }`}
             />
+            {searchQuery && !loading && (
+              <button
+                onClick={() => { setSearchQuery(''); setDebouncedSearch('') }}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#A3A3A3] hover:text-[#525252] transition-colors duration-150"
+                title="Wyczyść"
+              >
+                <X size={14} />
+              </button>
+            )}
+            {loading && debouncedSearch && (
+              <Loader2 size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#A3A3A3] animate-spin" />
+            )}
           </div>
           <DateRangePicker
             from={dateFrom}
@@ -352,18 +359,19 @@ export const OrdersView = () => {
                   </th>
                 </tr>
               </thead>
-              <tbody ref={tbodyRef} className="divide-y divide-[#F5F4F1] group/table">
+              <tbody className="divide-y divide-[#F5F4F1] relative z-0">
                 {filteredOrders.length > 0 ? filteredOrders.map((order) => (
                   <tr
                     key={order.id}
                     onClick={() => { play('modal-open'); setSelectedOrder(order) }}
-                    className={`[transition:background-color_150ms_ease,opacity_200ms_ease_500ms] cursor-pointer group/row group-hover/table:opacity-40 hover:!opacity-100 ${
+                    className={`relative cursor-pointer group/row z-10 ${
                       order.status === 'pending'
-                        ? 'border-l-2 border-amber-400 bg-amber-50/30 hover:bg-amber-50/60'
-                        : 'hover:bg-[#F5F4F1]'
+                        ? 'border-l-2 border-amber-400 bg-amber-50/20'
+                        : ''
                     }`}
                   >
                     <td className="px-4 py-3.5 pl-5">
+                      <div className="absolute inset-y-[2px] left-1 right-1 bg-black/[0.04] rounded-lg -z-10 pointer-events-none opacity-0 group-hover/row:opacity-100 transition-opacity duration-150" />
                       <div className="flex items-center gap-2">
                         <span className="font-mono text-xs font-medium text-[#1A1A1A] group-hover/row:text-[#0066CC] transition-colors">
                           {order.orderNumber}
@@ -387,15 +395,22 @@ export const OrdersView = () => {
                       )}
                     </td>
                     <td className="px-4 py-3.5 max-w-[160px]">
-                      {order.shippingMethod ? (
+                      {(order.shippingMethod || order.trackingNumber) ? (
                         <div>
-                          <div className="flex items-center gap-1">
-                            <Truck size={11} className="text-[#A3A3A3] shrink-0" />
-                            <span className="text-xs text-[#525252] truncate">{order.shippingMethod}</span>
-                          </div>
+                          {order.shippingMethod && (
+                            <div className="flex items-center gap-1">
+                              <Truck size={11} className="text-[#A3A3A3] shrink-0" />
+                              <span className="text-xs text-[#525252] truncate">{order.shippingMethod}</span>
+                            </div>
+                          )}
                           {order.trackingNumber && (
                             <span className="text-[11px] text-[#A3A3A3] font-mono mt-0.5 block truncate">
                               {order.trackingNumber}
+                            </span>
+                          )}
+                          {order.trackingStatus && (
+                            <span className="text-[11px] text-[#525252] mt-0.5 block truncate leading-tight">
+                              {order.trackingStatus}
                             </span>
                           )}
                         </div>
