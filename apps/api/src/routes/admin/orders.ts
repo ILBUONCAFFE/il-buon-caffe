@@ -49,6 +49,9 @@ adminOrdersRouter.get('/', auditLogMiddleware('view_order'), async (c) => {
       const isEmail = raw.includes('@')
       // Detect: NIP (10 digits, optionally with dashes)
       const isNip = /^\d{3}[-]?\d{3}[-]?\d{2}[-]?\d{2}$/.test(raw)
+      // Detect: phone — after stripping separators (+, -, spaces, parens), 7–12 digits
+      const stripped = raw.replace(/[\s\-\+\(\)\.]/g, '')
+      const isPhone  = /^\d{7,12}$/.test(stripped) && !isNip && !isNumericId
 
       if (isNumericId) {
         const numId = parseInt(raw.replace('#', ''), 10)
@@ -64,6 +67,13 @@ adminOrdersRouter.get('/', auditLogMiddleware('view_order'), async (c) => {
         const nipTerm  = `%${cleanNip}%`
         conditions.push(
           sql`(${orders.customerData}::text ILIKE ${nipTerm})`
+        )
+      } else if (isPhone) {
+        // Take last 9 digits to strip country prefix (+48, 0048) — Polish mobile = 9 digits
+        const suffix    = stripped.slice(-9)
+        const phoneTerm = `%${suffix}%`
+        conditions.push(
+          sql`REGEXP_REPLACE(${orders.customerData}->>'phone', '[^0-9]', '', 'g') LIKE ${phoneTerm}`
         )
       } else {
         // Wide search across all relevant fields + product names via subquery

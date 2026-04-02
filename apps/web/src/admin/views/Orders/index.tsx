@@ -291,7 +291,7 @@ const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
               placeholder="Szukaj: nr zamówienia, e-mail, NIP, produkt, nr śledzenia…"
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
-              className={`admin-input w-full pl-9 pr-8 transition-all duration-200 ${
+              className={`admin-input w-full !pl-9 pr-8 transition-all duration-200 ${
                 searchQuery ? 'border-[#0066CC]/40 bg-white' : ''
               }`}
             />
