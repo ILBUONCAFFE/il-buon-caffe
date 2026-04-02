@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
+import Image from 'next/image'
 import {
   LayoutDashboard, ShoppingCart, ClipboardList, RotateCcw, AlertTriangle,
   Package, Archive, Link, Users, DollarSign, BarChart3, Truck, Tag, Gift,
@@ -87,14 +88,15 @@ export const Sidebar = ({ expandedMenus, setExpandedMenus }: SidebarProps) => {
   return (
     <aside className="fixed left-0 top-0 h-screen w-72 bg-white border-r border-[#E5E4E1] flex flex-col z-50">
       <div className="p-6 border-b border-[#E5E4E1]">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#0066CC] flex items-center justify-center">
-            <span className="text-white font-serif font-bold text-lg">C</span>
-          </div>
-          <div>
-            <p className="font-semibold text-[#1A1A1A] text-sm">Il Buon Caffe</p>
-            <p className="text-xs text-[#737373]">Panel administracyjny</p>
-          </div>
+        <div className="flex items-center justify-center -ml-2">
+          <Image
+            src="/assets/logo.png"
+            alt="Il Buon Caffe Logo"
+            width={120}
+            height={48}
+            className="h-12 w-auto object-contain brightness-0"
+            priority
+          />
         </div>
       </div>
       <nav className="flex-1 overflow-y-auto p-4 relative">

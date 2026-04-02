@@ -112,6 +112,7 @@ export interface AdminOrder {
   paymentMethod?: string
   shippingMethod?: string | null
   trackingNumber?: string | null
+  trackingStatus?: string | null
   notes?: string
   internalNotes?: string
   paidAt?: string | null
@@ -236,4 +237,21 @@ export interface ActivityItem {
 export interface ActivityFeedResponse {
   success: boolean
   data: ActivityItem[]
+}
+
+// ── Notifications ─────────────────────────────────────────────────────────────
+export type NotificationType = 'order' | 'payment' | 'stock'
+
+export interface AdminNotification {
+  id: string
+  type: NotificationType
+  title: string
+  message: string
+  createdAt: string
+  unread: boolean
+}
+
+export interface NotificationsResponse {
+  success: boolean
+  data: AdminNotification[]
 }

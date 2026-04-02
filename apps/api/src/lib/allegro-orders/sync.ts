@@ -14,7 +14,7 @@
  */
 
 import { createDb, createDbWsPool, setHttpMode } from '@repo/db/client'
-import { allegroSyncLog } from '@repo/db/schema'
+import { allegroSyncLog, orders } from '@repo/db/schema'
 import { getAllegroApiBase, type AllegroEnvironment } from '../allegro'
 import type { Env } from '../../index'
 import { CURSOR_KV_KEY, type AllegroOrderEvent } from './types'
@@ -22,6 +22,92 @@ import { readCursor, writeCursor, allegroHeaders, sleep } from './helpers'
 import { processEvent } from './handlers'
 import { resolveAccessToken } from './resolve-token'
 import { AllegroInvalidGrantError } from '../allegro'
+import { and, desc, eq, gte, inArray, isNotNull, isNull } from 'drizzle-orm'
+
+const TRACKING_SYNC_LIMIT = 30
+const TRACKING_SYNC_LOOKBACK_DAYS = 30
+const TRACKING_SYNC_MIN_INTERVAL_MS = 60 * 60 * 1000
+const TRACKING_SYNC_LAST_RUN_KV_KEY = 'allegro:tracking_sync:last_run_at'
+
+type AllegroShipment = {
+  carrierId?: string
+  waybill?: string
+  trackingNumber?: string
+}
+
+function pickWaybill(shipments: AllegroShipment[] | undefined): string | null {
+  for (const shipment of shipments ?? []) {
+    const value = (shipment.waybill ?? shipment.trackingNumber ?? '').trim()
+    if (value) return value.slice(0, 100)
+  }
+  return null
+}
+
+async function syncMissingTrackingNumbers(
+  db: ReturnType<typeof createDb>,
+  apiBase: string,
+  accessToken: string,
+): Promise<number> {
+  const lookbackDate = new Date(Date.now() - TRACKING_SYNC_LOOKBACK_DAYS * 24 * 60 * 60 * 1000)
+
+  const candidates = await db
+    .select({ id: orders.id, externalId: orders.externalId })
+    .from(orders)
+    .where(and(
+      eq(orders.source, 'allegro'),
+      inArray(orders.status, ['shipped', 'delivered']),
+      isNull(orders.trackingNumber),
+      isNotNull(orders.externalId),
+      gte(orders.createdAt, lookbackDate),
+    ))
+    .orderBy(desc(orders.updatedAt))
+    .limit(TRACKING_SYNC_LIMIT)
+
+  if (candidates.length === 0) return 0
+
+  const headers = allegroHeaders(accessToken)
+  let updated = 0
+
+  for (const order of candidates) {
+    if (!order.externalId) continue
+
+    const shipResp = await fetch(`${apiBase}/order/checkout-forms/${order.externalId}/shipments`, {
+      signal: AbortSignal.timeout(10_000),
+      headers,
+    })
+
+    if (!shipResp.ok) {
+      if (shipResp.status === 401) break
+      continue
+    }
+
+    const payload = await shipResp.json() as { shipments?: AllegroShipment[] }
+    const waybill = pickWaybill(payload.shipments)
+    if (!waybill) continue
+
+    await db.update(orders)
+      .set({ trackingNumber: waybill, updatedAt: new Date() })
+      .where(eq(orders.id, order.id))
+
+    updated++
+    await sleep(80)
+  }
+
+  return updated
+}
+
+async function shouldRunTrackingBackfill(kv: KVNamespace): Promise<boolean> {
+  try {
+    const lastRun = await kv.get(TRACKING_SYNC_LAST_RUN_KV_KEY)
+    if (!lastRun) return true
+    const lastRunAt = Number(lastRun)
+    if (!Number.isFinite(lastRunAt)) return true
+    return Date.now() - lastRunAt >= TRACKING_SYNC_MIN_INTERVAL_MS
+  } catch {
+    // If KV read fails, we prefer keeping sync resilient.
+    return true
+  }
+}
 
 export async function syncAllegroOrders(env: Env): Promise<void> {
   const kv = env.ALLEGRO_KV
@@ -94,7 +180,7 @@ export async function syncAllegroOrders(env: Env): Promise<void> {
   let pagesProcessed = 0
 
   // Lazy WS pool — only opened when we actually have events to process
-  let _pool: { db: ReturnType<typeof createDb>; end: () => Promise<void> } | null = null
+  let _pool: ReturnType<typeof createDbWsPool> | null = null
   function getPool() {
     if (!_pool) _pool = createDbWsPool(env.DATABASE_URL)
     return _pool.db
@@ -209,12 +295,23 @@ export async function syncAllegroOrders(env: Env): Promise<void> {
     await sleep(100) // Rate-limit friendly delay between pages
   }
 
+  // Keep order list fresh: fill tracking numbers for recently shipped Allegro orders.
+  // Runs only when DB pool was already opened by event processing.
+  if (_pool && await shouldRunTrackingBackfill(kv)) {
+    const updatedTracking = await syncMissingTrackingNumbers(getPool(), apiBase, accessToken)
+    await kv.put(TRACKING_SYNC_LAST_RUN_KV_KEY, String(Date.now())).catch(() => {})
+    if (updatedTracking > 0) {
+      console.log(`[AllegroOrders] Uzupełniono tracking dla ${updatedTracking} zamówień`)
+    }
+  }
+
   if (totalProcessed > 0) {
     console.log(`[AllegroOrders] Sync zakończony — ${totalProcessed} eventów przetworzonych, ${fetchesDone} fetch'y Allegro API`)
   }
 
   } finally {
     // Close WS pool only if it was opened
-    if (_pool) await _pool.end()
+    const poolForClose = _pool as { end: () => Promise<void> } | null
+    if (poolForClose) await poolForClose.end()
   }
 }

@@ -14,7 +14,7 @@ import type { AllegroSalesQuality } from '@repo/types'
 import { Hono } from 'hono'
 import { createDb, createDbHttp, type Database } from '@repo/db/client'
 import { allegroCredentials, allegroState, orders } from '@repo/db/schema'
-import { eq, desc, and, lt, ne, gte, count } from 'drizzle-orm'
+import { eq, desc, and, lt, ne, gte, count, sql } from 'drizzle-orm'
 import type { Env } from '../index'
 import { requireAdminOrProxy } from '../middleware/auth'
 import { dbMiddleware } from '../middleware/db'
@@ -688,9 +688,16 @@ allegroRouter.get('/orders/:id/tracking', requireAdminOrProxy(), async (c) => {
     // 4. Update tracking number in local DB
     if (waybill) {
       const db = createDb(c.env.DATABASE_URL)
+      const latestDescription = latest?.description ?? null
       await db.update(orders)
-        .set({ trackingNumber: waybill, updatedAt: new Date() })
-        .where(eq(orders.externalId, checkoutFormId!))
+        .set({ trackingNumber: waybill, trackingStatus: latestDescription, updatedAt: new Date() })
+        .where(and(
+          eq(orders.externalId, checkoutFormId!),
+          sql`(
+            ${orders.trackingNumber} IS DISTINCT FROM ${waybill}
+            OR ${orders.trackingStatus} IS DISTINCT FROM ${latestDescription}
+          )`,
+        ))
     }
 
     return c.json({

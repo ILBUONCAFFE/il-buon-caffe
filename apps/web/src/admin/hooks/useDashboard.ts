@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { adminApi } from '../lib/adminApiClient'
-import type { DashboardStats, DashboardOverview, WeeklyRevenuePoint, WeeklyPoint, OrdersQueryParams, AdminOrder, ActivityItem, AllegroConnectionStatus, AllegroSalesQuality } from '../types/admin-api'
+import type { DashboardStats, DashboardOverview, WeeklyRevenuePoint, WeeklyPoint, OrdersQueryParams, AdminOrder, ActivityItem, AdminNotification, AllegroConnectionStatus, AllegroSalesQuality } from '../types/admin-api'
 
 // ── Generic async state ───────────────────────────────────────────────────────
 interface AsyncState<T> {
@@ -121,5 +121,13 @@ export function useActivityFeed(limit = 10) {
     [limit],
   )
   return { activities: data as ActivityItem[] | null, loading, error, refetch }
+}
+
+// ── Notifications ─────────────────────────────────────────────────────────────
+export function useNotifications() {
+  const { data, loading, error, refetch } = useAsync(
+    () => adminApi.getNotifications().then(r => r.data),
+  )
+  return { notifications: data as AdminNotification[] | null, loading, error, refetch }
 }
 

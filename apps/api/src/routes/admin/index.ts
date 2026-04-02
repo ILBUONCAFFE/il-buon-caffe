@@ -372,3 +372,99 @@ adminRouter.get('/activity', requireAdminOrProxy(), async (c) => {
     return serverError(c, 'GET /admin/activity', err)
   }
 })
+
+// ============================================
+// GET /admin/notifications  🛡️
+// Powiadomienia: nowe zamówienia + niski stan magazynowy
+// ============================================
+adminRouter.get('/notifications', requireAdminOrProxy(), async (c) => {
+  try {
+    const db      = createDb(c.env.DATABASE_URL)
+    const now     = new Date()
+    const since24h = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+    const since1h  = new Date(now.getTime() - 60 * 60 * 1000)
+
+    const [recentOrders, lowStockItems] = await Promise.all([
+      db.select({
+        id:           orders.id,
+        orderNumber:  orders.orderNumber,
+        status:       orders.status,
+        total:        orders.total,
+        totalPln:     orders.totalPln,
+        currency:     orders.currency,
+        customerData: orders.customerData,
+        createdAt:    orders.createdAt,
+        paidAt:       orders.paidAt,
+      })
+        .from(orders)
+        .where(gte(orders.createdAt, since24h))
+        .orderBy(desc(orders.createdAt))
+        .limit(8),
+
+      db.select({
+        sku:      products.sku,
+        name:     products.name,
+        stock:    products.stock,
+        reserved: products.reserved,
+      })
+        .from(products)
+        .where(and(
+          eq(products.isActive, true),
+          sql`${products.stock} - ${products.reserved} <= 5`,
+        ))
+        .orderBy(sql`${products.stock} - ${products.reserved}`)
+        .limit(3),
+    ])
+
+    const sym: Record<string, string> = { PLN: 'zł', EUR: '€' }
+
+    type Notif = { id: string; type: string; title: string; message: string; createdAt: string; unread: boolean }
+    const result: Notif[] = []
+
+    for (const o of recentOrders) {
+      const customer = (o.customerData as { name?: string } | null)?.name ?? 'Klient'
+      const currency = o.currency ?? 'PLN'
+      const total = Number(o.totalPln ?? (currency === 'PLN' ? o.total : 0)).toFixed(2)
+      const unit  = sym[currency] ?? currency
+      const isUnread = o.createdAt >= since1h
+
+      if (o.status === 'pending') {
+        result.push({
+          id:        `order-${o.id}`,
+          type:      'order',
+          title:     'Nowe zamówienie',
+          message:   `${o.orderNumber} · ${customer} · ${total} ${unit}`,
+          createdAt: o.createdAt.toISOString(),
+          unread:    isUnread,
+        })
+      } else if (o.status === 'paid' && o.paidAt) {
+        result.push({
+          id:        `payment-${o.id}`,
+          type:      'payment',
+          title:     'Płatność otrzymana',
+          message:   `${total} ${unit} od ${customer}`,
+          createdAt: (o.paidAt as Date).toISOString(),
+          unread:    isUnread,
+        })
+      }
+    }
+
+    for (const p of lowStockItems) {
+      const available = Math.max(0, (p.stock ?? 0) - (p.reserved ?? 0))
+      result.push({
+        id:        `stock-${p.sku}`,
+        type:      'stock',
+        title:     'Niski stan magazynowy',
+        message:   `${p.name} — zostało ${available} szt.`,
+        createdAt: now.toISOString(),
+        unread:    false,
+      })
+    }
+
+    result.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+
+    return c.json({ success: true, data: result })
+  } catch (err) {
+    return serverError(c, 'GET /admin/notifications', err)
+  }
+})

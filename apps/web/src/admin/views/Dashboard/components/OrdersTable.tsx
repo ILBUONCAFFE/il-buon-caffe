@@ -35,7 +35,7 @@ export const OrdersTable = () => {
   const [statusFilter, setStatusFilter] = useState('all')
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null)
 
-  const { orders, loading, error } = useOrders({ limit: 8, status: statusFilter })
+const { orders, loading, error } = useOrders({ limit: 8, status: statusFilter })
 
   const statusOptions = [
     { value: 'all',        label: 'Wszystkie' },
@@ -87,7 +87,7 @@ export const OrdersTable = () => {
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#F5F4F1]">
+          <tbody className="divide-y divide-[#F5F4F1] relative z-0">
             {error ? (
               <tr>
                 <td colSpan={5} className="py-8 text-center text-[#DC2626] text-sm">
@@ -126,9 +126,10 @@ export const OrdersTable = () => {
                   <tr
                     key={order.id}
                     onClick={() => setSelectedOrder(order)}
-                    className="cursor-pointer hover:bg-[#FAFAF9] transition-colors"
+                    className="relative cursor-pointer group/row z-10"
                   >
                     <td className="py-3 px-4">
+                      <div className="absolute inset-y-[2px] left-1 right-1 bg-black/[0.04] rounded-lg -z-10 pointer-events-none opacity-0 group-hover/row:opacity-100 transition-opacity duration-150" />
                       <div>
                         <span className="font-medium text-[#1A1A1A]">
                           {order.customerData.name}

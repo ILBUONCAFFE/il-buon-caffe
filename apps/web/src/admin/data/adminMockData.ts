@@ -21,8 +21,8 @@ export const orders: Order[] = [
 ]
 
 export const notifications = [
-  { id: 1, title: 'Nowe zamówienie', message: 'MacBook Pro 16" - 12 499 PLN', time: '2 min temu', unread: true },
-  { id: 2, title: 'Płatność otrzymana', message: '3 299 PLN od Jana Nowaka', time: '15 min temu', unread: true },
-  { id: 3, title: 'Wysyłka', message: 'iPhone 15 Pro został wysłany', time: '1 godz. temu', unread: false },
-  { id: 4, title: 'Przypomnienie', message: 'Faktura VAT nr 2024/7821 oczekuje na płatność', time: '3 godz. temu', unread: false }
+  { id: 1, title: 'Nowe zamówienie', message: 'Kawa Arabica Etiopia 500g × 3 — 187 PLN', time: '2 min temu', unread: true },
+  { id: 2, title: 'Płatność otrzymana', message: '342 PLN od Anny Kowalskiej', time: '18 min temu', unread: true },
+  { id: 3, title: 'Wysyłka', message: 'Zestaw win toskańskich został nadany', time: '1 godz. temu', unread: false },
+  { id: 4, title: 'Niski stan magazynowy', message: 'Pecorino Romano DOP — zostały 3 szt.', time: '4 godz. temu', unread: false }
 ]

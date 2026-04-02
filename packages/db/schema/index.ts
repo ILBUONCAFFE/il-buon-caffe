@@ -429,6 +429,7 @@ export const orders = pgTable('orders', {
   // ===== Wysyłka =====
   shippingMethod: varchar('shipping_method', { length: 255 }),
   trackingNumber: varchar('tracking_number', { length: 100 }),
+  trackingStatus: varchar('tracking_status', { length: 255 }),
   shippedAt: timestamp('shipped_at', { withTimezone: true }),
   deliveredAt: timestamp('delivered_at', { withTimezone: true }),
 

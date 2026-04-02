@@ -79,6 +79,10 @@ export interface AllegroCheckoutForm {
     method?:  { id: string; name: string }
     address?: AllegroAddress
     cost?:    { amount: string; currency: string }
+    shipmentSummary?: {
+      waybill?: string
+      trackingNumber?: string
+    }
   }
   lineItems: Array<{
     id:       string

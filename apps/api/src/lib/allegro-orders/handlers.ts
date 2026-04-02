@@ -446,6 +446,7 @@ export async function reconcileOrder(
     .select({
       id:                       orders.id,
       status:                   orders.status,
+      trackingNumber:           orders.trackingNumber,
       allegroRevision:          orders.allegroRevision,
       allegroFulfillmentStatus: orders.allegroFulfillmentStatus,
     })
@@ -473,6 +474,7 @@ export async function reconcileOrder(
 
   const allegroStatus     = form.status
   const fulfillmentStatus = form.fulfillment?.status ?? null
+  const waybill = (form.delivery?.shipmentSummary?.waybill ?? form.delivery?.shipmentSummary?.trackingNumber ?? '').trim() || null
 
   const isCancelled =
     allegroStatus === 'CANCELLED' ||
@@ -499,6 +501,7 @@ export async function reconcileOrder(
     .set({
       allegroRevision:          form.revision ?? null,
       allegroFulfillmentStatus: fulfillmentStatus,
+      ...(!existing.trackingNumber && waybill && { trackingNumber: waybill.slice(0, 100) }),
       ...(newLocalStatus === 'cancelled' && { status: 'cancelled' as const }),
       ...(newLocalStatus === 'shipped'   && { status: 'shipped' as const, shippedAt: new Date() }),
       updatedAt: new Date(),

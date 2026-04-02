@@ -7,6 +7,7 @@ import type {
   OrdersQueryParams,
   AdminOrder,
   ActivityFeedResponse,
+  NotificationsResponse,
   AllegroStatusResponse,
   AllegroConnectUrlResponse,
   AllegroRefreshResponse,
@@ -105,6 +106,10 @@ export const adminApi = {
   getActivityFeed: (limit = 10) =>
     request<ActivityFeedResponse>(`/api/admin/activity?limit=${limit}`),
 
+  // ── Notifications ──────────────────────────────────────────────────────────
+  getNotifications: () =>
+    request<NotificationsResponse>('/api/admin/notifications'),
+
   // ── Allegro OAuth ──────────────────────────────────────────────────────────
   // These use the Next.js rewrite proxy (/api/* → API worker) so they work
   // in local dev without extra env config.
@@ -163,6 +168,8 @@ export type {
   OrdersQueryParams,
   AdminOrder,
   ActivityFeedResponse,
+  AdminNotification,
+  NotificationsResponse,
   AllegroConnectionStatus,
   AllegroStatusResponse,
   AllegroConnectUrlResponse,
