@@ -39,10 +39,50 @@ adminOrdersRouter.get('/', auditLogMiddleware('view_order'), async (c) => {
     if (from)   conditions.push(gte(orders.createdAt, new Date(from)))
     if (to)     conditions.push(lte(orders.createdAt, new Date(to)))
     if (search) {
-      const term = `%${search.replace(/[%_]/g, '')}%`
-      conditions.push(
-        sql`(${orders.orderNumber} ILIKE ${term} OR ${orders.customerData}::text ILIKE ${term} OR ${orders.externalId} ILIKE ${term})`
-      )
+      const raw  = search.trim()
+      const safe = raw.replace(/[%_]/g, '')
+      const term = `%${safe}%`
+
+      // Detect: pure number or #number → search by order id/number
+      const isNumericId = /^#?\d{1,8}$/.test(raw)
+      // Detect: email
+      const isEmail = raw.includes('@')
+      // Detect: NIP (10 digits, optionally with dashes)
+      const isNip = /^\d{3}[-]?\d{3}[-]?\d{2}[-]?\d{2}$/.test(raw)
+
+      if (isNumericId) {
+        const numId = parseInt(raw.replace('#', ''), 10)
+        conditions.push(
+          sql`(${orders.orderNumber} ILIKE ${term} OR ${orders.id} = ${numId})`
+        )
+      } else if (isEmail) {
+        conditions.push(
+          sql`(${orders.customerData}->>'email' ILIKE ${term})`
+        )
+      } else if (isNip) {
+        const cleanNip = raw.replace(/-/g, '')
+        const nipTerm  = `%${cleanNip}%`
+        conditions.push(
+          sql`(${orders.customerData}::text ILIKE ${nipTerm})`
+        )
+      } else {
+        // Wide search across all relevant fields + product names via subquery
+        conditions.push(
+          sql`(
+            ${orders.orderNumber}    ILIKE ${term}
+            OR ${orders.externalId}  ILIKE ${term}
+            OR ${orders.trackingNumber} ILIKE ${term}
+            OR ${orders.customerData}->>'name'  ILIKE ${term}
+            OR ${orders.customerData}->>'email' ILIKE ${term}
+            OR ${orders.customerData}->>'phone' ILIKE ${term}
+            OR EXISTS (
+              SELECT 1 FROM order_items oi
+              WHERE oi.order_id = ${orders.id}
+                AND oi.product_name ILIKE ${term}
+            )
+          )`
+        )
+      }
     }
 
     const where = conditions.length > 0 ? and(...conditions) : undefined
@@ -55,7 +95,7 @@ adminOrdersRouter.get('/', auditLogMiddleware('view_order'), async (c) => {
           status: true, total: true, subtotal: true, shippingCost: true,
           currency: true, totalPln: true,
           customerData: true, paymentMethod: true, shippingMethod: true,
-          trackingNumber: true, paidAt: true, shippedAt: true, createdAt: true,
+          trackingNumber: true, trackingStatus: true, paidAt: true, shippedAt: true, createdAt: true,
           updatedAt: true, internalNotes: true, notes: true, invoiceRequired: true,
         },
         with: {
@@ -97,7 +137,7 @@ adminOrdersRouter.get('/', auditLogMiddleware('view_order'), async (c) => {
 adminOrdersRouter.get('/:id', auditLogMiddleware('view_order'), async (c) => {
   try {
     const db      = createDb(c.env.DATABASE_URL)
-    const orderId = parseInt(c.req.param('') as string)
+    const orderId = parseInt(c.req.param('id'))
 
     if (isNaN(orderId)) return c.json({ error: 'Nieprawidłowe ID' }, 400)
 
@@ -138,7 +178,7 @@ adminOrdersRouter.patch('/:id/status', async (c) => {
   try {
     const adminUser = c.get('user')
     const db        = createDb(c.env.DATABASE_URL)
-    const orderId   = parseInt(c.req.param('') as string)
+    const orderId   = parseInt(c.req.param('id'))
 
     if (isNaN(orderId)) return c.json({ error: 'Nieprawidłowe ID zamówienia' }, 400)
 
