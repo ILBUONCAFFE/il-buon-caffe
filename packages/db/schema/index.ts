@@ -430,6 +430,7 @@ export const orders = pgTable('orders', {
   shippingMethod: varchar('shipping_method', { length: 255 }),
   trackingNumber: varchar('tracking_number', { length: 100 }),
   trackingStatus: varchar('tracking_status', { length: 255 }),
+  allegroShipmentId: varchar('allegro_shipment_id', { length: 36 }),
   shippedAt: timestamp('shipped_at', { withTimezone: true }),
   deliveredAt: timestamp('delivered_at', { withTimezone: true }),
 
