@@ -7,10 +7,150 @@ import { logAdminAction } from '../../lib/audit'
 import { eq, and, desc, sql, gte, lte } from 'drizzle-orm'
 import { requireAdminOrProxy } from '../../middleware/auth'
 import { auditLogMiddleware } from '../../middleware/auditLog'
+import { getActiveAllegroToken } from '../../lib/allegro-tokens'
+import { allegroHeaders } from '../../lib/allegro-orders/helpers'
+import { refreshOrderTrackingSnapshot } from '../../lib/allegro-orders/tracking-refresh'
 import type { Env } from '../../index'
 import { checkContentLength, parsePagination, getClientIp, serverError } from '../../lib/request'
 
 export const adminOrdersRouter = new Hono<{ Bindings: Env }>()
+
+type ShipmentDisplayStatus = 'none' | 'label_created' | 'in_transit' | 'out_for_delivery' | 'delivered' | 'issue' | 'unknown'
+type ShipmentFreshness = 'fresh' | 'stale' | 'unknown'
+
+const TRACKING_STALE_MS = 60 * 60 * 1000
+const TRACKING_DELIVERED_STALE_MS = 24 * 60 * 60 * 1000
+const TRACKING_REFRESH_LOCK_TTL_SECONDS = 90
+
+function normalizeTrackingCode(value: string | null | undefined): string | null {
+  if (!value) return null
+  const norm = value.trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '')
+  return norm || null
+}
+
+function toDateOrNull(value: Date | string | null | undefined): Date | null {
+  if (!value) return null
+  const d = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(d.getTime())) return null
+  return d
+}
+
+function toIsoOrNull(value: Date | string | null | undefined): string | null {
+  const d = toDateOrNull(value)
+  return d ? d.toISOString() : null
+}
+
+function mapShipmentDisplayStatus(input: {
+  orderStatus: string
+  trackingNumber: string | null
+  trackingStatusCode: string | null
+  trackingStatus: string | null
+}): ShipmentDisplayStatus {
+  const status = input.orderStatus
+  const code = normalizeTrackingCode(input.trackingStatusCode)
+  const statusText = (input.trackingStatus ?? '').toLowerCase()
+
+  if (!input.trackingNumber) return 'none'
+
+  if (status === 'delivered') return 'delivered'
+
+  if (!code) return 'label_created'
+
+  if (
+    code.includes('DELIVERED') ||
+    code.includes('PICKED_UP') ||
+    code.includes('PICKUP') ||
+    code.includes('RECEIVED')
+  ) {
+    return 'delivered'
+  }
+
+  if (
+    code.includes('OUT_FOR_DELIVERY') ||
+    code.includes('COURIER') ||
+    statusText.includes('dor')
+  ) {
+    return 'out_for_delivery'
+  }
+
+  if (
+    code === 'LABEL_CREATED' ||
+    code.includes('CREATED') ||
+    code.includes('REGISTERED')
+  ) {
+    return 'label_created'
+  }
+
+  if (
+    code.includes('EXCEPTION') ||
+    code.includes('FAILED') ||
+    code.includes('RETURN') ||
+    code.includes('UNDELIVERED') ||
+    code.includes('REFUSED') ||
+    code.includes('CANCELLED') ||
+    statusText.includes('problem') ||
+    statusText.includes('blad') ||
+    statusText.includes('error')
+  ) {
+    return 'issue'
+  }
+
+  if (
+    code.includes('IN_TRANSIT') ||
+    code.includes('TRANSIT') ||
+    code.includes('SORT') ||
+    code.includes('SHIPPED') ||
+    code.includes('SENT') ||
+    statusText.includes('tranzyt') ||
+    statusText.includes('w drodze')
+  ) {
+    return 'in_transit'
+  }
+
+  return 'unknown'
+}
+
+function getShipmentFreshness(orderStatus: string, trackingStatusUpdatedAt: Date | string | null | undefined): ShipmentFreshness {
+  if (!['shipped', 'delivered'].includes(orderStatus)) return 'unknown'
+  const updatedAt = toDateOrNull(trackingStatusUpdatedAt)
+  if (!updatedAt) return 'unknown'
+
+  const ageMs = Date.now() - updatedAt.getTime()
+  if (!Number.isFinite(ageMs) || ageMs < 0) return 'unknown'
+
+  const threshold = orderStatus === 'delivered' ? TRACKING_DELIVERED_STALE_MS : TRACKING_STALE_MS
+  return ageMs <= threshold ? 'fresh' : 'stale'
+}
+
+function buildTrackingSnapshot(order: {
+  id: number
+  status: string
+  trackingNumber: string | null
+  trackingStatus: string | null
+  trackingStatusCode: string | null
+  trackingStatusUpdatedAt: Date | string | null
+  trackingLastEventAt: Date | string | null
+}) {
+  const trackingStatusCode = normalizeTrackingCode(order.trackingStatusCode)
+  const shipmentDisplayStatus = mapShipmentDisplayStatus({
+    orderStatus: order.status,
+    trackingNumber: order.trackingNumber,
+    trackingStatus: order.trackingStatus,
+    trackingStatusCode,
+  })
+
+  return {
+    id: order.id,
+    status: order.status,
+    trackingNumber: order.trackingNumber,
+    trackingStatus: order.trackingStatus,
+    trackingStatusCode,
+    trackingStatusUpdatedAt: toIsoOrNull(order.trackingStatusUpdatedAt),
+    trackingLastEventAt: toIsoOrNull(order.trackingLastEventAt),
+    shipmentDisplayStatus,
+    shipmentFreshness: getShipmentFreshness(order.status, order.trackingStatusUpdatedAt),
+  }
+}
 
 // All admin order routes require admin role or internal proxy secret
 adminOrdersRouter.use('*', requireAdminOrProxy())
@@ -105,7 +245,11 @@ adminOrdersRouter.get('/', auditLogMiddleware('view_order'), async (c) => {
           status: true, total: true, subtotal: true, shippingCost: true,
           currency: true, totalPln: true,
           customerData: true, paymentMethod: true, shippingMethod: true,
-          trackingNumber: true, trackingStatus: true, paidAt: true, shippedAt: true, createdAt: true,
+          trackingNumber: true, trackingStatus: true,
+          trackingStatusCode: true, trackingStatusUpdatedAt: true,
+          trackingLastEventAt: true,
+          allegroShipmentId: true, allegroFulfillmentStatus: true,
+          paidAt: true, shippedAt: true, createdAt: true,
           updatedAt: true, internalNotes: true, notes: true, invoiceRequired: true,
         },
         with: {
@@ -132,6 +276,15 @@ adminOrdersRouter.get('/', auditLogMiddleware('view_order'), async (c) => {
       shippingCost: Number(o.shippingCost ?? 0),
       totalPln:     o.totalPln != null ? Number(o.totalPln) : null,
       itemsCount:   o.items.length,
+      ...buildTrackingSnapshot({
+        id: o.id,
+        status: o.status,
+        trackingNumber: o.trackingNumber ?? null,
+        trackingStatus: o.trackingStatus ?? null,
+        trackingStatusCode: o.trackingStatusCode ?? null,
+        trackingStatusUpdatedAt: o.trackingStatusUpdatedAt ?? null,
+        trackingLastEventAt: o.trackingLastEventAt ?? null,
+      }),
     }))
 
     return c.json({ success: true, data, meta: { total, page, limit, totalPages } })
@@ -147,7 +300,7 @@ adminOrdersRouter.get('/', auditLogMiddleware('view_order'), async (c) => {
 adminOrdersRouter.get('/:id', auditLogMiddleware('view_order'), async (c) => {
   try {
     const db      = createDb(c.env.DATABASE_URL)
-    const orderId = parseInt(c.req.param('id'))
+    const orderId = parseInt(c.req.param('id') ?? '', 10)
 
     if (isNaN(orderId)) return c.json({ error: 'Nieprawidłowe ID' }, 400)
 
@@ -173,10 +326,106 @@ adminOrdersRouter.get('/:id', auditLogMiddleware('view_order'), async (c) => {
         totalPln:     order.totalPln     != null ? Number(order.totalPln)     : null,
         exchangeRate: order.exchangeRate != null ? Number(order.exchangeRate) : null,
         rateDate:     order.rateDate     ?? null,
+        ...buildTrackingSnapshot({
+          id: order.id,
+          status: order.status,
+          trackingNumber: order.trackingNumber ?? null,
+          trackingStatus: order.trackingStatus ?? null,
+          trackingStatusCode: order.trackingStatusCode ?? null,
+          trackingStatusUpdatedAt: order.trackingStatusUpdatedAt ?? null,
+          trackingLastEventAt: order.trackingLastEventAt ?? null,
+        }),
       },
     })
   } catch (err) {
     return serverError(c, 'GET /admin/orders/:id', err)
+  }
+})
+
+// ============================================
+// POST /admin/orders/:id/tracking/refresh  🛡️
+// Asynchroniczne odświeżenie snapshotu trackingu
+// ============================================
+adminOrdersRouter.post('/:id/tracking/refresh', async (c) => {
+  try {
+    const db = createDb(c.env.DATABASE_URL)
+    const orderId = parseInt(c.req.param('id') ?? '', 10)
+
+    if (isNaN(orderId)) return c.json({ error: 'Nieprawidłowe ID zamówienia' }, 400)
+
+    const [order] = await db.select({
+      id: orders.id,
+      status: orders.status,
+      source: orders.source,
+      externalId: orders.externalId,
+      allegroShipmentId: orders.allegroShipmentId,
+      trackingNumber: orders.trackingNumber,
+      trackingStatus: orders.trackingStatus,
+      trackingStatusCode: orders.trackingStatusCode,
+      trackingStatusUpdatedAt: orders.trackingStatusUpdatedAt,
+      trackingLastEventAt: orders.trackingLastEventAt,
+    }).from(orders).where(eq(orders.id, orderId)).limit(1)
+
+    if (!order) return c.json({ error: 'Zamówienie nie znalezione' }, 404)
+
+    const snapshot = buildTrackingSnapshot({
+      id: order.id,
+      status: order.status,
+      trackingNumber: order.trackingNumber,
+      trackingStatus: order.trackingStatus,
+      trackingStatusCode: order.trackingStatusCode,
+      trackingStatusUpdatedAt: order.trackingStatusUpdatedAt,
+      trackingLastEventAt: order.trackingLastEventAt,
+    })
+
+    if (order.source !== 'allegro' || !order.externalId || !order.allegroShipmentId) {
+      return c.json({
+        success: true,
+        refreshed: false,
+        reason: 'not_refreshable',
+        data: snapshot,
+      })
+    }
+
+    if (snapshot.shipmentFreshness === 'fresh') {
+      return c.json({
+        success: true,
+        refreshed: false,
+        reason: 'fresh',
+        data: snapshot,
+      })
+    }
+
+    const lockKey = `allegro:tracking:refresh:order:${order.id}`
+    const alreadyRefreshing = await c.env.ALLEGRO_KV.get(lockKey)
+    if (alreadyRefreshing) {
+      return c.json({
+        success: true,
+        refreshed: false,
+        reason: 'already_refreshing',
+        data: snapshot,
+      })
+    }
+
+    await c.env.ALLEGRO_KV.put(lockKey, String(Date.now()), { expirationTtl: TRACKING_REFRESH_LOCK_TTL_SECONDS })
+
+    c.executionCtx.waitUntil((async () => {
+      try {
+        const refreshDb = createDb(c.env.DATABASE_URL)
+        await refreshOrderTrackingSnapshot(refreshDb, c.env, order.id, order.externalId!)
+      } finally {
+        await c.env.ALLEGRO_KV.delete(lockKey).catch(() => {})
+      }
+    })())
+
+    return c.json({
+      success: true,
+      refreshed: true,
+      reason: 'queued',
+      data: snapshot,
+    })
+  } catch (err) {
+    return serverError(c, 'POST /admin/orders/:id/tracking/refresh', err)
   }
 })
 
@@ -188,7 +437,7 @@ adminOrdersRouter.patch('/:id/status', async (c) => {
   try {
     const adminUser = c.get('user')
     const db        = createDb(c.env.DATABASE_URL)
-    const orderId   = parseInt(c.req.param('id'))
+    const orderId   = parseInt(c.req.param('id') ?? '', 10)
 
     if (isNaN(orderId)) return c.json({ error: 'Nieprawidłowe ID zamówienia' }, 400)
 
