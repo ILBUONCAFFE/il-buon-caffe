@@ -16,6 +16,7 @@ import { allegroCredentials, allegroSyncLog, auditLog } from '@repo/db/schema'
 import { eq, desc, lt, sql } from 'drizzle-orm'
 import { refreshAllegroToken, KV_KEYS, type AllegroEnvironment } from './lib/allegro'
 import { syncAllegroOrders } from './lib/allegro-orders'
+import { runTrackingStatusSync } from './lib/allegro-orders/tracking-refresh'
 import { preWarmAllegroQualityCache } from './routes/allegro'
 import { backfillExchangeRates } from './lib/allegro-orders/backfill-rates'
 import { encryptText, decryptText } from './lib/crypto'
@@ -307,6 +308,7 @@ export default {
     // "0 3 * * *"   — daily at 04:00 CET (03:00 UTC) — backfill exchange rates (total_pln)
     if (event.cron === '*/5 * * * *') {
       ctx.waitUntil(syncAllegroOrders(env))
+      ctx.waitUntil(runTrackingStatusSync(env))
     } else if (event.cron === '0 5 * * *') {
       // Daily at 06:00 CET (05:00 UTC) — pre-warm Allegro sales quality cache
       ctx.waitUntil(preWarmAllegroQualityCache(env))
