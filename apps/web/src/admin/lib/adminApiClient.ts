@@ -13,6 +13,9 @@ import type {
   AllegroRefreshResponse,
   AllegroEnvironment,
   AllegroSalesQualityResponse,
+  AdminReturn,
+  ReturnsQueryParams,
+  ReturnsResponse,
 } from '../types/admin-api'
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
@@ -154,6 +157,14 @@ export const adminApi = {
       `/api/admin/allegro/backfill${full ? '?full=true' : ''}`,
       { method: 'POST' },
     ),
+
+  // ── Returns ──────────────────────────────────────────────────────────────────
+  // TODO: wire up to GET /api/admin/returns when the API endpoint exists
+  getReturns: (_params?: ReturnsQueryParams): Promise<ReturnsResponse> =>
+    Promise.resolve({ data: [], meta: { total: 0, page: 1, limit: 50 } }),
+
+  updateReturnStatus: (_id: number, _status: string): Promise<void> =>
+    Promise.resolve(),
 }
 
 // ── Re-export types so components can import from one place ──────────────────
