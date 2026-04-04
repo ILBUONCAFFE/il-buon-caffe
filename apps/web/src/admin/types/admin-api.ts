@@ -255,3 +255,56 @@ export interface NotificationsResponse {
   success: boolean
   data: AdminNotification[]
 }
+
+// ── Returns ──────────────────────────────────────────────────────────────────
+
+export type ReturnStatus = 'new' | 'in_review' | 'approved' | 'rejected' | 'refunded' | 'closed'
+
+export type ReturnReason =
+  | 'damaged'
+  | 'wrong_item'
+  | 'not_as_described'
+  | 'change_of_mind'
+  | 'other'
+
+export interface ReturnItem {
+  productSku: string
+  productName: string
+  quantity: number
+  unitPrice: number
+  totalPrice: number
+}
+
+export interface AdminReturn {
+  id: number
+  returnNumber: string
+  orderId: number
+  orderNumber: string
+  createdAt: string
+  updatedAt: string
+  status: ReturnStatus
+  reason: ReturnReason
+  reasonNote: string | null
+  items: ReturnItem[]
+  totalRefundAmount: number | null
+  currency: string
+  customerData: {
+    name: string
+    email: string
+    phone?: string
+  } | null
+}
+
+export interface ReturnsQueryParams {
+  page?: number
+  limit?: number
+  status?: string
+  search?: string
+  from?: string
+  to?: string
+}
+
+export interface ReturnsResponse {
+  data: AdminReturn[]
+  meta: { total: number; page: number; limit: number }
+}
