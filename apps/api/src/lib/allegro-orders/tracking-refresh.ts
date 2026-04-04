@@ -281,6 +281,12 @@ export async function runTrackingStatusSync(env: Env): Promise<void> {
 
   if (candidates.length === 0) return
 
+  const token = await getActiveAllegroToken(env)
+  if (!token) {
+    console.warn('[TrackingSync] Brak tokenu Allegro — pomijam odświeżanie trackingu')
+    return
+  }
+
   let refreshed = 0
 
   for (let i = 0; i < candidates.length; i += CONCURRENCY) {
@@ -292,7 +298,7 @@ export async function runTrackingStatusSync(env: Env): Promise<void> {
         const locked = await env.ALLEGRO_KV.get(lockKey)
         if (locked) return
 
-        await env.ALLEGRO_KV.put(lockKey, String(Date.now()), { expirationTtl: 90 })
+        await env.ALLEGRO_KV.put(lockKey, String(Date.now()), { expirationTtl: 180 })
         try {
           await refreshOrderTrackingSnapshot(db, env, order.id, order.externalId)
           refreshed++
