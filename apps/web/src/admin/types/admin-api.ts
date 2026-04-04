@@ -306,5 +306,5 @@ export interface ReturnsQueryParams {
 
 export interface ReturnsResponse {
   data: AdminReturn[]
-  meta: { total: number; page: number; limit: number }
+  meta: { total: number; page: number; limit: number; totalPages: number }
 }

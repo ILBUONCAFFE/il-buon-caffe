@@ -161,7 +161,7 @@ export const adminApi = {
   // ── Returns ──────────────────────────────────────────────────────────────────
   // TODO: wire up to GET /api/admin/returns when the API endpoint exists
   getReturns: (_params?: ReturnsQueryParams): Promise<ReturnsResponse> =>
-    Promise.resolve({ data: [], meta: { total: 0, page: 1, limit: 50 } }),
+    Promise.resolve({ data: [], meta: { total: 0, page: 1, limit: 50, totalPages: 0 } }),
 
   updateReturnStatus: (_id: number, _status: string): Promise<void> =>
     Promise.resolve(),
