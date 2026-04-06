@@ -109,7 +109,7 @@ app.post('/', requireAdmin(), async (c) => {
 // DELETE /api/catalogs/:id — usuń katalog (admin)
 // ─────────────────────────────────────────────────────────
 app.delete('/:id', requireAdmin(), async (c) => {
-  const id = parseInt(c.req.param('id'), 10)
+  const id = parseInt(c.req.param('id') ?? '', 10)
   if (isNaN(id)) return c.json({ error: 'Nieprawidłowe ID' }, 400)
 
   const db = c.get('db')

@@ -100,11 +100,11 @@ export function requireAdminOrProxy() {
       try {
         const db = c.get('db')
         const userRow = await db.query.users.findFirst({
-          columns: { id: true, role: true, anonymized: true },
+          columns: { id: true, role: true },
           where: eq(users.id, proxyUserId),
         })
 
-        if (!userRow || userRow.role !== 'admin' || userRow.anonymized) {
+        if (!userRow || userRow.role !== 'admin') {
           console.warn(`[auth] Proxy request rejected for User ID: ${proxyUserId}. DB row:`, userRow)
           return c.json({ error: 'Nieautoryzowany dostęp' }, 403)
         }

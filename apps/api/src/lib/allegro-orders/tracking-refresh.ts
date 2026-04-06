@@ -24,6 +24,25 @@ function toDateOrNull(value: Date | string | null | undefined): Date | null {
   return d
 }
 
+function formatDbError(err: unknown): string {
+  if (!(err instanceof Error)) return String(err)
+
+  const cause = (err as Error & { cause?: unknown }).cause
+  if (cause && typeof cause === 'object') {
+    const causeObj = cause as { message?: unknown; code?: unknown }
+    const parts = [
+      typeof causeObj.code === 'string' ? `code=${causeObj.code}` : null,
+      typeof causeObj.message === 'string' ? causeObj.message : null,
+    ].filter((x): x is string => !!x)
+
+    if (parts.length > 0) {
+      return `${err.message} | cause: ${parts.join(' | ')}`
+    }
+  }
+
+  return err.message
+}
+
 // ── Tracking snapshot refresh ─────────────────────────────────────────────
 
 /**
@@ -186,6 +205,59 @@ export async function refreshOrderTrackingSnapshot(
 const BATCH_SIZE = 15
 const CONCURRENCY = 3
 const HARD_CUTOFF_DAYS = 30
+const TRACKING_SCHEMA_CACHE_TTL_MS = 10 * 60 * 1000
+const TRACKING_REQUIRED_COLUMNS = [
+  'allegro_shipment_id',
+  'tracking_status_code',
+  'tracking_status_updated_at',
+  'tracking_last_event_at',
+] as const
+
+let trackingSchemaCheckedAt = 0
+let trackingSchemaReady: boolean | null = null
+
+async function hasTrackingSchema(db: ReturnType<typeof createDb>): Promise<boolean> {
+  const now = Date.now()
+  if (trackingSchemaReady !== null && now - trackingSchemaCheckedAt < TRACKING_SCHEMA_CACHE_TTL_MS) {
+    return trackingSchemaReady
+  }
+
+  try {
+    const result = await db.execute(sql`
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'orders'
+        AND column_name IN ('allegro_shipment_id', 'tracking_status_code', 'tracking_status_updated_at', 'tracking_last_event_at')
+    `)
+
+    const rows = (result as { rows?: unknown[] }).rows ?? []
+    const found = new Set(
+      rows
+        .map((row) => {
+          if (!row || typeof row !== 'object') return null
+          const value = (row as { column_name?: unknown }).column_name
+          return typeof value === 'string' ? value : null
+        })
+        .filter((x): x is string => x !== null),
+    )
+
+    const missing = TRACKING_REQUIRED_COLUMNS.filter((column) => !found.has(column))
+    trackingSchemaReady = missing.length === 0
+
+    if (!trackingSchemaReady) {
+      console.error(`[TrackingSync] Brak wymaganych kolumn w tabeli orders: ${missing.join(', ')}. Uruchom migracje Drizzle.`)
+    }
+  } catch (err) {
+    // Do not block sync permanently if metadata query fails transiently.
+    trackingSchemaReady = true
+    console.warn('[TrackingSync] Nie udało się zweryfikować schematu orders:', formatDbError(err))
+  } finally {
+    trackingSchemaCheckedAt = now
+  }
+
+  return trackingSchemaReady ?? true
+}
 
 /**
  * Select orders whose tracking snapshot is stale and needs refreshing.
@@ -271,11 +343,15 @@ export async function selectTrackingRefreshCandidates(
 export async function runTrackingStatusSync(env: Env): Promise<void> {
   const db = createDb(env.DATABASE_URL)
 
+  if (!(await hasTrackingSchema(db))) {
+    return
+  }
+
   let candidates: Array<{ id: number; externalId: string }>
   try {
     candidates = await selectTrackingRefreshCandidates(db)
   } catch (err) {
-    console.error('[TrackingSync] Błąd pobierania kandydatów:', err instanceof Error ? err.message : err)
+    console.error('[TrackingSync] Błąd pobierania kandydatów:', formatDbError(err))
     return
   }
 
@@ -310,7 +386,7 @@ export async function runTrackingStatusSync(env: Env): Promise<void> {
 
     for (const result of results) {
       if (result.status === 'rejected') {
-        console.warn('[TrackingSync] Błąd odświeżania trackingu:', result.reason instanceof Error ? result.reason.message : result.reason)
+        console.warn('[TrackingSync] Błąd odświeżania trackingu:', formatDbError(result.reason))
       }
     }
   }
