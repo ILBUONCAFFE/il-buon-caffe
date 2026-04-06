@@ -341,8 +341,71 @@ export const productService = {
    * Fetch all active products (backwards compatible)
    */
   async getAll(options: { category?: string; search?: string; sort?: SortOption; limit?: number; offset?: number } = {}): Promise<Product[]> {
-    const result = await this.getFiltered(options);
-    return result.products;
+    const {
+      category,
+      search,
+      sort = 'featured',
+      limit,
+      offset = 0,
+    } = options;
+
+    try {
+      const conditions: SQL[] = [eq(products.isActive, true)];
+
+      if (category && category !== 'all') {
+        conditions.push(
+          sql`${products.categoryId} = (SELECT id FROM categories WHERE slug = ${category} LIMIT 1)`
+        );
+      }
+
+      if (search && search.trim()) {
+        const searchTerm = `%${search.trim()}%`;
+        conditions.push(
+          or(
+            ilike(products.name, searchTerm),
+            ilike(products.description, searchTerm),
+            ilike(products.origin, searchTerm),
+            ilike(products.originCountry, searchTerm),
+            ilike(products.originRegion, searchTerm),
+            ilike(products.grapeVariety, searchTerm)
+          )!
+        );
+      }
+
+      const orderBy = (() => {
+        switch (sort) {
+          case 'price-asc':
+            return asc(products.price);
+          case 'price-desc':
+            return desc(products.price);
+          case 'newest':
+            return desc(products.createdAt);
+          case 'featured':
+          default:
+            return desc(products.isFeatured);
+        }
+      })();
+
+      const whereClause = and(...conditions)!;
+
+      const query = db
+        .select({
+          product: products,
+          categorySlug: categories.slug,
+        })
+        .from(products)
+        .leftJoin(categories, eq(products.categoryId, categories.id))
+        .where(whereClause)
+        .orderBy(orderBy)
+        .offset(offset);
+
+      const results = typeof limit === 'number' ? await query.limit(limit) : await query;
+
+      return results.map(r => mapDbProductToProduct(r.product, r.categorySlug || undefined));
+    } catch (error) {
+      console.error('[productService.getAll]', error);
+      return [];
+    }
   },
 
   /**
