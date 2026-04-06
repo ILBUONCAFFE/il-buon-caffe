@@ -22,10 +22,19 @@ export default function FlipbookViewer({ pdfUrl, catalogName }: FlipbookViewerPr
   const [currentPage, setCurrentPage] = useState(0);
   const [error, setError] = useState('');
   const [pageWidth, setPageWidth] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
+
+  // Pan state ref (single pointer)
   const panRef = useRef({ active: false, mx: 0, my: 0, px: 0, py: 0 });
+
+  // Pinch-to-zoom state ref (two pointers)
+  const pinchRef = useRef<{ active: boolean; dist: number; midX: number; midY: number; baseZoom: number; basePanX: number; basePanY: number }>({
+    active: false, dist: 0, midX: 0, midY: 0, baseZoom: 1, basePanX: 0, basePanY: 0,
+  });
+  const activePointers = useRef<Map<number, { x: number; y: number }>>(new Map());
 
   useEffect(() => {
     if (!bookRef.current) return;
@@ -34,7 +43,8 @@ export default function FlipbookViewer({ pdfUrl, catalogName }: FlipbookViewerPr
 
     async function load() {
       try {
-        const pdfjs = await import('pdfjs-dist');
+        // pdfjs-dist v4 (legacy build) — wide browser support including Safari, Samsung Internet
+        const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
         pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
 
         const doc = await pdfjs.getDocument(pdfUrl).promise;
@@ -45,16 +55,32 @@ export default function FlipbookViewer({ pdfUrl, catalogName }: FlipbookViewerPr
 
         const vw = window.innerWidth;
         const vh = window.innerHeight;
+        const mobile = vw < 768;
+        setIsMobile(mobile);
+
         const firstPage = await doc.getPage(1);
         const baseVp = firstPage.getViewport({ scale: 1 });
         const aspect = (baseVp.width - CROP * 2) / (baseVp.height - CROP * 2);
 
-        const pad = 0.88;
-        let dispH = (vh - 100) * pad;
-        let dispW = dispH * aspect;
-        if (dispW * 2 > vw * pad) {
-          dispW = (vw * pad) / 2;
+        let dispW: number;
+        let dispH: number;
+
+        if (mobile) {
+          // Single page, full width
+          const headerH = 52; // header height
+          const controlsH = 56; // controls height
+          const availH = vh - headerH - controlsH - 8;
+          const availW = vw - 8;
+          dispW = Math.min(availW, availH * aspect);
           dispH = dispW / aspect;
+        } else {
+          const pad = 0.88;
+          dispH = (vh - 100) * pad;
+          dispW = dispH * aspect;
+          if (dispW * 2 > vw * pad) {
+            dispW = (vw * pad) / 2;
+            dispH = dispW / aspect;
+          }
         }
         dispW = Math.floor(dispW);
         dispH = Math.floor(dispH);
@@ -79,7 +105,8 @@ export default function FlipbookViewer({ pdfUrl, catalogName }: FlipbookViewerPr
           const ctx = full.getContext('2d', { alpha: false })!;
           ctx.fillStyle = '#fff';
           ctx.fillRect(0, 0, fw, fh);
-          await page.render({ canvas: full, viewport: renderVp }).promise;
+          // v4 render API uses canvasContext (2D context), not canvas element
+          await page.render({ canvasContext: ctx, viewport: renderVp }).promise;
 
           const cropW = fw - CROP * 2 * dpr;
           const cropH = fh - CROP * 2 * dpr;
@@ -119,13 +146,13 @@ export default function FlipbookViewer({ pdfUrl, catalogName }: FlipbookViewerPr
           height: dispH,
           size: 'fixed',
           drawShadow: true,
-          flippingTime: 600,
-          usePortrait: false,
+          flippingTime: mobile ? 400 : 600,
+          usePortrait: mobile,
           showCover: true,
           maxShadowOpacity: 0.5,
           showPageCorners: true,
           disableFlipByClick: false,
-          swipeDistance: 25,
+          swipeDistance: mobile ? 20 : 25,
           useMouseEvents: true,
           mobileScrollSupport: false,
           autoSize: false,
@@ -150,6 +177,7 @@ export default function FlipbookViewer({ pdfUrl, catalogName }: FlipbookViewerPr
   const goNext = useCallback(() => { if (zoom <= 1) flipRef.current?.flipNext(); }, [zoom]);
   const goPrev = useCallback(() => { if (zoom <= 1) flipRef.current?.flipPrev(); }, [zoom]);
 
+  // Keyboard navigation (desktop)
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
       if (e.key === 'ArrowRight') goNext();
@@ -160,6 +188,7 @@ export default function FlipbookViewer({ pdfUrl, catalogName }: FlipbookViewerPr
     return () => window.removeEventListener('keydown', h);
   }, [goNext, goPrev]);
 
+  // Desktop wheel zoom
   useEffect(() => {
     const handler = (e: WheelEvent) => {
       e.preventDefault();
@@ -174,28 +203,71 @@ export default function FlipbookViewer({ pdfUrl, catalogName }: FlipbookViewerPr
     return () => window.removeEventListener('wheel', handler);
   }, []);
 
-  const onDown = useCallback((e: React.PointerEvent) => {
-    if (zoom <= 1) return;
-    e.preventDefault();
-    setDragging(true);
-    panRef.current = { active: true, mx: e.clientX, my: e.clientY, px: pan.x, py: pan.y };
+  // ── Pointer events: pan (1 pointer) + pinch (2 pointers) ──────────────────
+  const onPointerDown = useCallback((e: React.PointerEvent) => {
+    activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+
+    if (activePointers.current.size === 2) {
+      // Start pinch
+      pinchRef.current.active = true;
+      panRef.current.active = false;
+      setDragging(false);
+      const pts = [...activePointers.current.values()];
+      const dx = pts[1].x - pts[0].x;
+      const dy = pts[1].y - pts[0].y;
+      pinchRef.current.dist = Math.hypot(dx, dy);
+      pinchRef.current.midX = (pts[0].x + pts[1].x) / 2;
+      pinchRef.current.midY = (pts[0].y + pts[1].y) / 2;
+      setZoom((z) => { pinchRef.current.baseZoom = z; return z; });
+      setPan((p) => { pinchRef.current.basePanX = p.x; pinchRef.current.basePanY = p.y; return p; });
+    } else if (activePointers.current.size === 1 && zoom > 1) {
+      // Start pan
+      panRef.current = { active: true, mx: e.clientX, my: e.clientY, px: pan.x, py: pan.y };
+      setDragging(true);
+    }
   }, [zoom, pan]);
 
-  const onMove = useCallback((e: React.PointerEvent) => {
-    if (!panRef.current.active) return;
-    e.preventDefault();
-    setPan({ x: panRef.current.px + e.clientX - panRef.current.mx, y: panRef.current.py + e.clientY - panRef.current.my });
+  const onPointerMove = useCallback((e: React.PointerEvent) => {
+    activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (pinchRef.current.active && activePointers.current.size === 2) {
+      e.preventDefault();
+      const pts = [...activePointers.current.values()];
+      const dx = pts[1].x - pts[0].x;
+      const dy = pts[1].y - pts[0].y;
+      const newDist = Math.hypot(dx, dy);
+      const scale = newDist / pinchRef.current.dist;
+      const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, pinchRef.current.baseZoom * scale));
+      setZoom(newZoom);
+      if (newZoom <= 1) setPan({ x: 0, y: 0 });
+    } else if (panRef.current.active) {
+      e.preventDefault();
+      setPan({
+        x: panRef.current.px + e.clientX - panRef.current.mx,
+        y: panRef.current.py + e.clientY - panRef.current.my,
+      });
+    }
   }, []);
 
-  const onUp = useCallback(() => { panRef.current.active = false; setDragging(false); }, []);
+  const onPointerUp = useCallback((e: React.PointerEvent) => {
+    activePointers.current.delete(e.pointerId);
+    if (activePointers.current.size < 2) {
+      pinchRef.current.active = false;
+    }
+    if (activePointers.current.size === 0) {
+      panRef.current.active = false;
+      setDragging(false);
+    }
+  }, []);
 
   const onDblClick = useCallback(() => {
     setZoom((z) => { if (z > 1) { setPan({ x: 0, y: 0 }); return 1; } return 2.5; });
   }, []);
 
+  // shiftX only applies in desktop two-page mode
   let shiftX = 0;
-  if (ready && numPages > 0 && pageWidth > 0) {
+  if (ready && !isMobile && numPages > 0 && pageWidth > 0) {
     if (currentPage === 0) shiftX = -pageWidth / 2;
     else if (currentPage === numPages - 1 && numPages % 2 === 0) shiftX = pageWidth / 2;
   }
@@ -205,7 +277,7 @@ export default function FlipbookViewer({ pdfUrl, catalogName }: FlipbookViewerPr
       {/* Header */}
       <header className="flipbook-header">
         <div className="flipbook-header-inner">
-          <span className="flipbook-logo">Il Buon Caffè</span>
+          <div className="flipbook-header-spacer" />
           <h1 className="flipbook-title">{catalogName}</h1>
           <div className="flipbook-header-spacer" />
         </div>
@@ -241,18 +313,49 @@ export default function FlipbookViewer({ pdfUrl, catalogName }: FlipbookViewerPr
       {/* Flipbook stage */}
       <div
         className="flipbook-stage"
-        style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, cursor: zoom > 1 ? (dragging ? 'grabbing' : 'grab') : 'default' }}
         onDoubleClick={onDblClick}
-        onPointerDown={onDown}
-        onPointerMove={onMove}
-        onPointerUp={onUp}
-        onPointerLeave={onUp}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerLeave={onPointerUp}
+        onPointerCancel={onPointerUp}
+        style={{ touchAction: 'none' }}
       >
         <div
-          ref={bookRef}
-          className={`flipbook${ready ? ' visible' : ''}`}
-          style={{ transform: ready ? `translateX(${shiftX}px)` : 'none', transition: 'transform 400ms ease, opacity 0.5s ease', opacity: ready ? 1 : 0 }}
-        />
+          style={{
+            transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+            cursor: zoom > 1 ? (dragging ? 'grabbing' : 'grab') : 'default',
+            transition: dragging ? 'none' : 'transform 0.1s ease',
+            willChange: 'transform',
+          }}
+        >
+          <div
+            ref={bookRef}
+            className={`flipbook${ready ? ' visible' : ''}`}
+            style={{
+              transform: ready ? `translateX(${shiftX}px)` : 'none',
+              transition: 'transform 400ms ease, opacity 0.5s ease',
+              opacity: ready ? 1 : 0,
+            }}
+          />
+        </div>
+        {/* Overlay blocks page-flip touch events when zoomed in */}
+        {zoom > 1 && (
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              zIndex: 200,
+              touchAction: 'none',
+              cursor: dragging ? 'grabbing' : 'grab',
+            }}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerLeave={onPointerUp}
+            onPointerCancel={onPointerUp}
+          />
+        )}
       </div>
 
       {/* Controls */}
@@ -260,37 +363,50 @@ export default function FlipbookViewer({ pdfUrl, catalogName }: FlipbookViewerPr
         <div className="flipbook-controls">
           <div className="flipbook-controls-inner">
             <div className="flipbook-controls-group">
-              <button onClick={() => { flipRef.current?.flip(0); }} disabled={zoom > 1} className="flipbook-ctrl-btn" title="Pierwsza strona">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="11 17 6 12 11 7" /><polyline points="18 17 13 12 18 7" /></svg>
-              </button>
-              <button onClick={goPrev} disabled={zoom > 1} className="flipbook-ctrl-btn" title="Poprzednia">
+              {!isMobile && (
+                <button onClick={() => { flipRef.current?.flip(0); }} disabled={zoom > 1} className="flipbook-ctrl-btn" title="Pierwsza strona">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="11 17 6 12 11 7" /><polyline points="18 17 13 12 18 7" /></svg>
+                </button>
+              )}
+              <button onClick={goPrev} disabled={zoom > 1} className="flipbook-ctrl-btn flipbook-ctrl-prev" title="Poprzednia">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6" /></svg>
               </button>
             </div>
+
             <div className="flipbook-page-info">
               <span className="flipbook-page-current">{currentPage + 1}</span>
               <span className="flipbook-page-sep">/</span>
               <span className="flipbook-page-total">{numPages}</span>
             </div>
+
             <div className="flipbook-controls-group">
-              <button onClick={goNext} disabled={zoom > 1} className="flipbook-ctrl-btn" title="Następna">
+              <button onClick={goNext} disabled={zoom > 1} className="flipbook-ctrl-btn flipbook-ctrl-next" title="Następna">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6" /></svg>
               </button>
-              <button onClick={() => { flipRef.current?.flip(numPages - 1); }} disabled={zoom > 1} className="flipbook-ctrl-btn" title="Ostatnia strona">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="13 17 18 12 13 7" /><polyline points="6 17 11 12 6 7" /></svg>
-              </button>
+              {!isMobile && (
+                <button onClick={() => { flipRef.current?.flip(numPages - 1); }} disabled={zoom > 1} className="flipbook-ctrl-btn" title="Ostatnia strona">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="13 17 18 12 13 7" /><polyline points="6 17 11 12 6 7" /></svg>
+                </button>
+              )}
               <div className="flipbook-controls-divider" />
-              <button onClick={() => setZoom((z) => Math.min(MAX_ZOOM, z * 1.3))} className="flipbook-ctrl-btn" title="Powiększ">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /><line x1="11" y1="8" x2="11" y2="14" /><line x1="8" y1="11" x2="14" y2="11" /></svg>
-              </button>
+              {!isMobile && (
+                <button onClick={() => setZoom((z) => Math.min(MAX_ZOOM, z * 1.3))} className="flipbook-ctrl-btn" title="Powiększ">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /><line x1="11" y1="8" x2="11" y2="14" /><line x1="8" y1="11" x2="14" y2="11" /></svg>
+                </button>
+              )}
               <button onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }} disabled={zoom <= 1} className="flipbook-ctrl-btn" title="Reset zoom">
                 {Math.round(zoom * 100)}%
               </button>
-              <button onClick={() => setZoom((z) => Math.max(MIN_ZOOM, z / 1.3))} disabled={zoom <= 1} className="flipbook-ctrl-btn" title="Pomniejsz">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /><line x1="8" y1="11" x2="14" y2="11" /></svg>
-              </button>
+              {!isMobile && (
+                <button onClick={() => setZoom((z) => Math.max(MIN_ZOOM, z / 1.3))} disabled={zoom <= 1} className="flipbook-ctrl-btn" title="Pomniejsz">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /><line x1="8" y1="11" x2="14" y2="11" /></svg>
+                </button>
+              )}
             </div>
           </div>
+          {isMobile && zoom <= 1 && (
+            <div className="flipbook-mobile-hint">Przesuń palcem aby przewrócić stronę • Rozsuń palce aby powiększyć</div>
+          )}
         </div>
       )}
     </div>
