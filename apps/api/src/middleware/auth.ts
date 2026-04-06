@@ -5,6 +5,22 @@ import { createDb } from '@repo/db/client'
 import { users } from '@repo/db/schema'
 import { eq } from 'drizzle-orm'
 
+function formatDbError(err: unknown): string {
+  if (!(err instanceof Error)) return String(err)
+
+  const cause = (err as Error & { cause?: unknown }).cause
+  if (cause && typeof cause === 'object') {
+    const causeObj = cause as { message?: unknown; code?: unknown }
+    const code = typeof causeObj.code === 'string' ? causeObj.code : null
+    const msg = typeof causeObj.message === 'string' ? causeObj.message : null
+    if (code || msg) {
+      return `${err.message} | cause: ${[code ? `code=${code}` : null, msg].filter((x): x is string => !!x).join(' | ')}`
+    }
+  }
+
+  return err.message
+}
+
 // Extend Hono context with user
 declare module 'hono' {
   interface ContextVariableMap {
@@ -109,9 +125,14 @@ export function requireAdminOrProxy() {
           return c.json({ error: 'Nieautoryzowany dostęp' }, 403)
         }
       } catch (err) {
-        // Keep this explicit to avoid bubbling to global 500 and masking auth/DB issues.
-        console.error('[auth] Proxy admin verification failed:', err instanceof Error ? err.message : String(err))
-        return c.json({ error: 'Usługa autoryzacji administratora jest chwilowo niedostępna' }, 503)
+        // Read-only routes may continue when API DB is transiently unavailable,
+        // because the Next.js proxy already verified admin_session server-side.
+        if (c.req.method === 'GET' || c.req.method === 'HEAD') {
+          console.warn('[auth] Proxy admin verification DB unavailable (read-only fallback):', formatDbError(err))
+        } else {
+          console.error('[auth] Proxy admin verification failed:', formatDbError(err))
+          return c.json({ error: 'Usługa autoryzacji administratora jest chwilowo niedostępna' }, 503)
+        }
       }
 
       c.set('user', {

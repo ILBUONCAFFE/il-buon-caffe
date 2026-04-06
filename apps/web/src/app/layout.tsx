@@ -3,6 +3,7 @@ import { Playfair_Display, Lato, Pinyon_Script } from "next/font/google";
 import "./globals.css";
 import { Shell } from "@/components/layout/Shell";
 import SmoothScroll from "@/components/SmoothScroll";
+import ChunkLoadRecovery from "@/components/ChunkLoadRecovery";
 
 const playfair = Playfair_Display({ subsets: ["latin"], variable: '--font-playfair', display: 'swap' });
 const lato = Lato({ subsets: ["latin"], weight: ['100', '300', '400', '700', '900'], variable: '--font-lato', display: 'swap' });
@@ -49,6 +50,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="pl" suppressHydrationWarning>
       <body className={`${lato.variable} ${playfair.variable} ${pinyon.variable} font-sans antialiased`} suppressHydrationWarning>
+        <ChunkLoadRecovery />
         <SmoothScroll>
           <Shell>
             {children}
