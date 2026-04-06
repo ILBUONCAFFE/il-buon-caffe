@@ -27,8 +27,10 @@ export function securityHeaders() {
     c.header('X-XSS-Protection', '1; mode=block')
     
     // Cross-Origin isolation
+    // CORP must be 'cross-origin' for a CORS-enabled API — 'same-origin' would block
+    // browser fetch() calls from ilbuoncaffe.pl to api.ilbuoncaffe.pl even with CORS headers.
     c.header('Cross-Origin-Opener-Policy', 'same-origin')
-    c.header('Cross-Origin-Resource-Policy', 'same-origin')
+    c.header('Cross-Origin-Resource-Policy', 'cross-origin')
     
     // Content Security Policy — API returns JSON only, so 'none' for everything is correct.
     // The web app (middleware.ts) uses a richer CSP with per-request nonces for scripts/styles.
