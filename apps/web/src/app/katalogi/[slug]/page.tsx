@@ -13,6 +13,8 @@ interface CatalogData {
 async function getCatalog(slug: string): Promise<CatalogData | null> {
   const path = `/api/catalogs/${slug}`;
 
+  const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "https://api.ilbuoncaffe.pl";
+
   // Primary: service binding (Worker → Worker, no HTTP)
   try {
     const { env } = await getCloudflareContext({ async: true });
@@ -28,7 +30,7 @@ async function getCatalog(slug: string): Promise<CatalogData | null> {
 
   // Fallback: direct HTTP
   try {
-    const res = await fetch(`https://api.ilbuoncaffe.pl${path}`, { cache: "no-store" });
+    const res = await fetch(`${apiBase}${path}`, { cache: "no-store" });
     if (!res.ok) return null;
     const json = await res.json();
     return json.data || null;

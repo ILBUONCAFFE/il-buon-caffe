@@ -45,11 +45,10 @@ app.get('/:slug', async (c) => {
     return c.json({ error: 'Katalog nie znaleziony' }, 404)
   }
 
-  const R2_PUBLIC_URL = 'https://pub-dfc991180c4c4debabc0288cb12ce696.r2.dev'
   return c.json({
     data: {
       ...catalog,
-      pdfUrl: `${R2_PUBLIC_URL}/${catalog.r2Key}`,
+      pdfUrl: `/api/catalogs/${slug}/pdf`,
     }
   })
 })
