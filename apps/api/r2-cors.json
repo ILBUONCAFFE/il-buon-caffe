@@ -1,0 +1,13 @@
+{
+  "rules": [
+    {
+      "allowed": {
+        "origins": ["https://ilbuoncaffe.pl", "https://www.ilbuoncaffe.pl", "http://localhost:3000"],
+        "methods": ["GET", "HEAD"],
+        "headers": ["*"]
+      },
+      "exposeHeaders": [],
+      "maxAgeSeconds": 86400
+    }
+  ]
+}
