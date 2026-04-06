@@ -33,6 +33,7 @@ app.get('/:slug', async (c) => {
       id: catalogs.id,
       name: catalogs.name,
       slug: catalogs.slug,
+      r2Key: catalogs.r2Key,
       pageCount: catalogs.pageCount,
       createdAt: catalogs.createdAt,
     })
@@ -44,7 +45,13 @@ app.get('/:slug', async (c) => {
     return c.json({ error: 'Katalog nie znaleziony' }, 404)
   }
 
-  return c.json({ data: catalog })
+  const catalogsPublicUrl = 'https://pub-dfc991180c4c4debabc0288cb12ce696.r2.dev'
+  return c.json({
+    data: {
+      ...catalog,
+      pdfUrl: `${catalogsPublicUrl}/${catalog.r2Key}`,
+    }
+  })
 })
 
 // ─────────────────────────────────────────────────────────
