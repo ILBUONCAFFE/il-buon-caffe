@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import FlipbookViewer from "@/components/Flipbook/FlipbookViewer";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 
 interface CatalogData {
   id: number;
@@ -9,16 +10,25 @@ interface CatalogData {
   createdAt: string;
 }
 
+async function getApiUrl(): Promise<string> {
+  if (process.env.INTERNAL_API_URL) return process.env.INTERNAL_API_URL;
+  try {
+    const { env } = await getCloudflareContext({ async: true });
+    if ((env as any).INTERNAL_API_URL) return (env as any).INTERNAL_API_URL;
+  } catch {}
+  return "https://api.ilbuoncaffe.pl";
+}
+
 async function getCatalog(slug: string): Promise<CatalogData | null> {
-  const apiUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || "http://localhost:8787";
+  const apiUrl = await getApiUrl();
 
   try {
     const res = await fetch(`${apiUrl}/api/catalogs/${slug}`, {
       next: { revalidate: 3600 },
     });
-    
+
     if (!res.ok) return null;
-    
+
     const json = await res.json();
     return json.data || null;
   } catch {
@@ -44,7 +54,7 @@ export default async function CatalogPage({ params }: { params: Promise<{ slug: 
     notFound();
   }
 
-  const apiUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || "http://localhost:8787";
+  const apiUrl = await getApiUrl();
   const pdfUrl = `${apiUrl}/api/catalogs/${slug}/pdf`;
 
   return (
