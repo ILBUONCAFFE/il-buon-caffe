@@ -9,15 +9,9 @@ const lato = Lato({ subsets: ["latin"], weight: ['100', '300', '400', '700', '90
 const pinyon = Pinyon_Script({ weight: ['400'], subsets: ["latin"], variable: '--font-pinyon', display: 'swap' });
 
 export const metadata: Metadata = {
-  title: {
-    template: "%s | Il Buon Caffe",
-    default: "Il Buon Caffe | Luksusowe Delikatesy Online",
-  },
+  title: "Il Buon Caffe | Luksusowe Delikatesy Online",
   description: "Luksusowe delikatesy online: wyselekcjonowana kawa, wina z najlepszych winnic i tradycyjne włoskie słodycze. Poczuj smak prawdziwego dolce vita.",
   metadataBase: new URL("https://ilbuoncaffe.pl"),
-  alternates: {
-    canonical: "/",
-  },
   robots: {
     index: true,
     follow: true,

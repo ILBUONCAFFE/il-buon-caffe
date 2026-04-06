@@ -2,6 +2,19 @@ import type { Metadata } from "next";
 import { ShopClient } from "@/components/Shop/ShopClient";
 import { getFilteredProducts } from "@/actions/products";
 
+const categorySlugMap: Record<string, string> = {
+  coffee: "kawa",
+  alcohol: "wino",
+  sweets: "slodycze",
+  pantry: "spizarnia",
+  kawa: "kawa",
+  wino: "wino",
+  slodycze: "slodycze",
+  spizarnia: "spizarnia",
+};
+
+const normalizeCategorySlug = (category: string) => categorySlugMap[category] || category;
+
 const categoryNames: Record<string, string> = {
   coffee: "Kawa",
   alcohol: "Wino i Alkohole",
@@ -26,8 +39,9 @@ const categoryDescriptions: Record<string, string> = {
 
 export async function generateMetadata({ params }: { params: Promise<{ category: string }> }): Promise<Metadata> {
   const { category } = await params;
-  const title = categoryNames[category] || "Kategoria";
-  const description = categoryDescriptions[category] || `Odkryj naszą ofertę w kategorii ${title}. Najwyższa jakość, prosto z Włoch i Hiszpanii.`;
+  const normalizedCategory = normalizeCategorySlug(category);
+  const title = categoryNames[normalizedCategory] || "Kategoria";
+  const description = categoryDescriptions[normalizedCategory] || `Odkryj naszą ofertę w kategorii ${title}. Najwyższa jakość, prosto z Włoch i Hiszpanii.`;
   return {
     title: `${title} | Sklep Il Buon Caffe`,
     description,
@@ -36,9 +50,15 @@ export async function generateMetadata({ params }: { params: Promise<{ category:
       description,
       type: "website",
       locale: "pl_PL",
+      url: `/sklep/${normalizedCategory}`,
+    },
+    twitter: {
+      card: "summary",
+      title: `${title} | Sklep Il Buon Caffe`,
+      description,
     },
     alternates: {
-      canonical: `/sklep/${category}`,
+      canonical: `/sklep/${normalizedCategory}`,
     },
   };
 }
@@ -48,15 +68,16 @@ export const revalidate = 300;
 
 export async function generateStaticParams() {
   return [
-    { category: 'coffee' },
-    { category: 'alcohol' },
-    { category: 'sweets' },
-    { category: 'pantry' },
+    { category: 'kawa' },
+    { category: 'wino' },
+    { category: 'slodycze' },
+    { category: 'spizarnia' },
   ];
 }
 
 export default async function CategoryPage({ params }: { params: Promise<{ category: string }> }) {
   const { category } = await params;
-  const initialData = await getFilteredProducts({ category });
+  const normalizedCategory = normalizeCategorySlug(category);
+  const initialData = await getFilteredProducts({ category: normalizedCategory });
   return <ShopClient initialData={initialData} />;
 }
