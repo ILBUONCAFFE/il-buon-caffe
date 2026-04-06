@@ -9,10 +9,29 @@ const playfair = Playfair_Display({ subsets: ["latin"], variable: '--font-playfa
 const lato = Lato({ subsets: ["latin"], weight: ['100', '300', '400', '700', '900'], variable: '--font-lato', display: 'swap' });
 const pinyon = Pinyon_Script({ weight: ['400'], subsets: ["latin"], variable: '--font-pinyon', display: 'swap' });
 
+const organizationJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "Il Buon Caffe",
+  url: "https://ilbuoncaffe.pl",
+  logo: {
+    "@type": "ImageObject",
+    url: "https://ilbuoncaffe.pl/assets/logo.png",
+  },
+};
+
 export const metadata: Metadata = {
   title: "Il Buon Caffe | Luksusowe Delikatesy Online",
   description: "Luksusowe delikatesy online: wyselekcjonowana kawa, wina z najlepszych winnic i tradycyjne włoskie słodycze. Poczuj smak prawdziwego dolce vita.",
   metadataBase: new URL("https://ilbuoncaffe.pl"),
+  alternates: {
+    canonical: "/",
+  },
+  icons: {
+    icon: [{ url: "/assets/logo.png" }],
+    shortcut: ["/assets/logo.png"],
+    apple: [{ url: "/assets/logo.png" }],
+  },
   robots: {
     index: true,
     follow: true,
@@ -28,13 +47,23 @@ export const metadata: Metadata = {
     type: "website",
     locale: "pl_PL",
     siteName: "Il Buon Caffe",
+    url: "https://ilbuoncaffe.pl",
     title: "Il Buon Caffe | Luksusowe Delikatesy Online",
     description: "Luksusowe delikatesy online: wyselekcjonowana kawa, wina i włoskie słodycze.",
+    images: [
+      {
+        url: "/assets/logo.png",
+        width: 512,
+        height: 512,
+        alt: "Logo Il Buon Caffe",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Il Buon Caffe | Luksusowe Delikatesy Online",
     description: "Luksusowe delikatesy online: wyselekcjonowana kawa, wina i włoskie słodycze.",
+    images: ["/assets/logo.png"],
   },
   keywords: [
     "kawa ziarnista", "wino włoskie", "wino hiszpańskie", "delikatesy",
@@ -50,6 +79,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="pl" suppressHydrationWarning>
       <body className={`${lato.variable} ${playfair.variable} ${pinyon.variable} font-sans antialiased`} suppressHydrationWarning>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        />
         <ChunkLoadRecovery />
         <SmoothScroll>
           <Shell>

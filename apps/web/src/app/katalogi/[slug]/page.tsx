@@ -55,11 +55,11 @@ export default async function CatalogPage({ params }: { params: Promise<{ slug: 
 
   if (!catalog) notFound();
 
-  // pdfUrl from API may be relative (/api/catalogs/slug/pdf) — resolve to absolute
-  // so the client-side pdfjs fetch works regardless of rewrite deployment state
+  // pdfjs fetches PDF client-side — must go directly to API worker (not through
+  // Next.js rewrite) because OpenNext can't proxy binary R2 streams reliably
   const pdfUrl = catalog.pdfUrl.startsWith('http')
     ? catalog.pdfUrl
-    : `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://ilbuoncaffe.pl'}${catalog.pdfUrl}`;
+    : `https://api.ilbuoncaffe.pl${catalog.pdfUrl}`;
 
   return (
     <div className="catalog-page">
