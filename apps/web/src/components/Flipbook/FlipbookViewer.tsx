@@ -34,8 +34,7 @@ export default function FlipbookViewer({ pdfUrl, catalogName }: FlipbookViewerPr
 
     async function load() {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const pdfjs = (await import('pdfjs-dist/build/pdf.mjs')) as any;
+        const pdfjs = await import('pdfjs-dist');
         pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
 
         const doc = await pdfjs.getDocument(pdfUrl).promise;
