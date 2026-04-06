@@ -24,9 +24,10 @@ import { requireAdmin } from '../middleware/auth'
  */
 
 // Dozwolone foldery i typy plików
-const ALLOWED_FOLDERS = ['dishes', 'products', 'banners'] as const
-const ALLOWED_TYPES = ['image/webp', 'image/jpeg', 'image/png', 'image/avif']
+const ALLOWED_FOLDERS = ['dishes', 'products', 'banners', 'catalogs'] as const
+const ALLOWED_TYPES = ['image/webp', 'image/jpeg', 'image/png', 'image/avif', 'application/pdf']
 const MAX_SIZE_MB = 4
+const MAX_PDF_SIZE_MB = 20
 
 type Folder = typeof ALLOWED_FOLDERS[number]
 
@@ -55,8 +56,9 @@ app.post('/image', requireAdmin(), async (c) => {
   }
 
   const sizeMB = file.size / (1024 * 1024)
-  if (sizeMB > MAX_SIZE_MB) {
-    return c.json({ error: `Plik za duży. Maksymalna wielkość: ${MAX_SIZE_MB}MB` }, 413)
+  const maxSize = file.type === 'application/pdf' ? MAX_PDF_SIZE_MB : MAX_SIZE_MB
+  if (sizeMB > maxSize) {
+    return c.json({ error: `Plik za duży. Maksymalna wielkość: ${maxSize}MB` }, 413)
   }
 
   // Klucz: folder/timestamp-nazwa.ext

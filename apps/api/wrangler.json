@@ -10,6 +10,11 @@
 			"binding": "IMAGES_BUCKET",
 			"bucket_name": "il-buon-caffe-images",
 			"preview_bucket_name": "il-buon-caffe-images-dev"
+		},
+		{
+			"binding": "CATALOGS_BUCKET",
+			"bucket_name": "il-buon-caffe-catalogs",
+			"preview_bucket_name": "il-buon-caffe-catalogs-dev"
 		}
 	],
 	"kv_namespaces": [
@@ -35,10 +40,10 @@
 	"vars": {
 		"NODE_ENV": "production",
 		"ALLEGRO_ENVIRONMENT": "production",
-		"ALLEGRO_REDIRECT_URI": "https://il-buon-caffe-api.ilbuoncaffe19.workers.dev/api/admin/allegro/callback",
-		"ALLEGRO_ADMIN_REDIRECT_URL": "https://il-buon-caffe-web.ilbuoncaffe19.workers.dev/admin/settings",
-		"PUBLIC_URL": "https://il-buon-caffe-api.ilbuoncaffe19.workers.dev",
-		"FRONTEND_URL": "https://il-buon-caffe-web.ilbuoncaffe19.workers.dev",
+		"ALLEGRO_REDIRECT_URI": "https://api.ilbuoncaffe.pl/api/admin/allegro/callback",
+		"ALLEGRO_ADMIN_REDIRECT_URL": "https://ilbuoncaffe.pl/admin/settings",
+		"PUBLIC_URL": "https://api.ilbuoncaffe.pl",
+		"FRONTEND_URL": "https://ilbuoncaffe.pl",
 		"P24_SANDBOX": "false"
 	}
 }

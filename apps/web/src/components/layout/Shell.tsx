@@ -13,6 +13,7 @@ export const Shell = ({ children }: { children: React.ReactNode }) => {
 
   const pathname = usePathname();
   const isAdminPath = pathname?.startsWith('/admin');
+  const isCatalogPath = pathname?.startsWith('/katalogi');
 
   return (
     <NotificationProvider>
@@ -25,13 +26,13 @@ export const Shell = ({ children }: { children: React.ReactNode }) => {
           >
             Przejdź do treści
           </a>
-          {!isAdminPath && <Navbar />}
+          {!isAdminPath && !isCatalogPath && <Navbar />}
           <main id="main-content" className="flex-grow pt-0 min-h-screen">
             {children}
           </main>
-          {!isAdminPath && <Footer />}
-          <CartSidebar />
-          <AgeVerificationModal />
+          {!isAdminPath && !isCatalogPath && <Footer />}
+          {!isCatalogPath && <CartSidebar />}
+          {!isCatalogPath && <AgeVerificationModal />}
         </div>
       </CartProvider>
     </NotificationProvider>

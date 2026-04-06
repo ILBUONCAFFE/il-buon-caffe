@@ -565,6 +565,24 @@ export const stockChanges = pgTable('stock_changes', {
 }));
 
 // ============================================
+// TABLES: CATALOGS (PDF Flipbook)
+// ============================================
+
+export const catalogs = pgTable('catalogs', {
+  id: serial('id').primaryKey(),
+  name: varchar('name', { length: 255 }).notNull(),
+  slug: uuid('slug').defaultRandom().notNull().unique(),
+  r2Key: varchar('r2_key', { length: 500 }).notNull(),
+  pageCount: integer('page_count'),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  slugIdx: uniqueIndex('catalogs_slug_idx').on(table.slug),
+  activeIdx: index('catalogs_active_idx').on(table.isActive),
+}));
+
+// ============================================
 // RELATIONS
 // ============================================
 
@@ -694,3 +712,6 @@ export type NewDbOrder = typeof orders.$inferInsert;
 
 export type DbOrderItem = typeof orderItems.$inferSelect;
 export type NewDbOrderItem = typeof orderItems.$inferInsert;
+
+export type DbCatalog = typeof catalogs.$inferSelect;
+export type NewDbCatalog = typeof catalogs.$inferInsert;

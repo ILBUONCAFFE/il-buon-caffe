@@ -10,6 +10,7 @@ import { userRouter } from './routes/user'
 import { legalRouter } from './routes/legal'
 import { paymentsRouter } from './routes/payments'
 import { webhooksRouter } from './routes/webhooks'
+import { catalogsRouter } from './routes/catalogs'
 import { adminRouter } from './routes/admin/index'
 import { createDbWithPool } from '@repo/db/client'
 import { allegroCredentials, allegroSyncLog, auditLog } from '@repo/db/schema'
@@ -33,6 +34,7 @@ export interface Env {
   NODE_ENV?: string
   AUTH_RATE_LIMIT?: KVNamespace
   IMAGES_BUCKET: R2Bucket
+  CATALOGS_BUCKET: R2Bucket
   INTERNAL_API_SECRET?: string
 
   // Public URLs (for building return/webhook URLs)
@@ -130,6 +132,9 @@ app.route('/api/payments', paymentsRouter)
 
 // ── Webhooks (no auth — signature-verified internally) ────────────────────
 app.route('/api/webhooks', webhooksRouter)
+
+// ── Catalogs (public — secret UUID slug) ──────────────────────────────────
+app.route('/api/catalogs', catalogsRouter)
 
 // ── Admin API ─────────────────────────────────────────────────────────────
 app.route('/admin',             adminRouter)
