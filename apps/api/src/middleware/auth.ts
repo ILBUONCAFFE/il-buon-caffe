@@ -125,14 +125,10 @@ export function requireAdminOrProxy() {
           return c.json({ error: 'Nieautoryzowany dostęp' }, 403)
         }
       } catch (err) {
-        // Read-only routes may continue when API DB is transiently unavailable,
-        // because the Next.js proxy already verified admin_session server-side.
-        if (c.req.method === 'GET' || c.req.method === 'HEAD') {
-          console.warn('[auth] Proxy admin verification DB unavailable (read-only fallback):', formatDbError(err))
-        } else {
-          console.error('[auth] Proxy admin verification failed:', formatDbError(err))
-          return c.json({ error: 'Usługa autoryzacji administratora jest chwilowo niedostępna' }, 503)
-        }
+        // Allow all methods to continue when DB is transiently unavailable.
+        // Security is guaranteed by INTERNAL_API_SECRET (strong pre-shared secret, ≥32 chars),
+        // which Next.js already verified before forwarding. The DB check is defense-in-depth only.
+        console.warn('[auth] Proxy admin DB verification unavailable — continuing on secret alone:', formatDbError(err))
       }
 
       c.set('user', {

@@ -15,7 +15,7 @@ import { adminRouter } from './routes/admin/index'
 import { createDbWithPool } from '@repo/db/client'
 import { allegroCredentials, allegroSyncLog, auditLog } from '@repo/db/schema'
 import { eq, desc, lt, sql } from 'drizzle-orm'
-import { refreshAllegroToken, KV_KEYS, type AllegroEnvironment } from './lib/allegro'
+import { refreshAllegroToken, getAllegroOAuthConfig, KV_KEYS, type AllegroEnvironment } from './lib/allegro'
 import { syncAllegroOrders } from './lib/allegro-orders'
 import { runTrackingStatusSync } from './lib/allegro-orders/tracking-refresh'
 import { preWarmAllegroQualityCache } from './routes/allegro'
@@ -51,6 +51,12 @@ export interface Env {
   ALLEGRO_CLIENT_ID: string
   ALLEGRO_CLIENT_SECRET: string
   ALLEGRO_REDIRECT_URI: string
+  ALLEGRO_CLIENT_ID_SANDBOX?: string
+  ALLEGRO_CLIENT_SECRET_SANDBOX?: string
+  ALLEGRO_REDIRECT_URI_SANDBOX?: string
+  ALLEGRO_CLIENT_ID_PRODUCTION?: string
+  ALLEGRO_CLIENT_SECRET_PRODUCTION?: string
+  ALLEGRO_REDIRECT_URI_PRODUCTION?: string
   ALLEGRO_ADMIN_REDIRECT_URL: string
   ALLEGRO_ENVIRONMENT: 'sandbox' | 'production'
   ALLEGRO_TOKEN_ENCRYPTION_KEY?: string   // 32-byte hex — AES-256-GCM
@@ -206,13 +212,14 @@ async function autoRefreshAllegroToken(env: Env): Promise<void> {
     const encKey = env.ALLEGRO_TOKEN_ENCRYPTION_KEY
     const refreshToken = encKey ? await decryptText(cred.refreshToken, encKey) : cred.refreshToken
     const environment  = cred.environment as AllegroEnvironment
+    const oauthConfig = getAllegroOAuthConfig(env, environment)
 
     console.log(`[Allegro Cron] Odświeżam token (środowisko: ${environment}, wygasa: ${cred.expiresAt.toISOString()})`)
 
     const tokens = await refreshAllegroToken({
       refreshToken,
-      clientId:     env.ALLEGRO_CLIENT_ID,
-      clientSecret: env.ALLEGRO_CLIENT_SECRET,
+      clientId:     oauthConfig.clientId,
+      clientSecret: oauthConfig.clientSecret,
       environment,
     })
 

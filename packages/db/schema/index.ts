@@ -571,7 +571,7 @@ export const stockChanges = pgTable('stock_changes', {
 export const catalogs = pgTable('catalogs', {
   id: serial('id').primaryKey(),
   name: varchar('name', { length: 255 }).notNull(),
-  slug: uuid('slug').defaultRandom().notNull().unique(),
+  slug: varchar('slug', { length: 300 }).notNull().unique(),
   r2Key: varchar('r2_key', { length: 500 }).notNull(),
   pageCount: integer('page_count'),
   isActive: boolean('is_active').notNull().default(true),

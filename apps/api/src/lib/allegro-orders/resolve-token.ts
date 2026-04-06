@@ -8,7 +8,7 @@
 import { createDb } from '@repo/db/client'
 import { allegroCredentials } from '@repo/db/schema'
 import { eq, desc } from 'drizzle-orm'
-import { KV_KEYS, refreshAllegroToken, AllegroInvalidGrantError, type AllegroEnvironment } from '../allegro'
+import { KV_KEYS, getAllegroOAuthConfig, refreshAllegroToken, AllegroInvalidGrantError, type AllegroEnvironment } from '../allegro'
 import { decryptText, encryptText } from '../crypto'
 import type { Env } from '../../index'
 
@@ -73,10 +73,11 @@ export async function resolveAccessToken(
       console.error('[AllegroOrders] Błąd odczytu refresh tokenu — token może być nieszyfrowany. Wymagana ponowna autoryzacja Allegro OAuth.', e instanceof Error ? e.message : e)
       return null
     }
+    const oauthConfig = getAllegroOAuthConfig(env, allegroEnvCred)
     const tokens = await refreshAllegroToken({
       refreshToken: rawRefresh,
-      clientId:     env.ALLEGRO_CLIENT_ID,
-      clientSecret: env.ALLEGRO_CLIENT_SECRET,
+      clientId:     oauthConfig.clientId,
+      clientSecret: oauthConfig.clientSecret,
       environment:  allegroEnvCred,
     })
     accessToken = tokens.access_token

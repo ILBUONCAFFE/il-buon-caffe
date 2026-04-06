@@ -82,6 +82,18 @@ app.get('/:slug/pdf', async (c) => {
 // POST /api/catalogs — utwórz nowy katalog (admin)
 // Body JSON: { name, r2Key, pageCount? }
 // ─────────────────────────────────────────────────────────
+function generateCatalogSlug(name: string): string {
+  const base = name
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // strip accents
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 60)
+  const token = Array.from(crypto.getRandomValues(new Uint8Array(4)))
+    .map(b => b.toString(16).padStart(2, '0')).join('')
+  return `${base}-${token}`
+}
+
 app.post('/', requireAdmin(), async (c) => {
   const body = await c.req.json<{ name: string; r2Key: string; pageCount?: number }>()
 
@@ -90,9 +102,11 @@ app.post('/', requireAdmin(), async (c) => {
   }
 
   const db = c.get('db')
+  const slug = generateCatalogSlug(body.name)
 
   const [catalog] = await db.insert(catalogs).values({
     name: body.name,
+    slug,
     r2Key: body.r2Key,
     pageCount: body.pageCount ?? null,
   }).returning()

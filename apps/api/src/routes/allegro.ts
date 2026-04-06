@@ -22,6 +22,7 @@ import {
   buildAuthorizationUrl,
   generateSignedState,
   verifySignedState,
+  getAllegroOAuthConfig,
   exchangeCodeForTokens,
   refreshAllegroToken,
   AllegroInvalidGrantError,
@@ -42,6 +43,12 @@ type AllegroEnv = Env & {
   ALLEGRO_CLIENT_ID: string
   ALLEGRO_CLIENT_SECRET: string
   ALLEGRO_REDIRECT_URI: string
+  ALLEGRO_CLIENT_ID_SANDBOX?: string
+  ALLEGRO_CLIENT_SECRET_SANDBOX?: string
+  ALLEGRO_REDIRECT_URI_SANDBOX?: string
+  ALLEGRO_CLIENT_ID_PRODUCTION?: string
+  ALLEGRO_CLIENT_SECRET_PRODUCTION?: string
+  ALLEGRO_REDIRECT_URI_PRODUCTION?: string
   ALLEGRO_ADMIN_REDIRECT_URL: string
   ALLEGRO_TOKEN_ENCRYPTION_KEY?: string
   ALLEGRO_KV: KVNamespace
@@ -220,31 +227,27 @@ allegroRouter.get('/connect/url', requireAdminOrProxy(), async (c) => {
   const environment = (c.req.query('environment') ?? env.ALLEGRO_ENVIRONMENT ?? 'sandbox') as AllegroEnvironment
 
   try {
-    // Generate CSRF state. Prefer one-time KV state; fallback to HMAC-signed
-    // stateless state when KV is temporarily unavailable.
-    const nonce = Array.from(crypto.getRandomValues(new Uint8Array(16)))
-      .map(b => b.toString(16).padStart(2, '0')).join('')
+    const oauthConfig = getAllegroOAuthConfig(env, environment)
 
-    let state = nonce
+    // Always use HMAC-signed state — self-contained 10-min TTL, no KV dependency.
+    // Additionally store in KV for one-time-use guarantee when KV is available.
+    const state = await generateSignedState(environment, env.JWT_ACCESS_SECRET)
     const kv = env.ALLEGRO_KV
     if (kv) {
       try {
         await kv.put(
-          `${KV_KEYS.STATE_PREFIX}${nonce}`,
+          `${KV_KEYS.STATE_PREFIX}${state}`,
           JSON.stringify({ environment, createdAt: Date.now() }),
           { expirationTtl: OAUTH_STATE_TTL_SECONDS },
         )
       } catch (err) {
-        console.warn('[Allegro] connect/url KV state write failed — using signed state fallback:', err instanceof Error ? err.message : String(err))
-        state = await generateSignedState(environment, env.JWT_ACCESS_SECRET)
+        console.warn('[Allegro] connect/url KV state write failed — signed state is sufficient:', err instanceof Error ? err.message : String(err))
       }
-    } else {
-      state = await generateSignedState(environment, env.JWT_ACCESS_SECRET)
     }
 
     const url = buildAuthorizationUrl({
-      clientId:    env.ALLEGRO_CLIENT_ID,
-      redirectUri: env.ALLEGRO_REDIRECT_URI,
+      clientId:    oauthConfig.clientId,
+      redirectUri: oauthConfig.redirectUri,
       environment,
       state,
     })
@@ -334,11 +337,13 @@ allegroRouter.get('/callback', async (c) => {
   }
 
   try {
+    const oauthConfig = getAllegroOAuthConfig(env, environment)
+
     const tokens = await exchangeCodeForTokens({
       code,
-      clientId:     env.ALLEGRO_CLIENT_ID,
-      clientSecret: env.ALLEGRO_CLIENT_SECRET,
-      redirectUri:  env.ALLEGRO_REDIRECT_URI,
+      clientId:     oauthConfig.clientId,
+      clientSecret: oauthConfig.clientSecret,
+      redirectUri:  oauthConfig.redirectUri,
       environment,
     })
 
@@ -426,40 +431,68 @@ allegroRouter.post('/disconnect', requireAdminOrProxy(), async (c) => {
 
 // ── POST /refresh ─────────────────────────────────────────────────────────────
 allegroRouter.post('/refresh', requireAdminOrProxy(), async (c) => {
-  const env = c.env as AllegroEnv
-  const db  = createDb(env.DATABASE_URL)
+  const env    = c.env as AllegroEnv
+  const kv     = env.ALLEGRO_KV
+  const encKey = env.ALLEGRO_TOKEN_ENCRYPTION_KEY
+  const db     = createDb(env.DATABASE_URL)
 
+  let refreshToken: string | null = null
+  let environment: AllegroEnvironment = 'sandbox'
+
+  // ── KV-first: refresh token has no TTL so it's always present if connection exists ──
   try {
-    // Get active credentials from DB
-    const [cred] = await db
-      .select()
-      .from(allegroCredentials)
-      .where(eq(allegroCredentials.isActive, true))
-      .orderBy(desc(allegroCredentials.updatedAt))
-      .limit(1)
+    const rawKvRefresh = await kv.get(KV_KEYS.REFRESH_TOKEN)
+    if (rawKvRefresh) {
+      refreshToken = await decrypt(rawKvRefresh, encKey)
+      environment  = ((await kv.get(KV_KEYS.ENVIRONMENT)) ?? 'sandbox') as AllegroEnvironment
+    }
+  } catch {
+    // KV decrypt failed — fall through to DB
+    refreshToken = null
+  }
+
+  // ── DB fallback ──────────────────────────────────────────────────────────────
+  if (!refreshToken) {
+    let cred: typeof allegroCredentials.$inferSelect | undefined
+    try {
+      const [row] = await db
+        .select()
+        .from(allegroCredentials)
+        .where(eq(allegroCredentials.isActive, true))
+        .orderBy(desc(allegroCredentials.updatedAt))
+        .limit(1)
+      cred = row
+    } catch (err) {
+      console.warn('[Allegro] refresh: DB query failed:', err instanceof Error ? err.message : String(err))
+    }
 
     if (!cred) {
       return c.json({ success: false, error: 'Brak aktywnych danych uwierzytelniania Allegro' }, 404)
     }
 
-    const encKey = env.ALLEGRO_TOKEN_ENCRYPTION_KEY
-    let refreshToken: string
     try {
       refreshToken = await decrypt(cred.refreshToken, encKey)
     } catch (err) {
       if (err instanceof Error && err.message === 'ALLEGRO_TOKEN_DECRYPT_FAILED') {
-        // Stored token is plaintext (pre-encryption). Deactivate it and force re-auth.
-        await db.update(allegroCredentials).set({ isActive: false }).where(eq(allegroCredentials.isActive, true))
+        await db.update(allegroCredentials).set({ isActive: false }).where(eq(allegroCredentials.isActive, true)).catch(() => {})
         return c.json({ success: false, error: { code: 'REAUTH_REQUIRED', message: 'Tokeny Allegro wymagają ponownego uwierzytelnienia — poprzednie zostały zapisane bez szyfrowania.' } }, 401)
       }
       throw err
     }
-    const environment  = cred.environment as AllegroEnvironment
+    environment = cred.environment as AllegroEnvironment
+  }
 
+  if (!refreshToken) {
+    return c.json({ success: false, error: 'Brak aktywnych danych uwierzytelniania Allegro' }, 404)
+  }
+
+  // ── Call Allegro to exchange refresh token for new tokens ────────────────────
+  try {
+    const oauthConfig = getAllegroOAuthConfig(env, environment)
     const tokens = await refreshAllegroToken({
       refreshToken,
-      clientId:     env.ALLEGRO_CLIENT_ID,
-      clientSecret: env.ALLEGRO_CLIENT_SECRET,
+      clientId:     oauthConfig.clientId,
+      clientSecret: oauthConfig.clientSecret,
       environment,
     })
 
@@ -474,7 +507,7 @@ allegroRouter.post('/refresh', requireAdminOrProxy(), async (c) => {
         environment,
         encKey,
       }),
-      saveTokensToKV(env.ALLEGRO_KV, {
+      saveTokensToKV(kv, {
         accessToken:  tokens.access_token,
         refreshToken: tokens.refresh_token,
         expiresAt,
@@ -483,7 +516,7 @@ allegroRouter.post('/refresh', requireAdminOrProxy(), async (c) => {
       }),
     ])
 
-    await env.ALLEGRO_KV.delete(KV_KEYS.STATUS)
+    await kv.delete(KV_KEYS.STATUS)
 
     return c.json({
       success: true,
@@ -496,14 +529,12 @@ allegroRouter.post('/refresh', requireAdminOrProxy(), async (c) => {
     // Refresh token invalidated by Allegro — clear stale credentials
     if (err instanceof AllegroInvalidGrantError) {
       console.warn('[Allegro] Refresh token wygasł/unieważniony — czyszczę dane uwierzytelniania')
-      const env = c.env as AllegroEnv
-      const db2 = createDb(env.DATABASE_URL)
       await Promise.allSettled([
-        db2.update(allegroCredentials).set({ isActive: false, updatedAt: new Date() }).where(eq(allegroCredentials.isActive, true)),
-        env.ALLEGRO_KV.delete(KV_KEYS.ACCESS_TOKEN),
-        env.ALLEGRO_KV.delete(KV_KEYS.REFRESH_TOKEN),
-        env.ALLEGRO_KV.delete(KV_KEYS.ENVIRONMENT),
-        env.ALLEGRO_KV.delete(KV_KEYS.STATUS),
+        db.update(allegroCredentials).set({ isActive: false, updatedAt: new Date() }).where(eq(allegroCredentials.isActive, true)),
+        kv.delete(KV_KEYS.ACCESS_TOKEN),
+        kv.delete(KV_KEYS.REFRESH_TOKEN),
+        kv.delete(KV_KEYS.ENVIRONMENT),
+        kv.delete(KV_KEYS.STATUS),
       ])
       return c.json({ success: false, error: { code: 'RECONNECT_REQUIRED', message: 'Token Allegro wygasł i nie może być odświeżony. Połącz konto ponownie.' } }, 401)
     }

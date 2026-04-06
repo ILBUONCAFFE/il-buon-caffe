@@ -25,6 +25,52 @@ export function getAllegroApiBase(env: AllegroEnvironment) {
   return API_BASE[env]
 }
 
+type AllegroOAuthConfigEnv = {
+  ALLEGRO_CLIENT_ID?: string
+  ALLEGRO_CLIENT_SECRET?: string
+  ALLEGRO_REDIRECT_URI?: string
+  ALLEGRO_CLIENT_ID_SANDBOX?: string
+  ALLEGRO_CLIENT_SECRET_SANDBOX?: string
+  ALLEGRO_REDIRECT_URI_SANDBOX?: string
+  ALLEGRO_CLIENT_ID_PRODUCTION?: string
+  ALLEGRO_CLIENT_SECRET_PRODUCTION?: string
+  ALLEGRO_REDIRECT_URI_PRODUCTION?: string
+}
+
+export function getAllegroOAuthConfig(
+  env: AllegroOAuthConfigEnv,
+  environment: AllegroEnvironment,
+): { clientId: string; clientSecret: string; redirectUri: string } {
+  const isSandbox = environment === 'sandbox'
+
+  const clientId = isSandbox
+    ? (env.ALLEGRO_CLIENT_ID_SANDBOX ?? env.ALLEGRO_CLIENT_ID)
+    : (env.ALLEGRO_CLIENT_ID_PRODUCTION ?? env.ALLEGRO_CLIENT_ID)
+
+  const clientSecret = isSandbox
+    ? (env.ALLEGRO_CLIENT_SECRET_SANDBOX ?? env.ALLEGRO_CLIENT_SECRET)
+    : (env.ALLEGRO_CLIENT_SECRET_PRODUCTION ?? env.ALLEGRO_CLIENT_SECRET)
+
+  const redirectUri = isSandbox
+    ? (env.ALLEGRO_REDIRECT_URI_SANDBOX ?? env.ALLEGRO_REDIRECT_URI)
+    : (env.ALLEGRO_REDIRECT_URI_PRODUCTION ?? env.ALLEGRO_REDIRECT_URI)
+
+  const missing: string[] = []
+  if (!clientId) missing.push(isSandbox ? 'ALLEGRO_CLIENT_ID_SANDBOX|ALLEGRO_CLIENT_ID' : 'ALLEGRO_CLIENT_ID_PRODUCTION|ALLEGRO_CLIENT_ID')
+  if (!clientSecret) missing.push(isSandbox ? 'ALLEGRO_CLIENT_SECRET_SANDBOX|ALLEGRO_CLIENT_SECRET' : 'ALLEGRO_CLIENT_SECRET_PRODUCTION|ALLEGRO_CLIENT_SECRET')
+  if (!redirectUri) missing.push(isSandbox ? 'ALLEGRO_REDIRECT_URI_SANDBOX|ALLEGRO_REDIRECT_URI' : 'ALLEGRO_REDIRECT_URI_PRODUCTION|ALLEGRO_REDIRECT_URI')
+
+  if (missing.length > 0) {
+    throw new Error(`[Allegro] Missing OAuth config for ${environment}: ${missing.join(', ')}`)
+  }
+
+  return {
+    clientId: clientId!,
+    clientSecret: clientSecret!,
+    redirectUri: redirectUri!,
+  }
+}
+
 // ── Authorization URL (step 1 of OAuth flow) ─────────────────────────────────
 
 export function buildAuthorizationUrl(opts: {
