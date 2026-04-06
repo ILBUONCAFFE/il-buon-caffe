@@ -55,10 +55,16 @@ export default async function CatalogPage({ params }: { params: Promise<{ slug: 
 
   if (!catalog) notFound();
 
+  // pdfUrl from API may be relative (/api/catalogs/slug/pdf) — resolve to absolute
+  // so the client-side pdfjs fetch works regardless of rewrite deployment state
+  const pdfUrl = catalog.pdfUrl.startsWith('http')
+    ? catalog.pdfUrl
+    : `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://ilbuoncaffe.pl'}${catalog.pdfUrl}`;
+
   return (
     <div className="catalog-page">
       <FlipbookViewer
-        pdfUrl={catalog.pdfUrl}
+        pdfUrl={pdfUrl}
         catalogName={catalog.name}
         pageCount={catalog.pageCount}
       />
