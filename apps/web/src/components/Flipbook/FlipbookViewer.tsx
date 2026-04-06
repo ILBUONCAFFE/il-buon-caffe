@@ -81,9 +81,8 @@ export default function FlipbookViewer({ pdfUrl, catalogName, pageCount }: Flipb
         // Load pdf.js
         const pdfjsLib = await import('pdfjs-dist');
 
-        // Use unpkg CDN — always mirrors npm, works for any version
-        const pdfjsVersion = pdfjsLib.version;
-        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsVersion}/build/pdf.worker.min.mjs`;
+        // Use local worker (same-origin, no CDN dependency, always correct version)
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
         
         setLoadingProgress(15);
         

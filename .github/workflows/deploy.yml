@@ -46,6 +46,9 @@ jobs:
       - name: Install Linux native bindings
         run: npm install --no-save @ast-grep/napi-linux-x64-gnu lightningcss-linux-x64-gnu @tailwindcss/oxide-linux-x64-gnu
 
+      - name: Copy pdfjs worker to public
+        run: cp node_modules/pdfjs-dist/build/pdf.worker.min.mjs apps/web/public/pdf.worker.min.mjs
+
       - name: Build web app (OpenNext)
         run: cd apps/web && npm run cf:build
 
