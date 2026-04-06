@@ -79,7 +79,7 @@ export default function FlipbookViewer({ pdfUrl, catalogName }: FlipbookViewerPr
           const ctx = full.getContext('2d', { alpha: false })!;
           ctx.fillStyle = '#fff';
           ctx.fillRect(0, 0, fw, fh);
-          await page.render({ canvasContext: ctx, viewport: renderVp }).promise;
+          await page.render({ canvas: full, viewport: renderVp }).promise;
 
           const cropW = fw - CROP * 2 * dpr;
           const cropH = fh - CROP * 2 * dpr;
