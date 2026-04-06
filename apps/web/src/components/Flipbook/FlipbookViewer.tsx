@@ -2,9 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-declare module 'pdfjs-dist/build/pdf.mjs';
-
 const CROP = 1;
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 4;
