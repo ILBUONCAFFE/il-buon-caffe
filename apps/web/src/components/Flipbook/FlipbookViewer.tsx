@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-type PdfLib = typeof import('pdfjs-dist/build/pdf.mjs');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+declare module 'pdfjs-dist/build/pdf.mjs';
 
 const CROP = 1;
 const MIN_ZOOM = 1;
@@ -16,7 +17,7 @@ interface FlipbookViewerProps {
 
 export default function FlipbookViewer({ pdfUrl, catalogName }: FlipbookViewerProps) {
   const bookRef = useRef<HTMLDivElement>(null);
-  const flipRef = useRef<import('page-flip').PageFlip | null>(null);
+  const flipRef = useRef<any>(null);
 
   const [numPages, setNumPages] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -36,7 +37,8 @@ export default function FlipbookViewer({ pdfUrl, catalogName }: FlipbookViewerPr
 
     async function load() {
       try {
-        const pdfjs = (await import('pdfjs-dist/build/pdf.mjs')) as PdfLib;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const pdfjs = (await import('pdfjs-dist/build/pdf.mjs')) as any;
         pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
 
         const doc = await pdfjs.getDocument(pdfUrl).promise;
@@ -135,7 +137,8 @@ export default function FlipbookViewer({ pdfUrl, catalogName }: FlipbookViewerPr
           clickEventForward: true,
         });
 
-        pf.on('flip', (e: { data: number }) => setCurrentPage(e.data));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        pf.on('flip', (e: any) => setCurrentPage(e.data));
         pf.loadFromHTML(mountEl.querySelectorAll('.pf-page'));
         flipRef.current = pf;
         setReady(true);
