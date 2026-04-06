@@ -1,251 +1,141 @@
 "use client";
 
 import Link from 'next/link';
-import { motion, useMotionValue, useTransform, useSpring } from 'motion/react';
-import { ArrowLeft, Coffee } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { motion } from 'motion/react';
+import { ArrowUpRight } from 'lucide-react';
 
 export default function NotFound() {
-  const [mounted, setMounted] = useState(false);
-  
-  // Mouse position for parallax
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-
-  // Smooth mouse movement with spring physics
-  const springConfig = { damping: 25, stiffness: 100 };
-  const mouseX = useSpring(x, springConfig);
-  const mouseY = useSpring(y, springConfig);
-
-  // Transform values for the 404 text (must be called before any early return)
-  const textLeftX = useTransform(mouseX, [-0.5, 0.5], [-20, 20]);
-  const textLeftY = useTransform(mouseY, [-0.5, 0.5], [-20, 20]);
-  const textRightX = useTransform(mouseX, [-0.5, 0.5], [20, -20]);
-  const textRightY = useTransform(mouseY, [-0.5, 0.5], [20, -20]);
-
-  useEffect(() => {
-    setMounted(true);
-
-    const handleMouseMove = (e: MouseEvent) => {
-      const { innerWidth, innerHeight } = window;
-      // Calculate normalized position from center (-0.5 to 0.5)
-      x.set((e.clientX - innerWidth / 2) / innerWidth);
-      y.set((e.clientY - innerHeight / 2) / innerHeight);
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, [x, y]);
-
-  // Generate random coffee beans with different depths
-  const beans = useMemo(() => (
-    Array.from({ length: 15 }).map((_, i) => ({
-      id: i,
-      x: Math.random() * 100, // % position
-      y: Math.random() * 100, // % position
-      rotation: Math.random() * 360,
-      scale: 0.4 + Math.random() * 0.6,
-      depth: (Math.random() - 0.5) * 2, // -1 to 1 parallax depth
-      blur: Math.random() > 0.5
-    }))
-  ), []);
-
-  if (!mounted) return null;
-
   return (
-    <div className="relative min-h-screen w-full bg-[#FDFBF7] overflow-hidden flex flex-col items-center justify-center p-4 selection:bg-brand-700/30">
+    <div className="fixed inset-0 z-[100] min-h-screen w-full overflow-y-auto bg-brand-50 text-brand-950 flex flex-col md:flex-row selection:bg-brand-400/30">
       
-      {/* Background Pattern / Texture */}
-      <div className="absolute inset-0 opacity-[0.4] pointer-events-none mix-blend-multiply bg-[url('/assets/noise.png')]"></div>
-      
-      {/* Parallax Coffee Beans Background */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {beans.map((bean) => (
-          <ParallaxBean 
-            key={bean.id} 
-            bean={bean} 
-            mouseX={mouseX} 
-            mouseY={mouseY} 
-          />
-        ))}
-      </div>
+      {/* Subtle Noise Texture */}
+      <div className="absolute inset-0 opacity-[0.25] mix-blend-multiply pointer-events-none bg-[url('/assets/noise.png')] z-10"></div>
 
-      {/* Main Content */}
-      <div className="relative z-10 text-center max-w-4xl mx-auto backdrop-blur-[0px]">
+      {/* LEFT COLUMN: Content */}
+      <div className="w-full md:w-[45%] flex flex-col justify-between p-6 sm:p-10 lg:p-16 xl:p-24 z-20 border-r border-brand-200/50 bg-brand-50">
         
-        {/* Animated 404 Header */}
+        {/* Header Logo */}
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
-          className="relative flex items-center justify-center font-serif text-[clamp(6rem,18vw,16rem)] leading-none text-brand-900/10 font-bold select-none"
+          className="mb-16 md:mb-0"
         >
-           <motion.span 
-             style={{ x: textLeftX, y: textLeftY }}
-           >4</motion.span>
-          
-          {/* Central Coffee Cup as '0' */}
-          <div className="relative w-[0.6em] h-[0.6em] mx-2 perspective-1000 flex items-center justify-center">
-             <motion.div
-               animate={{ 
-                 rotateX: [0, 10, 0],
-                 rotateY: [0, 5, 0, -5, 0],
-                 y: [0, -5, 0]
-               }}
-               transition={{ 
-                 duration: 6,
-                 repeat: Infinity,
-                 ease: "easeInOut"
-               }}
-               className="w-full h-full relative flex items-center justify-center"
-             >
-                {/* Steam Effect */}
-                <div className="absolute -top-[40%] left-1/2 -translate-x-1/2 flex gap-2 md:gap-4 opacity-0 animate-fade-in-up md:opacity-100">
-                   {[1, 2, 3].map((s) => (
-                     <motion.div
-                       key={s}
-                       animate={{ 
-                         y: [-10, -50],
-                         opacity: [0, 0.5, 0],
-                         scaleY: [0.8, 1.2, 1.5],
-                         x: [0, (s % 2 === 0 ? 10 : -10)]
-                       }}
-                       transition={{
-                         duration: 2.5 + s * 0.5,
-                         repeat: Infinity,
-                         delay: s * 0.8,
-                         ease: "easeOut"
-                       }}
-                       className="w-1.5 md:w-3 h-12 md:h-20 bg-gradient-to-t from-brand-300 to-transparent rounded-full blur-sm"
-                     />
-                   ))}
-                </div>
-
-                {/* The Cup (Icon) */}
-                <div className="relative z-10 p-4 md:p-8 rounded-full bg-gradient-to-br from-[#FFFBF5] to-[#f3eee8] shadow-[0_20px_40px_-5px_damping(163,127,91,0.4)] border border-brand-100/50">
-                  <Coffee className="w-16 h-16 md:w-40 md:h-40 text-brand-800 drop-shadow-sm" strokeWidth={1} />
-                </div>
-                
-                {/* Ripple Effect base */}
-                <motion.div 
-                    animate={{ scale: [1, 1.2], opacity: [0.3, 0] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                    className="absolute inset-0 bg-brand-700/10 rounded-full z-0"
-                />
-             </motion.div>
-          </div>
-
-           <motion.span
-             style={{ x: textRightX, y: textRightY }}
-           >4</motion.span>
+          <Link href="/" className="inline-block group">
+            <span className="font-serif text-xl sm:text-2xl tracking-[0.2em] uppercase font-medium group-hover:text-brand-500 transition-colors">
+              Il Buon Caffè
+            </span>
+          </Link>
         </motion.div>
 
-        {/* Text Content */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.8 }}
-          className="relative -mt-4 md:-mt-16 space-y-6 px-4"
+        {/* Main Text */}
+        <div className="space-y-10 my-16 md:my-0 max-w-md">
+          
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="inline-flex items-center gap-2 px-3 py-1.5 bg-brand-100 rounded-sm border border-brand-200/50"
+          >
+            <div className="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse"></div>
+            <span className="text-[10px] sm:text-xs uppercase tracking-[0.2em] font-semibold text-brand-800">
+              Błąd 404
+            </span>
+          </motion.div>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
+            className="space-y-6"
+          >
+            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-serif font-medium leading-[1.05] tracking-tight">
+              Pusta <br/>
+              <span className="text-brand-400 italic font-light">filiżanka.</span>
+            </h1>
+            
+            <div className="w-12 h-[1px] bg-brand-300"></div>
+
+            <p className="text-base sm:text-lg text-brand-700/80 leading-relaxed font-light">
+              Niewłaściwy adres URL, wprowadzona zła ścieżka lub strona po prostu przestała istnieć. Cokolwiek to jest, na pewno pomyłki nie usuniemy kawą.
+            </p>
+          </motion.div>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.5, ease: "easeOut" }}
+            className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4"
+          >
+            <Link 
+              href="/"
+              className="flex items-center justify-between px-6 py-4 bg-brand-950 text-white hover:bg-brand-800 transition-all duration-300 group"
+            >
+              <span className="text-[11px] font-sans uppercase tracking-[0.15em] font-medium">Menu Główne</span>
+              <ArrowUpRight size={16} className="group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+            
+            <Link 
+              href="/sklep"
+              className="flex items-center justify-between px-6 py-4 border border-brand-300 text-brand-900 hover:bg-brand-100 transition-all duration-300 group"
+            >
+              <span className="text-[11px] font-sans uppercase tracking-[0.15em] font-medium">Nasz Sklep</span>
+              <ArrowUpRight size={16} className="text-brand-500 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+          </motion.div>
+        </div>
+
+        {/* Footer info */}
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1, delay: 0.8 }}
+          className="mt-16 md:mt-0"
         >
-          <h2 className="text-3xl md:text-5xl font-serif text-brand-900 tracking-tight">
-            Wygląda na to, że kawa się skończyła.
-          </h2>
-          <p className="text-base md:text-lg text-brand-600 font-light max-w-xl mx-auto leading-relaxed">
-            Strona, której szukasz, wyparowała. <br className="hidden md:block"/>
-            Wróć do nas, zanim aromat zniknie całkowicie.
+          <p className="font-mono text-[9px] sm:text-[10px] uppercase tracking-[0.3em] text-brand-500/60">
+            SYSTEM // NAWIGACJA_PRZERWANA
           </p>
-
-          {/* Interactive Actions */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
-            <Link href="/" passHref>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.98 }}
-                className="group w-full sm:w-auto relative px-8 py-4 bg-brand-900 text-brand-50 rounded-lg overflow-hidden flex items-center justify-center gap-3 shadow-xl shadow-brand-900/10 hover:shadow-brand-900/20 transition-all cursor-pointer"
-              >
-                <div className="absolute inset-0 bg-brand-800 translate-y-[100%] group-hover:translate-y-0 transition-transform duration-300 ease-in-out"></div>
-                <div className="relative flex items-center gap-2 font-medium tracking-wide uppercase text-xs md:text-sm">
-                  <ArrowLeft size={16} />
-                  <span>Strona Główna</span>
-                </div>
-              </motion.button>
-            </Link>
-
-            <Link href="/sklep" passHref>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.98 }}
-                className="group w-full sm:w-auto relative px-8 py-4 bg-white text-brand-900 border border-brand-200 rounded-lg hover:border-brand-300 flex items-center justify-center gap-3 shadow-md hover:shadow-lg transition-all cursor-pointer"
-              >
-                <div className="relative flex items-center gap-2 font-medium tracking-wide uppercase text-xs md:text-sm">
-                  <Coffee size={16} />
-                  <span>Przejdź do Sklepu</span>
-                </div>
-              </motion.button>
-            </Link>
-          </div>
         </motion.div>
       </div>
 
-      {/* Footer Element */}
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1, duration: 1 }}
-        className="absolute bottom-6 left-0 right-0 text-center pointer-events-none"
-      >
-        <div className="inline-block px-4 py-2 bg-white/50 backdrop-blur-sm rounded-full border border-brand-100">
-            <p className="text-brand-400 text-[10px] md:text-xs font-mono uppercase tracking-[0.2em] relative top-[1px]">Błąd 404 • Strona nie istnieje</p>
+      {/* RIGHT COLUMN: Abstract Art */}
+      <div className="relative w-full md:w-[55%] min-h-[50vh] md:min-h-screen bg-brand-100/30 flex items-center justify-center overflow-hidden z-0">
+        
+        {/* Animated Background Elements */}
+        <motion.div 
+          animate={{ rotate: 360 }}
+          transition={{ duration: 100, repeat: Infinity, ease: "linear" }}
+          className="absolute top-1/2 left-1/2 w-[120%] aspect-square -translate-x-1/2 -translate-y-1/2 border-[1px] border-brand-200/40 rounded-full border-dashed opacity-50 pointer-events-none"
+        />
+        <motion.div 
+          animate={{ rotate: -360 }}
+          transition={{ duration: 150, repeat: Infinity, ease: "linear" }}
+          className="absolute top-1/2 left-1/2 w-[80%] aspect-square -translate-x-1/2 -translate-y-1/2 border border-brand-300/30 rounded-full opacity-50 pointer-events-none"
+        />
+        
+        {/* Massive 404 */}
+        <div className="relative flex items-center justify-center pointer-events-none w-full h-full">
+          <motion.div
+             initial={{ opacity: 0, scale: 0.8 }}
+             animate={{ opacity: 1, scale: 1 }}
+             transition={{ duration: 1.5, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
+             className="font-serif font-black text-[45vw] md:text-[32vw] leading-none text-brand-200/40 tracking-tighter select-none mix-blend-color-burn text-center"
+          >
+            404
+          </motion.div>
+          
+          <motion.span 
+             initial={{ opacity: 0, rotate: 10 }}
+             animate={{ opacity: 1, rotate: -15 }}
+             transition={{ duration: 1, delay: 1.2, ease: "easeOut" }}
+             className="absolute top-1/2 right-[15%] -translate-y-1/2 font-handwriting text-7xl md:text-9xl text-brand-500/80 drop-shadow-sm select-none"
+          >
+            Ups..
+          </motion.span>
         </div>
-      </motion.div>
+        
+      </div>
+      
     </div>
   );
 }
-
-// Parallax Bean Component
-function ParallaxBean({ 
-  bean, 
-  mouseX, 
-  mouseY 
-}: { 
-  bean: any, 
-  mouseX: any, 
-  mouseY: any 
-}) {
-  // Movement range multiplier based on depth (closer items move more)
-  const movementRange = 50 * bean.depth; 
-  
-  const x = useTransform(mouseX, [-0.5, 0.5], [movementRange, -movementRange]);
-  const y = useTransform(mouseY, [-0.5, 0.5], [movementRange, -movementRange]);
-
-  return (
-    <motion.div
-      style={{
-        left: `${bean.x}%`,
-        top: `${bean.y}%`,
-        x,
-        y,
-        rotate: bean.rotation,
-        scale: bean.scale,
-        opacity: bean.blur ? 0.2 : 0.6
-      }}
-      initial={{ opacity: 0, scale: 0 }}
-      animate={{ opacity: bean.blur ? 0.2 : 0.6, scale: bean.scale }}
-      transition={{ duration: 1, delay: Math.random() * 0.5 }}
-      className={`absolute ${bean.blur ? 'blur-[3px]' : 'blur-[0.5px]'} pointer-events-none`}
-    >
-        {/* Simple Coffee Bean Shape constructed with CSS/SVG */}
-      <CoffeeBeanIcon className="w-8 h-8 md:w-16 md:h-16 text-brand-200" />
-    </motion.div>
-  );
-}
-
-const CoffeeBeanIcon = ({ className, color }: { className?: string, color?: string }) => (
-  <svg 
-    viewBox="0 0 100 100" 
-    className={className}
-    fill="currentColor"
-  >
-     <path d="M50 5 C20 5 10 30 15 50 C20 70 40 95 50 95 C60 95 80 70 85 50 C90 30 80 5 50 5 Z M50 85 C45 85 30 65 25 50 C22 35 30 20 45 20 C60 20 55 35 50 50 C45 65 55 75 60 75 C65 75 70 65 72 50 C75 35 70 15 50 15 C35 15 35 35 40 50 C45 65 55 85 50 85 Z" fillRule="evenodd"/>
-  </svg>
-);
