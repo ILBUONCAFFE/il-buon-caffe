@@ -417,7 +417,7 @@ flex flex-col items-start
 ┌──────────────────────────────────────┐
 │  ┌──┐                                │
 │  │AK│  Admin                         │
-│  └──┘  admin@ilbuoncaffe.pl          │
+│  └──┘  kontakt@ilbuoncaffe.pl          │
 │        Administrator                 │
 │  ─────────────────────────────────── │
 │                                      │

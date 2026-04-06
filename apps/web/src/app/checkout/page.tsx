@@ -57,7 +57,7 @@ export default function CheckoutPage() {
     if (!formData.email.trim()) {
       errors.email = "Adres email jest wymagany";
     } else if (!/^\S+@\S+\.\S+$/.test(formData.email)) {
-      errors.email = "Podaj poprawny adres email (np. jan@example.com)";
+      errors.email = "Podaj poprawny adres email (np. kontakt@ilbuoncaffe.pl)";
     }
     if (!formData.firstName.trim() || formData.firstName.trim().length < 2) {
       errors.firstName = "Imię musi mieć co najmniej 2 znaki";
@@ -79,7 +79,7 @@ export default function CheckoutPage() {
     if (!formData.phone.trim()) {
       errors.phone = "Numer telefonu jest wymagany";
     } else if (!/^[+]?[\d\s()-]{9,15}$/.test(formData.phone.trim())) {
-      errors.phone = "Podaj poprawny numer telefonu (np. +48 000 000 000)";
+      errors.phone = "Podaj poprawny numer telefonu (np. +48 664 937 937)";
     }
     return errors;
   };
@@ -172,7 +172,7 @@ export default function CheckoutPage() {
                                 value={formData.email} 
                                 onChange={handleInputChange}
                                 className={`w-full px-4 py-3 bg-brand-50/50 border rounded-lg focus:outline-none focus:ring-1 transition-all text-brand-900 placeholder:text-brand-300 ${formErrors.email ? 'border-red-400 focus:ring-red-400' : 'border-brand-200 focus:ring-brand-700'}`}
-                                placeholder="jan.kowalski@example.com"
+                                placeholder="kontakt@ilbuoncaffe.pl"
                             />
                             {formErrors.email && (
                                 <p id="checkout-email-error" role="alert" className="mt-1.5 text-xs text-red-600 flex items-center gap-1.5">
@@ -299,7 +299,7 @@ export default function CheckoutPage() {
                                 value={formData.phone}
                                 onChange={handleInputChange}
                                 className={`w-full px-4 py-3 bg-brand-50/50 border rounded-lg focus:outline-none focus:ring-1 transition-all text-brand-900 ${formErrors.phone ? 'border-red-400 focus:ring-red-400' : 'border-brand-200 focus:ring-brand-700'}`}
-                                placeholder="+48 000 000 000"
+                                placeholder="+48 664 937 937"
                              />
                              {formErrors.phone && (
                                 <p id="checkout-phone-error" role="alert" className="mt-1.5 text-xs text-red-600 flex items-center gap-1.5">

@@ -58,7 +58,7 @@ export const UserMenu = ({ isOpen, onClose }: UserMenuProps) => {
             </div>
             <div>
               <p className="text-[15px] font-semibold text-[#1A1A1A]">Admin</p>
-              <p className="text-sm text-[#737373]">admin@ilbuoncaffe.pl</p>
+              <p className="text-sm text-[#737373]">kontakt@ilbuoncaffe.pl</p>
               <span className="text-[11px] text-[#0066CC] bg-[#EEF4FF] px-2 py-0.5 rounded-md font-medium mt-1 inline-block">
                 Administrator
               </span>

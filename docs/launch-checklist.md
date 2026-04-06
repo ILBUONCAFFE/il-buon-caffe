@@ -23,7 +23,7 @@
 - [ ] **Zweryfikuj domenę nadawczą w AWS SES**
   - AWS Console → SES → Verified Identities → Add domain
   - Dodaj TXT rekordy DNS dla domeny (np. `ilbuoncaffe.pl`)
-  - Ustaw adres nadawcy np. `zamowienia@ilbuoncaffe.pl`
+  - Ustaw adres nadawcy np. `kontakt@ilbuoncaffe.pl`
   - Czas weryfikacji DNS: do 24h
   - Jeśli konto SES jest nowe: złóż wniosek o wyjście z sandbox (Production Access)
 

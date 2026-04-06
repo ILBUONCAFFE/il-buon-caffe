@@ -224,7 +224,7 @@ npx tsx scripts/create-admin.ts
 ```
 
 Skrypt zapyta o:
-- Email (np. `admin@ilbuoncaffe.pl`)
+- Email (np. `kontakt@ilbuoncaffe.pl`)
 - Hasło (min. 10 znaków, wielka litera + cyfra)
 - Imię i nazwisko
 
@@ -266,7 +266,7 @@ npx wrangler dev
 for i in {1..6}; do
   curl -X POST http://localhost:8787/api/auth/login \
     -H "Content-Type: application/json" \
-    -d '{"email":"test@test.com","password":"wrong"}' \
+    -d '{"email":"kontakt@ilbuoncaffe.pl","password":"wrong"}' \
     -w "\nHTTP: %{http_code}\n"
 done
 # Request 6 powinien zwrócić HTTP 429

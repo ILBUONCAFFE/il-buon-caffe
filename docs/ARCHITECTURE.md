@@ -407,7 +407,7 @@ il-buon-caffe/
 // JWT Payload
 {
   "sub": "user_123",
-  "email": "anna@example.com",
+  "email": "kontakt@ilbuoncaffe.pl",
   "role": "customer",    // lub "admin"
   "iat": 1706540000,
   "exp": 1706626400      // 24h dla customer, 2h dla admin

@@ -98,7 +98,7 @@ Po zalogowaniu serwer ustawia dwa ciasteczka:
 ```json
 {
   "sub": "123",
-  "email": "anna@example.com",
+  "email": "kontakt@ilbuoncaffe.pl",
   "role": "customer",
   "sessionId": "550e8400-e29b-41d4-a716-446655440000",
   "iat": 1706540000,
@@ -160,7 +160,7 @@ Rejestracja nowego użytkownika z wymaganymi zgodami RODO.
 
 ```json
 {
-  "email": "anna@example.com",
+  "email": "kontakt@ilbuoncaffe.pl",
   "password": "SecurePass123!",
   "name": "Anna Nowak",
   "consents": {
@@ -220,7 +220,7 @@ Logowanie — unified dla `customer` i `admin`.
 
 ```json
 {
-  "email": "anna@example.com",
+  "email": "kontakt@ilbuoncaffe.pl",
   "password": "SecurePass123!",
   "rememberMe": false
 }
@@ -248,7 +248,7 @@ Serwer ustawia cookies `access_token` + `refresh_token` i zwraca:
 {
   "user": {
     "id": 1,
-    "email": "anna@example.com",
+    "email": "kontakt@ilbuoncaffe.pl",
     "name": "Anna Nowak",
     "role": "customer"
   },
@@ -371,7 +371,7 @@ Weryfikacja adresu email za pomocą tokena wysłanego na pocztę.
 
 ```json
 {
-  "email": "anna@example.com"
+  "email": "kontakt@ilbuoncaffe.pl"
 }
 ```
 
@@ -428,7 +428,7 @@ Ponowne wysłanie emaila weryfikacyjnego.
 
 ```json
 {
-  "email": "anna@example.com"
+  "email": "kontakt@ilbuoncaffe.pl"
 }
 ```
 
@@ -455,7 +455,7 @@ Pobierz dane aktualnie zalogowanego użytkownika.
 {
   "user": {
     "id": 1,
-    "email": "anna@example.com",
+    "email": "kontakt@ilbuoncaffe.pl",
     "name": "Anna Nowak",
     "role": "customer",
     "emailVerified": true
@@ -748,7 +748,7 @@ Idempotency-Key: <uuid>    ← Wymagane, generowane przez frontend
     "city": "Koszalin",
     "postalCode": "75-001",
     "country": "PL",
-    "phone": "+48600123456"
+    "phone": "+48 664 937 937"
   },
   "paymentMethod": "card",
   "notes": "Proszę o dostawę po 17:00"
@@ -936,7 +936,7 @@ Eksport danych użytkownika (RODO Art. 20 — prawo do przenoszenia).
 {
   "success": true,
   "data": {
-    "user": { "id": 1, "email": "anna@example.com", "name": "Anna Nowak", "createdAt": "..." },
+    "user": { "id": 1, "email": "kontakt@ilbuoncaffe.pl", "name": "Anna Nowak", "createdAt": "..." },
     "consents": [ "..." ],
     "orders": [ "..." ],
     "exportedAt": "2026-01-29T19:00:00Z",
@@ -954,7 +954,7 @@ Eksport danych użytkownika (RODO Art. 20 — prawo do przenoszenia).
 ```json
 // Request
 {
-  "confirmEmail": "anna@example.com",
+  "confirmEmail": "kontakt@ilbuoncaffe.pl",
   "reason": "Nie chcę już korzystać z serwisu"
 }
 
@@ -1038,7 +1038,7 @@ Wszystkie zamówienia (shop + allegro) z paginacją.
       "total": 89.00,
       "customerData": {
         "name": "Anna Nowak",
-        "email": "anna@example.com"
+        "email": "kontakt@ilbuoncaffe.pl"
       },
       "itemsCount": 3,
       "createdAt": "2026-01-29T10:00:00Z"
@@ -1052,7 +1052,7 @@ Wszystkie zamówienia (shop + allegro) z paginacją.
       "total": 320.00,
       "customerData": {
         "name": "Jan Kowalski",
-        "email": "jan@allegro.pl"
+        "email": "kontakt@ilbuoncaffe.pl"
       },
       "itemsCount": 1,
       "createdAt": "2026-01-29T11:30:00Z"
@@ -1130,7 +1130,7 @@ Dziennik audytu — kto przeglądał dane klientów.
     {
       "id": 456,
       "adminId": 1,
-      "adminEmail": "admin@ilbuoncaffe.pl",
+      "adminEmail": "kontakt@ilbuoncaffe.pl",
       "action": "view_customer",
       "targetUserId": 123,
       "details": { "path": "/admin/customers/123", "method": "GET" },

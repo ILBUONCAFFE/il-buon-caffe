@@ -588,7 +588,7 @@ const CafeClient: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="text-lg font-serif text-white mb-2">Adres</h3>
-                    <p className="text-white/70">ul. Bpa Czesława Domina 3/6</p>
+                    <p className="text-white/70">ul. Biskupa Czesława Domina 3/6</p>
                     <p className="text-white/50">75-065 Koszalin</p>
                   </div>
                 </div>
@@ -628,7 +628,7 @@ const CafeClient: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="text-lg font-serif text-white mb-2">Kontakt</h3>
-                    <p className="text-white/70">+48 94 123 45 67</p>
+                    <p className="text-white/70">+48 664 937 937</p>
                     <p className="text-white/50">kontakt@ilbuoncaffe.pl</p>
                   </div>
                 </div>
@@ -686,7 +686,7 @@ const CafeClient: React.FC = () => {
               
               {/* Directions Button */}
               <a
-                href="https://www.google.com/maps/search/?api=1&query=Il+Buon+Caffe,+ul.+Bpa+Czes%C5%82awa+Domina+3%2F6,+75-065+Koszalin"
+                href="https://www.google.com/maps/search/?api=1&query=Il+Buon+Caffe,+ul.+Biskupa+Czes%C5%82awa+Domina+3%2F6,+75-065+Koszalin"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="absolute -bottom-6 right-6 inline-flex items-center gap-2 px-6 py-3 bg-brand-700 text-white rounded-full font-bold text-sm uppercase tracking-wider shadow-lg hover:bg-brand-400 transition-colors"

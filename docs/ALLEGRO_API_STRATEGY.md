@@ -295,7 +295,7 @@ Kluczowe pola odpowiedzi Allegro i ich mapowanie na schemat DB:
   "status": "READY_FOR_PROCESSING",
   "buyer": {
     "id": "allegro-user-id",
-    "email": "buyer@example.com",       // → orders.customerData.email
+    "email": "kontakt@ilbuoncaffe.pl",       // → orders.customerData.email
     "firstName": "Jan",
     "lastName": "Kowalski"              // → orders.customerData.name
   },
@@ -331,7 +331,7 @@ Kluczowe pola odpowiedzi Allegro i ich mapowanie na schemat DB:
       "zipCode": "00-001",
       "city": "Warszawa",
       "countryCode": "PL",
-      "phoneNumber": "+48600000000"  // → orders.customerData.shippingAddress
+      "phoneNumber": "+48 664 937 937"  // → orders.customerData.shippingAddress
     },
     "cost": {
       "amount": "12.90",            // → orders.shippingCost

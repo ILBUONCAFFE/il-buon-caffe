@@ -126,7 +126,7 @@ export function AdminLoginForm() {
               required
               maxLength={255}
               disabled={isPending || isLocked}
-              placeholder="admin@ilbuoncaffe.pl"
+              placeholder="kontakt@ilbuoncaffe.pl"
               style={{
                 WebkitBoxShadow: '0 0 0 1000px rgba(8,6,6,0.95) inset',
                 WebkitTextFillColor: '#ffffff',

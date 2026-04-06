@@ -60,7 +60,7 @@ export const CTA = () => {
                   <MapPin className="w-5 h-5 text-brand-300" />
                 </div>
                 <div>
-                  <p className="text-white font-medium">ul. Bpa Czesława Domina 3/6</p>
+                  <p className="text-white font-medium">ul. Biskupa Czesława Domina 3/6</p>
                   <p className="text-white/50">75-065 Koszalin</p>
                 </div>
               </div>
@@ -80,7 +80,7 @@ export const CTA = () => {
                   <Phone className="w-5 h-5 text-brand-300" />
                 </div>
                 <div>
-                  <p className="text-white font-medium">+48 94 123 45 67</p>
+                  <p className="text-white font-medium">+48 664 937 937</p>
                   <p className="text-white/50">kontakt@ilbuoncaffe.pl</p>
                 </div>
               </div>
@@ -96,7 +96,7 @@ export const CTA = () => {
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
               </Link>
               <a
-                href="https://www.google.com/maps/search/?api=1&query=Il+Buon+Caffe,+ul.+Bpa+Czes%C5%82awa+Domina+3%2F6,+75-065+Koszalin"
+                href="https://www.google.com/maps/search/?api=1&query=Il+Buon+Caffe,+ul.+Biskupa+Czes%C5%82awa+Domina+3%2F6,+75-065+Koszalin"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-3 px-8 py-4 bg-transparent border border-white/30 text-white rounded-full font-bold text-sm uppercase tracking-widest hover:bg-white/10 transition-colors"

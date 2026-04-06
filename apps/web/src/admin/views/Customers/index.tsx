@@ -18,9 +18,9 @@ type Customer = {
 }
 
 const customers: Customer[] = [
-  { id: 'CUST-001', name: 'Jan Kowalski', email: 'jan.kowalski@example.com', phone: '+48 123 456 789', ltv: 4500, orders: 12, status: 'VIP', lastOrder: '2 dni temu' },
-  { id: 'CUST-002', name: 'Anna Nowak', email: 'anna.n@example.com', phone: '+48 987 654 321', ltv: 1200, orders: 3, status: 'Lojalny', lastOrder: '1 tydzień temu' },
-  { id: 'CUST-003', name: 'Piotr Wiśniewski', email: 'piotr.w@example.com', phone: '+48 555 666 777', ltv: 150, orders: 1, status: 'Nowy', lastOrder: '1 miesiąc temu' }
+  { id: 'CUST-001', name: 'Jan Kowalski', email: 'kontakt@ilbuoncaffe.pl', phone: '+48 664 937 937', ltv: 4500, orders: 12, status: 'VIP', lastOrder: '2 dni temu' },
+  { id: 'CUST-002', name: 'Anna Nowak', email: 'kontakt@ilbuoncaffe.pl', phone: '+48 664 937 937', ltv: 1200, orders: 3, status: 'Lojalny', lastOrder: '1 tydzień temu' },
+  { id: 'CUST-003', name: 'Piotr Wiśniewski', email: 'kontakt@ilbuoncaffe.pl', phone: '+48 664 937 937', ltv: 150, orders: 1, status: 'Nowy', lastOrder: '1 miesiąc temu' }
 ]
 
 export const CustomersView = () => {

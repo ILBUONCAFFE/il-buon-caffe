@@ -67,7 +67,7 @@ Find the block ending at line 58 (`}`). Add after `HYPERDRIVE?: Hyperdrive` (lin
   AWS_SES_ACCESS_KEY_ID: string
   AWS_SES_SECRET_ACCESS_KEY: string
   AWS_SES_REGION: string         // e.g. eu-west-1
-  AWS_SES_FROM_ADDRESS: string   // e.g. zamowienia@ilbuoncaffe.pl
+  AWS_SES_FROM_ADDRESS: string   // e.g. kontakt@ilbuoncaffe.pl
 ```
 
 The full Env interface block should now end with:
@@ -88,7 +88,7 @@ The full Env interface block should now end with:
 In the `"vars"` section of `apps/api/wrangler.json`, add:
 ```json
 "AWS_SES_REGION": "eu-west-1",
-"AWS_SES_FROM_ADDRESS": "zamowienia@ilbuoncaffe.pl"
+"AWS_SES_FROM_ADDRESS": "kontakt@ilbuoncaffe.pl"
 ```
 
 (Replace `eu-west-1` with your actual SES region, and the email with your verified sender address.)
@@ -208,7 +208,7 @@ function emailLayout(content: string): string {
         </tr>
         <tr>
           <td style="padding:16px 32px;background:#f5f0eb;text-align:center;">
-            <p style="margin:0;color:#888;font-size:12px;">Il Buon Caffè · zamowienia@ilbuoncaffe.pl</p>
+            <p style="margin:0;color:#888;font-size:12px;">Il Buon Caffè · kontakt@ilbuoncaffe.pl</p>
           </td>
         </tr>
       </table>
@@ -496,7 +496,7 @@ Paste the values from your AWS IAM user that has `ses:SendEmail` permission.
 
 - [ ] **Step 2: Verify SES sender address is verified in AWS console**
 
-In AWS Console → SES → Verified Identities, confirm `zamowienia@ilbuoncaffe.pl` (or your FROM address) shows "Verified" status. If not, verify the domain or email address before deploying.
+In AWS Console → SES → Verified Identities, confirm `kontakt@ilbuoncaffe.pl` (or your FROM address) shows "Verified" status. If not, verify the domain or email address before deploying.
 
 - [ ] **Step 3: Deploy updated API**
 

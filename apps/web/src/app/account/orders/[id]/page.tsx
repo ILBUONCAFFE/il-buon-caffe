@@ -173,7 +173,7 @@ export default function OrderDetailsPage() {
                                  <p className="font-bold text-brand-900 text-sm mb-1">Anna Nowak</p>
                                  <p className="text-sm text-brand-600 leading-relaxed mb-4">{order.address}</p>
                                  <div className="text-[10px] uppercase tracking-widest text-brand-400 font-bold mb-1">Telefon</div>
-                                 <p className="text-sm text-brand-900 font-mono">+48 500 600 700</p>
+                                 <p className="text-sm text-brand-900 font-mono">+48 664 937 937</p>
                              </div>
                          </div>
 

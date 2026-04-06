@@ -19,7 +19,7 @@ import { useCart } from '@/context/CartContext';
 // --- MOCK DATA ---
 const USER_DATA = {
   name: "Anna Nowak",
-  email: "anna.nowak@example.com",
+  email: "kontakt@ilbuoncaffe.pl",
   memberSince: "2023",
   tier: "Gold Member",
   points: 840,
@@ -546,7 +546,7 @@ const SettingsView = () => (
                         <InputField label="Imię" type="text" defaultValue="Anna" icon={User} />
                         <InputField label="Nazwisko" type="text" defaultValue="Nowak" icon={User} />
                         <div className="md:col-span-2">
-                             <InputField label="Email" type="email" defaultValue="anna.nowak@example.com" icon={Mail} />
+                             <InputField label="Email" type="email" defaultValue="kontakt@ilbuoncaffe.pl" icon={Mail} />
                         </div>
                         <div className="md:col-span-2 flex justify-end">
                              <Button variant="primary">Zapisz Zmiany</Button>

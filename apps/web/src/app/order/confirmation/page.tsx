@@ -121,7 +121,7 @@ const OrderConfirmationContent = () => {
           <p>Masz pytania dotyczące zamówienia?</p>
           <a href="mailto:kontakt@ilbuoncaffe.pl" className="text-brand-600 font-bold hover:underline">kontakt@ilbuoncaffe.pl</a>
           <span className="mx-2">•</span>
-          <a href="tel:+48000000000" className="text-brand-600 font-bold hover:underline">+48 000 000 000</a>
+          <a href="tel:+48664937937" className="text-brand-600 font-bold hover:underline">+48 664 937 937</a>
       </div>
 
     </div>

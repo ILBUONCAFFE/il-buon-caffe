@@ -49,7 +49,7 @@ export const Footer = () => {
       return;
     }
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
-      setEmailError("Podaj poprawny adres email (np. jan@example.com)");
+      setEmailError("Podaj poprawny adres email (np. kontakt@ilbuoncaffe.pl)");
       document.getElementById("footer-newsletter-email")?.focus();
       return;
     }
@@ -214,15 +214,15 @@ export const Footer = () => {
               <ul className="space-y-4">
                 <li>
                   <a 
-                    href="https://www.google.com/maps/search/?api=1&query=Il+Buon+Caffe,+ul.+Bpa+Czes%C5%82awa+Domina+3%2F6,+75-065+Koszalin" 
+                    href="https://www.google.com/maps/search/?api=1&query=Il+Buon+Caffe,+ul.+Biskupa+Czes%C5%82awa+Domina+3%2F6,+75-065+Koszalin" 
                     target="_blank"
                     rel="noopener noreferrer"
-                    aria-label="Adres: ul. Bpa Czesława Domina 3/6, 75-065 Koszalin (otwiera mapę)"
+                    aria-label="Adres: ul. Biskupa Czesława Domina 3/6, 75-065 Koszalin (otwiera mapę)"
                     className="flex items-start gap-3 text-white/70 hover:text-white transition-colors group"
                   >
                     <MapPin className="w-5 h-5 text-brand-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
                     <div>
-                      <span className="block">ul. Bpa Czesława Domina 3/6</span>
+                      <span className="block">ul. Biskupa Czesława Domina 3/6</span>
                       <span className="text-white/50">75-065 Koszalin</span>
                     </div>
                   </a>
@@ -247,11 +247,11 @@ export const Footer = () => {
                 </li>
                 <li>
                   <a 
-                    href="mailto:hello@ilbuoncaffe.pl"
+                    href="mailto:kontakt@ilbuoncaffe.pl"
                     className="flex items-center gap-3 text-white/70 hover:text-white transition-colors"
                   >
                     <Mail className="w-5 h-5 text-brand-400 flex-shrink-0" aria-hidden="true" />
-                    <span>hello@ilbuoncaffe.pl</span>
+                    <span>kontakt@ilbuoncaffe.pl</span>
                   </a>
                 </li>
               </ul>

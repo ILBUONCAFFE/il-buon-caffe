@@ -36,14 +36,14 @@ const categories: Category[] = [
     title: "Delikatesy",
     subtitle: "Włoskie",
     href: "/sklep/spizarnia",
-    image: "https://images.unsplash.com/photo-1627308595229-7830a5c91f9f?q=80&w=1200&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1550989460-0adf9ea622e2?q=80&w=1200&auto=format&fit=crop",
   },
   {
     id: "accessories",
     title: "Akcesoria",
     subtitle: "Baristy",
     href: "/sklep",
-    image: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?q=80&w=1200&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1544244222-38db31cdaaf4?q=80&w=1200&auto=format&fit=crop",
   },
 ];
 
