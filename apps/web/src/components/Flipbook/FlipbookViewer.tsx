@@ -62,24 +62,28 @@ export default function FlipbookViewer({ pdfUrl, catalogName, pageCount }: Flipb
         setLoading(true);
         setLoadingProgress(5);
 
-        // Load jQuery
+        // Load jQuery 3.x (turn.js requires 3.x, not 4.x)
         if (!(window as any).jQuery) {
-          const jQuery = (await import('jquery')).default;
-          (window as any).jQuery = jQuery;
-          (window as any).$ = jQuery;
+          await new Promise<void>((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = 'https://code.jquery.com/jquery-3.7.1.min.js';
+            s.onload = () => resolve();
+            s.onerror = () => reject(new Error('jQuery load failed'));
+            document.head.appendChild(s);
+          });
         }
 
         // Load turn.js
         await import('@/lib/vendor/turn.min.js');
-        
+
         setLoadingProgress(10);
 
         // Load pdf.js
         const pdfjsLib = await import('pdfjs-dist');
-        
-        // Set worker - use CDN for compatibility
+
+        // Use unpkg CDN — always mirrors npm, works for any version
         const pdfjsVersion = pdfjsLib.version;
-        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsVersion}/pdf.worker.min.mjs`;
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsVersion}/build/pdf.worker.min.mjs`;
         
         setLoadingProgress(15);
         
