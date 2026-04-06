@@ -20,6 +20,8 @@ import { requireAdminOrProxy } from '../middleware/auth'
 import { dbMiddleware } from '../middleware/db'
 import {
   buildAuthorizationUrl,
+  generateSignedState,
+  verifySignedState,
   exchangeCodeForTokens,
   refreshAllegroToken,
   AllegroInvalidGrantError,
@@ -43,6 +45,32 @@ type AllegroEnv = Env & {
   ALLEGRO_ADMIN_REDIRECT_URL: string
   ALLEGRO_TOKEN_ENCRYPTION_KEY?: string
   ALLEGRO_KV: KVNamespace
+}
+
+const OAUTH_STATE_TTL_SECONDS = 10 * 60
+const OAUTH_STATE_TTL_MS = OAUTH_STATE_TTL_SECONDS * 1000
+
+type OauthStateRecord = {
+  environment: AllegroEnvironment
+  createdAt: number
+}
+
+function parseOauthStateRecord(raw: string | null): OauthStateRecord | null {
+  if (!raw) return null
+  try {
+    const parsed = JSON.parse(raw) as Partial<OauthStateRecord>
+    if ((parsed.environment !== 'sandbox' && parsed.environment !== 'production') || typeof parsed.createdAt !== 'number') {
+      return null
+    }
+    return { environment: parsed.environment, createdAt: parsed.createdAt }
+  } catch {
+    return null
+  }
+}
+
+function isFreshState(createdAt: number): boolean {
+  const age = Date.now() - createdAt
+  return age >= 0 && age <= OAUTH_STATE_TTL_MS
 }
 
 async function encrypt(text: string, key?: string): Promise<string> {
@@ -192,25 +220,36 @@ allegroRouter.get('/connect/url', requireAdminOrProxy(), async (c) => {
   const environment = (c.req.query('environment') ?? env.ALLEGRO_ENVIRONMENT ?? 'sandbox') as AllegroEnvironment
 
   try {
-    // Generate CSRF state and store in DB — shared between all worker instances
-    // (local dev + production both connect to the same Neon DB, so no secret sharing needed)
+    // Generate CSRF state. Prefer one-time KV state; fallback to HMAC-signed
+    // stateless state when KV is temporarily unavailable.
     const nonce = Array.from(crypto.getRandomValues(new Uint8Array(16)))
       .map(b => b.toString(16).padStart(2, '0')).join('')
-    const stateKey = `csrf:state:${nonce}`
 
-    const db = createDbHttp(env.DATABASE_URL)
-    await db.insert(allegroState)
-      .values({ key: stateKey, value: JSON.stringify({ environment, createdAt: Date.now() }), updatedAt: new Date() })
-      .onConflictDoUpdate({ target: allegroState.key, set: { value: JSON.stringify({ environment, createdAt: Date.now() }), updatedAt: new Date() } })
+    let state = nonce
+    const kv = env.ALLEGRO_KV
+    if (kv) {
+      try {
+        await kv.put(
+          `${KV_KEYS.STATE_PREFIX}${nonce}`,
+          JSON.stringify({ environment, createdAt: Date.now() }),
+          { expirationTtl: OAUTH_STATE_TTL_SECONDS },
+        )
+      } catch (err) {
+        console.warn('[Allegro] connect/url KV state write failed — using signed state fallback:', err instanceof Error ? err.message : String(err))
+        state = await generateSignedState(environment, env.JWT_ACCESS_SECRET)
+      }
+    } else {
+      state = await generateSignedState(environment, env.JWT_ACCESS_SECRET)
+    }
 
     const url = buildAuthorizationUrl({
       clientId:    env.ALLEGRO_CLIENT_ID,
       redirectUri: env.ALLEGRO_REDIRECT_URI,
       environment,
-      state: nonce,
+      state,
     })
 
-    return c.json({ success: true, data: { url, state: nonce, environment } })
+    return c.json({ success: true, data: { url, state, environment } })
   } catch (err) {
     console.error('[Allegro] connect/url error:', err instanceof Error ? err.message : String(err))
     return c.json({ success: false, error: { code: 'CONNECT_URL_ERROR', message: 'Błąd generowania URL autoryzacji' } }, 500)
@@ -226,7 +265,6 @@ allegroRouter.get('/callback', async (c) => {
   const adminRedirectBase = env.ALLEGRO_ADMIN_REDIRECT_URL ?? 'http://localhost:3000/admin/settings'
   const successUrl = `${adminRedirectBase}?status=success&source=allegro`
   const errorUrl   = (msg: string) => `${adminRedirectBase}?status=error&source=allegro&message=${encodeURIComponent(msg)}`
-  const db = createDbHttp(env.DATABASE_URL)
 
   // Allegro returned an error
   if (allegroError) {
@@ -238,27 +276,61 @@ allegroRouter.get('/callback', async (c) => {
     return c.redirect(errorUrl('Brakujące parametry w callbacku'))
   }
 
-  // Verify CSRF state from DB (shared between local dev + production — same Neon DB)
-  let environment: AllegroEnvironment
-  try {
-    const stateKey = `csrf:state:${state}`
-    const [stateRow] = await db.select().from(allegroState).where(eq(allegroState.key, stateKey)).limit(1)
+  // Verify CSRF state:
+  // 1) one-time KV state (preferred), 2) signed stateless fallback,
+  // 3) legacy DB state for backwards compatibility.
+  let environment: AllegroEnvironment | null = null
 
-    if (!stateRow) {
-      return c.redirect(errorUrl('Nieprawidłowy lub wygasły parametr state (CSRF)'))
+  const kv = env.ALLEGRO_KV
+  if (kv) {
+    try {
+      const raw = await kv.get(`${KV_KEYS.STATE_PREFIX}${state}`)
+      const parsed = parseOauthStateRecord(raw)
+      if (parsed) {
+        await kv.delete(`${KV_KEYS.STATE_PREFIX}${state}`).catch(() => {})
+        if (!isFreshState(parsed.createdAt)) {
+          return c.redirect(errorUrl('Wygasły parametr state — spróbuj ponownie'))
+        }
+        environment = parsed.environment
+      }
+    } catch (err) {
+      console.warn('[Allegro] callback KV state read failed:', err instanceof Error ? err.message : String(err))
     }
+  }
 
-    // Delete immediately — one-time use
-    await db.delete(allegroState).where(eq(allegroState.key, stateKey))
-
-    const parsed = JSON.parse(stateRow.value) as { environment: AllegroEnvironment; createdAt: number }
-    if (Date.now() - parsed.createdAt > 600_000) {
-      return c.redirect(errorUrl('Wygasły parametr state — spróbuj ponownie'))
+  if (!environment) {
+    try {
+      const verified = await verifySignedState(state, env.JWT_ACCESS_SECRET)
+      environment = verified.environment
+    } catch {
+      // Continue to legacy DB fallback.
     }
-    environment = parsed.environment
-  } catch (err) {
-    console.error('[Allegro] callback state verification error:', err instanceof Error ? err.message : String(err))
-    return c.redirect(errorUrl('Błąd weryfikacji sesji — spróbuj ponownie'))
+  }
+
+  if (!environment) {
+    try {
+      const dbForState = createDbHttp(env.DATABASE_URL)
+      const stateKey = `csrf:state:${state}`
+      const [stateRow] = await dbForState.select().from(allegroState).where(eq(allegroState.key, stateKey)).limit(1)
+
+      if (stateRow) {
+        await dbForState.delete(allegroState).where(eq(allegroState.key, stateKey)).catch(() => {})
+        const parsed = parseOauthStateRecord(stateRow.value)
+        if (!parsed) {
+          return c.redirect(errorUrl('Nieprawidłowy parametr state (CSRF)'))
+        }
+        if (!isFreshState(parsed.createdAt)) {
+          return c.redirect(errorUrl('Wygasły parametr state — spróbuj ponownie'))
+        }
+        environment = parsed.environment
+      }
+    } catch (err) {
+      console.error('[Allegro] callback state verification error:', err instanceof Error ? err.message : String(err))
+    }
+  }
+
+  if (!environment) {
+    return c.redirect(errorUrl('Nieprawidłowy lub wygasły parametr state (CSRF)'))
   }
 
   try {
@@ -272,35 +344,51 @@ allegroRouter.get('/callback', async (c) => {
 
     const expiresAt = new Date(Date.now() + tokens.expires_in * 1000)
 
-    // Save to DB (encrypted) and KV
-    await Promise.all([
-      saveTokensToDB(db, {
+    // KV is source-of-truth for runtime token usage — persist there first.
+    await saveTokensToKV(env.ALLEGRO_KV, {
+      accessToken:  tokens.access_token,
+      refreshToken: tokens.refresh_token,
+      expiresAt,
+      environment,
+      encKey:       env.ALLEGRO_TOKEN_ENCRYPTION_KEY,
+    })
+
+    const db = createDbHttp(env.DATABASE_URL)
+
+    // DB is backup storage — keep OAuth flow alive if DB is transiently unavailable.
+    let dbSaved = true
+    try {
+      await saveTokensToDB(db, {
         accessToken:  tokens.access_token,
         refreshToken: tokens.refresh_token,
         expiresAt,
         scope:        tokens.scope ?? null,
         environment,
         encKey:       env.ALLEGRO_TOKEN_ENCRYPTION_KEY,
-      }),
-      saveTokensToKV(env.ALLEGRO_KV, {
-        accessToken:  tokens.access_token,
-        refreshToken: tokens.refresh_token,
-        expiresAt,
-        environment,
-        encKey:       env.ALLEGRO_TOKEN_ENCRYPTION_KEY,
-      }),
-    ])
+      })
+    } catch (err) {
+      dbSaved = false
+      console.warn('[Allegro] callback DB token backup failed — continuing with KV-only tokens:', err instanceof Error ? err.message : String(err))
+    }
 
-    // Invalidate status cache
-    await env.ALLEGRO_KV.delete(KV_KEYS.STATUS)
+    // Refresh status cache immediately for admin UI.
+    const status: AllegroConnectionStatus = {
+      connected: true,
+      environment,
+      expiresAt: expiresAt.toISOString(),
+      tokenValid: true,
+    }
+    await env.ALLEGRO_KV.put(KV_KEYS.STATUS, JSON.stringify(status), { expirationTtl: 900 }).catch(() => {})
 
     // Save connection event to allegro_state for audit
-    await db.insert(allegroState)
-      .values({ key: 'last_oauth_connect', value: new Date().toISOString(), updatedAt: new Date() })
-      .onConflictDoUpdate({
-        target: allegroState.key,
-        set: { value: new Date().toISOString(), updatedAt: new Date() },
-      })
+    if (dbSaved) {
+      await db.insert(allegroState)
+        .values({ key: 'last_oauth_connect', value: new Date().toISOString(), updatedAt: new Date() })
+        .onConflictDoUpdate({
+          target: allegroState.key,
+          set: { value: new Date().toISOString(), updatedAt: new Date() },
+        })
+    }
 
     console.log(`[Allegro] OAuth connection successful — environment: ${environment}`)
     return c.redirect(successUrl)
