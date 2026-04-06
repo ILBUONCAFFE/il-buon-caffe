@@ -1,10 +1,5 @@
 import { notFound } from "next/navigation";
-import dynamic from "next/dynamic";
-
-const FlipbookViewer = dynamic(
-  () => import("@/components/Flipbook/FlipbookViewer"),
-  { ssr: false }
-);
+import FlipbookViewer from "@/components/Flipbook/FlipbookViewer";
 
 interface CatalogData {
   id: number;

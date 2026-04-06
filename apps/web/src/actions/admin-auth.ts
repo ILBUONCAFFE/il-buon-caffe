@@ -15,7 +15,28 @@ const MAX_FAILED_ATTEMPTS = 5;                   // lock after 5 wrong passwords
 const LOCKOUT_DURATION_MS = 30 * 60 * 1000;     // 30 minutes
 const GENERIC_ERROR = 'Nieprawidłowy email lub hasło';
 
-async function getExpectedOrigin(): Promise<string[]> {
+function addOriginWithVariants(value: string | null | undefined, origins: Set<string>): void {
+  if (!value) return;
+
+  let parsed: URL;
+  try {
+    parsed = value.includes('://') ? new URL(value) : new URL(`https://${value}`);
+  } catch {
+    return;
+  }
+
+  origins.add(parsed.origin);
+
+  // Support canonical + www aliases to avoid false CSRF blocks when DNS serves both.
+  if (parsed.hostname.startsWith('www.')) {
+    const bare = parsed.hostname.slice(4);
+    origins.add(`${parsed.protocol}//${bare}${parsed.port ? `:${parsed.port}` : ''}`);
+  } else if (parsed.hostname.includes('.')) {
+    origins.add(`${parsed.protocol}//www.${parsed.hostname}${parsed.port ? `:${parsed.port}` : ''}`);
+  }
+}
+
+async function getExpectedOrigin(headerStore: Headers): Promise<string[]> {
   let url = process.env.NEXT_PUBLIC_SITE_URL;
   try {
     const { getCloudflareContext } = require('@opennextjs/cloudflare');
@@ -26,14 +47,26 @@ async function getExpectedOrigin(): Promise<string[]> {
   } catch (e) {
     // Local dev or setup issue
   }
-  
-  const expectedUrls = [(url ?? 'http://localhost:3000').replace(/\/$/, '')];
-  
-  if (process.env.NODE_ENV !== 'production' && !expectedUrls.includes('http://localhost:3000')) {
-    expectedUrls.push('http://localhost:3000');
+
+  const expectedOrigins = new Set<string>();
+
+  addOriginWithVariants((url ?? 'http://localhost:3000').replace(/\/$/, ''), expectedOrigins);
+
+  // Trust deployment host as additional first-party origin (custom domains, previews).
+  const forwardedHost = headerStore.get('x-forwarded-host');
+  const host = forwardedHost ?? headerStore.get('host');
+  const forwardedProto = headerStore.get('x-forwarded-proto');
+  const protocol = (forwardedProto === 'http' || forwardedProto === 'https') ? forwardedProto : 'https';
+
+  if (host) {
+    addOriginWithVariants(`${protocol}://${host}`, expectedOrigins);
   }
-  
-  return expectedUrls;
+
+  if (process.env.NODE_ENV !== 'production') {
+    expectedOrigins.add('http://localhost:3000');
+  }
+
+  return [...expectedOrigins];
 }
 
 export interface LoginResult {
@@ -89,7 +122,7 @@ export async function adminLoginAction(formData: FormData): Promise<LoginResult>
     const headerStore = await headers();
     const origin = headerStore.get('origin');
     const referer = headerStore.get('referer');
-    const expectedOrigin = await getExpectedOrigin();
+    const expectedOrigin = await getExpectedOrigin(headerStore);
 
     // Fail CLOSED: a legitimate browser form submission always includes
     // Origin or Referer. If both are absent (e.g., stripped by a rogue proxy),

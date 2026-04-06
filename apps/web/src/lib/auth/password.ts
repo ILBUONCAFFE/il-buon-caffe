@@ -35,7 +35,11 @@ export async function hashPassword(password: string): Promise<string> {
 }
 
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  return bcrypt.compare(await preHash(password), hash);
+  const normalizedMatch = await bcrypt.compare(await preHash(password), hash);
+  if (normalizedMatch) return true;
+
+  // Backward compatibility: accept legacy hashes created before SHA-256 pre-hash migration.
+  return bcrypt.compare(password, hash);
 }
 
 export interface PasswordValidation {
