@@ -10,8 +10,8 @@ interface CatalogData {
 }
 
 async function getCatalog(slug: string): Promise<CatalogData | null> {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || "http://localhost:8787";
-  
+  const apiUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || "http://localhost:8787";
+
   try {
     const res = await fetch(`${apiUrl}/api/catalogs/${slug}`, {
       next: { revalidate: 3600 },
@@ -44,7 +44,7 @@ export default async function CatalogPage({ params }: { params: Promise<{ slug: 
     notFound();
   }
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || "http://localhost:8787";
+  const apiUrl = process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || "http://localhost:8787";
   const pdfUrl = `${apiUrl}/api/catalogs/${slug}/pdf`;
 
   return (
