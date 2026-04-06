@@ -1,0 +1,4 @@
+ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "tracking_status_code" varchar(50);--> statement-breakpoint
+ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "tracking_status_updated_at" timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "tracking_last_event_at" timestamp with time zone;--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "orders_tracking_queue_idx" ON "orders" USING btree ("tracking_status_updated_at","updated_at") WHERE "orders"."source" = 'allegro' AND "orders"."allegro_shipment_id" IS NOT NULL AND "orders"."status" IN ('shipped', 'delivered');

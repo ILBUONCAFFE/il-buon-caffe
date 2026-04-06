@@ -5,6 +5,8 @@ import { useNotification } from '@/components/Notification/NotificationProvider'
 import Link from 'next/link';
 import { ArrowLeft, CreditCard, Lock, Truck, CheckCircle2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { SHOP_ENABLED } from '@/config/launch';
+import { ComingSoonBanner } from '@/components/ui/ComingSoonBanner';
 
 export default function CheckoutPage() {
   const { items, subtotal, clearCart } = useCart();
@@ -26,6 +28,26 @@ export default function CheckoutPage() {
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  // Block checkout when shop is not yet launched
+  if (!SHOP_ENABLED) {
+    return (
+      <div className="min-h-screen bg-brand-50 flex items-center justify-center px-6 py-20">
+        <div className="w-full max-w-lg">
+          <ComingSoonBanner variant="shop" />
+          <div className="text-center mt-8">
+            <Link
+              href="/sklep"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-brand-900 text-white text-sm font-bold uppercase tracking-wider rounded-full hover:bg-brand-700 transition-all"
+            >
+              <ArrowLeft size={16} />
+              Wróć do sklepu
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const shippingCost = subtotal > 200 ? 0 : 15;
   const total = subtotal + shippingCost;

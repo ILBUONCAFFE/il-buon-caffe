@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { ACCOUNTS_ENABLED } from "@/config/launch";
 import AccountClient from "@/components/Account/AccountClient";
 
 export const metadata: Metadata = {
@@ -11,5 +13,9 @@ export const metadata: Metadata = {
 };
 
 export default function AccountPage() {
+  if (!ACCOUNTS_ENABLED) {
+    redirect("/auth");
+  }
+
   return <AccountClient />;
 }

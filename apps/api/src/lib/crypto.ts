@@ -19,6 +19,9 @@ function bytesToHex(bytes: Uint8Array): string {
 }
 
 async function importKey(keyHex: string): Promise<CryptoKey> {
+  if (!/^[0-9a-f]{64}$/i.test(keyHex)) {
+    throw new Error('[Crypto] ALLEGRO_TOKEN_ENCRYPTION_KEY must be exactly 64 hex characters (32 bytes for AES-256).')
+  }
   const keyBytes = hexToBytes(keyHex)
   return crypto.subtle.importKey('raw', keyBytes, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt'])
 }

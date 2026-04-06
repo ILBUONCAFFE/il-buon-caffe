@@ -31,8 +31,8 @@ export function auditLogMiddleware(action: 'view_customer' | 'view_order' | 'exp
     
     try {
       // Reuse DB from middleware context; fallback to creating one if not set
-      const dbEnv = c.env as { DATABASE_URL: string; HYPERDRIVE?: { connectionString: string } }
-      const db = c.get('db') ?? createDb(dbEnv.HYPERDRIVE?.connectionString ?? dbEnv.DATABASE_URL)
+      const dbEnv = c.env as { DATABASE_URL: string }
+      const db = c.get('db') ?? createDb(dbEnv.DATABASE_URL)
       const ipAddress = c.req.header('CF-Connecting-IP') || c.req.header('X-Real-IP') || 'unknown'
       const userAgent = c.req.header('User-Agent') || 'unknown'
       

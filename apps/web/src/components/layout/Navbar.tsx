@@ -9,6 +9,7 @@ import { AnimatePresence, motion, useMotionValue, useSpring } from "motion/react
 import { ShoppingBag, User, Menu, X, Search, ChevronRight } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { cn } from "@/lib/utils";
+import { SHOP_ENABLED, ACCOUNTS_ENABLED } from "@/config/launch";
 
 const navLinks = [
   { name: "Start", href: "/" },
@@ -202,6 +203,8 @@ export const Navbar = () => {
   // Include isDarkTheme for pages that set data-theme="wine-dark" or "dark"
   const isDarkHeroPage = isDarkTheme || pathname === "/" || pathname === "/kawiarnia" || isShopRootOrCategory || isEncyclopedia || pathname === "/auth";
   const isDarkText = !isMobileMenuOpen && (isScrolled || !isDarkHeroPage);
+  const accountHref = ACCOUNTS_ENABLED ? '/account' : '/auth';
+  const accountLabel = ACCOUNTS_ENABLED ? 'Konto' : 'Konto (wkrótce)';
 
   // Stagger animation variants
   const containerVariants = {
@@ -493,7 +496,8 @@ export const Navbar = () => {
                 whileTap={{ scale: 0.9 }}
               >
                 <Link
-                  href="/account"
+                  href={accountHref}
+                  title={accountLabel}
                   className={cn(
                     "hidden sm:flex w-9 h-9 items-center justify-center rounded-full transition-colors",
                     isScrolled
@@ -502,60 +506,62 @@ export const Navbar = () => {
                           ? "text-white/80 hover:text-white hover:bg-white/10" 
                           : "text-brand-700 hover:bg-brand-100")
                   )}
-                  aria-label="Konto"
+                  aria-label={accountLabel}
                 >
                   <User className="w-4 h-4" />
                 </Link>
               </motion.div>
 
-              {/* Cart - with pulse animation when items added */}
-              <motion.button
-                ref={cartBtnRef}
-                onClick={(e) => handleOpenCart(e)}
-                whileHover={{ scale: 1.08 }}
-                whileTap={{ scale: 0.92 }}
-                animate={totalItems > 0 ? { 
-                  boxShadow: [
-                    "0 0 0 0 rgba(79, 55, 48, 0)",
-                    "0 0 0 8px rgba(79, 55, 48, 0.1)",
-                    "0 0 0 0 rgba(79, 55, 48, 0)"
-                  ]
-                } : {}}
-                transition={{ 
-                  boxShadow: { duration: 1.5, repeat: Infinity, repeatDelay: 3 }
-                }}
-                className={cn(
-                  "relative flex items-center gap-1.5 h-9 rounded-full transition-all duration-300",
-                  totalItems > 0
-                    ? "bg-brand-900 text-white px-3 hover:bg-brand-800"
-                    : cn(
-                        "w-9 justify-center",
-                        isScrolled
-                          ? "text-brand-700 hover:bg-brand-100"
-                          : (isDarkHeroPage 
-                              ? "text-white/80 hover:text-white hover:bg-white/10" 
-                              : "text-brand-700 hover:bg-brand-100")
-                      )
-                )}
-                aria-label={`Koszyk (${totalItems})`}
-              >
-                <motion.div
-                  animate={totalItems > 0 ? { rotate: [0, -10, 10, -10, 0] } : {}}
-                  transition={{ duration: 0.5, delay: 0.1 }}
-                  key={totalItems}
+              {/* Cart - hidden when shop is disabled */}
+              {SHOP_ENABLED && (
+                <motion.button
+                  ref={cartBtnRef}
+                  onClick={(e) => handleOpenCart(e)}
+                  whileHover={{ scale: 1.08 }}
+                  whileTap={{ scale: 0.92 }}
+                  animate={totalItems > 0 ? { 
+                    boxShadow: [
+                      "0 0 0 0 rgba(79, 55, 48, 0)",
+                      "0 0 0 8px rgba(79, 55, 48, 0.1)",
+                      "0 0 0 0 rgba(79, 55, 48, 0)"
+                    ]
+                  } : {}}
+                  transition={{ 
+                    boxShadow: { duration: 1.5, repeat: Infinity, repeatDelay: 3 }
+                  }}
+                  className={cn(
+                    "relative flex items-center gap-1.5 h-9 rounded-full transition-all duration-300",
+                    totalItems > 0
+                      ? "bg-brand-900 text-white px-3 hover:bg-brand-800"
+                      : cn(
+                          "w-9 justify-center",
+                          isScrolled
+                            ? "text-brand-700 hover:bg-brand-100"
+                            : (isDarkHeroPage 
+                                ? "text-white/80 hover:text-white hover:bg-white/10" 
+                                : "text-brand-700 hover:bg-brand-100")
+                        )
+                  )}
+                  aria-label={`Koszyk (${totalItems})`}
                 >
-                  <ShoppingBag className="w-4 h-4" />
-                </motion.div>
-                {totalItems > 0 && (
-                  <motion.span
-                    initial={{ scale: 0, rotate: -180 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    className="text-sm font-medium"
+                  <motion.div
+                    animate={totalItems > 0 ? { rotate: [0, -10, 10, -10, 0] } : {}}
+                    transition={{ duration: 0.5, delay: 0.1 }}
+                    key={totalItems}
                   >
-                    {totalItems}
-                  </motion.span>
-                )}
-              </motion.button>
+                    <ShoppingBag className="w-4 h-4" />
+                  </motion.div>
+                  {totalItems > 0 && (
+                    <motion.span
+                      initial={{ scale: 0, rotate: -180 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      className="text-sm font-medium"
+                    >
+                      {totalItems}
+                    </motion.span>
+                  )}
+                </motion.button>
+              )}
 
               {/* Mobile Menu Toggle */}
               <motion.button
@@ -694,28 +700,31 @@ export const Navbar = () => {
               >
                 <div className="flex items-center justify-between">
                   <Link
-                    href="/account"
+                    href={accountHref}
                     onClick={() => setIsMobileMenuOpen(false)}
+                    title={accountLabel}
                     className="flex items-center gap-3 text-white/70 hover:text-white transition-colors"
                   >
                     <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
                       <User className="w-5 h-5" />
                     </div>
-                    <span className="text-sm">Moje konto</span>
+                    <span className="text-sm">{ACCOUNTS_ENABLED ? 'Moje konto' : 'Konto wkrótce'}</span>
                   </Link>
 
-                  <motion.button
-                    onClick={(e) => {
-                      handleOpenCart(e);
-                      setIsMobileMenuOpen(false);
-                    }}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="flex items-center gap-2 bg-white text-brand-900 px-5 py-2.5 rounded-full font-medium text-sm"
-                  >
-                    <ShoppingBag className="w-4 h-4" />
-                    Koszyk ({totalItems})
-                  </motion.button>
+                  {SHOP_ENABLED && (
+                    <motion.button
+                      onClick={(e) => {
+                        handleOpenCart(e);
+                        setIsMobileMenuOpen(false);
+                      }}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="flex items-center gap-2 bg-white text-brand-900 px-5 py-2.5 rounded-full font-medium text-sm"
+                    >
+                      <ShoppingBag className="w-4 h-4" />
+                      Koszyk ({totalItems})
+                    </motion.button>
+                  )}
                 </div>
               </motion.div>
             </div>

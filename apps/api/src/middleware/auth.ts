@@ -80,14 +80,13 @@ export function requireAdmin() {
  */
 export function requireAdminOrProxy() {
   return async (c: Context, next: Next) => {
-    let internalSecret = (c.env as { INTERNAL_API_SECRET?: string }).INTERNAL_API_SECRET
-    internalSecret = internalSecret || 'd9f64c04a33d59d7810e5d6d799f9a853829d1a1fe964efab50142a004d3497e'
+    const internalSecret = (c.env as { INTERNAL_API_SECRET?: string }).INTERNAL_API_SECRET
     const requestSecret = c.req.header('X-Admin-Internal-Secret')
 
-    // Accept internal proxy request if secret matches and is non-empty
+    // Fail closed: if a proxy secret was presented but INTERNAL_API_SECRET is not configured, reject
     if (requestSecret && !internalSecret) {
-      // INTERNAL_API_SECRET not set in Worker env — likely missing from .dev.vars or wrangler secrets
-      console.warn('[auth] requireAdminOrProxy: X-Admin-Internal-Secret header present but INTERNAL_API_SECRET is not configured in Worker env. Add it to .dev.vars (local) or via wrangler secret put (prod).')
+      console.error('[auth] requireAdminOrProxy: X-Admin-Internal-Secret header present but INTERNAL_API_SECRET is not configured in Worker env. Add it to .dev.vars (local) or via wrangler secret put (prod).')
+      return c.json({ error: 'Serwer nieprawidłowo skonfigurowany' }, 503)
     }
     if (internalSecret && requestSecret && requestSecret === internalSecret) {
       // Verify the forwarded admin user ID against the database — never trust it blindly
@@ -98,7 +97,7 @@ export function requireAdminOrProxy() {
         return c.json({ error: 'Nieautoryzowany dostęp' }, 401)
       }
 
-      const env = c.env as { HYPERDRIVE?: { connectionString: string }; DATABASE_URL?: string }
+      const env = c.env as { DATABASE_URL?: string }
       const db = createDb(env.DATABASE_URL ?? '')
       const userRow = await db.query.users.findFirst({
         columns: { id: true, role: true, anonymized: true },

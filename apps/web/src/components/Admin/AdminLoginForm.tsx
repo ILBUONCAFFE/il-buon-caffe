@@ -102,7 +102,7 @@ export function AdminLoginForm() {
                 {error}
                 {isLocked && (
                   <span className="block text-red-400/70 text-xs mt-1">
-                    Odblokowanie za {formatTime(retryAfter!)}
+                    Ponowna próba za {formatTime(retryAfter!)}
                   </span>
                 )}
               </span>
@@ -201,7 +201,7 @@ export function AdminLoginForm() {
                 Logowanie...
               </>
             ) : isLocked ? (
-              `Zablokowane (${formatTime(retryAfter!)})`
+              `Blokada logowania (${formatTime(retryAfter!)})`
             ) : (
               'Zaloguj się'
             )}

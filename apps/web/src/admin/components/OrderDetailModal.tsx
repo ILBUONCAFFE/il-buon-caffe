@@ -1,410 +1,336 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import {
-  User, Mail, Phone, MapPin, Truck, Receipt, Edit,
-  ShoppingBag, Store, Loader2, Package, CreditCard, FileText, Building2,
-} from 'lucide-react'
-import { GlassModal } from './ui/GlassModal'
-import { getStatusBadge } from '../utils/getStatusBadge'
-import { adminApi, ApiError } from '../lib/adminApiClient'
-import type { AdminOrder, AllegroOrderDetails, AllegroTrackingData } from '../types/admin-api'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { X } from 'lucide-react'
+import { adminApi } from '../lib/adminApiClient'
+import { OrderStatusBadge } from './OrderStatusBadge'
+import type { AdminOrder, OrderTrackingSnapshot } from '../types/admin-api'
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function formatAmount(amount: string | number, currency = 'PLN'): string {
-  return `${Number(amount).toLocaleString('pl-PL', { minimumFractionDigits: 2 })} ${currency}`
-}
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('pl-PL', {
-    timeZone: 'Europe/Warsaw',
-    day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  })
-}
-
-const SectionLabel = ({ children }: { children: React.ReactNode }) => (
-  <p className="text-[11px] font-semibold text-[#A3A3A3] uppercase tracking-wider mb-2">
-    {children}
-  </p>
-)
-
-const InfoRow = ({
-  icon: Icon,
-  children,
-  iconColor = 'text-[#A3A3A3]',
-}: {
-  icon: React.ElementType
-  children: React.ReactNode
-  iconColor?: string
-}) => (
-  <div className="flex items-center gap-2.5">
-    <Icon size={13} className={`${iconColor} shrink-0`} />
-    <span className="text-sm text-[#525252]">{children}</span>
-  </div>
-)
-
-// ── Props ─────────────────────────────────────────────────────────────────────
-
-interface Props {
+interface OrderDetailModalProps {
   order: AdminOrder | null
   isOpen: boolean
   onClose: () => void
+  onCreateShipment?: (order: AdminOrder) => void
+  onDownloadLabel?: (order: AdminOrder) => void
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
+function formatDate(iso: string | null | undefined): string {
+  if (!iso) return '-'
+  return new Intl.DateTimeFormat('pl-PL', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(iso))
+}
 
-export function OrderDetailModal({ order, isOpen, onClose }: Props) {
-  const [allegroDetails, setAllegroDetails] = useState<AllegroOrderDetails | null>(null)
-  const [allegroTracking, setAllegroTracking] = useState<AllegroTrackingData | null>(null)
-  const [loadingAllegro, setLoadingAllegro] = useState(false)
-  const [allegroError, setAllegroError] = useState<string | null>(null)
+function formatAmount(value: number | undefined | null, currency = 'PLN'): string {
+  if (value == null) return '-'
+  const symbol: Record<string, string> = {
+    PLN: 'zl',
+    EUR: 'EUR',
+    CZK: 'CZK',
+    HUF: 'HUF',
+  }
+  return `${Number(value).toFixed(2)} ${symbol[currency] ?? currency}`
+}
+
+function shipmentStatusLabel(value: string | null | undefined): string {
+  switch (value) {
+    case 'label_created':
+      return 'Etykieta wygenerowana'
+    case 'in_transit':
+      return 'W drodze'
+    case 'out_for_delivery':
+      return 'W doreczeniu'
+    case 'delivered':
+      return 'Dostarczona'
+    case 'issue':
+      return 'Problem z przesylka'
+    case 'none':
+      return 'Brak przesylki'
+    default:
+      return 'Status nieznany'
+  }
+}
+
+function InfoRow({ label, value }: { label: string; value: string | ReactNode }) {
+  return (
+    <div className="flex justify-between py-1 gap-4">
+      <span className="text-[#666] text-sm shrink-0">{label}</span>
+      <span className="text-sm text-[#1A1A1A] text-right max-w-[65%] break-words">{value}</span>
+    </div>
+  )
+}
+
+function SectionLabel({ children }: { children: ReactNode }) {
+  return (
+    <h3 className="text-xs font-semibold text-[#A3A3A3] uppercase tracking-wider mb-2 mt-5 first:mt-0">
+      {children}
+    </h3>
+  )
+}
+
+export function OrderDetailModal({
+  order,
+  isOpen,
+  onClose,
+  onCreateShipment,
+  onDownloadLabel,
+}: OrderDetailModalProps) {
+  const [tracking, setTracking] = useState<OrderTrackingSnapshot | null>(null)
+  const [trackingLoading, setTrackingLoading] = useState(false)
+  const [trackingError, setTrackingError] = useState<string | null>(null)
+
+  const refreshTrackingSnapshot = useCallback(async (showError = true) => {
+    if (!order) return
+    if (order.source !== 'allegro') return
+    if (!order.allegroShipmentId) return
+
+    setTrackingLoading(true)
+    setTrackingError(null)
+    try {
+      const res = await adminApi.refreshOrderTracking(order.id)
+      setTracking(res.data)
+    } catch {
+      if (showError) {
+        setTrackingError('Nie udalo sie odswiezyc statusu przesylki')
+      }
+    } finally {
+      setTrackingLoading(false)
+    }
+  }, [order])
 
   useEffect(() => {
-    if (!order || !isOpen) {
-      setAllegroDetails(null)
-      setAllegroTracking(null)
-      setAllegroError(null)
-      return
+    if (!isOpen || !order) return
+
+    setTracking(null)
+    setTrackingError(null)
+
+    const shouldAutoRefresh =
+      order.source === 'allegro' &&
+      !!order.allegroShipmentId &&
+      (order.shipmentFreshness === 'stale' || order.shipmentFreshness === 'unknown')
+
+    if (shouldAutoRefresh) {
+      void refreshTrackingSnapshot(false)
     }
-    if (order.source !== 'allegro' || !order.externalId) return
+  }, [isOpen, order, refreshTrackingSnapshot])
 
-    let cancelled = false
-    setLoadingAllegro(true)
-    setAllegroError(null)
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
 
-    adminApi.getAllegroStatus()
-      .then((statusRes) => {
-        if (cancelled) return
-        if (!statusRes.data?.connected) return
-        return Promise.all([
-          adminApi.getAllegroOrderDetails(order.externalId!),
-          adminApi.getAllegroOrderTracking(order.externalId!).catch(() => null),
-        ]).then(([detailsRes, trackingRes]) => {
-          if (cancelled) return
-          setAllegroDetails(detailsRes.data)
-          if (trackingRes?.data) setAllegroTracking(trackingRes.data)
-        })
-      })
-      .catch((err) => {
-        if (cancelled) return
-        if (err instanceof ApiError && (err.status === 401 || err.status === 503)) return
-        setAllegroError(
-          err instanceof ApiError
-            ? `Allegro API: ${err.message}`
-            : 'Błąd pobierania danych z Allegro'
-        )
-      })
-      .finally(() => { if (!cancelled) setLoadingAllegro(false) })
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape)
+      document.body.style.overflow = 'hidden'
+    }
 
-    return () => { cancelled = true }
-  }, [order?.id, isOpen]) // eslint-disable-line react-hooks/exhaustive-deps
+    return () => {
+      document.removeEventListener('keydown', handleEscape)
+      document.body.style.overflow = ''
+    }
+  }, [isOpen, onClose])
 
-  if (!order) return null
+  if (!isOpen || !order) return null
 
-  const shippingAddress =
-    allegroDetails?.delivery.address ??
-    order.customerData?.shippingAddress ??
-    null
-
-  const phone = allegroDetails?.buyer.phone ?? order.customerData?.phone ?? null
-  const trackingNumber = allegroTracking?.waybill ?? allegroDetails?.delivery.waybill ?? order.trackingNumber ?? null
-  const trackingStatus = allegroTracking?.status ?? null
-  const trackingDescription = allegroTracking?.statusDescription ?? null
-  const carrier = allegroTracking?.carrier ?? null
+  const customer = order.customerData
+  const address = customer?.shippingAddress
+  const hasShipment = !!order.allegroShipmentId
+  const canShip = ['paid', 'processing'].includes(order.status)
+  const canCancel = ['pending', 'paid', 'processing'].includes(order.status)
+  const effectiveTrackingNumber = tracking?.trackingNumber ?? order.trackingNumber ?? null
+  const effectiveTrackingStatus = tracking?.trackingStatus ?? order.trackingStatus ?? null
+  const effectiveTrackingStatusUpdatedAt = tracking?.trackingStatusUpdatedAt ?? order.trackingStatusUpdatedAt ?? null
+  const effectiveShipmentDisplayStatus = tracking?.shipmentDisplayStatus ?? order.shipmentDisplayStatus ?? 'unknown'
+  const effectiveShipmentFreshness = tracking?.shipmentFreshness ?? order.shipmentFreshness ?? 'unknown'
 
   return (
-    <GlassModal isOpen={isOpen} onClose={onClose} title="Szczegóły zamówienia">
-      <div className="space-y-5">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div
+        className="absolute inset-0 bg-[#1A1A1A]/30 backdrop-blur-[2px] animate-in fade-in duration-150"
+        onClick={onClose}
+      />
 
-        {/* ── Header ─────────────────────────────────────────────────── */}
-        <div className="flex items-start justify-between pb-4 border-b border-[#F0EFEC]">
-          <div>
-            <div className="flex items-center gap-2.5">
-              <h3 className="text-lg font-bold text-[#1A1A1A] tabular-nums">
-                {order.orderNumber}
-              </h3>
-              {order.source === 'allegro' ? (
-                <span className="inline-flex items-center gap-1 text-[11px] font-medium px-1.5 py-0.5 rounded bg-[#FF5A00]/8 text-[#EA580C]">
-                  <ShoppingBag size={10} /> Allegro
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 text-[11px] font-medium px-1.5 py-0.5 rounded bg-[#0066CC]/8 text-[#0066CC]">
-                  <Store size={10} /> Sklep
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-[#A3A3A3] mt-1">
-              {formatDate(order.paidAt ?? order.createdAt)}
-            </p>
+      <div className="relative w-full max-w-5xl max-h-[90vh] flex flex-col bg-white rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.12)] border border-[#E5E4E1] animate-in slide-in-from-bottom-3 fade-in duration-200">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#F0EFEC] shrink-0">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h2 className="text-lg font-semibold text-[#1A1A1A] tabular-nums">{order.orderNumber}</h2>
+            {order.source === 'allegro' && (
+              <span className="text-[10px] font-medium bg-[#FF5A00]/10 text-[#FF5A00] px-2 py-0.5 rounded-full">
+                Allegro
+              </span>
+            )}
+            {order.invoiceRequired && (
+              <span className="text-[10px] font-medium bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">FV</span>
+            )}
+            <OrderStatusBadge
+              status={order.status}
+              source={order.source}
+              allegroFulfillmentStatus={order.allegroFulfillmentStatus}
+              paymentMethod={order.paymentMethod}
+              paidAt={order.paidAt}
+            />
           </div>
-          {getStatusBadge(order.status, order.paymentMethod, order.paidAt)}
+
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-[#A3A3A3]">{formatDate(order.paidAt ?? order.createdAt)}</span>
+            <button
+              onClick={onClose}
+              className="p-1.5 -mr-1.5 rounded-lg text-[#A3A3A3] hover:text-[#1A1A1A] hover:bg-[#F5F4F1] transition-colors"
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
-        {/* Allegro loading indicator */}
-        {loadingAllegro && (
-          <div className="flex items-center gap-2 text-xs text-[#A3A3A3]">
-            <Loader2 size={12} className="animate-spin" />
-            Pobieranie danych z Allegro…
-          </div>
-        )}
-        {allegroError && (
-          <p className="text-xs text-[#DC2626]">{allegroError}</p>
-        )}
+        <div className="flex-1 overflow-y-auto">
+          <div className="grid grid-cols-5 gap-8 px-6 py-5">
+            <div className="col-span-2 space-y-1">
+              <SectionLabel>Klient</SectionLabel>
+              <InfoRow label="Imie" value={customer?.name ?? '-'} />
+              <InfoRow label="Email" value={customer?.email ?? '-'} />
+              {customer?.phone && <InfoRow label="Telefon" value={customer.phone} />}
+              {customer?.allegroLogin && <InfoRow label="Allegro" value={customer.allegroLogin} />}
 
-        {/* ── Customer + Delivery grid ───────────────────────────────── */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-
-          {/* Customer */}
-          <div>
-            <SectionLabel>Klient</SectionLabel>
-            <div className="space-y-2">
-              <InfoRow icon={User}>
-                <span className="font-medium text-[#1A1A1A]">
-                  {order.customerData?.name || '—'}
-                </span>
-              </InfoRow>
-              <InfoRow icon={Mail}>
-                {order.customerData?.email || '—'}
-              </InfoRow>
-              {phone && <InfoRow icon={Phone}>{phone}</InfoRow>}
-              {allegroDetails?.buyer.login && (
-                <InfoRow icon={ShoppingBag} iconColor="text-[#EA580C]">
-                  <span className="text-xs">Login: {allegroDetails.buyer.login}</span>
-                </InfoRow>
+              <SectionLabel>Dostawa</SectionLabel>
+              {address ? (
+                <>
+                  <InfoRow label="Ulica" value={address.street} />
+                  <InfoRow label="Miasto" value={`${address.postalCode} ${address.city}`} />
+                  <InfoRow label="Kraj" value={address.country} />
+                  {address.phone && <InfoRow label="Telefon" value={address.phone} />}
+                </>
+              ) : (
+                <p className="text-sm text-[#A3A3A3]">Brak adresu dostawy</p>
               )}
-              {order.externalId && !allegroDetails?.buyer.login && (
-                <InfoRow icon={ShoppingBag} iconColor="text-[#EA580C]">
-                  <span className="text-xs font-mono">ID: {order.externalId}</span>
-                </InfoRow>
-              )}
-            </div>
-          </div>
 
-          {/* Delivery */}
-          <div>
-            <SectionLabel>Dostawa</SectionLabel>
-            <div className="space-y-2">
-              {loadingAllegro && !shippingAddress ? (
-                <div className="h-16 bg-[#F5F4F1] rounded-lg animate-pulse" />
-              ) : shippingAddress ? (
-                <div className="flex items-start gap-2.5">
-                  <MapPin size={13} className="text-[#A3A3A3] mt-0.5 shrink-0" />
-                  <div className="text-sm text-[#525252]">
-                    <p className="font-medium text-[#1A1A1A]">{shippingAddress.name}</p>
-                    <p>{shippingAddress.street}</p>
-                    <p>{shippingAddress.postalCode} {shippingAddress.city}</p>
-                    {shippingAddress.phone && (
-                      <p className="text-[#A3A3A3] mt-0.5">{shippingAddress.phone}</p>
-                    )}
+              {order.invoiceRequired && (
+                <>
+                  <SectionLabel>Faktura</SectionLabel>
+                  {customer?.companyName && <InfoRow label="Firma" value={customer.companyName} />}
+                  {customer?.taxId && <InfoRow label="NIP" value={<span className="font-mono">{customer.taxId}</span>} />}
+                  {!customer?.companyName && <p className="text-sm text-[#A3A3A3]">Faktura dla osoby prywatnej</p>}
+                </>
+              )}
+
+              {order.notes && (
+                <>
+                  <SectionLabel>Notatka klienta</SectionLabel>
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-900">
+                    {order.notes}
                   </div>
-                </div>
-              ) : (
-                <p className="text-sm text-[#A3A3A3]">Brak danych adresowych</p>
-              )}
-              {(allegroDetails?.delivery.methodName ?? order.shippingMethod) && (
-                <InfoRow icon={Truck}>
-                  <span className="text-xs text-[#737373]">
-                    {allegroDetails?.delivery.methodName ?? order.shippingMethod}
-                  </span>
-                </InfoRow>
+                </>
               )}
             </div>
-          </div>
-        </div>
 
-        {/* ── Tracking ───────────────────────────────────────────────── */}
-        {(trackingNumber || (order.source === 'allegro' && loadingAllegro)) && (
-          <div>
-            <SectionLabel>Śledzenie przesyłki</SectionLabel>
-            {loadingAllegro && !trackingNumber ? (
-              <div className="h-8 bg-[#F5F4F1] rounded-lg animate-pulse" />
-            ) : trackingNumber ? (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-mono font-semibold text-[#1A1A1A]">
-                    {trackingNumber}
-                  </span>
-                  {carrier && (
-                    <span className="text-[11px] text-[#737373] bg-[#F5F4F1] px-2 py-0.5 rounded-full">
-                      {carrier}
-                    </span>
+            <div className="col-span-3 space-y-1">
+              <SectionLabel>Produkty</SectionLabel>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-[#A3A3A3] text-xs">
+                    <th className="text-left py-1 font-normal">Produkt</th>
+                    <th className="text-right py-1 font-normal w-20">Cena</th>
+                    <th className="text-right py-1 font-normal w-12">Ilosc</th>
+                    <th className="text-right py-1 font-normal w-24">Razem</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {order.items.map((item, i) => (
+                    <tr key={`${item.productSku}-${i}`} className="border-t border-[#F0EFEC]">
+                      <td className="py-2">
+                        <div className="font-medium text-[#1A1A1A]">{item.productName}</div>
+                        <div className="text-xs text-[#A3A3A3]">{item.productSku}</div>
+                      </td>
+                      <td className="text-right tabular-nums">{formatAmount(item.unitPrice, order.currency)}</td>
+                      <td className="text-right tabular-nums">x{item.quantity}</td>
+                      <td className="text-right tabular-nums font-medium">{formatAmount(item.totalPrice, order.currency)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  {order.shippingCost != null && Number(order.shippingCost) > 0 && (
+                    <tr className="border-t border-[#F0EFEC]">
+                      <td colSpan={3} className="py-2 text-[#666]">Dostawa ({order.shippingMethod ?? '-'})</td>
+                      <td className="text-right tabular-nums">{formatAmount(order.shippingCost, order.currency)}</td>
+                    </tr>
                   )}
-                </div>
-                {trackingStatus && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <span
-                      className={`w-1.5 h-1.5 rounded-full ${
-                        trackingStatus.toUpperCase().includes('DELIVER') ||
-                        trackingStatus.toUpperCase().includes('DOSTAR')
-                          ? 'bg-[#059669]'
-                          : 'bg-[#0066CC]'
-                      }`}
-                    />
-                    <span className="font-medium text-[#1A1A1A]">{trackingStatus}</span>
-                  </div>
-                )}
-                {trackingDescription && (
-                  <p className="text-xs text-[#737373] ml-3.5">{trackingDescription}</p>
-                )}
-                {allegroTracking?.allStatuses && allegroTracking.allStatuses.length > 1 && (
-                  <details className="mt-1">
-                    <summary className="text-xs text-[#0066CC] cursor-pointer hover:underline">
-                      Historia ({allegroTracking.allStatuses.length} zdarzeń)
-                    </summary>
-                    <div className="mt-2 ml-1 space-y-1.5 border-l-2 border-[#F0EFEC] pl-3">
-                      {allegroTracking.allStatuses.map((s, i) => (
-                        <div key={i} className="text-xs text-[#525252]">
-                          <span className="font-medium">{s.status}</span>
-                          {s.description && (
-                            <span className="text-[#737373]"> — {s.description}</span>
-                          )}
-                          {s.occurredAt && (
-                            <span className="text-[#A3A3A3] ml-1">
-                              {new Date(s.occurredAt).toLocaleString('pl-PL', {
-                                timeZone: 'Europe/Warsaw',
-                              })}
-                            </span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </details>
-                )}
-              </div>
+                  <tr className="border-t-2 border-[#1A1A1A]">
+                    <td colSpan={3} className="py-2 font-semibold">Razem</td>
+                    <td className="text-right tabular-nums font-semibold">{formatAmount(order.total, order.currency)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+
+              <SectionLabel>Platnosc</SectionLabel>
+              <InfoRow label="Metoda" value={order.paymentMethod ?? '-'} />
+              <InfoRow label="Oplacono" value={formatDate(order.paidAt)} />
+
+              <SectionLabel>Przesylka</SectionLabel>
+              {hasShipment ? (
+                <>
+                  <InfoRow label="Numer" value={<span className="font-mono text-xs">{effectiveTrackingNumber ?? '-'}</span>} />
+                  {order.allegroFulfillmentStatus && (
+                    <InfoRow label="Status Allegro" value={order.allegroFulfillmentStatus} />
+                  )}
+                  <InfoRow
+                    label="Status"
+                    value={effectiveTrackingStatus ?? shipmentStatusLabel(effectiveShipmentDisplayStatus)}
+                  />
+                  <InfoRow
+                    label="Ostatnia aktualizacja"
+                    value={effectiveTrackingStatusUpdatedAt ? formatDate(effectiveTrackingStatusUpdatedAt) : '-'}
+                  />
+                  {effectiveShipmentFreshness === 'stale' && (
+                    <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-2.5 py-1.5 inline-flex w-fit">
+                      Status moze byc nieaktualny
+                    </p>
+                  )}
+                  {trackingError && (
+                    <p className="text-xs text-red-600">{trackingError}</p>
+                  )}
+                  {order.source === 'allegro' && (
+                    <button
+                      type="button"
+                      onClick={() => void refreshTrackingSnapshot()}
+                      disabled={trackingLoading}
+                      className="mt-2 text-xs font-medium text-[#1A1A1A] hover:text-[#666] disabled:text-[#A3A3A3] disabled:cursor-not-allowed"
+                    >
+                      {trackingLoading ? 'Odswiezanie...' : 'Odswiez status'}
+                    </button>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm text-[#A3A3A3]">Brak przesylki</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between px-6 py-4 border-t border-[#F0EFEC] shrink-0">
+          <div>
+            {canCancel && (
+              <button className="text-sm text-red-600 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors">
+                Anuluj zamowienie
+              </button>
+            )}
+          </div>
+
+          <div className="flex gap-3">
+            {hasShipment && onDownloadLabel ? (
+              <button className="btn-primary text-sm" onClick={() => onDownloadLabel(order)}>
+                Pobierz etykiete PDF
+              </button>
+            ) : canShip && onCreateShipment ? (
+              <button className="btn-primary text-sm" onClick={() => onCreateShipment(order)}>
+                Nadaj przesylke
+              </button>
             ) : null}
           </div>
-        )}
-
-        {/* ── Invoice ────────────────────────────────────────────────── */}
-        {order.invoiceRequired && (
-          <div className="py-3 px-4 rounded-xl bg-[#EFF6FF] border border-[#BFDBFE]">
-            <div className="flex items-center gap-2 mb-2">
-              <FileText size={13} className="text-[#1D4ED8]" />
-              <p className="text-[11px] font-semibold text-[#1D4ED8] uppercase tracking-wider">
-                Faktura VAT
-              </p>
-            </div>
-            <div className="space-y-1">
-              {order.customerData?.companyName && (
-                <div className="flex items-center gap-2">
-                  <Building2 size={12} className="text-[#3B82F6] shrink-0" />
-                  <span className="text-sm font-medium text-[#1E3A8A]">
-                    {order.customerData.companyName}
-                  </span>
-                </div>
-              )}
-              {order.customerData?.taxId && (
-                <p className="text-sm text-[#1E40AF] ml-[20px]">
-                  NIP: <span className="font-mono font-semibold">{order.customerData.taxId}</span>
-                </p>
-              )}
-              {order.customerData?.billingAddress && (
-                <p className="text-xs text-[#3B82F6] ml-[20px]">
-                  {order.customerData.billingAddress.street}, {order.customerData.billingAddress.postalCode} {order.customerData.billingAddress.city}
-                </p>
-              )}
-              {!order.customerData?.companyName && !order.customerData?.taxId && (
-                <p className="text-sm text-[#1E40AF] ml-[20px]">Faktura dla osoby prywatnej</p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ── Products ───────────────────────────────────────────────── */}
-        <div>
-          <SectionLabel>Produkty</SectionLabel>
-          <div className="rounded-xl border border-[#E5E4E1] overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-[#FAFAF9] border-b border-[#F0EFEC]">
-                  <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-[#A3A3A3] uppercase tracking-wider">
-                    Produkt
-                  </th>
-                  <th className="px-4 py-2.5 text-center text-[11px] font-semibold text-[#A3A3A3] uppercase tracking-wider w-16">
-                    Szt.
-                  </th>
-                  <th className="px-4 py-2.5 text-right text-[11px] font-semibold text-[#A3A3A3] uppercase tracking-wider">
-                    Suma
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#F5F4F1]">
-                {order.items?.length > 0 ? (
-                  order.items.map((item, idx) => (
-                    <tr key={item.productSku ? `${item.productSku}-${idx}` : idx}>
-                      <td className="px-4 py-3">
-                        <p className="font-medium text-[#1A1A1A]">{item.productName}</p>
-                        <p className="text-[11px] text-[#A3A3A3] mt-0.5">
-                          {item.productSku} · {formatAmount(item.unitPrice, order.currency)}/szt
-                        </p>
-                      </td>
-                      <td className="px-4 py-3 text-center text-[#525252] tabular-nums">
-                        {item.quantity}
-                      </td>
-                      <td className="px-4 py-3 text-right font-semibold text-[#1A1A1A] font-mono tabular-nums">
-                        {formatAmount(item.totalPrice, order.currency)}
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={3} className="px-4 py-4 text-center text-[#A3A3A3]">
-                      Brak pozycji
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-              <tfoot>
-                <tr className="bg-[#FAFAF9] border-t border-[#E5E4E1]">
-                  <td colSpan={2} className="px-4 py-3 text-right text-sm font-medium text-[#525252]">
-                    Razem
-                  </td>
-                  <td className="px-4 py-3 text-right font-bold text-[#1A1A1A] font-mono tabular-nums">
-                    {formatAmount(order.total, order.currency)}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
         </div>
-
-        {/* ── Payment ────────────────────────────────────────────────── */}
-        {order.paymentMethod && (
-          <div className="flex items-center gap-3 py-3 px-4 rounded-xl bg-[#FAFAF9] border border-[#F0EFEC]">
-            <CreditCard size={15} className="text-[#059669] shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-[#1A1A1A]">{order.paymentMethod}</p>
-            </div>
-            {getStatusBadge(order.status, order.paymentMethod, order.paidAt)}
-          </div>
-        )}
-
-        {/* ── Notes ──────────────────────────────────────────────────── */}
-        {order.notes && (
-          <div className="py-3 px-4 rounded-xl bg-[#FFFBEB] border border-[#FDE68A]/60">
-            <p className="text-[11px] font-semibold text-[#92400E] uppercase tracking-wider mb-1">
-              Uwagi
-            </p>
-            <p className="text-sm text-[#78350F]">{order.notes}</p>
-          </div>
-        )}
-
-        {/* ── Actions ────────────────────────────────────────────────── */}
-        <div className="flex gap-2 pt-4 border-t border-[#F0EFEC]">
-          <button className="btn-primary flex-1">
-            <Edit size={14} /> Edytuj
-          </button>
-          <button className="btn-secondary flex-1">
-            <Truck size={14} /> Nadaj
-          </button>
-          <button className="btn-secondary">
-            <Receipt size={14} /> Faktura
-          </button>
-        </div>
-
       </div>
-    </GlassModal>
+    </div>
   )
 }

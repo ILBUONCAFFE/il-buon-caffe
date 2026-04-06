@@ -483,6 +483,18 @@ export async function reconcileOrder(
   const isSent =
     fulfillmentStatus === 'SENT' || fulfillmentStatus === 'PICKED_UP'
 
+  const trackingSnapshotCode = isCancelled
+    ? 'CANCELLED'
+    : isSent
+      ? (fulfillmentStatus === 'PICKED_UP' ? 'PICKED_UP' : 'SENT')
+      : null
+
+  const trackingSnapshotLabel = isCancelled
+    ? 'Przesylka anulowana'
+    : isSent
+      ? (fulfillmentStatus === 'PICKED_UP' ? 'Przesylka odebrana' : 'Przesylka w drodze')
+      : null
+
   let newLocalStatus: 'cancelled' | 'shipped' | null = null
 
   if (isCancelled && existing.status !== 'cancelled') {
@@ -502,6 +514,11 @@ export async function reconcileOrder(
       allegroRevision:          form.revision ?? null,
       allegroFulfillmentStatus: fulfillmentStatus,
       ...(!existing.trackingNumber && waybill && { trackingNumber: waybill.slice(0, 100) }),
+      ...(trackingSnapshotCode && {
+        trackingStatusCode: trackingSnapshotCode,
+        trackingStatus: trackingSnapshotLabel,
+        trackingStatusUpdatedAt: new Date(),
+      }),
       ...(newLocalStatus === 'cancelled' && { status: 'cancelled' as const }),
       ...(newLocalStatus === 'shipped'   && { status: 'shipped' as const, shippedAt: new Date() }),
       updatedAt: new Date(),

@@ -568,3 +568,32 @@ export interface AllegroSalesQuality {
 export interface AllegroSalesQualityResponse {
   data: AllegroSalesQuality | null
 }
+
+// ── Allegro Shipment Management ──────────────────────────────────────────────
+
+export interface CreateShipmentRequest {
+  carrierId: string
+  deliveryMethodId: string
+  weight: number
+  length: number
+  width: number
+  height: number
+  referenceNumber?: string
+}
+
+export interface CreateShipmentResponse {
+  shipmentId: string
+  trackingNumber: string
+  status: 'shipped'
+}
+
+export interface AllegroDeliveryService {
+  id: string
+  name: string
+  carrierId: string
+  maxWeight: number
+  maxLength: number
+  maxWidth: number
+  maxHeight: number
+  volumetricDivisor: number | null
+}

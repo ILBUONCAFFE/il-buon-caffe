@@ -9,6 +9,7 @@ import { adminProductsRouter } from './products'
 import { adminCustomersRouter } from './customers'
 import { adminAuditRouter } from './audit'
 import { adminCategoriesRouter } from './categories'
+import { adminShipmentsRouter } from './shipments'
 import type { Env } from '../../index'
 
 // ── Polish timezone helpers ───────────────────────────────────────────────────
@@ -63,6 +64,7 @@ async function kvCached<T>(
 export const adminRouter = new Hono<{ Bindings: Env }>()
 
 // ── Sub-routers ─────────────────────────────────────────────────────────────
+adminRouter.route('/',          adminShipmentsRouter)
 adminRouter.route('/orders',     adminOrdersRouter)
 adminRouter.route('/products',   adminProductsRouter)
 adminRouter.route('/customers',  adminCustomersRouter)

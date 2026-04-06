@@ -59,10 +59,7 @@ export async function fetchCheckoutForm(
 ): Promise<AllegroCheckoutForm | null> {
   const resp = await fetch(`${apiBase}/order/checkout-forms/${checkoutFormId}`, {
     signal:  AbortSignal.timeout(10_000),
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      Accept:        'application/vnd.allegro.public.v1+json',
-    },
+    headers: allegroHeaders(accessToken),
   })
   if (!resp.ok) {
     console.error(`[AllegroOrders] GET /checkout-forms/${checkoutFormId} → ${resp.status}`)
@@ -73,11 +70,18 @@ export async function fetchCheckoutForm(
 
 // ── Allegro-compatible headers ─────────────────────────────────────────────
 
-export function allegroHeaders(accessToken: string) {
-  return {
-    Authorization: `Bearer ${accessToken}`,
-    Accept:        'application/vnd.allegro.public.v1+json',
+const ALLEGRO_USER_AGENT = 'IlBuonCaffe/1.0 (+https://ilbuoncaffe.pl/api-info)'
+
+export function allegroHeaders(accessToken: string, contentType = false) {
+  const headers: Record<string, string> = {
+    Authorization:  `Bearer ${accessToken}`,
+    Accept:         'application/vnd.allegro.public.v1+json',
+    'User-Agent':   ALLEGRO_USER_AGENT,
   }
+  if (contentType) {
+    headers['Content-Type'] = 'application/vnd.allegro.public.v1+json'
+  }
+  return headers
 }
 
 // ── Small delay helper (rate-limit friendly, like Electron app 100ms) ──────

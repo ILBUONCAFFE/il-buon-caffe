@@ -21,7 +21,7 @@ import { preWarmAllegroQualityCache } from './routes/allegro'
 import { backfillExchangeRates } from './lib/allegro-orders/backfill-rates'
 import { encryptText, decryptText } from './lib/crypto'
 import { securityHeaders, corsConfig, secFetchGuard } from './middleware/security'
-import { apiRateLimiter } from './middleware/rateLimit'
+import { apiRateLimiter, adminRateLimiter, healthRateLimiter } from './middleware/rateLimit'
 import { dbMiddleware } from './middleware/db'
 import { setHttpMode } from '@repo/db/client'
 
@@ -53,9 +53,6 @@ export interface Env {
   ALLEGRO_ENVIRONMENT: 'sandbox' | 'production'
   ALLEGRO_TOKEN_ENCRYPTION_KEY?: string   // 32-byte hex — AES-256-GCM
   ALLEGRO_KV: KVNamespace
-
-  // Cloudflare Hyperdrive — connection pool at edge (optional: falls back to DATABASE_URL for local dev)
-  HYPERDRIVE?: Hyperdrive
 }
 
 // ── App ───────────────────────────────────────────────────────────────────
@@ -72,6 +69,12 @@ app.use('/api/*', secFetchGuard())
 
 // Global rate limiter (100 req/min per IP)
 app.use('/api/*', apiRateLimiter)
+
+// Admin rate limiter — stricter (30 req/min, 15-min block)
+app.use('/admin/*', adminRateLimiter)
+
+// Health rate limiter — lenient (20 req/min, 1-min block)
+app.use('/health', healthRateLimiter)
 
 // Shared DB client per request — all routes/middleware read c.get('db')
 app.use('/api/*', dbMiddleware())
@@ -101,9 +104,10 @@ app.get('/health', async (c) => {
     const dbResult = await db.execute('SELECT 1' as any)
     result.database = dbResult.rows?.length ? 'connected' : 'no response'
   } catch (err) {
+    console.error('[Health] DB check failed:', err instanceof Error ? err.message : String(err))
     result.status   = 'degraded'
     result.database = 'disconnected'
-    result.error    = err instanceof Error ? err.message : 'Unknown DB error'
+    result.error    = 'database_unavailable'
   }
 
   const code = result.status === 'ok' ? 200 : 503
@@ -297,9 +301,6 @@ export default {
   fetch: app.fetch,
   async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
     // Scheduled/cron events: always use Neon HTTP driver with DATABASE_URL.
-    // WebSocket Pool (used with Hyperdrive in fetch handlers) is unreliable in
-    // scheduled event contexts — Cloudflare's cron runtime has different WebSocket
-    // constraints than the fetch handler runtime.
     setHttpMode(true, env.DATABASE_URL)
 
     // "0 * * * *"   — hourly token refresh + daily retention cleanup

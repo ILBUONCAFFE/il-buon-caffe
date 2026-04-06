@@ -65,7 +65,7 @@ adminCustomersRouter.get('/', auditLogMiddleware('view_customer'), async (c) => 
 adminCustomersRouter.get('/:userId', auditLogMiddleware('view_customer'), async (c) => {
   try {
     const db     = createDb(c.env.DATABASE_URL)
-    const userId = parseInt(c.req.param('userId'))
+    const userId = parseInt(c.req.param('userId') ?? '', 10)
 
     if (isNaN(userId)) return c.json({ error: 'Nieprawidłowe ID użytkownika' }, 400)
 
@@ -133,7 +133,7 @@ adminCustomersRouter.post('/:userId/unlock', async (c) => {
   try {
     const db     = createDb(c.env.DATABASE_URL)
     const admin  = c.get('user')
-    const userId = parseInt(c.req.param('userId'))
+    const userId = parseInt(c.req.param('userId') ?? '', 10)
 
     if (isNaN(userId)) return c.json({ error: 'Nieprawidłowe ID' }, 400)
 
@@ -165,7 +165,7 @@ adminCustomersRouter.post('/:userId/anonymize', async (c) => {
   try {
     const db     = createDb(c.env.DATABASE_URL)
     const admin  = c.get('user')
-    const userId = parseInt(c.req.param('userId'))
+    const userId = parseInt(c.req.param('userId') ?? '', 10)
 
     if (isNaN(userId)) return c.json({ error: 'Nieprawidłowe ID' }, 400)
 

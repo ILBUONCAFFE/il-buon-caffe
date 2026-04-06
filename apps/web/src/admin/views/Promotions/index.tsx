@@ -1,8 +1,16 @@
 'use client'
 
+import { useState } from 'react'
 import { Plus, Filter, Percent, Tag, X, PlusCircle, Zap } from 'lucide-react'
+import { Dropdown } from '../../components/ui/Dropdown'
 
 export const PromotionsView = () => {
+  const [cond1Target, setCond1Target] = useState('basket')
+  const [cond1Op, setCond1Op] = useState('greater')
+  const [cond2Target, setCond2Target] = useState('tag')
+  const [cond2Op, setCond2Op] = useState('contains')
+  const [actionType, setActionType] = useState('free_shipping')
+  const [actionTarget, setActionTarget] = useState('entire_order')
   return (
     <div className="animate-in fade-in duration-300">
       <div className="flex items-center justify-between mb-8">
@@ -68,16 +76,26 @@ export const PromotionsView = () => {
                   <h4 className="text-sm font-semibold text-[#1A1A1A] mb-3 uppercase tracking-wider">Warunki (JEŚLI)</h4>
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
-                      <select className="admin-select w-auto">
-                        <option>Wartość koszyka</option>
-                        <option>Kategoria produktu</option>
-                        <option>Tag klienta</option>
-                      </select>
-                      <select className="admin-select w-auto">
-                        <option>jest większa niż</option>
-                        <option>jest mniejsza niż</option>
-                        <option>równa się</option>
-                      </select>
+                      <Dropdown
+                        label="Wybierz"
+                        value={cond1Target}
+                        onChange={setCond1Target}
+                        options={[
+                          { value: 'basket', label: 'Wartość koszyka' },
+                          { value: 'category', label: 'Kategoria produktu' },
+                          { value: 'tag', label: 'Tag klienta' },
+                        ]}
+                      />
+                      <Dropdown
+                        label="Warunek"
+                        value={cond1Op}
+                        onChange={setCond1Op}
+                        options={[
+                          { value: 'greater', label: 'jest większa niż' },
+                          { value: 'lesser', label: 'jest mniejsza niż' },
+                          { value: 'equal', label: 'równa się' },
+                        ]}
+                      />
                       <div className="relative">
                         <input type="text" defaultValue="200" className="admin-input w-24 !pr-10" />
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[#737373]">PLN</span>
@@ -88,15 +106,25 @@ export const PromotionsView = () => {
                       <span className="text-xs font-bold text-[#0066CC] uppercase bg-[#EFF6FF] px-2 py-1 rounded">ORAZ</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <select className="admin-select w-auto">
-                        <option>Tag klienta</option>
-                        <option>Wartość koszyka</option>
-                        <option>Kategoria produktu</option>
-                      </select>
-                      <select className="admin-select w-auto">
-                        <option>zawiera</option>
-                        <option>nie zawiera</option>
-                      </select>
+                      <Dropdown
+                        label="Wybierz"
+                        value={cond2Target}
+                        onChange={setCond2Target}
+                        options={[
+                          { value: 'tag', label: 'Tag klienta' },
+                          { value: 'basket', label: 'Wartość koszyka' },
+                          { value: 'category', label: 'Kategoria produktu' },
+                        ]}
+                      />
+                      <Dropdown
+                        label="Warunek"
+                        value={cond2Op}
+                        onChange={setCond2Op}
+                        options={[
+                          { value: 'contains', label: 'zawiera' },
+                          { value: 'not_contains', label: 'nie zawiera' },
+                        ]}
+                      />
                       <input type="text" defaultValue="VIP" className="admin-input w-32" />
                       <button className="p-2 text-[#A3A3A3] hover:text-[#DC2626] transition-all duration-300 hover:scale-110 active:scale-95"><X size={16} /></button>
                     </div>
@@ -118,18 +146,28 @@ export const PromotionsView = () => {
                   <h4 className="text-sm font-semibold text-[#1A1A1A] mb-3 uppercase tracking-wider">Akcja (TO)</h4>
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
-                      <select className="admin-select w-auto">
-                        <option>Darmowa dostawa</option>
-                        <option>Rabat procentowy</option>
-                        <option>Rabat kwotowy</option>
-                        <option>Darmowy produkt</option>
-                      </select>
+                      <Dropdown
+                        label="Akcja"
+                        value={actionType}
+                        onChange={setActionType}
+                        options={[
+                          { value: 'free_shipping', label: 'Darmowa dostawa' },
+                          { value: 'percent_discount', label: 'Rabat procentowy' },
+                          { value: 'amount_discount', label: 'Rabat kwotowy' },
+                          { value: 'free_product', label: 'Darmowy produkt' },
+                        ]}
+                      />
                       <span className="text-sm text-[#737373]">na</span>
-                      <select className="admin-select w-auto">
-                        <option>Całe zamówienie</option>
-                        <option>Najtańszy produkt</option>
-                        <option>Wybraną kategorię</option>
-                      </select>
+                      <Dropdown
+                        label="Cel"
+                        value={actionTarget}
+                        onChange={setActionTarget}
+                        options={[
+                          { value: 'entire_order', label: 'Całe zamówienie' },
+                          { value: 'cheapest_product', label: 'Najtańszy produkt' },
+                          { value: 'selected_category', label: 'Wybraną kategorię' },
+                        ]}
+                      />
                     </div>
                   </div>
                 </div>

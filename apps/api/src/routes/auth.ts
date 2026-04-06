@@ -261,7 +261,11 @@ authRouter.post('/login', loginRateLimiter, async (c) => {
       })
       
       if (shouldLock) {
-        return c.json({ error: 'Zbyt wiele nieudanych prób logowania. Konto zostało zablokowane na 1 godzinę.' }, 403)
+        const lockedUntil = new Date(Date.now() + LOCKOUT_DURATION_MS)
+        return c.json({ 
+          error: 'Zbyt wiele nieudanych prób logowania. Konto zostało zablokowane na 1 godzinę.',
+          lockedUntil
+        }, 403)
       }
       
       return c.json({ error: 'Nieprawidłowy email lub hasło' }, 401)

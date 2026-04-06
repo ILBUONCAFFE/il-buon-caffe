@@ -7,6 +7,7 @@ import { motion } from "motion/react";
 import { Heart, Star, Plus } from "lucide-react";
 import type { Product } from "@/types";
 import type { ViewMode } from "./constants";
+import { SHOP_ENABLED } from "@/config/launch";
 
 export const ProductCard: React.FC<{
   product: Product;
@@ -29,21 +30,27 @@ export const ProductCard: React.FC<{
     window.dispatchEvent(new Event("open-age-verification"));
   };
 
-  const productSlug = product.name
-    .toLowerCase()
-    .replace(/\u0105/g, "a")
-    .replace(/\u0107/g, "c")
-    .replace(/\u0119/g, "e")
-    .replace(/\u0142/g, "l")
-    .replace(/\u0144/g, "n")
-    .replace(/\u00f3/g, "o")
-    .replace(/\u015b/g, "s")
-    .replace(/\u017a/g, "z")
-    .replace(/\u017c/g, "z")
-    .replace(/[^a-z0-9\s-]/g, "") // remove other special chars
-    .trim()
-    .replace(/\s+/g, "-");
-  const productUrl = `/sklep/${categorySlug || "wszystko"}/${productSlug}`;
+  const productSlug =
+    product.slug ||
+    product.name
+      .toLowerCase()
+      .replace(/\u0105/g, "a")
+      .replace(/\u0107/g, "c")
+      .replace(/\u0119/g, "e")
+      .replace(/\u0142/g, "l")
+      .replace(/\u0144/g, "n")
+      .replace(/\u00f3/g, "o")
+      .replace(/\u015b/g, "s")
+      .replace(/\u017a/g, "z")
+      .replace(/\u017c/g, "z")
+      .replace(/[^a-z0-9\s-]/g, "") // remove other special chars
+      .trim()
+      .replace(/\s+/g, "-");
+
+  const resolvedCategorySlug =
+    product.category && product.category !== "all" ? product.category : categorySlug || "wszystko";
+
+  const productUrl = `/sklep/${resolvedCategorySlug}/${productSlug}`;
 
   const imageUrl =
     product.imageUrl ||
@@ -117,17 +124,19 @@ export const ProductCard: React.FC<{
               {product.price.toFixed(2)}{" "}
               <span className="text-base font-normal text-brand-600">zł</span>
             </span>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (!isRestricted) onQuickAdd();
-              }}
-              disabled={isRestricted}
-              aria-label={`Dodaj ${product.name} do koszyka`}
-              className="px-6 py-2.5 bg-brand-900 text-white text-xs font-bold uppercase tracking-wider rounded-full hover:bg-brand-700 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Do koszyka
-            </button>
+            {SHOP_ENABLED && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!isRestricted) onQuickAdd();
+                }}
+                disabled={isRestricted}
+                aria-label={`Dodaj ${product.name} do koszyka`}
+                className="px-6 py-2.5 bg-brand-900 text-white text-xs font-bold uppercase tracking-wider rounded-full hover:bg-brand-700 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Do koszyka
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -207,20 +216,22 @@ export const ProductCard: React.FC<{
               <Heart size={16} aria-hidden="true" fill={isLiked ? "currentColor" : "none"} />
             </button>
 
-            {/* Quick add button */}
-            <div className={`absolute inset-x-0 bottom-0 p-4 transition-transform duration-300 flex justify-center ${isHovered ? 'translate-y-0' : 'translate-y-full'}`}>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onQuickAdd();
-                }}
-                aria-label={`Dodaj ${product.name} do koszyka`}
-                className="px-6 py-2.5 bg-white text-brand-900 text-xs font-bold uppercase tracking-wider rounded-full shadow-lg hover:bg-brand-900 hover:text-white transition-all flex items-center gap-2"
-              >
-                <Plus size={14} aria-hidden="true" />
-                Dodaj do koszyka
-              </button>
-            </div>
+            {/* Quick add button — hidden when shop is disabled */}
+            {SHOP_ENABLED && (
+              <div className={`absolute inset-x-0 bottom-0 p-4 transition-transform duration-300 flex justify-center ${isHovered ? 'translate-y-0' : 'translate-y-full'}`}>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onQuickAdd();
+                  }}
+                  aria-label={`Dodaj ${product.name} do koszyka`}
+                  className="px-6 py-2.5 bg-white text-brand-900 text-xs font-bold uppercase tracking-wider rounded-full shadow-lg hover:bg-brand-900 hover:text-white transition-all flex items-center gap-2"
+                >
+                  <Plus size={14} aria-hidden="true" />
+                  Dodaj do koszyka
+                </button>
+              </div>
+            )}
           </>
         )}
       </div>

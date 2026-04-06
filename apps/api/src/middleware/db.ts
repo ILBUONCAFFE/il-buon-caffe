@@ -6,24 +6,18 @@
  * and keeps the per-request overhead to a single HTTP-client setup.
  *
  * Connection strategy:
- * - Production (HYPERDRIVE present): WebSocket Pool routed through Hyperdrive for
- *   persistent edge-side connection pooling and reduced TLS handshake overhead.
- * - Local dev (LOCAL_DEV=true) or no HYPERDRIVE binding: Neon HTTP driver with
- *   DATABASE_URL directly — Wrangler's Hyperdrive emulation is incompatible with
- *   @neondatabase/serverless WebSocket Pool.
+ * - Use Neon HTTP driver with DATABASE_URL directly in all environments.
  */
 import type { Context, Next } from 'hono'
 import { createDb, setHttpMode } from '@repo/db/client'
 
-type DbEnv = { DATABASE_URL: string; LOCAL_DEV?: string; HYPERDRIVE?: { connectionString: string } }
+type DbEnv = { DATABASE_URL: string }
 
 export function dbMiddleware() {
   return async (c: Context, next: Next) => {
     const env = c.env as DbEnv
-    const isLocal = env.LOCAL_DEV === 'true'
 
-    // HTTP Driver is used universally because WebSocket Serverless Pool throws exceptions natively
-    // when paired with the local Hyperdrive TCP Proxy endpoint.
+    // HTTP driver is used universally in this project.
     setHttpMode(true, env.DATABASE_URL)
     const db = createDb(env.DATABASE_URL)
 

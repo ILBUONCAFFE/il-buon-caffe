@@ -154,6 +154,29 @@ export const apiRateLimiter = rateLimit({
 })
 
 /**
+ * Admin API rate limiter — stricter than the public API.
+ * 30 requests per minute per IP, blocked for 15 minutes on breach.
+ * Admin endpoints are high-value targets; legitimate admin usage is low-volume.
+ */
+export const adminRateLimiter = rateLimit({
+  limit: 30,
+  windowMs: 60 * 1000,        // 1 minute
+  blockDurationMs: 15 * 60 * 1000, // 15 minutes block
+  keyGenerator: (c) => `admin:${getClientIp(c)}`,
+})
+
+/**
+ * Health endpoint rate limiter — lenient, for uptime monitors.
+ * 20 requests per minute per IP, short 1-minute block.
+ */
+export const healthRateLimiter = rateLimit({
+  limit: 20,
+  windowMs: 60 * 1000,   // 1 minute
+  blockDurationMs: 60 * 1000, // 1 minute block
+  keyGenerator: (c) => `health:${getClientIp(c)}`,
+})
+
+/**
  * Programmatically apply rate limiting for an arbitrary key.
  * Use when the key is only available after parsing the request body (e.g. email).
  * Returns null if not limited; returns a ready-to-return Response if the caller is over limit.

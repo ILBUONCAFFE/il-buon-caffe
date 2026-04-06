@@ -12,6 +12,8 @@ import Image from 'next/image';
 import { ArrowLeft, Minus, Plus, Heart, Share2, Truck, Shield, RotateCcw, Check, ChevronRight } from 'lucide-react';
 import { Product } from '@/types';
 import { getProductBySku, getProductBySlug } from '@/actions/products';
+import { SHOP_ENABLED } from '@/config/launch';
+import { ComingSoonBanner } from '@/components/ui/ComingSoonBanner';
 
 import { WineProductView } from './WineProductView';
 
@@ -168,61 +170,69 @@ export const ProductClient = ({ initialProduct }: ProductClientProps) => {
               {product.description || 'Wysokiej jakości produkt z naszej ekskluzywnej kolekcji.'}
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-4 mb-8">
-              
-              <div className="flex items-center bg-white rounded-xl border border-brand-200 h-14 w-36">
-                <button 
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  aria-label="Zmniejsz ilość"
-                  className="w-12 h-full flex items-center justify-center text-brand-700 hover:text-brand-900 transition-colors"
-                >
-                  <Minus size={18} aria-hidden="true" />
-                </button>
-                <span aria-live="polite" aria-atomic="true" className="flex-1 text-center font-bold text-lg text-brand-900">{quantity}</span>
-                <button 
-                  onClick={() => setQuantity(quantity + 1)}
-                  aria-label="Zwiększ ilość"
-                  className="w-12 h-full flex items-center justify-center text-brand-700 hover:text-brand-900 transition-colors"
-                >
-                  <Plus size={18} aria-hidden="true" />
-                </button>
+            {SHOP_ENABLED ? (
+              <>
+                <div className="flex flex-col sm:flex-row gap-4 mb-8">
+                  
+                  <div className="flex items-center bg-white rounded-xl border border-brand-200 h-14 w-36">
+                    <button 
+                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                      aria-label="Zmniejsz ilość"
+                      className="w-12 h-full flex items-center justify-center text-brand-700 hover:text-brand-900 transition-colors"
+                    >
+                      <Minus size={18} aria-hidden="true" />
+                    </button>
+                    <span aria-live="polite" aria-atomic="true" className="flex-1 text-center font-bold text-lg text-brand-900">{quantity}</span>
+                    <button 
+                      onClick={() => setQuantity(quantity + 1)}
+                      aria-label="Zwiększ ilość"
+                      className="w-12 h-full flex items-center justify-center text-brand-700 hover:text-brand-900 transition-colors"
+                    >
+                      <Plus size={18} aria-hidden="true" />
+                    </button>
+                  </div>
+                  
+                  <button
+                    onClick={handleAddToCart}
+                    disabled={isAdded}
+                    className={`
+                      flex-1 h-14 rounded-xl font-bold uppercase tracking-[0.1em] text-sm transition-all duration-300
+                      flex items-center justify-center gap-3
+                      ${isAdded 
+                        ? 'bg-green-600 text-white' 
+                        : 'bg-brand-900 text-white hover:bg-brand-700 hover:shadow-lg'
+                      }
+                    `}
+                  >
+                    {isAdded ? (
+                      <>
+                        <Check size={18} />
+                        Dodano!
+                      </>
+                    ) : (
+                      <>
+                        Dodaj do koszyka
+                      </>
+                    )}
+                  </button>
+                </div>
+                
+                <div className="flex gap-4 mb-10">
+                  <button aria-label="Dodaj do ulubionych" className="flex items-center gap-2 text-sm text-brand-700 hover:text-brand-900 transition-colors">
+                    <Heart size={18} aria-hidden="true" />
+                    Ulubione
+                  </button>
+                  <button aria-label="Udostępnij produkt" className="flex items-center gap-2 text-sm text-brand-700 hover:text-brand-900 transition-colors">
+                    <Share2 size={18} aria-hidden="true" />
+                    Udostępnij
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="mb-10">
+                <ComingSoonBanner variant="shop" compact />
               </div>
-              
-              <button
-                onClick={handleAddToCart}
-                disabled={isAdded}
-                className={`
-                  flex-1 h-14 rounded-xl font-bold uppercase tracking-[0.1em] text-sm transition-all duration-300
-                  flex items-center justify-center gap-3
-                  ${isAdded 
-                    ? 'bg-green-600 text-white' 
-                    : 'bg-brand-900 text-white hover:bg-brand-700 hover:shadow-lg'
-                  }
-                `}
-              >
-                {isAdded ? (
-                  <>
-                    <Check size={18} />
-                    Dodano!
-                  </>
-                ) : (
-                  <>
-                    Dodaj do koszyka
-                  </>
-                )}
-              </button>
-            </div>
-            
-            <div className="flex gap-4 mb-10">
-              <button aria-label="Dodaj do ulubionych" className="flex items-center gap-2 text-sm text-brand-700 hover:text-brand-900 transition-colors">
-                <Heart size={18} aria-hidden="true" />
-                Ulubione
-              </button>
-              <button aria-label="Udostępnij produkt" className="flex items-center gap-2 text-sm text-brand-700 hover:text-brand-900 transition-colors">
-                <Share2 size={18} aria-hidden="true" />
-                Udostępnij
-              </button>
-            </div>
+            )}
             
             <div className="border-t border-brand-200 pt-8 space-y-4">
               <div className="flex items-center gap-4 text-brand-600">

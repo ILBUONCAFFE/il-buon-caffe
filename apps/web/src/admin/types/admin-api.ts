@@ -61,9 +61,21 @@ export type OrderStatus =
   | 'paid'
   | 'processing'
   | 'shipped'
+  | 'delivered'
   | 'completed'
   | 'cancelled'
   | 'refunded'
+
+export type ShipmentDisplayStatus =
+  | 'none'
+  | 'label_created'
+  | 'in_transit'
+  | 'out_for_delivery'
+  | 'delivered'
+  | 'issue'
+  | 'unknown'
+
+export type ShipmentFreshness = 'fresh' | 'stale' | 'unknown'
 
 export interface OrderItem {
   id?: number
@@ -113,6 +125,13 @@ export interface AdminOrder {
   shippingMethod?: string | null
   trackingNumber?: string | null
   trackingStatus?: string | null
+  trackingStatusCode?: string | null
+  trackingStatusUpdatedAt?: string | null
+  trackingLastEventAt?: string | null
+  allegroShipmentId?: string | null
+  allegroFulfillmentStatus?: string | null
+  shipmentDisplayStatus?: ShipmentDisplayStatus
+  shipmentFreshness?: ShipmentFreshness
   notes?: string
   internalNotes?: string
   paidAt?: string | null
@@ -174,6 +193,61 @@ export interface AllegroTrackingData {
     description: string | null
     occurredAt: string | null
   }>
+}
+
+// ── Shipment Management ──────────────────────────────────────────────────────
+export interface DeliveryServiceInfo {
+  id: string
+  name: string
+  carrierId: string
+  maxWeight: number
+  maxLength: number
+  maxWidth: number
+  maxHeight: number
+  volumetricDivisor: number | null
+}
+
+export interface DeliveryServicesResponse {
+  success: boolean
+  data: DeliveryServiceInfo[]
+}
+
+export interface CreateShipmentPayload {
+  carrierId: string
+  deliveryMethodId: string
+  weight: number
+  length: number
+  width: number
+  height: number
+  referenceNumber?: string
+}
+
+export interface ShipmentCreatedResponse {
+  success: boolean
+  data: {
+    shipmentId: string
+    trackingNumber: string
+    status: 'shipped'
+  }
+}
+
+export interface OrderTrackingSnapshot {
+  id: number
+  status: OrderStatus
+  trackingNumber: string | null
+  trackingStatus: string | null
+  trackingStatusCode: string | null
+  trackingStatusUpdatedAt: string | null
+  trackingLastEventAt: string | null
+  shipmentDisplayStatus: ShipmentDisplayStatus
+  shipmentFreshness: ShipmentFreshness
+}
+
+export interface OrderTrackingRefreshResponse {
+  success: boolean
+  refreshed: boolean
+  reason: string
+  data: OrderTrackingSnapshot
 }
 
 // ── Allegro OAuth ─────────────────────────────────────────────────────────────

@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import Lenis from "lenis";
 import { CATEGORY_NAMES } from "@/lib/constants";
 import { AnimatedText } from "@/components/ui/AnimatedText";
+import { SHOP_ENABLED } from "@/config/launch";
 
 const ProductCard = ({ product, index }: { product: Product; index: number }) => {
   const { addToCart } = useCart();
@@ -19,10 +20,24 @@ const ProductCard = ({ product, index }: { product: Product; index: number }) =>
   
   const categoryName = product.category ? (CATEGORY_NAMES[product.category] || product.category) : '';
   
-  const productSlug = `${product.sku}-${product.name
-    .toLowerCase()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9-]/g, "")}`;
+  const productSlug =
+    product.slug ||
+    product.name
+      .toLowerCase()
+      .replace(/\u0105/g, "a")
+      .replace(/\u0107/g, "c")
+      .replace(/\u0119/g, "e")
+      .replace(/\u0142/g, "l")
+      .replace(/\u0144/g, "n")
+      .replace(/\u00f3/g, "o")
+      .replace(/\u015b/g, "s")
+      .replace(/\u017a/g, "z")
+      .replace(/\u017c/g, "z")
+      .replace(/[^a-z0-9\s-]/g, "")
+      .trim()
+      .replace(/\s+/g, "-");
+
+  const categorySlug = product.category && product.category !== "all" ? product.category : "wszystko";
 
   const imageUrl = product.imageUrl || product.image || "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=800";
 
@@ -34,7 +49,7 @@ const ProductCard = ({ product, index }: { product: Product; index: number }) =>
       transition={{ duration: 0.8, delay: index * 0.1, ease: [0.22, 1, 0.36, 1] }}
       viewport={{ once: true, margin: "-100px" }}
     >
-      <Link href={`/sklep/wszystko/${productSlug}`} className="block h-full cursor-pointer">
+      <Link href={`/sklep/${categorySlug}/${productSlug}`} className="block h-full cursor-pointer">
         {/* Image Container - unosi się na hover */}
         <div className="relative aspect-[4/5] rounded-[2.5rem] bg-gradient-to-b from-brand-100 to-brand-200/50 mb-6 transition-all duration-500 group-hover:-translate-y-2 group-hover:shadow-2xl">
           {/* Badges */}
@@ -79,18 +94,20 @@ const ProductCard = ({ product, index }: { product: Product; index: number }) =>
             </button>
           </div>
 
-          <div className="absolute bottom-6 right-6 z-20 translate-y-4 opacity-0 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500 delay-100">
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                addToCart(product);
-              }}
-              className="w-14 h-14 bg-white text-brand-900 rounded-full flex items-center justify-center hover:bg-brand-900 hover:text-white transition-colors shadow-xl"
-            >
-              <Plus size={24} />
-            </button>
-          </div>
+          {SHOP_ENABLED && (
+            <div className="absolute bottom-6 right-6 z-20 translate-y-4 opacity-0 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500 delay-100">
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  addToCart(product);
+                }}
+                className="w-14 h-14 bg-white text-brand-900 rounded-full flex items-center justify-center hover:bg-brand-900 hover:text-white transition-colors shadow-xl"
+              >
+                <Plus size={24} />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Info */}

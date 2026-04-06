@@ -40,12 +40,11 @@ async function proxyAllegroRequest(
     const cfCtx = await getCloudflareContext({ async: true })
     const env = cfCtx?.env as Record<string, any> | undefined
     API_ORIGIN = API_ORIGIN || env?.INTERNAL_API_URL || 'https://il-buon-caffe-api.ilbuoncaffe19.workers.dev'
-    INTERNAL_SECRET = INTERNAL_SECRET || env?.INTERNAL_API_SECRET || 'd9f64c04a33d59d7810e5d6d799f9a853829d1a1fe964efab50142a004d3497e'
+    INTERNAL_SECRET = INTERNAL_SECRET || env?.INTERNAL_API_SECRET
     apiWorker = env?.API_WORKER
   } catch (e) {
-    // Local dev or setup issue
+    // Local dev or setup issue — API_ORIGIN fallback only; no secret fallback
     API_ORIGIN = API_ORIGIN || 'https://il-buon-caffe-api.ilbuoncaffe19.workers.dev'
-    INTERNAL_SECRET = INTERNAL_SECRET || 'd9f64c04a33d59d7810e5d6d799f9a853829d1a1fe964efab50142a004d3497e'
   }
 
   if (!API_ORIGIN) {

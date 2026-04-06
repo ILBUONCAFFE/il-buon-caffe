@@ -13,7 +13,8 @@ export class ApiError extends Error {
   constructor(
     public code: string,
     message: string,
-    public status: number
+    public status: number,
+    public data?: any
   ) {
     super(message);
     this.name = 'ApiError';
@@ -49,7 +50,8 @@ export async function fetchApi<T>(
     throw new ApiError(
       errorBody.code || 'UNKNOWN_ERROR',
       errorMessage,
-      res.status
+      res.status,
+      errorBody
     );
   }
 

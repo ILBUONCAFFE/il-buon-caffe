@@ -1,533 +1,443 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
-import {
-  DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors,
-  type DragEndEvent
-} from '@dnd-kit/core'
-import {
-  SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy
-} from '@dnd-kit/sortable'
-import {
-  Search, LayoutList, LayoutGrid, Package,
-  Truck, RefreshCw, Loader2, AlertTriangle, Store, ShoppingBag, FileText,
-  ChevronLeft, ChevronRight, Clock, X,
-} from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { adminApi, type AdminOrder, type OrdersQueryParams } from '../../lib/adminApiClient'
+import { OrderStatusBadge } from '../../components/OrderStatusBadge'
+import { OrderContextMenu } from '../../components/OrderContextMenu'
+import { OrderDetailModal } from '../../components/OrderDetailModal'
+import { ShipmentModal } from '../../components/ShipmentModal'
+import { BulkActionBar } from '../../components/BulkActionBar'
 import { Dropdown } from '../../components/ui/Dropdown'
 import { DateRangePicker } from '../../components/ui/DateRangePicker'
-import { OrderDetailModal } from '../../components/OrderDetailModal'
-import { getStatusBadge } from '../../utils/getStatusBadge'
-import { adminApi, ApiError } from '../../lib/adminApiClient'
-import type { AdminOrder, OrdersQueryParams, ApiListMeta } from '../../types/admin-api'
-import { SortableKanbanItem } from './components/SortableKanbanItem'
-import { useUxSound } from '../../../hooks/useUxSound'
 
-// ── Source badge ──────────────────────────────────────────────────────────────
+const DATE_FORMATTER = new Intl.DateTimeFormat('pl-PL', {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+})
 
-const SourceBadge = ({ source }: { source: string }) => {
-  if (source === 'allegro') {
-    return (
-      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#EA580C]">
-        <ShoppingBag size={10} /> Allegro
-      </span>
-    )
+function formatDateShort(iso: string | null | undefined): string {
+  if (!iso) return '-'
+  return DATE_FORMATTER.format(new Date(iso))
+}
+
+function formatAmount(value: number | undefined | null, currency = 'PLN'): string {
+  if (value == null) return '-'
+  const symbol: Record<string, string> = { PLN: 'zl', EUR: 'EUR', CZK: 'CZK', HUF: 'HUF' }
+  return `${Number(value).toFixed(2)} ${symbol[currency] ?? currency}`
+}
+
+function formatShipmentDisplayStatus(status: string | null | undefined): string {
+  switch (status) {
+    case 'label_created':
+      return 'Etykieta'
+    case 'in_transit':
+      return 'W drodze'
+    case 'out_for_delivery':
+      return 'W doreczeniu'
+    case 'delivered':
+      return 'Dostarczona'
+    case 'issue':
+      return 'Problem'
+    default:
+      return ''
   }
-  return (
-    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#0066CC]">
-      <Store size={10} /> Sklep
-    </span>
-  )
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+const STATUS_TABS = [
+  { key: 'all', label: 'Wszystkie' },
+  { key: 'pending', label: 'Oczekujace' },
+  { key: 'paid', label: 'Oplacone' },
+  { key: 'processing', label: 'W realizacji' },
+  { key: 'shipped', label: 'Wyslane' },
+  { key: 'delivered', label: 'Dostarczone' },
+  { key: 'cancelled', label: 'Anulowane' },
+]
 
-function formatDateShort(dateStr: string): string {
-  const d = new Date(dateStr)
-  const today = new Date()
-  const TZ = 'Europe/Warsaw'
-  const toDay = (dt: Date) => dt.toLocaleDateString('pl-PL', { timeZone: TZ })
-  const isToday = toDay(d) === toDay(today)
-  if (isToday) return d.toLocaleTimeString('pl-PL', { timeZone: TZ, hour: '2-digit', minute: '2-digit' })
-  return d.toLocaleDateString('pl-PL', { timeZone: TZ, day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
-}
-
-function getCustomerName(order: AdminOrder): string {
-  return order.customerData?.name || '—'
-}
-
-function getCustomerEmail(order: AdminOrder): string {
-  return order.customerData?.email || '—'
-}
-
-function getItemsSummary(order: AdminOrder): string {
-  if (!order.items?.length) return '—'
-  if (order.items.length === 1) return order.items[0].productName
-  return `${order.items[0].productName} +${order.items.length - 1}`
-}
-
-function formatAmount(amount: string | number, currency = 'PLN'): string {
-  return `${Number(amount).toLocaleString('pl-PL', { minimumFractionDigits: 2 })} ${currency}`
-}
+const LIMIT = 50
 
 export const OrdersView = () => {
-  const { play } = useUxSound()
-  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list')
-  const [statusFilter, setStatusFilter] = useState('all')
-  const [sourceFilter, setSourceFilter] = useState<'' | 'shop' | 'allegro'>('')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [debouncedSearch, setDebouncedSearch] = useState('')
-  const [dateFrom, setDateFrom] = useState('')
-  const [dateTo, setDateTo] = useState('')
-  const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null)
-
   const [orders, setOrders] = useState<AdminOrder[]>([])
-  const [meta, setMeta] = useState<ApiListMeta>({ total: 0, page: 1, limit: 50, totalPages: 0 })
+  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const handleSearchChange = useCallback((value: string) => {
-    setSearchQuery(value)
-    if (searchTimer.current) clearTimeout(searchTimer.current)
-    searchTimer.current = setTimeout(() => setDebouncedSearch(value), 400)
-  }, [])
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [sourceFilter, setSourceFilter] = useState('')
+  const [searchInput, setSearchInput] = useState('')
+  const [search, setSearch] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
+  const [page, setPage] = useState(1)
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  )
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
 
-  const fetchOrders = useCallback(async (page = 1) => {
+  const [contextMenu, setContextMenu] = useState<{ order: AdminOrder; x: number; y: number } | null>(null)
+  const [detailOrder, setDetailOrder] = useState<AdminOrder | null>(null)
+  const [shipmentOrder, setShipmentOrder] = useState<AdminOrder | null>(null)
+
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const fetchOrders = useCallback(async () => {
     setLoading(true)
     setError(null)
+
     try {
-      const params: OrdersQueryParams = {
-        page,
-        limit: 50,
-        status: statusFilter !== 'all' ? statusFilter : undefined,
-        source: sourceFilter || undefined,
-        search: debouncedSearch || undefined,
-        from: dateFrom || undefined,
-        to: dateTo || undefined,
-      }
-      const result = await adminApi.getOrders(params)
-      setOrders(result.data)
-      setMeta(result.meta)
-    } catch (e) {
-      play('error')
-      if (e instanceof ApiError && (e.status === 502 || e.status === 503)) {
-        setError('API niedostępne.')
-      } else if (e instanceof ApiError && e.status === 401) {
-        setError('Brak autoryzacji.')
-      } else {
-        setError(e instanceof Error ? e.message : 'Błąd ładowania')
-      }
+      const params: OrdersQueryParams = { page, limit: LIMIT }
+      if (statusFilter !== 'all') params.status = statusFilter
+      if (sourceFilter) params.source = sourceFilter as 'shop' | 'allegro'
+      if (search) params.search = search
+      if (dateFrom) params.from = dateFrom
+      if (dateTo) params.to = dateTo
+
+      const res = await adminApi.getOrders(params)
+      setOrders(res.data)
+      setTotal(res.meta.total)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Blad ladowania zamowien')
     } finally {
       setLoading(false)
     }
-  }, [statusFilter, sourceFilter, debouncedSearch, dateFrom, dateTo])
+  }, [dateFrom, dateTo, page, search, sourceFilter, statusFilter])
 
-  useEffect(() => { fetchOrders(1) }, [fetchOrders])
+  useEffect(() => {
+    fetchOrders()
+  }, [fetchOrders])
 
-  const handleStatusChange = async (orderId: number, newStatus: string) => {
+  useEffect(() => {
+    return () => {
+      if (searchTimer.current) clearTimeout(searchTimer.current)
+    }
+  }, [])
+
+  const handleSearch = (value: string) => {
+    setSearchInput(value)
+
+    if (searchTimer.current) clearTimeout(searchTimer.current)
+    searchTimer.current = setTimeout(() => {
+      setSearch(value)
+      setPage(1)
+    }, 400)
+  }
+
+  const handleStatusFilter = (key: string) => {
+    setStatusFilter(key)
+    setPage(1)
+    setSelectedIds(new Set())
+  }
+
+  const handleStatusChange = async (order: AdminOrder, newStatus: string) => {
     try {
-      await adminApi.updateOrderStatus(orderId, newStatus)
-      play('order-status-changed')
-      await fetchOrders(meta.page)
+      await adminApi.updateOrderStatus(order.id, newStatus)
+      await fetchOrders()
     } catch {
-      play('error')
+      // Keep current UX minimal; modal/toast can be added in next iteration.
     }
   }
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event
-    if (!over) return
-    const activeId = active.id as number
-    const overId = over.id
-    const kanbanStatuses = ['pending', 'paid', 'processing', 'shipped']
-    if (kanbanStatuses.includes(overId as string)) {
-      const order = orders.find(o => o.id === activeId)
-      if (order && order.status !== overId) {
-        play('kanban-drop')
-        handleStatusChange(activeId, overId as string)
-      }
+  const handleContextMenu = (e: React.MouseEvent, order: AdminOrder) => {
+    e.preventDefault()
+    setContextMenu({ order, x: e.clientX, y: e.clientY })
+  }
+
+  const handleToggleSelect = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const handleSelectAll = () => {
+    if (selectedIds.size === orders.length) {
+      setSelectedIds(new Set())
+      return
+    }
+    setSelectedIds(new Set(orders.map((order) => order.id)))
+  }
+
+  const handleDownloadLabel = async (order: AdminOrder) => {
+    try {
+      const blob = await adminApi.getShipmentLabel(order.id)
+      const url = URL.createObjectURL(blob)
+      window.open(url, '_blank')
+      setTimeout(() => URL.revokeObjectURL(url), 30_000)
+    } catch {
+      // Keep current UX minimal; modal/toast can be added in next iteration.
     }
   }
 
-  const filteredOrders = orders
-
-  // ── Stats ─────────────────────────────────────────────────────────────────
-
-  const stats = {
-    pending: orders.filter(o => o.status === 'pending').length,
-    paid: orders.filter(o => o.status === 'paid').length,
-    processing: orders.filter(o => o.status === 'processing').length,
-    shipped: orders.filter(o => o.status === 'shipped').length,
-    revenue: orders
-      .filter(o => ['paid', 'processing', 'shipped', 'delivered'].includes(o.status))
-      .reduce((s, o) => s + Number(o.totalPln ?? (o.currency === 'PLN' ? o.total : 0)), 0),
+  const handleBulkStatusChange = async (status: string) => {
+    const selected = orders.filter((order) => selectedIds.has(order.id))
+    await Promise.allSettled(selected.map((order) => adminApi.updateOrderStatus(order.id, status)))
+    setSelectedIds(new Set())
+    await fetchOrders()
   }
 
-  const statusTabs = [
-    { value: 'all', label: 'Wszystkie' },
-    { value: 'pending', label: 'Oczekujące' },
-    { value: 'paid', label: 'Opłacone' },
-    { value: 'processing', label: 'W realizacji' },
-    { value: 'shipped', label: 'Wysłane' },
-    { value: 'delivered', label: 'Dostarczone' },
-    { value: 'cancelled', label: 'Anulowane' },
-  ]
+  const handleBulkDownloadLabels = async () => {
+    const selected = orders.filter((order) => selectedIds.has(order.id) && order.allegroShipmentId)
+    for (const order of selected) {
+      await handleDownloadLabel(order)
+    }
+  }
 
-  const sourceOptions = [
-    { value: '', label: 'Wszystkie źródła' },
-    { value: 'shop', label: 'Sklep' },
-    { value: 'allegro', label: 'Allegro' },
-  ]
-
-  // ── Build subtitle parts ──────────────────────────────────────────────────
-
-  const subtitleParts: string[] = []
-  if (meta.total > 0) subtitleParts.push(`${meta.total} zamówień`)
-  if (stats.pending > 0) subtitleParts.push(`${stats.pending} oczekujące`)
-  if (stats.processing > 0) subtitleParts.push(`${stats.processing} w realizacji`)
-  if (stats.revenue > 0) subtitleParts.push(`${stats.revenue.toLocaleString('pl-PL', { minimumFractionDigits: 2 })} zł przychodu na tej stronie`)
+  const selectedOrders = orders.filter((order) => selectedIds.has(order.id))
+  const totalPages = Math.ceil(total / LIMIT)
 
   return (
-    <div className="animate-in fade-in duration-300">
-
-      {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div className="flex items-start justify-between mb-8">
-        <div>
-          <h2 className="text-[1.75rem] font-semibold tracking-tight text-[#1A1A1A]">
-            Zamówienia
-          </h2>
-          <p className="text-sm text-[#737373] mt-1">
-            {loading && orders.length === 0
-              ? 'Ładowanie…'
-              : subtitleParts.length > 0
-                ? subtitleParts.map((part, i) => (
-                    <span key={i}>
-                      {i > 0 && <span className="mx-1.5 text-[#D4D3D0]">·</span>}
-                      <span className="tabular-nums">{part.replace(/^\d[\d\s]*/, (m) => m)}</span>
-                    </span>
-                  ))
-                : 'Brak zamówień'
-            }
-          </p>
-        </div>
-        <button
-          onClick={() => fetchOrders(meta.page)}
-          disabled={loading}
-          className="btn-ghost"
-        >
-          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-          Odśwież
-        </button>
-      </div>
-
-      {/* ── Error ──────────────────────────────────────────────────────── */}
-      {error && (
-        <div className="flex items-center gap-3 p-4 rounded-xl border bg-[#FFF7ED] border-[#F97316]/20 text-[#9A3412] mb-8">
-          <AlertTriangle size={16} className="shrink-0" />
-          <p className="text-sm flex-1">{error}</p>
-          <button onClick={() => fetchOrders(1)} className="text-xs font-medium px-3 py-1.5 rounded-lg bg-[#F97316]/10 hover:bg-[#F97316]/20 transition-all duration-300 hover:scale-[1.02] active:scale-95 shrink-0">
-            Ponów
-          </button>
-        </div>
-      )}
-
-      {/* ── Filters ────────────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-4 pb-6 mb-6 border-b border-[#E5E4E1]">
-        {/* Status tabs */}
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex gap-1 overflow-x-auto">
-            {statusTabs.map(tab => (
-              <button
-                key={tab.value}
-                onClick={() => setStatusFilter(tab.value)}
-                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all duration-300 hover:scale-[1.02] active:scale-95 whitespace-nowrap ${
-                  statusFilter === tab.value
-                    ? 'text-[#1A1A1A] bg-[#F5F4F1]'
-                    : 'text-[#A3A3A3] hover:text-[#737373]'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-          <div className="flex p-0.5 rounded-lg border border-[#E5E4E1] shrink-0">
-            <button
-              onClick={() => setViewMode('list')}
-              className={`p-1.5 rounded-md transition-all duration-300 hover:scale-105 active:scale-95 ${
-                viewMode === 'list' ? 'bg-[#F5F4F1] text-[#1A1A1A]' : 'text-[#A3A3A3] hover:text-[#525252]'
-              }`}
-              title="Lista"
-            >
-              <LayoutList size={15} />
-            </button>
-            <button
-              onClick={() => setViewMode('kanban')}
-              className={`p-1.5 rounded-md transition-all duration-300 hover:scale-105 active:scale-95 ${
-                viewMode === 'kanban' ? 'bg-[#F5F4F1] text-[#1A1A1A]' : 'text-[#A3A3A3] hover:text-[#525252]'
-              }`}
-              title="Kanban"
-            >
-              <LayoutGrid size={15} />
-            </button>
-          </div>
-        </div>
-
-        {/* Search + date + source */}
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="relative flex-1">
-            <Search
-              size={15}
-              className={`absolute left-3 top-1/2 -translate-y-1/2 transition-colors duration-200 ${
-                searchQuery ? 'text-[#0066CC]' : 'text-[#A3A3A3]'
-              }`}
-            />
-            <input
-              type="text"
-              placeholder="Szukaj: nr zamówienia, e-mail, NIP, produkt, nr śledzenia…"
-              value={searchQuery}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              className={`admin-input w-full !pl-9 pr-8 transition-all duration-200 ${
-                searchQuery ? 'border-[#0066CC]/40 bg-white' : ''
-              }`}
-            />
-            {searchQuery && !loading && (
-              <button
-                onClick={() => { setSearchQuery(''); setDebouncedSearch('') }}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#A3A3A3] hover:text-[#525252] transition-colors duration-150"
-                title="Wyczyść"
-              >
-                <X size={14} />
-              </button>
-            )}
-            {loading && debouncedSearch && (
-              <Loader2 size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#A3A3A3] animate-spin" />
-            )}
-          </div>
-          <DateRangePicker
-            from={dateFrom}
-            to={dateTo}
-            onChange={(from, to) => { setDateFrom(from); setDateTo(to) }}
-          />
-          <Dropdown
-            options={sourceOptions}
-            value={sourceFilter}
-            onChange={(v) => setSourceFilter(v as '' | 'shop' | 'allegro')}
-            label="Źródło"
-          />
+          <h1 className="text-2xl font-semibold text-[#1A1A1A]">Zamowienia</h1>
+          <span className="text-sm text-[#A3A3A3] tabular-nums">{total}</span>
         </div>
       </div>
 
-      {/* ── Loading ────────────────────────────────────────────────────── */}
-      {loading && orders.length === 0 && (
-        <div className="flex items-center justify-center py-24">
-          <Loader2 size={24} className="text-[#A3A3A3] animate-spin" />
-        </div>
-      )}
+      <div className="flex items-center gap-1 border-b border-[#F0EFEC] overflow-x-auto">
+        {STATUS_TABS.map(({ key, label }) => (
+          <button
+            key={key}
+            className={`px-3 py-2 text-sm transition-colors border-b-2 -mb-px whitespace-nowrap ${
+              statusFilter === key
+                ? 'border-[#1A1A1A] text-[#1A1A1A] font-medium'
+                : 'border-transparent text-[#A3A3A3] hover:text-[#666]'
+            }`}
+            onClick={() => handleStatusFilter(key)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
-      {/* ── List view ──────────────────────────────────────────────────── */}
-      {!loading && viewMode === 'list' && (
-        <>
-          <div className="overflow-x-auto rounded-xl border border-[#E5E4E1]">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-[#FAFAF9]">
-                  <th className="text-left font-medium text-[#737373] text-xs uppercase tracking-wider py-3 px-4 pl-5">
-                    Zamówienie
-                  </th>
-                  <th className="text-left font-medium text-[#737373] text-xs uppercase tracking-wider py-3 px-4">
-                    Klient
-                  </th>
-                  <th className="text-left font-medium text-[#737373] text-xs uppercase tracking-wider py-3 px-4">
-                    Produkty
-                  </th>
-                  <th className="text-left font-medium text-[#737373] text-xs uppercase tracking-wider py-3 px-4">
-                    Dostawa
-                  </th>
-                  <th className="text-left font-medium text-[#737373] text-xs uppercase tracking-wider py-3 px-4">
-                    Data
-                  </th>
-                  <th className="text-center font-medium text-[#737373] text-xs uppercase tracking-wider py-3 px-4">
-                    Status
-                  </th>
-                  <th className="text-right font-medium text-[#737373] text-xs uppercase tracking-wider py-3 px-4 pr-5">
-                    Kwota
-                  </th>
+      <div className="flex flex-wrap items-center gap-3">
+        <input
+          type="text"
+          placeholder="Szukaj: nr, email, NIP, telefon, produkt..."
+          className="admin-input flex-1 min-w-[260px]"
+          value={searchInput}
+          onChange={(e) => handleSearch(e.target.value)}
+        />
+
+        <Dropdown
+          label="Zrodlo"
+          value={sourceFilter}
+          onChange={(v) => {
+            setSourceFilter(v)
+            setPage(1)
+          }}
+          options={[
+            { value: '', label: 'Wszystkie' },
+            { value: 'shop', label: 'Sklep' },
+            { value: 'allegro', label: 'Allegro' },
+          ]}
+        />
+
+        <DateRangePicker
+          from={dateFrom}
+          to={dateTo}
+          onChange={(newFrom, newTo) => {
+            setDateFrom(newFrom)
+            setDateTo(newTo)
+            setPage(1)
+          }}
+        />
+      </div>
+
+      {error ? (
+        <div className="text-center py-12">
+          <p className="text-red-600 mb-3">{error}</p>
+          <button className="btn-primary text-sm" onClick={fetchOrders}>Ponow</button>
+        </div>
+      ) : (
+        <div className="bg-white rounded-xl border border-[#E5E4E1] overflow-hidden shadow-sm">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-[#FAFAF9] text-[#A3A3A3] text-[11px] uppercase tracking-wider border-b border-[#E5E4E1]">
+                <th className="w-[48px] px-4 py-3 text-left">
+                  <input
+                    type="checkbox"
+                    checked={orders.length > 0 && selectedIds.size === orders.length}
+                    onChange={handleSelectAll}
+                    className="rounded border-[#D4D3D0] focus:ring-1 focus:ring-[#1A1A1A]"
+                  />
+                </th>
+                <th className="text-left px-4 py-3 font-medium">Zamowienie</th>
+                <th className="text-left px-4 py-3 font-medium">Klient</th>
+                <th className="text-left px-4 py-3 font-medium">Produkty</th>
+                <th className="text-right px-4 py-3 font-medium">Kwota</th>
+                <th className="text-left px-4 py-3 font-medium">Status</th>
+                <th className="w-[48px] px-4 py-3" />
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                Array.from({ length: 8 }).map((_, i) => (
+                  <tr key={i} className="border-b border-[#F0EFEC] last:border-0">
+                    <td colSpan={7} className="px-4 py-4">
+                      <div className="h-4 bg-[#F5F4F1] rounded animate-pulse" />
+                    </td>
+                  </tr>
+                ))
+              ) : orders.length === 0 ? (
+                <tr className="border-b border-[#F0EFEC] last:border-0">
+                  <td colSpan={7} className="text-center py-12 text-[#A3A3A3]">
+                    Brak zamowien
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-[#F5F4F1] relative z-0">
-                {filteredOrders.length > 0 ? filteredOrders.map((order) => (
-                  <tr
-                    key={order.id}
-                    onClick={() => { play('modal-open'); setSelectedOrder(order) }}
-                    className={`relative cursor-pointer group/row z-10 ${
-                      order.status === 'pending'
-                        ? 'border-l-2 border-amber-400 bg-amber-50/20'
-                        : ''
-                    }`}
-                  >
-                    <td className="px-4 py-3.5 pl-5">
-                      <div className="absolute inset-y-[2px] left-1 right-1 bg-black/[0.04] rounded-lg -z-10 pointer-events-none opacity-0 group-hover/row:opacity-100 transition-opacity duration-150" />
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-medium text-[#1A1A1A] group-hover/row:text-[#0066CC] transition-colors">
-                          {order.orderNumber}
-                        </span>
-                        <SourceBadge source={order.source} />
-                        {order.invoiceRequired && (
-                          <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold px-1 py-0.5 rounded bg-[#DBEAFE] text-[#1D4ED8]">
-                            <FileText size={9} />FV
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <div className="font-medium text-[#1A1A1A] text-sm leading-tight">{getCustomerName(order)}</div>
-                      <div className="text-xs text-[#A3A3A3] mt-0.5 truncate max-w-[160px]">{getCustomerEmail(order)}</div>
-                    </td>
-                    <td className="px-4 py-3.5 max-w-[180px]">
-                      <span className="text-[#525252] text-sm truncate block">{getItemsSummary(order)}</span>
-                      {order.items?.length > 1 && (
-                        <span className="text-xs text-[#A3A3A3]">{order.items.length} pozycje</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3.5 max-w-[160px]">
-                      {(order.shippingMethod || order.trackingNumber) ? (
-                        <div>
-                          {order.shippingMethod && (
-                            <div className="flex items-center gap-1">
-                              <Truck size={11} className="text-[#A3A3A3] shrink-0" />
-                              <span className="text-xs text-[#525252] truncate">{order.shippingMethod}</span>
+              ) : (
+                orders.map((order) => {
+                  const firstItem = order.items?.[0]
+                  const extraCount = (order.items?.length ?? 0) - 1
+
+                  return (
+                    <tr
+                      key={order.id}
+                      className="border-b border-[#F0EFEC] last:border-0 py-3 hover:bg-[#FAFAF9] cursor-pointer group"
+                      onClick={() => setDetailOrder(order)}
+                      onContextMenu={(e) => handleContextMenu(e, order)}
+                    >
+                      <td className="px-4 py-3 align-middle" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(order.id)}
+                          onChange={() => handleToggleSelect(order.id)}
+                          className="rounded border-[#D4D3D0] focus:ring-1 focus:ring-[#1A1A1A] opacity-0 group-hover:opacity-100 aria-checked:opacity-100 checked:opacity-100"
+                        />
+                      </td>
+
+                      <td className="px-4 py-3 align-middle">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-[#1A1A1A]">{order.orderNumber}</span>
+                          {order.source === 'allegro' && (
+                            <span className="text-[10px] font-bold bg-[#FF5A00]/10 text-[#FF5A00] px-1.5 py-0.5 rounded-full leading-none">A</span>
+                          )}
+                          {order.invoiceRequired && (
+                            <span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full leading-none">FV</span>
+                          )}
+                        </div>
+                        <div className="text-xs text-[#A3A3A3] mt-1">{formatDateShort(order.paidAt ?? order.createdAt)}</div>
+                      </td>
+
+                      <td className="px-4 py-3 align-middle">
+                        <div className="text-[#1A1A1A] font-medium">{order.customerData?.name ?? '-'}</div>
+                        <div className="text-xs text-[#A3A3A3] mt-0.5 truncate max-w-[200px]">{order.customerData?.email ?? ''}</div>
+                      </td>
+
+                      <td className="px-4 py-3 align-middle">
+                        <span className="text-[#1A1A1A] truncate block max-w-[250px]">{firstItem?.productName ?? '-'}</span>
+                        {extraCount > 0 && <span className="text-[11px] font-medium text-[#A3A3A3] mt-0.5 inline-block bg-[#F5F4F1] px-2 py-0.5 rounded-full">+{extraCount} wiecej</span>}
+                      </td>
+
+                      <td className="px-4 py-3 text-right align-middle">
+                        <span className="font-semibold text-[#1A1A1A]">{formatAmount(order.total, order.currency)}</span>
+                      </td>
+
+                      <td className="px-4 py-3 align-middle">
+                        <div className="space-y-1">
+                          <OrderStatusBadge
+                            status={order.status}
+                            source={order.source}
+                            allegroFulfillmentStatus={order.allegroFulfillmentStatus}
+                            paymentMethod={order.paymentMethod}
+                            paidAt={order.paidAt}
+                          />
+                          {order.shipmentDisplayStatus && order.shipmentDisplayStatus !== 'none' && (
+                            <div className="text-[10px] leading-none text-[#737373]">
+                              {formatShipmentDisplayStatus(order.shipmentDisplayStatus)}
+                              {order.shipmentFreshness === 'stale' && ' • stare dane'}
                             </div>
                           )}
-                          {order.trackingNumber && (
-                            <span className="text-[11px] text-[#A3A3A3] font-mono mt-0.5 block truncate">
-                              {order.trackingNumber}
-                            </span>
-                          )}
-                          {order.trackingStatus && (
-                            <span className="text-[11px] text-[#525252] mt-0.5 block truncate leading-tight">
-                              {order.trackingStatus}
-                            </span>
-                          )}
                         </div>
-                      ) : (
-                        <span className="text-xs text-[#D4D3D0]">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3.5 whitespace-nowrap">
-                      <span className="text-sm text-[#525252]">{formatDateShort(order.paidAt ?? order.createdAt)}</span>
-                    </td>
-                    <td className="px-4 py-3.5 text-center">
-                      {getStatusBadge(order.status, order.paymentMethod, order.paidAt)}
-                    </td>
-                    <td className="px-4 py-3.5 text-right pr-5">
-                      <div className="flex items-center justify-end gap-1.5">
-                        {order.status === 'pending' && (
-                          <Clock size={12} className="text-amber-500 shrink-0" />
-                        )}
-                        <span className="font-semibold text-[#1A1A1A] font-mono text-sm tabular-nums">
-                          {formatAmount(order.total, order.currency)}
-                        </span>
-                      </div>
-                    </td>
-                  </tr>
-                )) : (
-                  <tr>
-                    <td colSpan={7} className="px-5 py-20 text-center">
-                      <div className="flex flex-col items-center gap-3 text-[#A3A3A3]">
-                        <Package size={32} strokeWidth={1.5} />
-                        <div>
-                          <p className="font-medium text-[#525252]">Brak zamówień</p>
-                          <p className="text-sm mt-0.5">Nie znaleziono zamówień dla podanych kryteriów</p>
-                        </div>
-                        {(statusFilter !== 'all' || sourceFilter || searchQuery || dateFrom || dateTo) && (
-                          <button
-                            onClick={() => { setSearchQuery(''); setDebouncedSearch(''); setStatusFilter('all'); setSourceFilter(''); setDateFrom(''); setDateTo('') }}
-                            className="text-[#0066CC] hover:underline text-sm font-medium mt-1"
-                          >
-                            Wyczyść filtry
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                      </td>
 
-          {/* Pagination */}
-          {meta.totalPages > 0 && (
-            <div className="flex items-center justify-between mt-4">
-              <p className="text-xs text-[#A3A3A3]">
-                <span className="text-[#525252]">{filteredOrders.length}</span> z <span className="text-[#525252]">{meta.total}</span>
-              </p>
-              {meta.totalPages > 1 && (
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => fetchOrders(meta.page - 1)}
-                    disabled={meta.page <= 1}
-                    className="px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-30 text-[#737373] hover:text-[#1A1A1A] hover:bg-[#F5F4F1] transition-all duration-300 hover:scale-[1.02] active:scale-95 flex items-center gap-1"
-                  >
-                    <ChevronLeft size={13} /> Poprzednia
-                  </button>
-                  <span className="px-3 text-xs text-[#A3A3A3] tabular-nums">{meta.page} / {meta.totalPages}</span>
-                  <button
-                    onClick={() => fetchOrders(meta.page + 1)}
-                    disabled={meta.page >= meta.totalPages}
-                    className="px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-30 text-[#737373] hover:text-[#1A1A1A] hover:bg-[#F5F4F1] transition-all duration-300 hover:scale-[1.02] active:scale-95 flex items-center gap-1"
-                  >
-                    Następna <ChevronRight size={13} />
-                  </button>
-                </div>
+                      <td className="px-4 py-3 text-center align-middle" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          className="p-1.5 rounded-lg text-[#A3A3A3] hover:text-[#1A1A1A] hover:bg-[#E5E4E1] opacity-0 group-hover:opacity-100"
+                          onClick={(e) => {
+                            const rect = e.currentTarget.getBoundingClientRect()
+                            setContextMenu({ order, x: rect.left, y: rect.bottom + 4 })
+                          }}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="1"/>
+                            <circle cx="12" cy="5" r="1"/>
+                            <circle cx="12" cy="19" r="1"/>
+                          </svg>
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })
               )}
-            </div>
-          )}
-        </>
-      )}
-
-      {/* ── Kanban view ────────────────────────────────────────────────── */}
-      {!loading && viewMode === 'kanban' && (
-        <div className="p-5 bg-[#FAF9F7] rounded-xl overflow-x-auto">
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <div className="flex gap-5 min-w-max">
-              {['pending', 'paid', 'processing', 'shipped'].map(kanbanStatus => {
-                const columnOrders = filteredOrders.filter(o => o.status === kanbanStatus)
-                const statusLabels: Record<string, string> = {
-                  pending: 'Oczekujące', paid: 'Opłacone', processing: 'W realizacji', shipped: 'Wysłane'
-                }
-                return (
-                  <div key={kanbanStatus} className="w-72 flex flex-col">
-                    <div className="flex items-center gap-2 mb-3">
-                      <h3 className="text-sm font-medium text-[#1A1A1A]">{statusLabels[kanbanStatus]}</h3>
-                      <span className="text-xs text-[#A3A3A3] tabular-nums">{columnOrders.length}</span>
-                    </div>
-                    <SortableContext id={kanbanStatus} items={columnOrders.map(o => o.id)} strategy={verticalListSortingStrategy}>
-                      <div className="flex-1 min-h-[200px] space-y-2">
-                        {columnOrders.map(order => (
-                          <SortableKanbanItem key={order.id} order={order} onClick={() => { play('modal-open'); setSelectedOrder(order) }} />
-                        ))}
-                        {columnOrders.length === 0 && (
-                          <div className="flex items-center justify-center border border-dashed border-[#E5E4E1] rounded-xl py-12 text-xs text-[#A3A3A3]">
-                            Przeciągnij tutaj
-                          </div>
-                        )}
-                      </div>
-                    </SortableContext>
-                  </div>
-                )
-              })}
-            </div>
-          </DndContext>
+            </tbody>
+          </table>
         </div>
       )}
 
-      {/* ── Order detail modal ─────────────────────────────────────────── */}
-      <OrderDetailModal order={selectedOrder} isOpen={!!selectedOrder} onClose={() => setSelectedOrder(null)} />
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-[#A3A3A3]">Strona {page} z {totalPages}</span>
+          <div className="flex gap-2">
+            <button
+              disabled={page <= 1}
+              className="btn-secondary text-sm disabled:opacity-40"
+              onClick={() => setPage((prev) => prev - 1)}
+            >
+              Poprzednia
+            </button>
+            <button
+              disabled={page >= totalPages}
+              className="btn-secondary text-sm disabled:opacity-40"
+              onClick={() => setPage((prev) => prev + 1)}
+            >
+              Nastepna
+            </button>
+          </div>
+        </div>
+      )}
+
+      {contextMenu && (
+        <OrderContextMenu
+          order={contextMenu.order}
+          position={{ x: contextMenu.x, y: contextMenu.y }}
+          onClose={() => setContextMenu(null)}
+          onOpenDetails={(order) => setDetailOrder(order)}
+          onChangeStatus={handleStatusChange}
+          onCreateShipment={(order) => setShipmentOrder(order)}
+          onDownloadLabel={handleDownloadLabel}
+        />
+      )}
+
+      <OrderDetailModal
+        order={detailOrder}
+        isOpen={!!detailOrder}
+        onClose={() => setDetailOrder(null)}
+        onCreateShipment={(order) => {
+          setDetailOrder(null)
+          setShipmentOrder(order)
+        }}
+        onDownloadLabel={handleDownloadLabel}
+      />
+
+      {shipmentOrder && (
+        <ShipmentModal
+          order={shipmentOrder}
+          isOpen={!!shipmentOrder}
+          onClose={() => setShipmentOrder(null)}
+          onSuccess={() => {
+            setShipmentOrder(null)
+            fetchOrders()
+          }}
+        />
+      )}
+
+      <BulkActionBar
+        selectedOrders={selectedOrders}
+        onChangeStatus={handleBulkStatusChange}
+        onDownloadLabels={handleBulkDownloadLabels}
+        onClearSelection={() => setSelectedIds(new Set())}
+      />
     </div>
   )
 }

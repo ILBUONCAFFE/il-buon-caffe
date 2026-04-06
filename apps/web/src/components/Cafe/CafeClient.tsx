@@ -195,7 +195,7 @@ const CafeClient: React.FC = () => {
           <div className="absolute inset-0 bg-[radial-gradient(60%_60%_at_50%_20%,rgba(255,255,255,0.08),transparent_60%)] z-10" />
           <div className="absolute inset-0 bg-[radial-gradient(120%_100%_at_50%_120%,rgba(0,0,0,0.7),transparent_60%)] z-10" />
           <Image
-            src="https://images.unsplash.com/photo-1554118811-1e0d58224f24?q=80&w=2694&auto=format&fit=crop"
+            src="/assets/kawiarnia.jpg"
             alt="Wnętrze kawiarni Il Buon Caffe"
             fill
             priority

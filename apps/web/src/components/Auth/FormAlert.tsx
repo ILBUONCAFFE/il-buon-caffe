@@ -4,7 +4,7 @@ import { motion } from "motion/react";
 import { XCircle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export const FormAlert = ({ message, tone = "error" }: { message: string; tone?: "error" | "success" }) => (
+export const FormAlert = ({ message, tone = "error" }: { message: React.ReactNode; tone?: "error" | "success" }) => (
   <motion.div
     initial={{ opacity: 0, height: 0, marginBottom: 0 }}
     animate={{ opacity: 1, height: "auto", marginBottom: 12 }}

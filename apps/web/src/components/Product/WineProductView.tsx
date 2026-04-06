@@ -14,6 +14,8 @@ import { useNotification } from '@/components/Notification/NotificationProvider'
 import { getProductBySku } from '@/actions/products';
 import { Product } from '@/types';
 import { getWineDetailsForProduct } from '@/content/products/wineData';
+import { SHOP_ENABLED } from '@/config/launch';
+import { ComingSoonBanner } from '@/components/ui/ComingSoonBanner';
 
 import { palette } from './wine/palette';
 import { CountryFlag } from './wine/CountryFlag';
@@ -292,146 +294,157 @@ export const WineProductView = ({ product, categoryName }: WineProductViewProps)
                 ))}
               </motion.div>
 
-              {/* Stock display */}
-              {availableToBuy !== null && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.6, delay: 0.9 }}
-                  className="mb-5 text-[13px] font-medium"
-                >
-                  {availableToBuy > 0 ? (
-                    <div className="flex items-center gap-2" style={{ color: '#2D6A4F' }}>
-                      <div className="w-2 h-2 rounded-full bg-[#2D6A4F] animate-pulse" />
-                      Dostępne: {availableToBuy} szt. {inCartQuantity > 0 ? <span className="text-[#52483D] opacity-70 ml-1">(+{inCartQuantity} w koszyku)</span> : ''}
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2" style={{ color: palette.accent }}>
-                      <div className="w-2 h-2 rounded-full bg-[#7B2D3B]" />
-                      Brak na stanie {inCartQuantity > 0 ? <span className="text-[#52483D] opacity-70 ml-1">(dodano {inCartQuantity} szt. do koszyka)</span> : ''}
-                    </div>
+              {SHOP_ENABLED ? (
+                <>
+                  {/* Stock display */}
+                  {availableToBuy !== null && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.6, delay: 0.9 }}
+                      className="mb-5 text-[13px] font-medium"
+                    >
+                      {availableToBuy > 0 ? (
+                        <div className="flex items-center gap-2" style={{ color: '#2D6A4F' }}>
+                          <div className="w-2 h-2 rounded-full bg-[#2D6A4F] animate-pulse" />
+                          Dostępne: {availableToBuy} szt. {inCartQuantity > 0 ? <span className="text-[#52483D] opacity-70 ml-1">(+{inCartQuantity} w koszyku)</span> : ''}
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2" style={{ color: palette.accent }}>
+                          <div className="w-2 h-2 rounded-full bg-[#7B2D3B]" />
+                          Brak na stanie {inCartQuantity > 0 ? <span className="text-[#52483D] opacity-70 ml-1">(dodano {inCartQuantity} szt. do koszyka)</span> : ''}
+                        </div>
+                      )}
+                    </motion.div>
                   )}
+
+                  {/* Action Buttons */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.95 }}
+                    className="flex flex-col sm:flex-row gap-3 mb-8"
+                  >
+                    {/* Quantity Control */}
+                    <div
+                      className="flex items-center h-[3.5rem] rounded-xl overflow-hidden backdrop-blur-md shrink-0 sm:w-36 w-full"
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.8)',
+                        border: '1px solid rgba(255, 255, 255, 1)',
+                        boxShadow: '0 2px 8px rgba(28, 23, 20, 0.04)'
+                      }}
+                    >
+                      <button
+                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                        className="flex-1 h-full flex items-center justify-center hover:bg-black/5 transition-colors active:bg-black/10"
+                        style={{ color: palette.textMuted }}
+                      >
+                        <Minus size={16} strokeWidth={1.5} />
+                      </button>
+                      <span className="w-12 text-center font-serif text-xl select-none" style={{ color: palette.text }}>{quantity}</span>
+                      <button
+                        onClick={handleIncreaseQuantity}
+                        className="flex-1 h-full flex items-center justify-center hover:bg-black/5 transition-colors active:bg-black/10"
+                        style={{ color: palette.textMuted }}
+                      >
+                        <Plus size={16} strokeWidth={1.5} />
+                      </button>
+                    </div>
+
+                    {/* Add to Cart Button */}
+                    <motion.button
+                      onClick={handleAddToCart}
+                      disabled={isAdded || (availableToBuy !== null && availableToBuy === 0)}
+                      className="relative overflow-hidden flex-1 h-[3.5rem] px-8 font-bold uppercase tracking-[0.12em] text-[11px] flex items-center justify-center gap-3 rounded-xl transition-all duration-300"
+                      style={{
+                        background: isAdded ? '#2D6A4F' : (availableToBuy === 0 ? palette.textMuted : `linear-gradient(135deg, ${palette.accent} 0%, #60212E 100%)`),
+                        color: '#fff',
+                        cursor: availableToBuy === 0 ? 'not-allowed' : 'pointer',
+                        boxShadow: isAdded ? '0 10px 20px rgba(45,106,79,0.2)' : (availableToBuy === 0 ? 'none' : `0 10px 25px ${palette.accent}40`)
+                      }}
+                      whileHover={{
+                        scale: availableToBuy === 0 ? 1 : 1.01,
+                        boxShadow: availableToBuy === 0 ? 'none' : `0 15px 35px ${palette.accent}50`
+                      }}
+                      whileTap={{ scale: availableToBuy === 0 ? 1 : 0.98 }}
+                    >
+
+                      {isAdded ? (
+                        <motion.div
+                          initial={{ scale: 0.5, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          className="flex items-center gap-2"
+                        >
+                          <Check size={18} strokeWidth={2.5} /> Dodano do koszyka
+                        </motion.div>
+                      ) : (
+                        <div className="flex items-center gap-2 relative z-10">
+                          Dodaj do koszyka
+                          <ArrowRight size={16} className="transition-transform duration-300 group-hover:translate-x-1" strokeWidth={2} />
+                        </div>
+                      )}
+                    </motion.button>
+                  </motion.div>
+
+                  {/* Secondary Actions */}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.6, delay: 1 }}
+                    className="flex gap-8 text-[13px] font-medium"
+                    style={{ color: palette.textMuted }}
+                  >
+                    <button
+                      className="flex items-center gap-2.5 hover:text-[#7B2D3B] transition-colors group"
+                      onClick={() => setIsFavorite(!isFavorite)}
+                    >
+                      <Heart
+                        size={16}
+                        strokeWidth={1.5}
+                        fill={isFavorite ? palette.accent : 'transparent'}
+                        color={isFavorite ? palette.accent : "currentColor"}
+                        className="transition-transform duration-300 group-hover:scale-110"
+                      />
+                      <span>{isFavorite ? 'Ulubione' : 'Dodaj do ulubionych'}</span>
+                    </button>
+                    <button
+                      className="flex items-center gap-2.5 hover:text-[#7B2D3B] transition-colors group"
+                      onClick={async () => {
+                        const url = window.location.href;
+                        if (navigator.share) {
+                          try {
+                            await navigator.share({
+                              title: product.name,
+                              text: `Sprawdź to wspaniałe wino: ${product.name}`,
+                              url: url,
+                            });
+                          } catch (error) {
+                            console.log('Error sharing', error);
+                          }
+                        } else {
+                          try {
+                            await navigator.clipboard.writeText(url);
+                            notify({ message: "Pomyślnie skopiowano link do schowka!", tone: "success", duration: 3000 });
+                          } catch (err) {
+                            notify({ message: "Nie udało się skopiować linku.", tone: "error", duration: 3000 });
+                          }
+                        }
+                      }}
+                    >
+                      <Share2 size={16} strokeWidth={1.5} className="transition-transform duration-300 group-hover:scale-110" />
+                      <span>Udostępnij</span>
+                    </button>
+                  </motion.div>
+                </>
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.9 }}
+                >
+                  <ComingSoonBanner variant="shop" compact />
                 </motion.div>
               )}
-
-              {/* Action Buttons */}
-              <motion.div
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.95 }}
-                className="flex flex-col sm:flex-row gap-3 mb-8"
-              >
-                {/* Quantity Control */}
-                <div
-                  className="flex items-center h-[3.5rem] rounded-xl overflow-hidden backdrop-blur-md shrink-0 sm:w-36 w-full"
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.8)',
-                    border: '1px solid rgba(255, 255, 255, 1)',
-                    boxShadow: '0 2px 8px rgba(28, 23, 20, 0.04)'
-                  }}
-                >
-                  <button
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="flex-1 h-full flex items-center justify-center hover:bg-black/5 transition-colors active:bg-black/10"
-                    style={{ color: palette.textMuted }}
-                  >
-                    <Minus size={16} strokeWidth={1.5} />
-                  </button>
-                  <span className="w-12 text-center font-serif text-xl select-none" style={{ color: palette.text }}>{quantity}</span>
-                  <button
-                    onClick={handleIncreaseQuantity}
-                    className="flex-1 h-full flex items-center justify-center hover:bg-black/5 transition-colors active:bg-black/10"
-                    style={{ color: palette.textMuted }}
-                  >
-                    <Plus size={16} strokeWidth={1.5} />
-                  </button>
-                </div>
-
-                {/* Add to Cart Button */}
-                <motion.button
-                  onClick={handleAddToCart}
-                  disabled={isAdded || (availableToBuy !== null && availableToBuy === 0)}
-                  className="relative overflow-hidden flex-1 h-[3.5rem] px-8 font-bold uppercase tracking-[0.12em] text-[11px] flex items-center justify-center gap-3 rounded-xl transition-all duration-300"
-                  style={{
-                    background: isAdded ? '#2D6A4F' : (availableToBuy === 0 ? palette.textMuted : `linear-gradient(135deg, ${palette.accent} 0%, #60212E 100%)`),
-                    color: '#fff',
-                    cursor: availableToBuy === 0 ? 'not-allowed' : 'pointer',
-                    boxShadow: isAdded ? '0 10px 20px rgba(45,106,79,0.2)' : (availableToBuy === 0 ? 'none' : `0 10px 25px ${palette.accent}40`)
-                  }}
-                  whileHover={{
-                    scale: availableToBuy === 0 ? 1 : 1.01,
-                    boxShadow: availableToBuy === 0 ? 'none' : `0 15px 35px ${palette.accent}50`
-                  }}
-                  whileTap={{ scale: availableToBuy === 0 ? 1 : 0.98 }}
-                >
-
-                  {isAdded ? (
-                    <motion.div
-                      initial={{ scale: 0.5, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      className="flex items-center gap-2"
-                    >
-                      <Check size={18} strokeWidth={2.5} /> Dodano do koszyka
-                    </motion.div>
-                  ) : (
-                    <div className="flex items-center gap-2 relative z-10">
-                      Dodaj do koszyka
-                      <ArrowRight size={16} className="transition-transform duration-300 group-hover:translate-x-1" strokeWidth={2} />
-                    </div>
-                  )}
-                </motion.button>
-              </motion.div>
-
-              {/* Secondary Actions */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.6, delay: 1 }}
-                className="flex gap-8 text-[13px] font-medium"
-                style={{ color: palette.textMuted }}
-              >
-                <button
-                  className="flex items-center gap-2.5 hover:text-[#7B2D3B] transition-colors group"
-                  onClick={() => setIsFavorite(!isFavorite)}
-                >
-                  <Heart
-                    size={16}
-                    strokeWidth={1.5}
-                    fill={isFavorite ? palette.accent : 'transparent'}
-                    color={isFavorite ? palette.accent : "currentColor"}
-                    className="transition-transform duration-300 group-hover:scale-110"
-                  />
-                  <span>{isFavorite ? 'Ulubione' : 'Dodaj do ulubionych'}</span>
-                </button>
-                <button
-                  className="flex items-center gap-2.5 hover:text-[#7B2D3B] transition-colors group"
-                  onClick={async () => {
-                    const url = window.location.href;
-                    if (navigator.share) {
-                      try {
-                        await navigator.share({
-                          title: product.name,
-                          text: `Sprawdź to wspaniałe wino: ${product.name}`,
-                          url: url,
-                        });
-                      } catch (error) {
-                        // User canceled or share failed
-                        console.log('Error sharing', error);
-                      }
-                    } else {
-                      try {
-                        await navigator.clipboard.writeText(url);
-                        notify({ message: "Pomyślnie skopiowano link do schowka!", tone: "success", duration: 3000 });
-                      } catch (err) {
-                        notify({ message: "Nie udało się skopiować linku.", tone: "error", duration: 3000 });
-                      }
-                    }
-                  }}
-                >
-                  <Share2 size={16} strokeWidth={1.5} className="transition-transform duration-300 group-hover:scale-110" />
-                  <span>Udostępnij</span>
-                </button>
-              </motion.div>
             </motion.div>
           </div>
         </div>

@@ -405,7 +405,7 @@ adminProductsRouter.delete('/:sku/images/:imageId', async (c) => {
   try {
     const db      = createDb(c.env.DATABASE_URL)
     const sku     = sanitize(c.req.param('sku'), 50).toUpperCase()
-    const imageId = parseInt(c.req.param('imageId'))
+    const imageId = parseInt(c.req.param('imageId') ?? '', 10)
 
     if (isNaN(imageId)) return c.json({ error: 'Nieprawidłowe ID obrazu' }, 400)
 

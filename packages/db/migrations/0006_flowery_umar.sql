@@ -1,0 +1,1 @@
+ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "allegro_shipment_id" varchar(36);

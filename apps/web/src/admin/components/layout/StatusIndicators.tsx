@@ -90,8 +90,8 @@ export function StatusIndicators() {
 
   return (
     <div className="group flex items-center gap-4">
-      {indicators.map(ind => (
-        <StatusDot key={ind.key} {...ind} />
+      {indicators.map(({ key, ...rest }) => (
+        <StatusDot key={key} {...rest} />
       ))}
     </div>
   )

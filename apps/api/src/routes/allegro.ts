@@ -47,15 +47,22 @@ type AllegroEnv = Env & {
 
 async function encrypt(text: string, key?: string): Promise<string> {
   if (!key) {
-    console.warn('[Allegro] ALLEGRO_TOKEN_ENCRYPTION_KEY is not set — tokens stored as plaintext. Set this CF Secret in production.')
-    return text
+    throw new Error('[Allegro] ALLEGRO_TOKEN_ENCRYPTION_KEY is not set — refusing to store tokens as plaintext. Configure this Cloudflare Secret.')
   }
   return encryptText(text, key)
 }
 
 async function decrypt(text: string, key?: string): Promise<string> {
-  if (!key) return text // dev fallback
-  return decryptText(text, key)
+  if (!key) {
+    throw new Error('[Allegro] ALLEGRO_TOKEN_ENCRYPTION_KEY is not set — refusing to read tokens without decryption key. Configure this Cloudflare Secret.')
+  }
+  try {
+    return await decryptText(text, key)
+  } catch {
+    // Stored token is likely plaintext from before encryption was enforced.
+    // Throw a typed sentinel so callers can detect and trigger forced re-auth.
+    throw new Error('ALLEGRO_TOKEN_DECRYPT_FAILED')
+  }
 }
 
 async function saveTokensToDB(db: ReturnType<typeof createDb>, opts: {
@@ -102,11 +109,14 @@ async function saveTokensToKV(kv: KVNamespace, opts: {
   refreshToken: string
   expiresAt:    Date
   environment:  AllegroEnvironment
+  encKey?:      string
 }) {
   const ttl = Math.max(Math.floor((opts.expiresAt.getTime() - Date.now()) / 1000), 60)
+  const encAccess  = await encrypt(opts.accessToken,  opts.encKey)
+  const encRefresh = await encrypt(opts.refreshToken, opts.encKey)
   await Promise.all([
-    kv.put(KV_KEYS.ACCESS_TOKEN,  opts.accessToken,  { expirationTtl: ttl }),
-    kv.put(KV_KEYS.REFRESH_TOKEN, opts.refreshToken),
+    kv.put(KV_KEYS.ACCESS_TOKEN,  encAccess,  { expirationTtl: ttl }),
+    kv.put(KV_KEYS.REFRESH_TOKEN, encRefresh),
     kv.put(KV_KEYS.ENVIRONMENT,   opts.environment),
   ])
 }
@@ -172,8 +182,7 @@ allegroRouter.get('/status', requireAdminOrProxy(), async (c) => {
     return c.json({ success: true, data: status })
   } catch (err) {
     console.error('[Allegro] status error:', err instanceof Error ? err.message : String(err))
-    const msg = err instanceof Error ? err.message : 'Błąd pobierania statusu'
-    return c.json({ success: false, error: { code: 'STATUS_ERROR', message: msg } }, 500)
+    return c.json({ success: false, error: { code: 'STATUS_ERROR', message: 'Błąd pobierania statusu' } }, 500)
   }
 })
 
@@ -204,8 +213,7 @@ allegroRouter.get('/connect/url', requireAdminOrProxy(), async (c) => {
     return c.json({ success: true, data: { url, state: nonce, environment } })
   } catch (err) {
     console.error('[Allegro] connect/url error:', err instanceof Error ? err.message : String(err))
-    const msg = err instanceof Error ? err.message : 'Błąd generowania URL'
-    return c.json({ success: false, error: { code: 'CONNECT_URL_ERROR', message: msg } }, 500)
+    return c.json({ success: false, error: { code: 'CONNECT_URL_ERROR', message: 'Błąd generowania URL autoryzacji' } }, 500)
   }
 })
 
@@ -223,7 +231,7 @@ allegroRouter.get('/callback', async (c) => {
   // Allegro returned an error
   if (allegroError) {
     console.error('[Allegro] callback error from Allegro:', allegroError)
-    return c.redirect(errorUrl(`Allegro odmówił dostępu: ${allegroError}`))
+    return c.redirect(errorUrl('Allegro odmówił dostępu — sprawdź uprawnienia aplikacji'))
   }
 
   if (!code || !state) {
@@ -249,9 +257,8 @@ allegroRouter.get('/callback', async (c) => {
     }
     environment = parsed.environment
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err)
-    console.error('[Allegro] callback state verification error:', msg)
-    return c.redirect(errorUrl(`Błąd weryfikacji state: ${msg}`))
+    console.error('[Allegro] callback state verification error:', err instanceof Error ? err.message : String(err))
+    return c.redirect(errorUrl('Błąd weryfikacji sesji — spróbuj ponownie'))
   }
 
   try {
@@ -280,6 +287,7 @@ allegroRouter.get('/callback', async (c) => {
         refreshToken: tokens.refresh_token,
         expiresAt,
         environment,
+        encKey:       env.ALLEGRO_TOKEN_ENCRYPTION_KEY,
       }),
     ])
 
@@ -297,9 +305,8 @@ allegroRouter.get('/callback', async (c) => {
     console.log(`[Allegro] OAuth connection successful — environment: ${environment}`)
     return c.redirect(successUrl)
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err)
-    console.error('[Allegro] callback token exchange error:', msg)
-    return c.redirect(errorUrl(`Błąd wymiany tokenu: ${msg}`))
+    console.error('[Allegro] callback token exchange error:', err instanceof Error ? err.message : String(err))
+    return c.redirect(errorUrl('Błąd podczas wymiany tokenu — spróbuj ponownie'))
   }
 })
 
@@ -348,7 +355,17 @@ allegroRouter.post('/refresh', requireAdminOrProxy(), async (c) => {
     }
 
     const encKey = env.ALLEGRO_TOKEN_ENCRYPTION_KEY
-    const refreshToken = await decrypt(cred.refreshToken, encKey)
+    let refreshToken: string
+    try {
+      refreshToken = await decrypt(cred.refreshToken, encKey)
+    } catch (err) {
+      if (err instanceof Error && err.message === 'ALLEGRO_TOKEN_DECRYPT_FAILED') {
+        // Stored token is plaintext (pre-encryption). Deactivate it and force re-auth.
+        await db.update(allegroCredentials).set({ isActive: false }).where(eq(allegroCredentials.isActive, true))
+        return c.json({ success: false, error: { code: 'REAUTH_REQUIRED', message: 'Tokeny Allegro wymagają ponownego uwierzytelnienia — poprzednie zostały zapisane bez szyfrowania.' } }, 401)
+      }
+      throw err
+    }
     const environment  = cred.environment as AllegroEnvironment
 
     const tokens = await refreshAllegroToken({
@@ -374,6 +391,7 @@ allegroRouter.post('/refresh', requireAdminOrProxy(), async (c) => {
         refreshToken: tokens.refresh_token,
         expiresAt,
         environment,
+        encKey,
       }),
     ])
 
@@ -415,7 +433,8 @@ allegroRouter.get('/me', requireAdminOrProxy(), async (c) => {
 
   try {
     // Get access token (KV first, then DB)
-    let accessToken = await env.ALLEGRO_KV.get(KV_KEYS.ACCESS_TOKEN)
+    const rawKvToken = await env.ALLEGRO_KV.get(KV_KEYS.ACCESS_TOKEN)
+    let accessToken = rawKvToken ? await decrypt(rawKvToken, env.ALLEGRO_TOKEN_ENCRYPTION_KEY).catch(() => null) : null
     const environment = ((await env.ALLEGRO_KV.get(KV_KEYS.ENVIRONMENT)) ?? 'sandbox') as AllegroEnvironment
 
     if (!accessToken) {
@@ -430,7 +449,15 @@ allegroRouter.get('/me', requireAdminOrProxy(), async (c) => {
       if (!cred) {
         return c.json({ success: false, error: 'Brak połączenia z Allegro' }, 404)
       }
-      accessToken = await decrypt(cred.accessToken, env.ALLEGRO_TOKEN_ENCRYPTION_KEY)
+      try {
+        accessToken = await decrypt(cred.accessToken, env.ALLEGRO_TOKEN_ENCRYPTION_KEY)
+      } catch (err) {
+        if (err instanceof Error && err.message === 'ALLEGRO_TOKEN_DECRYPT_FAILED') {
+          await db.update(allegroCredentials).set({ isActive: false }).where(eq(allegroCredentials.isActive, true))
+          return c.json({ success: false, error: { code: 'REAUTH_REQUIRED', message: 'Tokeny Allegro wymagają ponownego uwierzytelnienia — poprzednie zostały zapisane bez szyfrowania.' } }, 401)
+        }
+        throw err
+      }
     }
 
     const apiBase = getAllegroApiBase(environment)
@@ -685,17 +712,35 @@ allegroRouter.get('/orders/:id/tracking', requireAdminOrProxy(), async (c) => {
     )
     const latest = sorted[0]
 
+    const latestCodeRaw = (latest?.code ?? latest?.status ?? null)
+    const latestCode = latestCodeRaw == null
+      ? null
+      : String(latestCodeRaw).trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '') || null
+    const latestOccurredRaw = latest?.occurredAt ?? latest?.time ?? latest?.date ?? null
+    const latestOccurredAt = latestOccurredRaw ? new Date(String(latestOccurredRaw)) : null
+    const latestOccurredAtSafe = latestOccurredAt && !Number.isNaN(latestOccurredAt.getTime()) ? latestOccurredAt : null
+
     // 4. Update tracking number in local DB
     if (waybill) {
       const db = createDb(c.env.DATABASE_URL)
       const latestDescription = latest?.description ?? null
       await db.update(orders)
-        .set({ trackingNumber: waybill, trackingStatus: latestDescription, updatedAt: new Date() })
+        .set({
+          trackingNumber: waybill,
+          trackingStatus: latestDescription,
+          trackingStatusCode: latestCode,
+          trackingStatusUpdatedAt: new Date(),
+          trackingLastEventAt: latestOccurredAtSafe,
+          updatedAt: new Date(),
+        })
         .where(and(
           eq(orders.externalId, checkoutFormId!),
           sql`(
             ${orders.trackingNumber} IS DISTINCT FROM ${waybill}
             OR ${orders.trackingStatus} IS DISTINCT FROM ${latestDescription}
+            OR ${orders.trackingStatusCode} IS DISTINCT FROM ${latestCode}
+            OR ${orders.trackingLastEventAt} IS DISTINCT FROM ${latestOccurredAtSafe}
+            OR ${orders.trackingStatusUpdatedAt} IS NULL
           )`,
         ))
     }
@@ -737,9 +782,16 @@ export async function preWarmAllegroQualityCache(env: Env): Promise<void> {
   const kv = env.ALLEGRO_KV
   if (!kv) return
 
-  const accessToken = await kv.get(KV_KEYS.ACCESS_TOKEN)
+  const encKey = (env as AllegroEnv).ALLEGRO_TOKEN_ENCRYPTION_KEY
+  const rawKvToken = await kv.get(KV_KEYS.ACCESS_TOKEN)
+  if (!rawKvToken) return
+  let accessToken: string
+  try {
+    accessToken = await decrypt(rawKvToken, encKey)
+  } catch {
+    return // key missing or token corrupt — skip pre-warm, next sync will restore
+  }
   const environment = ((await kv.get(KV_KEYS.ENVIRONMENT)) ?? 'sandbox') as AllegroEnvironment
-  if (!accessToken) return
 
   try {
     const db = createDb(env.DATABASE_URL)

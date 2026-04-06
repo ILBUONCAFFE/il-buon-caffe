@@ -29,9 +29,17 @@ export async function resolveAccessToken(
   db: ReturnType<typeof createDb>,
   env: Env,
 ): Promise<string | null> {
+  const encKey = env.ALLEGRO_TOKEN_ENCRYPTION_KEY
+
   // Try KV first (fast path)
-  let accessToken = await kv.get(KV_KEYS.ACCESS_TOKEN)
-  if (accessToken) return accessToken
+  const rawKvToken = await kv.get(KV_KEYS.ACCESS_TOKEN)
+  if (rawKvToken) {
+    try {
+      return await decryptText(rawKvToken, encKey!)
+    } catch {
+      // KV token corrupt or key missing — fall through to DB
+    }
+  }
 
   // KV TTL may have expired — restore from DB
   let credRows: (typeof allegroCredentials.$inferSelect)[] = []
@@ -47,17 +55,22 @@ export async function resolveAccessToken(
   const cred = credRows[0]
   if (!cred) return null
 
-  const encKey = env.ALLEGRO_TOKEN_ENCRYPTION_KEY
   const allegroEnvCred = cred.environment as AllegroEnvironment
+
+  if (!encKey) {
+    console.error('[AllegroOrders] ALLEGRO_TOKEN_ENCRYPTION_KEY is not set — refusing token operations. Configure this Cloudflare Secret.')
+    return null
+  }
+
+  let accessToken: string
 
   if (cred.expiresAt <= new Date()) {
     // Token expired — try refresh
     let rawRefresh: string
     try {
-      rawRefresh = encKey ? await decryptText(cred.refreshToken, encKey) : cred.refreshToken
+      rawRefresh = await decryptText(cred.refreshToken, encKey)
     } catch (e) {
-      console.error('[AllegroOrders] Błąd odświeżania wygasłego tokenu:', e instanceof Error ? e.message : e)
-      console.error('[AllegroOrders] Klucz ALLEGRO_TOKEN_ENCRYPTION_KEY nie pasuje do tokenu w bazie. Wymagana ponowna autoryzacja Allegro OAuth.')
+      console.error('[AllegroOrders] Błąd odczytu refresh tokenu — token może być nieszyfrowany. Wymagana ponowna autoryzacja Allegro OAuth.', e instanceof Error ? e.message : e)
       return null
     }
     const tokens = await refreshAllegroToken({
@@ -72,8 +85,8 @@ export async function resolveAccessToken(
 
     // Persist new tokens to DB and KV — prevents hourly cron from using the
     // now-invalidated refresh token (Allegro rotates refresh tokens on every use)
-    const encAccess  = encKey ? await encryptText(tokens.access_token,  encKey) : tokens.access_token
-    const encRefresh = encKey ? await encryptText(tokens.refresh_token, encKey) : tokens.refresh_token
+    const encAccess  = await encryptText(tokens.access_token,  encKey)
+    const encRefresh = await encryptText(tokens.refresh_token, encKey)
     await db.update(allegroCredentials)
       .set({ isActive: false })
       .where(eq(allegroCredentials.isActive, true))
@@ -88,23 +101,21 @@ export async function resolveAccessToken(
       updatedAt:    new Date(),
     })
     await Promise.all([
-      kv.put(KV_KEYS.ACCESS_TOKEN,  tokens.access_token,  { expirationTtl: ttl }),
-      kv.put(KV_KEYS.REFRESH_TOKEN, tokens.refresh_token),
+      kv.put(KV_KEYS.ACCESS_TOKEN,  encAccess, { expirationTtl: ttl }),
+      kv.put(KV_KEYS.REFRESH_TOKEN, encRefresh),
       kv.put('allegro:token_expires_at', expiresAt.toISOString()),
     ]).catch(() => {})
   } else {
     // Token still valid in DB — restore to KV
-    let rawAccess: string
     try {
-      rawAccess = encKey ? await decryptText(cred.accessToken, encKey) : cred.accessToken
+      accessToken = await decryptText(cred.accessToken, encKey)
     } catch (e) {
-      console.error('[AllegroOrders] Błąd odczytu tokenu dostępu:', e instanceof Error ? e.message : e)
-      console.error('[AllegroOrders] Klucz ALLEGRO_TOKEN_ENCRYPTION_KEY nie pasuje do tokenu w bazie. Wymagana ponowna autoryzacja Allegro OAuth.')
+      console.error('[AllegroOrders] Błąd odczytu tokenu dostępu — token może być nieszyfrowany. Wymagana ponowna autoryzacja Allegro OAuth.', e instanceof Error ? e.message : e)
       return null
     }
-    accessToken = rawAccess
+    const encAccess = await encryptText(accessToken, encKey)
     const ttl = Math.max(Math.floor((cred.expiresAt.getTime() - Date.now()) / 1000), 60)
-    await kv.put(KV_KEYS.ACCESS_TOKEN, accessToken, { expirationTtl: ttl }).catch(() => {})
+    await kv.put(KV_KEYS.ACCESS_TOKEN, encAccess, { expirationTtl: ttl }).catch(() => {})
   }
 
   return accessToken

@@ -8,6 +8,7 @@ import {
   KeyRound, ChevronDown, ChevronUp, Package,
 } from 'lucide-react'
 import { OrganicIcon } from '../../components/ui/OrganicIcon'
+import { Dropdown } from '../../components/ui/Dropdown'
 import { adminApi, ApiError } from '../../lib/adminApiClient'
 import type { AllegroConnectionStatus, AllegroEnvironment } from '../../types/admin-api'
 
@@ -328,15 +329,15 @@ export const AllegroConnectView = () => {
               {!status?.connected ? (
                 <>
                   <div className="flex items-center gap-2">
-                    <label className="text-xs font-medium text-[#737373]">Środowisko:</label>
-                    <select
+                    <Dropdown
+                      label="Środowisko"
                       value={environment}
-                      onChange={e => setEnvironment(e.target.value as AllegroEnvironment)}
-                      className="admin-select w-auto font-medium"
-                    >
-                      <option value="sandbox">Sandbox (testy)</option>
-                      <option value="production">Produkcja</option>
-                    </select>
+                      onChange={(v) => setEnvironment(v as AllegroEnvironment)}
+                      options={[
+                        { value: 'sandbox', label: 'Sandbox (testy)' },
+                        { value: 'production', label: 'Produkcja' },
+                      ]}
+                    />
                   </div>
                   <button
                     onClick={handleConnect}

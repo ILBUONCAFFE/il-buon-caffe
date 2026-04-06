@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useCart } from '@/context/CartContext';
 import { X, Trash2, ShoppingBag, ArrowRight, Minus, Plus, Package, GripVertical } from 'lucide-react';
 import { CATEGORY_NAMES } from '@/lib/constants';
+import { SHOP_ENABLED } from '@/config/launch';
+import { ComingSoonBanner } from '@/components/ui/ComingSoonBanner';
 
 const CartSidebar = () => {
   const { 
@@ -417,15 +419,19 @@ const CartSidebar = () => {
             
             {/* Checkout button */}
             <div className="px-5 pb-5">
-              <Link 
-                href="/checkout"
-                onClick={onClose}
-                className="w-full bg-brand-900 text-white py-3 rounded-xl shadow-lg shadow-brand-900/20 hover:bg-brand-800 hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 flex items-center justify-center gap-2 group relative overflow-hidden"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.07] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-                <span className="text-[13px] font-semibold tracking-wide relative z-10">Przejdź do kasy</span>
-                <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform relative z-10" />
-              </Link>
+              {SHOP_ENABLED ? (
+                <Link 
+                  href="/checkout"
+                  onClick={onClose}
+                  className="w-full bg-brand-900 text-white py-3 rounded-xl shadow-lg shadow-brand-900/20 hover:bg-brand-800 hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 flex items-center justify-center gap-2 group relative overflow-hidden"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.07] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                  <span className="text-[13px] font-semibold tracking-wide relative z-10">Przejdź do kasy</span>
+                  <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform relative z-10" />
+                </Link>
+              ) : (
+                <ComingSoonBanner variant="shop" compact />
+              )}
             </div>
           </div>
         )}

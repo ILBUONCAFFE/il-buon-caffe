@@ -113,6 +113,24 @@ function addSecurityHeaders(response: NextResponse, nonce: string): NextResponse
   return response;
 }
 
+/**
+ * Security headers for public sensitive pages (checkout/account).
+ * Keeps policy strict without enabling admin-specific cross-origin isolation.
+ */
+function addPublicSecurityHeaders(response: NextResponse): NextResponse {
+  const h = response.headers;
+
+  h.set('X-Frame-Options', 'DENY');
+  h.set('X-Content-Type-Options', 'nosniff');
+  h.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  h.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), bluetooth=(), interest-cohort=()');
+  h.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
+  h.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  h.set('Pragma', 'no-cache');
+
+  return response;
+}
+
 // ─── Proxy / Edge Middleware ──────────────────────────────────────────────────
 // NOTE: OpenNext/Cloudflare requires Edge Middleware (middleware.ts convention).
 // Next.js 16 deprecated `middleware` in favour of `proxy`, but the new `proxy`
@@ -122,6 +140,10 @@ function addSecurityHeaders(response: NextResponse, nonce: string): NextResponse
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  if (pathname.startsWith('/checkout') || pathname.startsWith('/account')) {
+    return addPublicSecurityHeaders(NextResponse.next());
+  }
 
   if (!pathname.startsWith('/admin')) {
     return NextResponse.next();
@@ -206,5 +228,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  matcher: ['/admin/:path*', '/checkout/:path*', '/account/:path*'],
 };

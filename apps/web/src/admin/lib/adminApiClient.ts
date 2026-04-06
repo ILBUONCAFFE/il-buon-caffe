@@ -6,6 +6,10 @@ import type {
   OrdersResponse,
   OrdersQueryParams,
   AdminOrder,
+  DeliveryServicesResponse,
+  CreateShipmentPayload,
+  ShipmentCreatedResponse,
+  OrderTrackingRefreshResponse,
   ActivityFeedResponse,
   NotificationsResponse,
   AllegroStatusResponse,
@@ -105,6 +109,46 @@ export const adminApi = {
       body: JSON.stringify({ status }),
     }),
 
+  refreshOrderTracking: (id: number) =>
+    request<OrderTrackingRefreshResponse>(`/api/admin/orders/${id}/tracking/refresh`, {
+      method: 'POST',
+    }),
+
+  // ── Shipment management ────────────────────────────────────────────────
+  getDeliveryServices: () =>
+    request<DeliveryServicesResponse>('/api/admin/shipment/delivery-services'),
+
+  createShipment: (orderId: number, payload: CreateShipmentPayload) =>
+    request<ShipmentCreatedResponse>(`/api/admin/orders/${orderId}/shipment`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  getShipmentLabel: async (orderId: number): Promise<Blob> => {
+    const res = await fetch(`/api/admin/orders/${orderId}/label`, {
+      credentials: 'include',
+    })
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({})) as {
+        error?: { code?: string; message?: string }
+      }
+      throw new ApiError(
+        res.status,
+        body.error?.code ?? 'LABEL_ERROR',
+        body.error?.message ?? 'Nie udalo sie pobrac etykiety',
+      )
+    }
+
+    return res.blob()
+  },
+
+  updateFulfillmentStatus: (orderId: number, status: string) =>
+    request<{ success: boolean }>(`/api/admin/orders/${orderId}/fulfillment`, {
+      method: 'POST',
+      body: JSON.stringify({ status }),
+    }),
+
   // ── Activity feed ──────────────────────────────────────────────────────────
   getActivityFeed: (limit = 10) =>
     request<ActivityFeedResponse>(`/api/admin/activity?limit=${limit}`),
@@ -188,5 +232,11 @@ export type {
   AllegroEnvironment,
   AllegroOrderDetails,
   AllegroTrackingData,
+  DeliveryServicesResponse,
+  DeliveryServiceInfo,
+  CreateShipmentPayload,
+  ShipmentCreatedResponse,
+  OrderTrackingSnapshot,
+  OrderTrackingRefreshResponse,
   AllegroSalesQualityResponse,
 } from '../types/admin-api'

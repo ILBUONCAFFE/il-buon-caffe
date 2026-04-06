@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Mail, Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -11,6 +11,13 @@ import { Checkbox } from "./Checkbox";
 import { PrimaryButton } from "./PrimaryButton";
 import { FormAlert } from "./FormAlert";
 
+function formatTime(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  if (m > 0) return `${m}m ${s.toString().padStart(2, '0')}s`;
+  return `${s}s`;
+}
+
 export function LoginForm({ onToggleMode }: { onToggleMode: () => void }) {
   const router = useRouter();
 
@@ -18,8 +25,26 @@ export function LoginForm({ onToggleMode }: { onToggleMode: () => void }) {
   const [loginPassword, setLoginPassword] = useState("");
   const [loginRemember, setLoginRemember] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
-  const [loginError, setLoginError] = useState("");
+  const [loginError, setLoginError] = useState<React.ReactNode>("");
   const [loginFieldErrors, setLoginFieldErrors] = useState<Record<string, string>>({});
+  const [retryAfter, setRetryAfter] = useState<number | null>(null);
+
+  // Countdown timer for rate limiting/lockout
+  useEffect(() => {
+    if (!retryAfter || retryAfter <= 0) return;
+    const interval = setInterval(() => {
+      setRetryAfter((prev) => {
+        if (!prev || prev <= 1) {
+          setLoginError("");
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [retryAfter]);
+
+  const isLocked = retryAfter !== null && retryAfter > 0;
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,7 +89,14 @@ export function LoginForm({ onToggleMode }: { onToggleMode: () => void }) {
       router.push("/account");
     } catch (err: any) {
       if (err instanceof ApiError) {
-        setLoginError(err.message);
+        if (err.data?.lockedUntil) {
+          const lockedUntilDate = new Date(err.data.lockedUntil);
+          const seconds = Math.ceil((lockedUntilDate.getTime() - Date.now()) / 1000);
+          if (seconds > 0) setRetryAfter(seconds);
+          setLoginError("Logowanie zostało zablokowane ze względów bezpieczeństwa.");
+        } else {
+          setLoginError(err.message);
+        }
       } else {
         setLoginError("Błąd logowania. Spróbuj ponownie.");
       }
@@ -95,7 +127,21 @@ export function LoginForm({ onToggleMode }: { onToggleMode: () => void }) {
 
       <form className="w-full flex flex-col" onSubmit={handleLoginSubmit} noValidate>
         <AnimatePresence>
-          {loginError && <FormAlert message={loginError} key="login-error" />}
+          {loginError && (
+            <FormAlert
+              key="login-error"
+              message={
+                <span>
+                  {loginError}
+                  {isLocked && (
+                    <span className="block mt-1 text-red-400/80 text-[13px] font-semibold">
+                      Ponowna próba za {formatTime(retryAfter!)}
+                    </span>
+                  )}
+                </span>
+              }
+            />
+          )}
         </AnimatePresence>
 
         <InputField
@@ -111,7 +157,7 @@ export function LoginForm({ onToggleMode }: { onToggleMode: () => void }) {
           }}
           autoComplete="email"
           required
-          disabled={loginLoading}
+          disabled={loginLoading || isLocked}
           error={loginFieldErrors.email}
         />
         <InputField
@@ -127,7 +173,7 @@ export function LoginForm({ onToggleMode }: { onToggleMode: () => void }) {
           }}
           autoComplete="current-password"
           required
-          disabled={loginLoading}
+          disabled={loginLoading || isLocked}
           error={loginFieldErrors.password}
         />
 
@@ -138,21 +184,25 @@ export function LoginForm({ onToggleMode }: { onToggleMode: () => void }) {
           <Checkbox
             checked={loginRemember}
             onChange={setLoginRemember}
-            disabled={loginLoading}
+            disabled={loginLoading || isLocked}
           >
             Zapamiętaj mnie
           </Checkbox>
           <a
             href="#"
-            className="text-[13px] text-white/40 hover:text-brand-400 font-medium transition-colors duration-300"
+            className={`text-[13px] font-medium transition-colors duration-300 ${
+              (loginLoading || isLocked)
+                ? "text-white/20 pointer-events-none"
+                : "text-white/40 hover:text-brand-400"
+            }`}
           >
             Zapomniałeś hasła?
           </a>
         </motion.div>
 
         <motion.div variants={itemVariants} className="w-full mt-6">
-          <PrimaryButton type="submit" isLoading={loginLoading} disabled={loginLoading}>
-            Zaloguj Się
+          <PrimaryButton type="submit" isLoading={loginLoading} disabled={loginLoading || isLocked}>
+            {isLocked ? `Blokada (${formatTime(retryAfter!)})` : "Zaloguj Się"}
           </PrimaryButton>
         </motion.div>
       </form>

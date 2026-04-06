@@ -100,7 +100,7 @@ export function corsConfig() {
     },
     credentials: true,
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Admin-Internal-Secret'],
     exposeHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining', 'X-RateLimit-Reset'],
     maxAge: 600 // 10 minutes
   }

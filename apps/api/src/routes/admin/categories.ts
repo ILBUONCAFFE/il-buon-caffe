@@ -93,7 +93,7 @@ adminCategoriesRouter.put('/:id', async (c) => {
     if (sizeErr) return sizeErr
 
     const db  = createDb(c.env.DATABASE_URL)
-    const id  = parseInt(c.req.param('id'))
+    const id  = parseInt(c.req.param('id') ?? '', 10)
     if (isNaN(id)) return c.json({ error: 'Nieprawidłowe ID' }, 400)
 
     const body = await c.req.json<Partial<{
@@ -126,7 +126,7 @@ adminCategoriesRouter.put('/:id', async (c) => {
 adminCategoriesRouter.delete('/:id', async (c) => {
   try {
     const db = createDb(c.env.DATABASE_URL)
-    const id = parseInt(c.req.param('id'))
+    const id = parseInt(c.req.param('id') ?? '', 10)
     if (isNaN(id)) return c.json({ error: 'Nieprawidłowe ID' }, 400)
 
     await db.update(categories).set({ isActive: false, updatedAt: new Date() }).where(eq(categories.id, id))

@@ -169,7 +169,7 @@ export async function adminLoginAction(formData: FormData): Promise<LoginResult>
       void writeAuditLog({ adminId: user.id, action: 'login', ip, userAgent, details: { result: 'failed', reason: 'account_locked' } });
       return {
         success: false,
-        error: `Konto tymczasowo zablokowane. Spróbuj za ${minutesLeft} minut.`,
+        error: `Logowanie zostało tymczasowo zablokowane po kilku nieudanych próbach. Spróbuj ponownie za około ${minutesLeft} min.`,
       };
     }
 

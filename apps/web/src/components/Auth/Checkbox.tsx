@@ -28,7 +28,10 @@ export const Checkbox = ({
   <>
     <motion.label
       variants={itemVariants}
-      className="flex items-start gap-3 group cursor-pointer select-none mb-1"
+      className={cn(
+        "flex items-start gap-3 group select-none mb-1",
+        disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+      )}
     >
       <div className="relative mt-0.5 flex-shrink-0">
         <input

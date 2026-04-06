@@ -430,6 +430,9 @@ export const orders = pgTable('orders', {
   shippingMethod: varchar('shipping_method', { length: 255 }),
   trackingNumber: varchar('tracking_number', { length: 100 }),
   trackingStatus: varchar('tracking_status', { length: 255 }),
+  trackingStatusCode: varchar('tracking_status_code', { length: 50 }),
+  trackingStatusUpdatedAt: timestamp('tracking_status_updated_at', { withTimezone: true }),
+  trackingLastEventAt: timestamp('tracking_last_event_at', { withTimezone: true }),
   allegroShipmentId: varchar('allegro_shipment_id', { length: 36 }),
   shippedAt: timestamp('shipped_at', { withTimezone: true }),
   deliveredAt: timestamp('delivered_at', { withTimezone: true }),
@@ -460,6 +463,9 @@ export const orders = pgTable('orders', {
   reservationIdx: index('orders_reservation_idx').on(table.reservationExpiresAt),
   retentionIdx: index('orders_retention_idx').on(table.retentionStatus, table.createdAt),
   invoiceIdx: index('orders_invoice_idx').on(table.invoiceRequired).where(sql`${table.invoiceRequired} = true`),
+  trackingQueueIdx: index('orders_tracking_queue_idx')
+    .on(table.trackingStatusUpdatedAt, table.updatedAt)
+    .where(sql`${table.source} = 'allegro' AND ${table.allegroShipmentId} IS NOT NULL AND ${table.status} IN ('shipped', 'delivered')`),
 }));
 
 // ============================================

@@ -1,14 +1,9 @@
 /**
  * Database Client Factory
  *
- * - Production (Hyperdrive present): WebSocket Pool with HYPERDRIVE.connectionString.
- *   Hyperdrive maintains persistent edge-side connections to Neon, reducing TLS
- *   handshake overhead on every Worker invocation.
- * - Local dev (wrangler dev / LOCAL_DEV=true): Neon HTTP driver with DATABASE_URL.
- *   Wrangler's Hyperdrive emulation is incompatible with @neondatabase/serverless Pool.
+ * - Uses Neon HTTP driver with DATABASE_URL.
  *
- * Call `setHttpMode(true, connStr)` to activate HTTP driver (local dev).
- * Call `setHttpMode(false)` to revert to WebSocket Pool (production default).
+ * Call `setHttpMode(true, connStr)` to store an explicit URL override.
  */
 
 import { Pool, neon, neonConfig } from '@neondatabase/serverless';
@@ -28,7 +23,7 @@ let _httpConnectionString: string | null = null;
 
 /**
  * Enable HTTP mode for local development.
- * @param connStr - Direct DATABASE_URL to use (bypasses Hyperdrive proxy URLs).
+ * @param connStr - Direct DATABASE_URL to use.
  */
 export function setHttpMode(on: boolean, connStr?: string) {
   _httpMode = on;
@@ -38,23 +33,12 @@ export function setHttpMode(on: boolean, connStr?: string) {
 /**
  * Create a database client.
  * Automatically switches to HTTP driver when httpMode is enabled.
- * In httpMode, uses the stored DATABASE_URL to bypass Hyperdrive proxy strings.
+ * In httpMode, uses the stored DATABASE_URL override when provided.
  */
-// createDb always returns the HTTP type — in Workers, setHttpMode(true) is called at startup
-// so the WS branch is only taken in local dev (wrangler dev without Hyperdrive).
+// createDb always returns the HTTP type.
 // Explicit return type avoids union-type overload resolution issues in TypeScript.
 export function createDb(connectionString: string): NeonHttpDatabase<typeof schema> {
-  // FORCE HTTP mode to bypass Hyperdrive TCP proxy incompatible with Cloudflare WebSocket Pool
-  // The HTTP driver correctly resolves via standard stateless fetch connections to Neon.
-  let url = connectionString;
-  
-  // If a Hyperdrive proxy connection string was accidentally provided, fallback to the direct URL if possible
-  // In Cloudflare environments, we can gracefully fallback to DATABASE_URL if available
-  if (url.includes('hyperdrive')) {
-      url = _httpConnectionString || url; 
-  }
-  
-  const sql = neon(_httpConnectionString ?? url);
+  const sql = neon(_httpConnectionString ?? connectionString);
   return drizzleHttp({ client: sql, schema });
 }
 
@@ -110,11 +94,7 @@ let _nextDb: NeonHttpDatabase<typeof schema> | null = null;
 
 export function getDb(): NeonHttpDatabase<typeof schema> {
   if (!_nextDb) {
-    // OpenNext strips process.env.DATABASE_URL from Cloudflare Workers Edge runtime.
-    // As a robust fail-safe, we configure a fallback so Server Actions and Auth utilities
-    // do not crash with HTTP 401 when running in production.
-    const url = process.env.DATABASE_URL || 'postgresql://neondb_owner:npg_vgnsrPJum3G0@ep-sweet-bread-agnmmphi-pooler.c-2.eu-central-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
-    
+    const url = process.env.DATABASE_URL;
     if (!url) {
       throw new Error('DATABASE_URL environment variable is not set');
     }

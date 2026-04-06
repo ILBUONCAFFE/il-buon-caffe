@@ -41,12 +41,11 @@ async function proxyAdminRequest(
     const cfCtx = await getCloudflareContext({ async: true })
     const env = cfCtx?.env as Record<string, any> | undefined
     API_ORIGIN = API_ORIGIN || env?.INTERNAL_API_URL || 'https://il-buon-caffe-api.ilbuoncaffe19.workers.dev'
-    INTERNAL_SECRET = INTERNAL_SECRET || env?.INTERNAL_API_SECRET || 'd9f64c04a33d59d7810e5d6d799f9a853829d1a1fe964efab50142a004d3497e'
+    INTERNAL_SECRET = INTERNAL_SECRET || env?.INTERNAL_API_SECRET
     apiWorker = env?.API_WORKER
   } catch (e) {
-    // Local dev or setup issue
+    // Local dev or setup issue — API_ORIGIN fallback only; no secret fallback
     API_ORIGIN = API_ORIGIN || 'https://il-buon-caffe-api.ilbuoncaffe19.workers.dev'
-    INTERNAL_SECRET = INTERNAL_SECRET || 'd9f64c04a33d59d7810e5d6d799f9a853829d1a1fe964efab50142a004d3497e'
   }
 
   if (!API_ORIGIN) {
@@ -113,12 +112,12 @@ async function proxyAdminRequest(
 
   // 5. Pass response back transparently
   const contentType = upstreamRes.headers.get('Content-Type') ?? 'application/json'
-  const responseBody = await upstreamRes.text()
+  const isJson = contentType.includes('application/json')
+  const isLabelEndpoint = slugs.length === 3 && slugs[0] === 'orders' && slugs[2] === 'label'
 
-  // Guard: if upstream returned a non-JSON body on a success response (e.g. a
-  // Cloudflare HTML error page when the Worker is not deployed), surface a
-  // proper JSON error instead of forwarding raw HTML to the browser.
-  if (upstreamRes.ok && !contentType.includes('application/json')) {
+  // Keep strict JSON guard for normal admin endpoints. Shipment labels are
+  // binary PDF responses and must pass through as-is.
+  if (upstreamRes.ok && !isJson && !isLabelEndpoint) {
     console.error(
       `[admin proxy] Upstream returned non-JSON content-type "${contentType}" with status ${upstreamRes.status} for ${upstreamUrl}`,
     )
@@ -140,9 +139,27 @@ async function proxyAdminRequest(
     }
   }
 
+  if (isJson || !upstreamRes.ok) {
+    const responseBody = await upstreamRes.text()
+    return new NextResponse(responseBody, {
+      status: upstreamRes.status,
+      headers: { 'Content-Type': contentType },
+    })
+  }
+
+  const responseHeaders = new Headers({ 'Content-Type': contentType })
+  const disposition = upstreamRes.headers.get('Content-Disposition')
+  if (disposition) responseHeaders.set('Content-Disposition', disposition)
+
+  const contentLength = upstreamRes.headers.get('Content-Length')
+  if (contentLength) responseHeaders.set('Content-Length', contentLength)
+
+  const responseBody = await upstreamRes.arrayBuffer()
+  if (!contentLength) responseHeaders.set('Content-Length', String(responseBody.byteLength))
+
   return new NextResponse(responseBody, {
     status: upstreamRes.status,
-    headers: { 'Content-Type': contentType },
+    headers: responseHeaders,
   })
 }
 

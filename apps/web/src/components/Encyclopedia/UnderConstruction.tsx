@@ -12,6 +12,62 @@ import {
 } from "lucide-react";
 
 // ============================================
+// LIVE PROGRESS BAR COMPONENT
+// ============================================
+
+const START_DATE = new Date("2024-01-01T00:00:00Z").getTime();
+const TARGET_DATE = new Date("2027-01-31T23:59:59Z").getTime();
+
+function LiveProgress() {
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    let animationFrameId: number;
+
+    const updateProgress = () => {
+      const now = Date.now();
+      
+      if (now >= TARGET_DATE) {
+        setProgress(100);
+        return;
+      }
+      
+      const totalDuration = TARGET_DATE - START_DATE;
+      const elapsed = now - START_DATE;
+      const currentPercentage = (elapsed / totalDuration) * 100;
+      
+      // Mikro-wzrost "hakera" — losowe wahania drobnej części setnych %. 
+      const pseudoRandomFluctuation = (Math.sin(now / 500) * 0.001) + (Math.cos(now / 200) * 0.001);
+      
+      setProgress(Math.max(0, Math.min(99.999, currentPercentage + Math.abs(pseudoRandomFluctuation))));
+      
+      animationFrameId = requestAnimationFrame(updateProgress);
+    };
+
+    updateProgress();
+    return () => cancelAnimationFrame(animationFrameId);
+  }, []);
+
+  return (
+    <div className="pt-6 relative">
+      <div className="flex justify-between font-mono text-[10px] text-stone-500 uppercase tracking-widest mb-2">
+        <span>Całkowity postęp ({progress.toFixed(4)}%)</span>
+        <span className="flex items-center gap-2">
+            <Cpu size={12} className="text-stone-600" />
+            EST: STYCZEŃ 2027
+        </span>
+      </div>
+      <div className="h-1 w-full bg-stone-800 overflow-hidden rounded-full relative">
+        <motion.div 
+          className="absolute inset-y-0 left-0 bg-stone-500 rounded-full"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ============================================
 // DATA SETS
 // ============================================
 
@@ -143,7 +199,7 @@ const MarqueeColumn: React.FC<{
   );
 };
 
-const StatusRow: React.FC<{ label: string; percentage: number; status: string; delay: number }> = ({ label, percentage, status, delay }) => (
+const StatusRow: React.FC<{ label: string; date: string; status: string; delay: number }> = ({ label, date, status, delay }) => (
   <motion.div
     initial={{ opacity: 0, x: -20 }}
     animate={{ opacity: 1, x: 0 }}
@@ -155,7 +211,7 @@ const StatusRow: React.FC<{ label: string; percentage: number; status: string; d
       <span className="font-mono text-stone-400 uppercase tracking-widest text-xs">{label}</span>
       <span className="font-mono text-stone-600 text-[10px] bg-stone-900 px-1.5 py-0.5 rounded border border-stone-800 transition-colors hover:border-stone-600">{status}</span>
     </div>
-    <span className="font-mono text-amber-500/80">{percentage}%</span>
+    <span className="font-mono text-stone-500 text-xs hidden sm:block uppercase tracking-wider">{date}</span>
   </motion.div>
 );
 
@@ -305,28 +361,11 @@ const UnderConstruction: React.FC = () => {
 
           {/* Progress Section */}
           <div className="space-y-1 mb-10 border-t border-stone-800 pt-6 transform translate-z-5">
-            <StatusRow label="Moduł Wina" percentage={85} status="Processing" delay={0.5} />
-            <StatusRow label="Moduł Kawy" percentage={40} status="Compiling" delay={0.7} />
-            <StatusRow label="Włoska Kuchnia" percentage={12} status="Queued" delay={0.9} />
+            <StatusRow label="Moduł Wina" date="Planowane: Styczeń 2027" status="W przygotowaniu" delay={0.5} />
+            <StatusRow label="Moduł Kawy" date="Planowane: Styczeń 2027" status="Zbieranie danych" delay={0.7} />
             
             {/* Total Progress Bar */}
-            <div className="pt-6 relative">
-              <div className="flex justify-between font-mono text-[10px] text-stone-500 uppercase tracking-widest mb-2">
-                <span>Całkowity postęp</span>
-                <span className="flex items-center gap-2">
-                    <Cpu size={12} className="text-stone-600" />
-                    EST: Q2 2026
-                </span>
-              </div>
-              <div className="h-1 w-full bg-stone-800 overflow-hidden rounded-full">
-                <motion.div 
-                  initial={{ width: 0 }}
-                  animate={{ width: "65%" }}
-                  transition={{ delay: 1, duration: 2, ease: "easeInOut" }}
-                  className="h-full bg-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.6)]"
-                />
-              </div>
-            </div>
+            <LiveProgress />
           </div>
 
           {/* CTA: Newsletter */}
