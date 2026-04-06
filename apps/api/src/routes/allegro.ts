@@ -153,7 +153,6 @@ async function buildStatus(db: ReturnType<typeof createDb>): Promise<AllegroConn
 // ── GET /status ───────────────────────────────────────────────────────────────
 allegroRouter.get('/status', requireAdminOrProxy(), async (c) => {
   const env = c.env as AllegroEnv
-  const db  = createDb(env.DATABASE_URL)
 
   try {
     // Try KV cache first (TTL 5 min) — guard against unconfigured KV binding
@@ -169,6 +168,7 @@ allegroRouter.get('/status', requireAdminOrProxy(), async (c) => {
       }
     }
 
+    const db = c.get('db') as ReturnType<typeof createDb>
     const status = await buildStatus(db)
 
     if (kv) {

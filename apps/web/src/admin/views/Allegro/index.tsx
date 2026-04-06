@@ -153,7 +153,7 @@ export const AllegroConnectView = () => {
     } catch (e) {
       console.error('Allegro status fetch error:', e)
       let msg: string
-      if (e instanceof ApiError && (e.status === 502 || e.status === 503)) {
+      if (e instanceof ApiError && (e.status === 500 || e.status === 502 || e.status === 503)) {
         msg = e.message || 'Serwis API jest chwilowo niedostępny. Spróbuj ponownie za chwilę.'
       } else if (e instanceof ApiError && e.status === 401) {
         msg = 'Brak autoryzacji. Odświż stronę lub zaloguj się ponownie.'

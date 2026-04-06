@@ -97,16 +97,21 @@ export function requireAdminOrProxy() {
         return c.json({ error: 'Nieautoryzowany dostęp' }, 401)
       }
 
-      const env = c.env as { DATABASE_URL?: string }
-      const db = createDb(env.DATABASE_URL ?? '')
-      const userRow = await db.query.users.findFirst({
-        columns: { id: true, role: true, anonymized: true },
-        where: eq(users.id, proxyUserId),
-      })
+      try {
+        const db = c.get('db')
+        const userRow = await db.query.users.findFirst({
+          columns: { id: true, role: true, anonymized: true },
+          where: eq(users.id, proxyUserId),
+        })
 
-      if (!userRow || userRow.role !== 'admin' || userRow.anonymized) {
-        console.warn(`[auth] Proxy request rejected for User ID: ${proxyUserId}. DB row:`, userRow)
-        return c.json({ error: 'Nieautoryzowany dostęp' }, 403)
+        if (!userRow || userRow.role !== 'admin' || userRow.anonymized) {
+          console.warn(`[auth] Proxy request rejected for User ID: ${proxyUserId}. DB row:`, userRow)
+          return c.json({ error: 'Nieautoryzowany dostęp' }, 403)
+        }
+      } catch (err) {
+        // Keep this explicit to avoid bubbling to global 500 and masking auth/DB issues.
+        console.error('[auth] Proxy admin verification failed:', err instanceof Error ? err.message : String(err))
+        return c.json({ error: 'Usługa autoryzacji administratora jest chwilowo niedostępna' }, 503)
       }
 
       c.set('user', {
@@ -119,7 +124,7 @@ export function requireAdminOrProxy() {
       } as import('../lib/jwt').TokenPayload)
       return next()
     } else if (requestSecret) {
-      console.warn(`[auth] Mismatch: requestSecret='${requestSecret}' vs internalSecret='${internalSecret}'`)
+      console.warn('[auth] Mismatch: invalid internal proxy secret')
     }
 
     // Fall back to standard JWT admin auth
