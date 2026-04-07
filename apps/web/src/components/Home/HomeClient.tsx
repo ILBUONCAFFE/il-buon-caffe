@@ -7,7 +7,6 @@ import { WhyUs } from "./WhyUs";
 import { Marquee } from "./Marquee";
 import { CategoriesGrid } from "./CategoriesGrid";
 import { AboutMini } from "./AboutMini";
-import { InstagramFeed } from "./InstagramFeed";
 import { CafeBanner } from "./CafeBanner";
 
 const HomeClient = () => {
@@ -18,7 +17,6 @@ const HomeClient = () => {
       <CategoriesGrid />
       <FeaturedProducts />
       <AboutMini />
-      <InstagramFeed />
       <WhyUs />
       <CafeBanner />
     </main>
