@@ -35,18 +35,21 @@ export const AboutMini = () => {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-            className="relative order-2 lg:order-1"
+            className="relative"
           >
             <div ref={imageRef} className="relative aspect-[4/5] rounded-[2rem] overflow-hidden bg-brand-200">
               <motion.div style={{ y: imageY }} className="absolute -inset-[10%]">
                 <Image
-                  src="https://images.unsplash.com/photo-1559056199-641a0ac8b55e?q=80&w=1200&auto=format&fit=crop"
-                  alt="Włoskie produkty premium w Il Buon Caffe — wina, oliwy i słodycze"
+                  src="https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?q=80&w=1200&auto=format&fit=crop"
+                  alt="Wnętrze kawiarni Il Buon Caffe w Koszalinie — przytulna włoska kawiarnia"
                   fill
-                  className="object-cover"
+                  className="object-cover brightness-90 saturate-[1.1]"
+                  style={{ filter: "sepia(0.18) saturate(1.1) brightness(0.9)" }}
                   sizes="(max-width: 1024px) 100vw, 50vw"
                 />
               </motion.div>
+              {/* Warm brand colour overlay */}
+              <div className="absolute inset-0 bg-brand-800/10 mix-blend-multiply pointer-events-none" />
 
               {/* Floating badge */}
               <motion.div
@@ -63,7 +66,7 @@ export const AboutMini = () => {
           </motion.div>
 
           {/* Right — Text */}
-          <div className="order-1 lg:order-2">
+          <div>
             <motion.span
               initial={{ opacity: 0, y: 15 }}
               whileInView={{ opacity: 1, y: 0 }}
