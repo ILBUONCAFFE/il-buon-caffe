@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { motion, useScroll, useTransform } from "motion/react";
+import { motion, useScroll, useTransform, useMotionValue, useMotionTemplate } from "motion/react";
 import { 
   Clock, 
   MapPin, 
@@ -55,6 +55,60 @@ const HERO_FADE_UP = {
 };
 
 // Menu Item Component
+const InteractiveFeatureButton = ({
+  onClick,
+  className,
+  children,
+  glowColor = "rgba(255,255,255,0.4)",
+}: {
+  onClick: () => void;
+  className: string;
+  children: React.ReactNode;
+  glowColor?: string;
+}) => {
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+
+  function handleMouseMove({ currentTarget, clientX, clientY }: React.MouseEvent) {
+    const { left, top } = currentTarget.getBoundingClientRect();
+    mouseX.set(clientX - left);
+    mouseY.set(clientY - top);
+  }
+
+  return (
+    <motion.button
+      onMouseMove={handleMouseMove}
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.97 }}
+      transition={{ type: "spring", bounce: 0.4, duration: 0.8 }}
+      onClick={onClick}
+      style={{ WebkitTapHighlightColor: "transparent" }}
+      className={`group relative flex items-center justify-center px-6 py-4 rounded-full font-bold text-[13px] uppercase tracking-[0.15em] overflow-hidden border border-transparent transition-all duration-500 hover:pr-5 hover:shadow-2xl ${className}`}
+    >
+      {/* Windows 11 Fluent Spotlight Tracking */}
+      <motion.div
+        className="pointer-events-none absolute -inset-px z-20 rounded-full opacity-0 transition-opacity duration-300 group-hover:opacity-100 mix-blend-overlay"
+        style={{
+          background: useMotionTemplate`
+            radial-gradient(
+              120px circle at ${mouseX}px ${mouseY}px,
+              ${glowColor},
+              transparent 80%
+            )
+          `,
+        }}
+      />
+      {/* Samsung Edge Vibrant Glow */}
+      <div className="pointer-events-none absolute inset-0 z-20 rounded-full opacity-0 transition-all duration-700 group-hover:opacity-100 group-hover:shadow-[inset_0_0_20px_rgba(255,255,255,0.4)]" />
+      
+      {/* Apple VisionOS Blur Reflection */}
+      <div className="pointer-events-none absolute top-0 -inset-x-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent z-20 rounded-t-full opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      
+      {children}
+    </motion.button>
+  );
+};
+
 const MenuItemCard = ({ 
   item, 
   index, 
@@ -282,18 +336,16 @@ const CafeClient: React.FC = () => {
             transition={{ duration: 1.2, delay: 0.6, ease: IN_EASE }}
             className="flex flex-wrap justify-center gap-4"
           >
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              transition={{ duration: 0.4, ease: IN_EASE }}
+            <InteractiveFeatureButton
               onClick={() => {
                 setActiveTab("menu");
                 document.getElementById("menu")?.scrollIntoView({ behavior: "smooth" });
               }}
-              className="group relative flex items-center justify-center px-6 py-4 bg-white text-brand-900 rounded-full font-bold text-[13px] uppercase tracking-[0.15em] overflow-hidden border border-transparent transition-all duration-500 hover:pr-5 hover:shadow-xl hover:shadow-black/20"
+              className="bg-white text-brand-900 hover:shadow-brand-300/30"
+              glowColor="rgba(255,255,255,0.8)"
             >
               {/* Background Reveal */}
-              <div className="absolute inset-0 bg-brand-50 rounded-full translate-y-[101%] transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:translate-y-0" />
+              <div className="absolute inset-0 bg-brand-50 rounded-full translate-y-[101%] transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:translate-y-0 z-0" />
               
               <div className="relative z-10 flex items-center">
                 <Coffee className="w-4 h-4 mr-3 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:-rotate-12 group-hover:scale-110" />
@@ -310,26 +362,24 @@ const CafeClient: React.FC = () => {
                 <div className="flex items-center overflow-hidden max-w-0 opacity-0 transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:max-w-[150px] group-hover:opacity-100 group-hover:ml-3">
                   <div className="w-[1px] h-4 bg-brand-900/20 mr-3" />
                   <div className="flex items-center gap-2.5 text-brand-900/60 pb-0.5">
-                    <Coffee className="w-3.5 h-3.5 transition-transform duration-500 delay-100 group-hover:scale-110 group-hover:text-brand-900" />
-                    <Wine className="w-3 h-3 transition-transform duration-500 delay-150 group-hover:scale-110 group-hover:text-brand-900" />
-                    <CakeSlice className="w-3 h-3 transition-transform duration-500 delay-200 group-hover:scale-110 group-hover:text-brand-900" />
+                    <Coffee className="w-3.5 h-3.5 transition-transform duration-500 delay-100 group-hover:scale-110 group-hover:text-brand-900 drop-shadow-md" />
+                    <Wine className="w-3 h-3 transition-transform duration-500 delay-150 group-hover:scale-110 group-hover:text-brand-900 drop-shadow-md" />
+                    <CakeSlice className="w-3 h-3 transition-transform duration-500 delay-200 group-hover:scale-110 group-hover:text-brand-900 drop-shadow-md" />
                   </div>
                 </div>
               </div>
-            </motion.button>
+            </InteractiveFeatureButton>
 
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              transition={{ duration: 0.4, ease: IN_EASE }}
+            <InteractiveFeatureButton
               onClick={() => {
                 setActiveTab("about");
                 document.getElementById("location")?.scrollIntoView({ behavior: "smooth" });
               }}
-              className="group relative flex items-center justify-center px-6 py-4 bg-transparent border border-white/30 text-white rounded-full font-bold text-[13px] uppercase tracking-[0.15em] overflow-hidden transition-all duration-500 hover:border-white/20 hover:pr-4"
+              className="bg-transparent border border-white/30 text-white hover:border-white/20 hover:shadow-black/50"
+              glowColor="rgba(255,255,255,0.4)"
             >
               {/* Background Reveal - Glassy blur */}
-              <div className="absolute inset-0 bg-white/10 backdrop-blur-md rounded-full translate-y-[101%] transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:translate-y-0" />
+              <div className="absolute inset-0 bg-white/10 backdrop-blur-md rounded-full translate-y-[101%] transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:translate-y-0 z-0" />
               
               <div className="relative z-10 flex items-center">
                 <MapPin className="w-4 h-4 mr-3 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:text-brand-300 group-hover:scale-110 group-hover:rotate-12" />
@@ -353,18 +403,18 @@ const CafeClient: React.FC = () => {
                         initial={{ x: -20 }}
                         animate={{ x: 60 }} 
                         transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                        className="absolute top-[-1px] left-0 w-4 h-[2px] bg-brand-300"
+                        className="absolute top-[-1px] left-0 w-4 h-[2px] bg-brand-300 shadow-[0_0_8px_rgba(234,179,129,0.8)]"
                       />
                     </div>
                     {/* Destination Pin */}
                     <MapPin className="w-3 h-3 text-white/50" />
                   </div>
-                  <span className="text-[10px] sm:text-[11px] tracking-[0.2em] text-white/90 whitespace-nowrap ml-2.5 pt-0.5">
+                  <span className="text-[10px] sm:text-[11px] tracking-[0.2em] text-white/90 whitespace-nowrap ml-2.5 pt-0.5 mix-blend-overlay">
                     DOMINA 3/6
                   </span>
                 </div>
               </div>
-            </motion.button>
+            </InteractiveFeatureButton>
           </motion.div>
         </motion.div>
 
