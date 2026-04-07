@@ -10,7 +10,7 @@ const STATIC_ROUTES: Array<{
 }> = [
   { path: "/", changeFrequency: "daily", priority: 1 },
   { path: "/sklep", changeFrequency: "daily", priority: 0.9 },
-  { path: "/kawiarnia", changeFrequency: "weekly", priority: 0.6 },
+  { path: "/kawiarnia", changeFrequency: "weekly", priority: 0.9 },
   { path: "/encyklopedia", changeFrequency: "weekly", priority: 0.5 },
 ];
 

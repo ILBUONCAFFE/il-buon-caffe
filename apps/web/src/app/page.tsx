@@ -5,11 +5,11 @@ import HomeClient from "@/components/Home/HomeClient";
 export const revalidate = 1800;
 
 export const metadata: Metadata = {
-  title: "Il Buon Caffe | Kawa, Wino i Włoskie Specjały",
-  description: "Odkryj świat luksusowych smaków. Oferujemy najwyższej jakości kawy ziarniste, wykwintne wina oraz tradycyjne włoskie słodycze i delikatesy.",
+  title: "Il Buon Caffe – Włoska Kawiarnia w Koszalinie",
+  description: "Prawdziwa włoska kawiarnia w Koszalinie. Zapraszamy na doskonałe espresso, świeżo palone kawy specialty i włoskie wypieki domowej roboty. Poczuj smak prawdziwego dolce vita.",
   openGraph: {
-    title: "Il Buon Caffe | Kawa, Wino i Włoskie Specjały",
-    description: "Odkryj świat luksusowych smaków — kawa, wino i włoskie delikatesy.",
+    title: "Il Buon Caffe – Włoska Kawiarnia w Koszalinie",
+    description: "Prawdziwa włoska kawiarnia w Koszalinie. Doskonałe espresso, kawy specialty i włoskie wypieki.",
     type: "website",
     locale: "pl_PL",
   },

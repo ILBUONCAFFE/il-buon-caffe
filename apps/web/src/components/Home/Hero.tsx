@@ -22,7 +22,7 @@ export const Hero = () => {
       <motion.div style={{ y }} className="absolute inset-0">
         <Image
           src="https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?q=80&w=2670&auto=format&fit=crop"
-          alt="Kawa z lawendą"
+          alt="Kawa serwowana w kawiarni Il Buon Caffe w Koszalinie"
           fill
           priority
           className="object-cover"
@@ -35,12 +35,15 @@ export const Hero = () => {
       {/* Content */}
       <div className="relative z-10 w-full">
         <div className="container mx-auto px-6 lg:px-12 py-32">
-          <motion.div 
+          <motion.div
             className="max-w-3xl"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
           >
+            {/* SEO H1 — visually hidden, semantic for search engines */}
+            <h1 className="sr-only">Il Buon Caffe – Twoja Kawiarnia w Koszalinie</h1>
+
             {/* Badge */}
             <motion.div 
               className="mb-6"
@@ -53,12 +56,12 @@ export const Hero = () => {
               </span>
             </motion.div>
 
-            {/* Heading */}
-            <div className="mb-6">
-              <AnimatedText 
+            {/* Heading — decorative, aria-hidden; SEO h1 is sr-only above */}
+            <div className="mb-6" aria-hidden="true">
+              <AnimatedText
                 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-serif text-white leading-[0.95]"
-                text="Il Buon" 
-                el="h1" 
+                text="Il Buon"
+                el="div"
                 delayChildren={0.1}
               />
               <motion.div
