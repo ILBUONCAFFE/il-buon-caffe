@@ -15,13 +15,11 @@ type AnimatedTextProps = {
 const defaultAnimations: Variants = {
   hidden: {
     opacity: 0,
-    y: 20,
-    clipPath: "inset(100% 0 0 0)"
+    y: "0.72em",
   },
   visible: {
     opacity: 1,
-    y: 0,
-    clipPath: "inset(0% 0 0 0)",
+    y: "0em",
     transition: {
       duration: 0.8,
       ease: [0.76, 0, 0.24, 1], // Custom kubiczna krzywa beziera (smooth!)
@@ -65,9 +63,12 @@ export const AnimatedText = ({
         className="inline-block"
       >
         {words.map((word, wordIndex) => (
-          <span className="inline-block overflow-hidden" key={`${word}-${wordIndex}`}>
+          <span
+            className="inline-block overflow-hidden pb-[0.18em] -mb-[0.18em] align-bottom"
+            key={`${word}-${wordIndex}`}
+          >
             <motion.span
-              className="inline-block"
+              className="inline-block will-change-transform"
               variants={defaultAnimations}
             >
               {word}&nbsp;

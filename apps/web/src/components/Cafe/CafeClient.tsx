@@ -223,8 +223,8 @@ const CafeClient: React.FC = () => {
           </motion.div>
 
           {/* Title */}
-          <h1 className="mb-8">
-            <span className="block overflow-hidden">
+          <h1 className="mb-8 leading-[1.04]">
+            <span className="block overflow-hidden pb-[0.16em] -mb-[0.16em]">
               <motion.span
                 initial={{ y: "100%" }}
                 animate={{ y: 0 }}
@@ -234,12 +234,12 @@ const CafeClient: React.FC = () => {
                 Kawiarnia
               </motion.span>
             </span>
-            <span className="block overflow-hidden -mt-1 md:-mt-2">
+            <span className="block overflow-hidden pb-[0.18em] -mb-[0.1em] mt-1 md:mt-0">
               <motion.span
                 initial={{ y: "100%" }}
                 animate={{ y: 0 }}
                 transition={{ duration: 1, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                className="block text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-handwriting text-brand-300"
+                className="block text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-handwriting leading-[1.05] text-brand-300"
               >
                 & Delikatesy
               </motion.span>
@@ -261,7 +261,7 @@ const CafeClient: React.FC = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 1 }}
-            className="flex justify-center gap-4"
+            className="flex flex-wrap justify-center gap-4"
           >
             <motion.div
               whileHover={{ y: -3, scale: 1.03 }}
@@ -344,7 +344,7 @@ const CafeClient: React.FC = () => {
       </section>
 
       {/* ===== INTRO SECTION — Premium Redesign ===== */}
-      <section className="relative bg-brand-900 overflow-hidden">
+      <section className="relative bg-brand-900 overflow-x-hidden">
         {/* Decorative gradient orbs */}
         <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-brand-700/15 rounded-full blur-[120px] pointer-events-none -translate-y-1/2" />
         <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-brand-600/10 rounded-full blur-[100px] pointer-events-none translate-y-1/3" />
@@ -526,7 +526,7 @@ const CafeClient: React.FC = () => {
       </section>
 
       {/* ===== MENU SECTIONS ===== */}
-      <div id="menu">
+      <div id="menu" className="scroll-mt-40 md:scroll-mt-48">
         <MenuSection 
           data={classicMenu} 
           number="01" 
@@ -553,7 +553,7 @@ const CafeClient: React.FC = () => {
       </div>
 
       {/* ===== LOCATION SECTION ===== */}
-      <section id="location" className="py-24 md:py-32 bg-brand-900 relative overflow-hidden">
+      <section id="location" className="py-24 md:py-32 bg-brand-900 relative overflow-x-hidden scroll-mt-40 md:scroll-mt-48">
         <div className="container mx-auto px-6 lg:px-12 relative z-10">
           {/* Header */}
           <motion.div

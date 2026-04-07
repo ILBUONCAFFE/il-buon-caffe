@@ -175,7 +175,7 @@ export const FeaturedProducts = () => {
   }, []);
 
   return (
-    <section ref={sectionRef} className="py-32 bg-white overflow-hidden">
+    <section ref={sectionRef} className="py-32 bg-white overflow-x-hidden">
       <div className="container mx-auto px-6 lg:px-12 mb-16 flex items-end justify-between">
          <motion.div 
             initial={{ opacity: 0, y: 20 }}

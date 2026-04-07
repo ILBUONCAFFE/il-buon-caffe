@@ -145,7 +145,7 @@ export const CategoriesGrid = () => {
   const titleY = useTransform(scrollYProgress, [0, 1], ["0%", "-30%"]);
 
   return (
-    <section ref={sectionRef} className="relative py-32 md:py-48 bg-white overflow-hidden">
+    <section ref={sectionRef} className="relative py-32 md:py-48 bg-white overflow-x-hidden">
       {/* Large Background Text */}
       <motion.div 
         style={{ y: titleY }}

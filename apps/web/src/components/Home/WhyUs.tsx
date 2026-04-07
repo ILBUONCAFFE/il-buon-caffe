@@ -116,7 +116,7 @@ export const WhyUs = () => {
   return (
     <section
       ref={sectionRef}
-      className="relative py-32 md:py-48 bg-brand-900 overflow-hidden"
+      className="relative py-32 md:py-48 bg-brand-900 overflow-x-hidden"
     >
       {/* Subtle gradient orbs */}
       <motion.div

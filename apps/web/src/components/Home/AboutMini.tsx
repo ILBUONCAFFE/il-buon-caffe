@@ -25,7 +25,7 @@ export const AboutMini = () => {
   const imageY = useTransform(scrollYProgress, [0, 1], ["8%", "-8%"]);
 
   return (
-    <section ref={sectionRef} className="relative py-32 md:py-48 bg-brand-50 overflow-hidden">
+    <section ref={sectionRef} className="relative py-32 md:py-48 bg-brand-50 overflow-x-hidden">
       <div className="container mx-auto px-6 lg:px-12">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-center">
 
