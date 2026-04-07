@@ -40,7 +40,7 @@ export const AboutMini = () => {
             <div ref={imageRef} className="relative aspect-[4/5] rounded-[2rem] overflow-hidden bg-brand-200">
               <motion.div style={{ y: imageY }} className="absolute -inset-[10%]">
                 <Image
-                  src="https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?q=80&w=1200&auto=format&fit=crop"
+                  src="/assets/kawiarnia.jpg"
                   alt="Wnętrze kawiarni Il Buon Caffe w Koszalinie — przytulna włoska kawiarnia"
                   fill
                   className="object-cover brightness-90 saturate-[1.1]"
