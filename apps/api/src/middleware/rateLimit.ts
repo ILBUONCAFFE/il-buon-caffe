@@ -55,30 +55,46 @@ export function rateLimit(config: RateLimitConfig) {
       )
     }
     
-    // Reset window if expired
-    if (!record || now - record.firstAttempt > config.windowMs) {
-      record = {
-        attempts: 1,
-        firstAttempt: now
-      }
-    } else {
-      // Increment attempts
-      record.attempts += 1
-    }
-    
-    // Check if limit exceeded
-    if (record.attempts > config.limit) {
-      record.blockedUntil = now + config.blockDurationMs
-      
-      // Save block record
+    // Reset window if expired — write to KV only when starting a new window
+    const isNewWindow = !record || now - record.firstAttempt > config.windowMs
+    if (isNewWindow) {
+      record = { attempts: 1, firstAttempt: now }
       if (kv) {
-        await kv.put(key, JSON.stringify(record), { 
-          expirationTtl: Math.ceil(config.blockDurationMs / 1000) + 60 
-        })
+        try {
+          await kv.put(key, JSON.stringify(record), {
+            expirationTtl: Math.ceil(config.windowMs / 1000) + 60
+          })
+        } catch (e) {
+          console.warn('KV PUT (new window) failed — falling back to in-memory:', e)
+          memoryStore.set(key, record)
+        }
       } else {
         memoryStore.set(key, record)
       }
-      
+    } else {
+      // Increment attempts — skip KV write for intermediate counts to avoid write quota exhaustion
+      record.attempts += 1
+      if (!kv) memoryStore.set(key, record)
+    }
+
+    // Check if limit exceeded
+    if (record.attempts > config.limit) {
+      record.blockedUntil = now + config.blockDurationMs
+
+      // Write block record to KV — important to persist across Worker invocations
+      if (kv) {
+        try {
+          await kv.put(key, JSON.stringify(record), {
+            expirationTtl: Math.ceil(config.blockDurationMs / 1000) + 60
+          })
+        } catch (e) {
+          console.warn('KV PUT (block record) failed — falling back to in-memory:', e)
+          memoryStore.set(key, record)
+        }
+      } else {
+        memoryStore.set(key, record)
+      }
+
       const retryAfter = Math.ceil(config.blockDurationMs / 1000)
       c.header('Retry-After', retryAfter.toString())
       c.header('X-RateLimit-Remaining', '0')
@@ -86,15 +102,6 @@ export function rateLimit(config: RateLimitConfig) {
         { error: 'Zbyt wiele żądań. Spróbuj ponownie później.' },
         429
       )
-    }
-    
-    // Save updated record
-    if (kv) {
-      await kv.put(key, JSON.stringify(record), { 
-        expirationTtl: Math.ceil(config.windowMs / 1000) + 60 
-      })
-    } else {
-      memoryStore.set(key, record)
     }
     
     // Set rate limit headers

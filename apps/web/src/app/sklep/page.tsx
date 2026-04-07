@@ -6,13 +6,29 @@ import { getFilteredProducts } from "@/actions/products";
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  title: "Sklep Online | Il Buon Caffe",
-  description: "Przeglądaj naszą pełną ofertę: świeżo palone kawy, wina z renomowanych winnic, oliwy, sery i włoskie słodycze. Zamów z dostawą do domu.",
+  title: "Sklep Online – Włoskie Delikatesy",
+  description: "Przeglądaj naszą pełną ofertę: świeżo palone kawy specialty, wina z renomowanych winnic, oliwy extra virgin, sery dojrzewające i włoskie słodycze. Zamów z dostawą do całej Polski.",
   openGraph: {
-    title: "Sklep Online | Il Buon Caffe",
-    description: "Kawa, wina, oliwy, słodycze — najwyższa jakość prosto z Włoch i Hiszpanii.",
+    title: "Sklep Online – Włoskie Delikatesy | Il Buon Caffe",
+    description: "Kawa, wina, oliwy, słodycze — najwyższa jakość prosto z Włoch i Hiszpanii. Dostawa do całej Polski.",
     type: "website",
     locale: "pl_PL",
+    siteName: "Il Buon Caffe",
+    url: "https://ilbuoncaffe.pl/sklep",
+    images: [
+      {
+        url: "https://ilbuoncaffe.pl/assets/kawiarnia.jpg",
+        width: 1920,
+        height: 998,
+        alt: "Sklep Il Buon Caffe – Włoskie Delikatesy",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Sklep Online – Włoskie Delikatesy | Il Buon Caffe",
+    description: "Kawa, wina, oliwy, słodycze — najwyższa jakość prosto z Włoch i Hiszpanii.",
+    images: ["https://ilbuoncaffe.pl/assets/kawiarnia.jpg"],
   },
   alternates: {
     canonical: "/sklep",

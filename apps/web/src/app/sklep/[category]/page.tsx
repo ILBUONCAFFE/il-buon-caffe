@@ -43,19 +43,29 @@ export async function generateMetadata({ params }: { params: Promise<{ category:
   const title = categoryNames[normalizedCategory] || "Kategoria";
   const description = categoryDescriptions[normalizedCategory] || `Odkryj naszą ofertę w kategorii ${title}. Najwyższa jakość, prosto z Włoch i Hiszpanii.`;
   return {
-    title: `${title} | Sklep Il Buon Caffe`,
+    title: `${title} – Sklep Online`,
     description,
     openGraph: {
       title: `${title} | Sklep Il Buon Caffe`,
       description,
       type: "website",
       locale: "pl_PL",
-      url: `/sklep/${normalizedCategory}`,
+      siteName: "Il Buon Caffe",
+      url: `https://ilbuoncaffe.pl/sklep/${normalizedCategory}`,
+      images: [
+        {
+          url: "https://ilbuoncaffe.pl/assets/kawiarnia.jpg",
+          width: 1920,
+          height: 998,
+          alt: `${title} – Il Buon Caffe`,
+        },
+      ],
     },
     twitter: {
-      card: "summary",
+      card: "summary_large_image",
       title: `${title} | Sklep Il Buon Caffe`,
       description,
+      images: ["https://ilbuoncaffe.pl/assets/kawiarnia.jpg"],
     },
     alternates: {
       canonical: `/sklep/${normalizedCategory}`,

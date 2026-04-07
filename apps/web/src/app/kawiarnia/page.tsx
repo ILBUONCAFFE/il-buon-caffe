@@ -2,13 +2,29 @@ import type { Metadata } from "next";
 import CafeClient from "@/components/Cafe/CafeClient";
 
 export const metadata: Metadata = {
-  title: "Włoska Kawiarnia w Koszalinie – Il Buon Caffe",
+  title: "Włoska Kawiarnia w Koszalinie",
   description: "Prawdziwa włoska kawiarnia w Koszalinie przy ul. Biskupa Czesława Domina 3/6. Doskonałe espresso, kawy specialty, domowe wypieki i włoskie desery. Zapraszamy!",
   openGraph: {
-    title: "Włoska Kawiarnia w Koszalinie – Il Buon Caffe",
-    description: "Doskonałe espresso, kawy specialty i domowe wypieki w Il Buon Caffe – Koszalin, ul. Biskupa Czesława Domina 3/6.",
+    title: "Włoska Kawiarnia w Koszalinie | Il Buon Caffe",
+    description: "Doskonałe espresso, kawy specialty i domowe wypieki w Il Buon Caffe — Koszalin, ul. Biskupa Czesława Domina 3/6.",
     type: "website",
     locale: "pl_PL",
+    siteName: "Il Buon Caffe",
+    url: "https://ilbuoncaffe.pl/kawiarnia",
+    images: [
+      {
+        url: "https://ilbuoncaffe.pl/assets/kawiarnia.jpg",
+        width: 1920,
+        height: 998,
+        alt: "Wnętrze kawiarni Il Buon Caffe w Koszalinie",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Włoska Kawiarnia w Koszalinie | Il Buon Caffe",
+    description: "Doskonałe espresso, kawy specialty i domowe wypieki w Il Buon Caffe — Koszalin.",
+    images: ["https://ilbuoncaffe.pl/assets/kawiarnia.jpg"],
   },
   alternates: {
     canonical: "/kawiarnia",
