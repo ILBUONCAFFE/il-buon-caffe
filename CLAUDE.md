@@ -170,6 +170,24 @@ Project-specific skills are in `.claude/skills/`. Consult them for detailed patt
 - `cloudflare-deploy` — wrangler.json, secrets, KV/R2/Hyperdrive setup, deploy checklist
 - `turborepo-conventions` — monorepo structure, shared packages, turbo.json pipelines, npm workspaces
 
+## Automation & Lazy Workflow
+
+### Committing
+- **Po każdej skończonej zmianie commituj automatycznie** bez pytania — użyj Conventional Commits z odpowiednim scope (`web`, `api`, `db`, `types`, `allegro`, `infra`)
+- Jeśli zmiany dotyczą kilku obszarów — jeden commit z wszystkimi plikami
+- Nie pytaj o treść commita — sam dobierz sensowną wiadomość na podstawie zmian
+
+### GitHub Actions / Deploy
+- **Push = deploy** — po commicie automatycznie pushuj na `main`, CI/CD robi resztę
+- Nie pytaj o potwierdzenie push — rób to z automatu po każdym commicie
+- Wyjątek: jeśli zmiany są destrukcyjne (DROP tabeli, force-push) — wtedy poczekaj na potwierdzenie
+
+### Neon MCP (baza danych)
+- **Do operacji na bazie używaj Neon MCP** zamiast każe użytkownikowi wpisywać komendy w terminalu
+- Migracje: użyj `mcp__Neon__run_sql` do wykonania SQL bezpośrednio
+- Podgląd schematu: `mcp__Neon__describe_table_schema` / `mcp__Neon__get_database_tables`
+- Nigdy nie każ użytkownikowi ręcznie wchodzić do terminala po operacje DB — rób to sam przez MCP
+
 ## Project Status
 
 - Phase 1 (Foundation, DB, Auth, Products, Admin): complete
