@@ -32,25 +32,26 @@ interface MenuCategory {
   items: MenuItem[];
 }
 
-const IN_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
+const IN_EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
 const HERO_STAGGER = {
   hidden: { opacity: 1 },
   visible: {
     opacity: 1,
     transition: {
-      delayChildren: 0.18,
-      staggerChildren: 0.1,
+      delayChildren: 0.1,
+      staggerChildren: 0.12,
     },
   },
 };
 
 const HERO_FADE_UP = {
-  hidden: { opacity: 0, y: 22 },
+  hidden: { opacity: 0, y: 40, filter: "blur(12px)" },
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.8, ease: IN_EASE },
+    filter: "blur(0px)",
+    transition: { duration: 1.2, ease: IN_EASE },
   },
 };
 
@@ -65,10 +66,10 @@ const MenuItemCard = ({
   variant?: "light" | "dark";
 }) => (
   <motion.div
-    initial={{ opacity: 0, y: 24, scale: 0.985 }}
-    whileInView={{ opacity: 1, y: 0, scale: 1 }}
-    viewport={{ once: true, amount: 0.35 }}
-    transition={{ duration: 0.55, delay: index * 0.04, ease: IN_EASE }}
+    initial={{ opacity: 0, y: 30, scale: 0.98, filter: "blur(5px)" }}
+    whileInView={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+    viewport={{ once: true, amount: 0.3 }}
+    transition={{ duration: 0.7, delay: index * 0.05, ease: IN_EASE }}
     className={`group py-5 border-b transition-colors duration-300 ${
       variant === "dark" 
         ? "border-white/10 hover:border-white/30" 
@@ -123,10 +124,10 @@ const MenuSection = ({
           <div className="lg:col-span-4">
             <div className="lg:sticky lg:top-32">
               <motion.div
-                initial={{ opacity: 0, y: 26 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.45 }}
-                transition={{ duration: 0.72, ease: IN_EASE }}
+                initial={{ opacity: 0, y: 40, filter: "blur(10px)" }}
+                whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                viewport={{ once: true, amount: 0.4 }}
+                transition={{ duration: 1, ease: IN_EASE }}
               >
                 <div className="flex items-center gap-4 mb-6">
                   <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${
@@ -250,17 +251,17 @@ const CafeClient: React.FC = () => {
             transition={{ duration: 0.95, ease: IN_EASE }}
           >
             <motion.span
-              initial={{ opacity: 0, y: 34, scale: 0.985 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.95, delay: 0.08, ease: IN_EASE }}
+              initial={{ opacity: 0, y: 50, scale: 0.95, filter: "blur(12px)" }}
+              animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+              transition={{ duration: 1.4, delay: 0.1, ease: IN_EASE }}
               className="block text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-serif font-medium text-white tracking-tight"
             >
               Kawiarnia
             </motion.span>
             <motion.span
-              initial={{ opacity: 0, y: 28, scale: 0.99 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.95, delay: 0.16, ease: IN_EASE }}
+              initial={{ opacity: 0, y: 40, scale: 0.98, filter: "blur(12px)" }}
+              animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+              transition={{ duration: 1.4, delay: 0.25, ease: IN_EASE }}
               className="block mt-1 md:mt-0.5 text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-handwriting leading-[1.12] text-brand-300"
             >
               & Delikatesy
@@ -270,7 +271,7 @@ const CafeClient: React.FC = () => {
           {/* Quote */}
           <motion.p
             variants={HERO_FADE_UP}
-            transition={{ duration: 0.9, delay: 0.25, ease: IN_EASE }}
+            transition={{ duration: 1.2, delay: 0.45, ease: IN_EASE }}
             className="text-lg md:text-xl text-white/70 max-w-2xl mx-auto leading-relaxed mb-12"
           >
             "Kawa to język, w którym milczenie smakuje najlepiej."
@@ -279,7 +280,7 @@ const CafeClient: React.FC = () => {
           {/* Tabs */}
           <motion.div
             variants={HERO_FADE_UP}
-            transition={{ duration: 0.9, delay: 0.35, ease: IN_EASE }}
+            transition={{ duration: 1.2, delay: 0.6, ease: IN_EASE }}
             className="flex flex-wrap justify-center gap-4"
           >
             <motion.div
@@ -346,9 +347,9 @@ const CafeClient: React.FC = () => {
 
         {/* Scroll Indicator */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.5, duration: 1 }}
+          initial={{ opacity: 0, filter: "blur(5px)" }}
+          animate={{ opacity: 1, filter: "blur(0px)" }}
+          transition={{ delay: 1.5, duration: 1.5, ease: IN_EASE }}
           className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20"
         >
           <motion.div
@@ -374,10 +375,10 @@ const CafeClient: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-end">
               {/* Left — Big heading */}
               <motion.div
-                initial={{ opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, y: 50, filter: "blur(10px)" }}
+                whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                 viewport={{ once: true, margin: "-90px" }}
-                transition={{ duration: 0.8, ease: IN_EASE }}
+                transition={{ duration: 1.2, ease: IN_EASE }}
                 className="lg:col-span-7"
               >
                 <span className="inline-block text-xs font-bold uppercase tracking-[0.3em] text-brand-400 mb-8">
@@ -392,10 +393,10 @@ const CafeClient: React.FC = () => {
 
               {/* Right — Stats row */}
               <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, y: 40, filter: "blur(10px)" }}
+                whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                 viewport={{ once: true, margin: "-70px" }}
-                transition={{ duration: 0.75, delay: 0.16, ease: IN_EASE }}
+                transition={{ duration: 1.2, delay: 0.2, ease: IN_EASE }}
                 className="lg:col-span-5"
               >
                 <div className="flex gap-6 lg:justify-end">
@@ -406,10 +407,10 @@ const CafeClient: React.FC = () => {
                   ].map((stat, i) => (
                     <div key={stat.label} className="text-center lg:text-left">
                       <motion.span
-                        initial={{ opacity: 0, scale: 0.5 }}
-                        whileInView={{ opacity: 1, scale: 1 }}
+                        initial={{ opacity: 0, scale: 0.8, filter: "blur(4px)" }}
+                        whileInView={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
                         viewport={{ once: true }}
-                        transition={{ duration: 0.5, delay: 0.3 + i * 0.1, type: "spring", stiffness: 200, damping: 15 }}
+                        transition={{ duration: 0.8, delay: 0.3 + i * 0.1, type: "spring", stiffness: 180, damping: 20 }}
                         className="block text-3xl md:text-4xl font-serif text-white leading-none mb-1"
                       >
                         {stat.value}
@@ -426,10 +427,10 @@ const CafeClient: React.FC = () => {
 
           {/* Animated divider */}
           <motion.div
-            initial={{ scaleX: 0 }}
-            whileInView={{ scaleX: 1 }}
+            initial={{ scaleX: 0, filter: "blur(2px)" }}
+            whileInView={{ scaleX: 1, filter: "blur(0px)" }}
             viewport={{ once: true }}
-            transition={{ duration: 1, ease: IN_EASE }}
+            transition={{ duration: 1.4, ease: IN_EASE }}
             className="origin-left h-[1px] bg-gradient-to-r from-white/20 via-white/10 to-transparent"
           />
 
@@ -438,10 +439,10 @@ const CafeClient: React.FC = () => {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16">
               {/* Left — Description & CTA */}
               <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, y: 40, filter: "blur(8px)" }}
+                whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                 viewport={{ once: true, margin: "-70px" }}
-                transition={{ duration: 0.74, ease: IN_EASE }}
+                transition={{ duration: 1.1, ease: IN_EASE }}
                 className="lg:col-span-5 flex flex-col justify-center"
               >
                 <div className="space-y-6 text-lg text-white/60 leading-relaxed">
@@ -475,17 +476,17 @@ const CafeClient: React.FC = () => {
                 <div className="grid grid-cols-12 gap-4">
                   {/* Large Image */}
                   <motion.div
-                    initial={{ opacity: 0, y: 40 }}
-                    whileInView={{ opacity: 1, y: 0 }}
+                    initial={{ opacity: 0, y: 50, filter: "blur(10px)" }}
+                    whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                     viewport={{ once: true, margin: "-60px" }}
-                    transition={{ duration: 0.72, ease: IN_EASE }}
+                    transition={{ duration: 1.2, ease: IN_EASE }}
                     className="col-span-7 relative aspect-[3/4] rounded-2xl overflow-hidden group"
                   >
                     <Image
                       src="https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?q=80&w=800&auto=format&fit=crop"
                       alt="Wino i ser"
                       fill
-                      className="object-cover transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:scale-[1.05]"
+                      className="object-cover transition-transform duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.05]"
                       sizes="(max-width: 1024px) 60vw, 30vw"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -498,17 +499,17 @@ const CafeClient: React.FC = () => {
                   {/* Right column — 2 stacked images */}
                   <div className="col-span-5 flex flex-col gap-4">
                     <motion.div
-                      initial={{ opacity: 0, y: 50 }}
-                      whileInView={{ opacity: 1, y: 0 }}
+                      initial={{ opacity: 0, y: 60, filter: "blur(10px)" }}
+                      whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                       viewport={{ once: true, margin: "-60px" }}
-                      transition={{ duration: 0.72, delay: 0.08, ease: IN_EASE }}
+                      transition={{ duration: 1.2, delay: 0.1, ease: IN_EASE }}
                       className="relative aspect-square rounded-2xl overflow-hidden group"
                     >
                       <Image
                         src="https://images.unsplash.com/photo-1509042239860-f550ce710b93?q=80&w=800&auto=format&fit=crop"
                         alt="Kawa i latte art"
                         fill
-                        className="object-cover transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:scale-[1.05]"
+                        className="object-cover transition-transform duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.05]"
                         sizes="(max-width: 1024px) 40vw, 20vw"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -518,17 +519,17 @@ const CafeClient: React.FC = () => {
                     </motion.div>
 
                     <motion.div
-                      initial={{ opacity: 0, y: 60 }}
-                      whileInView={{ opacity: 1, y: 0 }}
+                      initial={{ opacity: 0, y: 70, filter: "blur(10px)" }}
+                      whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                       viewport={{ once: true, margin: "-60px" }}
-                      transition={{ duration: 0.72, delay: 0.16, ease: IN_EASE }}
+                      transition={{ duration: 1.2, delay: 0.2, ease: IN_EASE }}
                       className="relative aspect-[4/3] rounded-2xl overflow-hidden group"
                     >
                       <Image
                         src="https://images.unsplash.com/photo-1627308595229-7830a5c91f9f?q=80&w=800&auto=format&fit=crop"
                         alt="Włoskie delikatesy"
                         fill
-                        className="object-cover transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:scale-[1.05]"
+                        className="object-cover transition-transform duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.05]"
                         sizes="(max-width: 1024px) 40vw, 20vw"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -576,10 +577,10 @@ const CafeClient: React.FC = () => {
         <div className="container mx-auto px-6 lg:px-12 relative z-10">
           {/* Header */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, y: 30, filter: "blur(8px)" }}
+            whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
             viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: 1, ease: IN_EASE }}
             className="text-center max-w-2xl mx-auto mb-16"
           >
             <span className="inline-block text-xs font-bold uppercase tracking-[0.2em] text-brand-400 mb-4">
@@ -593,10 +594,10 @@ const CafeClient: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
             {/* Info Cards */}
             <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, x: -30, filter: "blur(10px)" }}
+              whileInView={{ opacity: 1, x: 0, filter: "blur(0px)" }}
               viewport={{ once: true }}
-              transition={{ duration: 0.8 }}
+              transition={{ duration: 1.2, ease: IN_EASE }}
               className="space-y-6"
             >
               {/* Address */}
@@ -678,10 +679,10 @@ const CafeClient: React.FC = () => {
 
             {/* Map */}
             <motion.div
-              initial={{ opacity: 0, x: 30 }}
-              whileInView={{ opacity: 1, x: 0 }}
+              initial={{ opacity: 0, x: 30, filter: "blur(10px)" }}
+              whileInView={{ opacity: 1, x: 0, filter: "blur(0px)" }}
               viewport={{ once: true }}
-              transition={{ duration: 0.8, delay: 0.2 }}
+              transition={{ duration: 1.2, delay: 0.2, ease: IN_EASE }}
               className="relative"
             >
               <div className="relative aspect-square lg:aspect-[4/3] rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
