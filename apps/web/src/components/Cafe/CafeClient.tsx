@@ -3,7 +3,7 @@
 import React, { useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { motion, useScroll, useTransform, useInView } from "motion/react";
+import { motion, useScroll, useTransform } from "motion/react";
 import { 
   Clock, 
   MapPin, 
@@ -32,6 +32,28 @@ interface MenuCategory {
   items: MenuItem[];
 }
 
+const IN_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
+
+const HERO_STAGGER = {
+  hidden: { opacity: 1 },
+  visible: {
+    opacity: 1,
+    transition: {
+      delayChildren: 0.18,
+      staggerChildren: 0.1,
+    },
+  },
+};
+
+const HERO_FADE_UP = {
+  hidden: { opacity: 0, y: 22 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.8, ease: IN_EASE },
+  },
+};
+
 // Menu Item Component
 const MenuItemCard = ({ 
   item, 
@@ -43,10 +65,10 @@ const MenuItemCard = ({
   variant?: "light" | "dark";
 }) => (
   <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    whileInView={{ opacity: 1, y: 0 }}
-    viewport={{ once: true }}
-    transition={{ duration: 0.5, delay: index * 0.05 }}
+    initial={{ opacity: 0, y: 24, scale: 0.985 }}
+    whileInView={{ opacity: 1, y: 0, scale: 1 }}
+    viewport={{ once: true, amount: 0.35 }}
+    transition={{ duration: 0.55, delay: index * 0.04, ease: IN_EASE }}
     className={`group py-5 border-b transition-colors duration-300 ${
       variant === "dark" 
         ? "border-white/10 hover:border-white/30" 
@@ -93,20 +115,18 @@ const MenuSection = ({
   variant?: "light" | "dark";
   description: string;
 }) => {
-  const sectionRef = useRef<HTMLDivElement>(null);
-  const isInView = useInView(sectionRef, { once: true, margin: "-100px" });
-
   return (
-    <div ref={sectionRef} className={`py-16 md:py-24 ${variant === "dark" ? "bg-brand-900" : "bg-white"}`}>
+    <div className={`py-16 md:py-24 ${variant === "dark" ? "bg-brand-900" : "bg-white"}`}>
       <div className="container mx-auto px-6 lg:px-12">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16">
           {/* Header */}
           <div className="lg:col-span-4">
             <div className="lg:sticky lg:top-32">
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={isInView ? { opacity: 1, y: 0 } : {}}
-                transition={{ duration: 0.6 }}
+                initial={{ opacity: 0, y: 26 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.45 }}
+                transition={{ duration: 0.72, ease: IN_EASE }}
               >
                 <div className="flex items-center gap-4 mb-6">
                   <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${
@@ -208,12 +228,13 @@ const CafeClient: React.FC = () => {
         <motion.div 
           style={{ opacity: heroOpacity }}
           className="relative z-20 text-center px-6 max-w-5xl"
+          initial="hidden"
+          animate="visible"
+          variants={HERO_STAGGER}
         >
           {/* Badge */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
+            variants={HERO_FADE_UP}
             className="mb-8"
           >
             <span className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-xs font-medium tracking-[0.2em] uppercase text-white/90">
@@ -223,34 +244,33 @@ const CafeClient: React.FC = () => {
           </motion.div>
 
           {/* Title */}
-          <h1 className="mb-8 leading-[1.04]">
-            <span className="block overflow-hidden pb-[0.16em] -mb-[0.16em]">
-              <motion.span
-                initial={{ y: "100%" }}
-                animate={{ y: 0 }}
-                transition={{ duration: 1, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                className="block text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-serif font-medium text-white tracking-tight"
-              >
-                Kawiarnia
-              </motion.span>
-            </span>
-            <span className="block overflow-hidden pb-[0.18em] -mb-[0.1em] mt-1 md:mt-0">
-              <motion.span
-                initial={{ y: "100%" }}
-                animate={{ y: 0 }}
-                transition={{ duration: 1, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                className="block text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-handwriting leading-[1.05] text-brand-300"
-              >
-                & Delikatesy
-              </motion.span>
-            </span>
-          </h1>
+          <motion.h1
+            className="mb-8 leading-[1.08]"
+            variants={HERO_FADE_UP}
+            transition={{ duration: 0.95, ease: IN_EASE }}
+          >
+            <motion.span
+              initial={{ opacity: 0, y: 34, scale: 0.985 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.95, delay: 0.08, ease: IN_EASE }}
+              className="block text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-serif font-medium text-white tracking-tight"
+            >
+              Kawiarnia
+            </motion.span>
+            <motion.span
+              initial={{ opacity: 0, y: 28, scale: 0.99 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.95, delay: 0.16, ease: IN_EASE }}
+              className="block mt-1 md:mt-0.5 text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-handwriting leading-[1.12] text-brand-300"
+            >
+              & Delikatesy
+            </motion.span>
+          </motion.h1>
 
           {/* Quote */}
           <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 1, delay: 0.8 }}
+            variants={HERO_FADE_UP}
+            transition={{ duration: 0.9, delay: 0.25, ease: IN_EASE }}
             className="text-lg md:text-xl text-white/70 max-w-2xl mx-auto leading-relaxed mb-12"
           >
             "Kawa to język, w którym milczenie smakuje najlepiej."
@@ -258,9 +278,8 @@ const CafeClient: React.FC = () => {
 
           {/* Tabs */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 1 }}
+            variants={HERO_FADE_UP}
+            transition={{ duration: 0.9, delay: 0.35, ease: IN_EASE }}
             className="flex flex-wrap justify-center gap-4"
           >
             <motion.div
@@ -285,7 +304,7 @@ const CafeClient: React.FC = () => {
                   aria-hidden
                   className="pointer-events-none absolute -left-1/2 top-0 h-full w-1/2 bg-gradient-to-r from-transparent via-white/70 to-transparent opacity-0"
                   whileHover={{ x: "200%", opacity: 0.9 }}
-                  transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+                    transition={{ duration: 0.8, ease: IN_EASE }}
                 />
                 <Coffee className="relative z-10 w-4 h-4" />
                 <span className="relative z-10">Zobacz menu</span>
@@ -313,7 +332,7 @@ const CafeClient: React.FC = () => {
                   aria-hidden
                   className="pointer-events-none absolute -left-1/2 top-0 h-full w-1/2 bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-0"
                   whileHover={{ x: "200%", opacity: 0.7 }}
-                  transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+                    transition={{ duration: 0.9, ease: IN_EASE }}
                 />
                 <MapPin className="relative z-10 w-4 h-4" />
                 <span className="relative z-10">Jak dojechać</span>
@@ -357,8 +376,8 @@ const CafeClient: React.FC = () => {
               <motion.div
                 initial={{ opacity: 0, y: 40 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-100px" }}
-                transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+                viewport={{ once: true, margin: "-90px" }}
+                transition={{ duration: 0.8, ease: IN_EASE }}
                 className="lg:col-span-7"
               >
                 <span className="inline-block text-xs font-bold uppercase tracking-[0.3em] text-brand-400 mb-8">
@@ -375,8 +394,8 @@ const CafeClient: React.FC = () => {
               <motion.div
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-80px" }}
-                transition={{ duration: 0.7, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                viewport={{ once: true, margin: "-70px" }}
+                transition={{ duration: 0.75, delay: 0.16, ease: IN_EASE }}
                 className="lg:col-span-5"
               >
                 <div className="flex gap-6 lg:justify-end">
@@ -410,7 +429,7 @@ const CafeClient: React.FC = () => {
             initial={{ scaleX: 0 }}
             whileInView={{ scaleX: 1 }}
             viewport={{ once: true }}
-            transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 1, ease: IN_EASE }}
             className="origin-left h-[1px] bg-gradient-to-r from-white/20 via-white/10 to-transparent"
           />
 
@@ -421,8 +440,8 @@ const CafeClient: React.FC = () => {
               <motion.div
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-80px" }}
-                transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+                viewport={{ once: true, margin: "-70px" }}
+                transition={{ duration: 0.74, ease: IN_EASE }}
                 className="lg:col-span-5 flex flex-col justify-center"
               >
                 <div className="space-y-6 text-lg text-white/60 leading-relaxed">
@@ -459,7 +478,7 @@ const CafeClient: React.FC = () => {
                     initial={{ opacity: 0, y: 40 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true, margin: "-60px" }}
-                    transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+                    transition={{ duration: 0.72, ease: IN_EASE }}
                     className="col-span-7 relative aspect-[3/4] rounded-2xl overflow-hidden group"
                   >
                     <Image
@@ -482,7 +501,7 @@ const CafeClient: React.FC = () => {
                       initial={{ opacity: 0, y: 50 }}
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true, margin: "-60px" }}
-                      transition={{ duration: 0.7, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+                      transition={{ duration: 0.72, delay: 0.08, ease: IN_EASE }}
                       className="relative aspect-square rounded-2xl overflow-hidden group"
                     >
                       <Image
@@ -502,7 +521,7 @@ const CafeClient: React.FC = () => {
                       initial={{ opacity: 0, y: 60 }}
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true, margin: "-60px" }}
-                      transition={{ duration: 0.7, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                      transition={{ duration: 0.72, delay: 0.16, ease: IN_EASE }}
                       className="relative aspect-[4/3] rounded-2xl overflow-hidden group"
                     >
                       <Image
