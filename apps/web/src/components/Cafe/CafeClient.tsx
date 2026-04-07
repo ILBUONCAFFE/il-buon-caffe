@@ -8,7 +8,6 @@ import {
   Clock, 
   MapPin, 
   Phone, 
-  ArrowDown, 
   Coffee, 
   Wine, 
   CakeSlice,
@@ -344,23 +343,6 @@ const CafeClient: React.FC = () => {
 
         {/* Bottom fade to page background */}
         <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-brand-900 via-brand-900/70 to-transparent z-10" />
-
-        {/* Scroll Indicator */}
-        <motion.div
-          initial={{ opacity: 0, filter: "blur(5px)" }}
-          animate={{ opacity: 1, filter: "blur(0px)" }}
-          transition={{ delay: 1.5, duration: 1.5, ease: IN_EASE }}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20"
-        >
-          <motion.div
-            animate={{ y: [0, 8, 0] }}
-            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-            className="flex flex-col items-center gap-3"
-          >
-            <span className="text-[10px] uppercase tracking-[0.3em] text-white/40">Scroll</span>
-            <ArrowDown className="w-5 h-5 text-white/40" />
-          </motion.div>
-        </motion.div>
       </section>
 
       {/* ===== INTRO SECTION — Premium Redesign ===== */}
