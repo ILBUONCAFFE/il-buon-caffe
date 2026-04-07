@@ -75,9 +75,9 @@ export const Hero = () => {
             </div>
 
             {/* Subheading */}
-            <AnimatedText 
+            <AnimatedText
               className="text-xl md:text-2xl text-white/70 max-w-xl mb-10 leading-relaxed"
-              text="Prawdziwa włoska kawiarnia w sercu Koszalina. Odkryj wyselekcjonowane kawy, wina i delikatesy premium."
+              text="Włoskie wina, oliwy, migdały, słodycze i kawa specialty. Wysyłka na terenie całej Polski."
               delayChildren={0.6}
             />
 
