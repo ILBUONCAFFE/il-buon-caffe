@@ -1,44 +1,80 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import { motion } from "motion/react";
 import { Instagram } from "lucide-react";
+import type { InstagramPost } from "@/app/api/instagram/route";
 
-const posts = [
+const PLACEHOLDER_POSTS = [
   {
-    id: "1",
-    src: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?q=80&w=800&auto=format&fit=crop",
+    id: "p1",
+    permalink: "https://www.instagram.com/il_buoncaffe/",
+    media_url: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?q=80&w=800&auto=format&fit=crop",
     alt: "Espresso w filiżance — Il Buon Caffe Koszalin",
   },
   {
-    id: "2",
-    src: "https://images.unsplash.com/photo-1474722883778-792e7990302f?q=80&w=800&auto=format&fit=crop",
-    alt: "Włoskie wino w kieliszku — sklep Il Buon Caffe",
+    id: "p2",
+    permalink: "https://www.instagram.com/il_buoncaffe/",
+    media_url: "https://images.unsplash.com/photo-1474722883778-792e7990302f?q=80&w=800&auto=format&fit=crop",
+    alt: "Włoskie wino — Il Buon Caffe",
   },
   {
-    id: "3",
-    src: "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?q=80&w=800&auto=format&fit=crop",
-    alt: "Oliwa z oliwek extra virgin — włoskie delikatesy Il Buon Caffe",
+    id: "p3",
+    permalink: "https://www.instagram.com/il_buoncaffe/",
+    media_url: "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?q=80&w=800&auto=format&fit=crop",
+    alt: "Oliwa z oliwek — Il Buon Caffe",
   },
   {
-    id: "4",
-    src: "https://images.unsplash.com/photo-1548940740-204726a19be3?q=80&w=800&auto=format&fit=crop",
-    alt: "Włoskie słodycze i migdały — Il Buon Caffe",
+    id: "p4",
+    permalink: "https://www.instagram.com/il_buoncaffe/",
+    media_url: "https://images.unsplash.com/photo-1548940740-204726a19be3?q=80&w=800&auto=format&fit=crop",
+    alt: "Włoskie słodycze — Il Buon Caffe",
   },
   {
-    id: "5",
-    src: "https://images.unsplash.com/photo-1442512595331-e89e73853f31?q=80&w=800&auto=format&fit=crop",
-    alt: "Kawa ziarnista specialty — Il Buon Caffe sklep online",
+    id: "p5",
+    permalink: "https://www.instagram.com/il_buoncaffe/",
+    media_url: "https://images.unsplash.com/photo-1442512595331-e89e73853f31?q=80&w=800&auto=format&fit=crop",
+    alt: "Kawa specialty — Il Buon Caffe",
   },
   {
-    id: "6",
-    src: "https://images.unsplash.com/photo-1576092768241-dec231879fc3?q=80&w=800&auto=format&fit=crop",
-    alt: "Włoskie produkty premium — oliwy, wina, kawa Il Buon Caffe",
+    id: "p6",
+    permalink: "https://www.instagram.com/il_buoncaffe/",
+    media_url: "https://images.unsplash.com/photo-1576092768241-dec231879fc3?q=80&w=800&auto=format&fit=crop",
+    alt: "Włoskie produkty premium — Il Buon Caffe",
   },
 ];
 
+type DisplayPost = {
+  id: string;
+  permalink: string;
+  media_url: string;
+  alt: string;
+};
+
+function toDisplayPost(p: InstagramPost): DisplayPost {
+  return {
+    id: p.id,
+    permalink: p.permalink,
+    media_url: p.media_url,
+    alt: p.caption ? p.caption.slice(0, 120) : "Post Il Buon Caffe na Instagramie",
+  };
+}
+
 export const InstagramFeed = () => {
+  const [posts, setPosts] = useState<DisplayPost[]>(PLACEHOLDER_POSTS);
+
+  useEffect(() => {
+    fetch("/api/instagram")
+      .then((r) => r.ok ? r.json() : null)
+      .then((data: InstagramPost[] | null) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setPosts(data.map(toDisplayPost));
+        }
+      })
+      .catch(() => {/* keep placeholders */});
+  }, []);
+
   return (
     <section className="py-20 md:py-28 bg-white">
       <div className="container mx-auto px-6 lg:px-12">
@@ -65,40 +101,34 @@ export const InstagramFeed = () => {
         </motion.div>
 
         {/* Grid */}
-        <a
-          href="https://www.instagram.com/il_buoncaffe/"
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="Przejdź do profilu Il Buon Caffe na Instagramie"
-          className="grid grid-cols-2 sm:grid-cols-3 gap-1 sm:gap-2"
-        >
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 sm:gap-2">
           {posts.map((post, index) => (
-            <motion.div
+            <motion.a
               key={post.id}
+              href={post.permalink}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={post.alt}
               initial={{ opacity: 0, scale: 0.97 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true, margin: "-40px" }}
-              transition={{
-                duration: 0.5,
-                delay: index * 0.07,
-                ease: [0.22, 1, 0.36, 1],
-              }}
+              transition={{ duration: 0.5, delay: index * 0.07, ease: [0.22, 1, 0.36, 1] }}
               className="group relative aspect-square overflow-hidden bg-brand-100"
             >
               <Image
-                src={post.src}
+                src={post.media_url}
                 alt={post.alt}
                 fill
                 className="object-cover transition-transform duration-700 group-hover:scale-105"
                 sizes="(max-width: 640px) 50vw, 33vw"
+                unoptimized={post.media_url.includes("cdninstagram")}
               />
-              {/* Hover overlay */}
-              <div className="absolute inset-0 bg-brand-900/0 group-hover:bg-brand-900/30 transition-colors duration-400 flex items-center justify-center">
+              <div className="absolute inset-0 bg-brand-900/0 group-hover:bg-brand-900/30 transition-colors duration-300 flex items-center justify-center">
                 <Instagram className="w-7 h-7 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" aria-hidden="true" />
               </div>
-            </motion.div>
+            </motion.a>
           ))}
-        </a>
+        </div>
       </div>
     </section>
   );
