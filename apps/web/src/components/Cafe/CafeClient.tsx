@@ -282,62 +282,33 @@ const CafeClient: React.FC = () => {
             transition={{ duration: 1.2, delay: 0.6, ease: IN_EASE }}
             className="flex flex-wrap justify-center gap-4"
           >
-            <motion.div
-              whileHover={{ y: -3, scale: 1.03 }}
-              whileTap={{ scale: 0.985 }}
-              transition={{ type: "spring", stiffness: 420, damping: 24 }}
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ duration: 0.3, ease: IN_EASE }}
+              onClick={() => {
+                setActiveTab("menu");
+                document.getElementById("menu")?.scrollIntoView({ behavior: "smooth" });
+              }}
+              className="group flex items-center justify-center gap-3 px-8 py-4 bg-white text-brand-900 rounded-full font-bold text-[13px] uppercase tracking-[0.15em] transition-colors duration-300 hover:bg-brand-50"
             >
-              <button
-                onClick={() => {
-                  setActiveTab("menu");
-                  document.getElementById("menu")?.scrollIntoView({ behavior: "smooth" });
-                }}
-                className="group relative inline-flex items-center gap-2 px-8 py-4 bg-white text-brand-900 rounded-full font-bold text-sm uppercase tracking-widest transition-all duration-300 shadow-lg shadow-black/25 hover:shadow-black/35 overflow-hidden"
-              >
-                <motion.span
-                  aria-hidden
-                  className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_80%_at_20%_20%,rgba(255,255,255,0.85),transparent_60%)] opacity-0"
-                  whileHover={{ opacity: 0.7 }}
-                  transition={{ duration: 0.35 }}
-                />
-                <motion.span
-                  aria-hidden
-                  className="pointer-events-none absolute -left-1/2 top-0 h-full w-1/2 bg-gradient-to-r from-transparent via-white/70 to-transparent opacity-0"
-                  whileHover={{ x: "200%", opacity: 0.9 }}
-                    transition={{ duration: 0.8, ease: IN_EASE }}
-                />
-                <Coffee className="relative z-10 w-4 h-4" />
-                <span className="relative z-10">Zobacz menu</span>
-              </button>
-            </motion.div>
-            <motion.div
-              whileHover={{ y: -3, scale: 1.02 }}
-              whileTap={{ scale: 0.985 }}
-              transition={{ type: "spring", stiffness: 380, damping: 26 }}
+              <Coffee className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
+              <span>Zobacz menu</span>
+            </motion.button>
+
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ duration: 0.3, ease: IN_EASE }}
+              onClick={() => {
+                setActiveTab("about");
+                document.getElementById("location")?.scrollIntoView({ behavior: "smooth" });
+              }}
+              className="group flex items-center justify-center gap-3 px-8 py-4 bg-transparent border border-white/30 text-white rounded-full font-bold text-[13px] uppercase tracking-[0.15em] transition-colors duration-300 hover:bg-white/10 hover:border-white/60"
             >
-              <button
-                onClick={() => {
-                  setActiveTab("about");
-                  document.getElementById("location")?.scrollIntoView({ behavior: "smooth" });
-                }}
-                className="group relative inline-flex items-center gap-2 px-8 py-4 bg-white/5 border border-white/40 text-white rounded-full font-bold text-sm uppercase tracking-widest transition-all duration-300 hover:bg-white/10 hover:border-white/70 overflow-hidden"
-              >
-                <motion.span
-                  aria-hidden
-                  className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_80%_at_80%_20%,rgba(255,255,255,0.35),transparent_65%)] opacity-0"
-                  whileHover={{ opacity: 0.6 }}
-                  transition={{ duration: 0.35 }}
-                />
-                <motion.span
-                  aria-hidden
-                  className="pointer-events-none absolute -left-1/2 top-0 h-full w-1/2 bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-0"
-                  whileHover={{ x: "200%", opacity: 0.7 }}
-                    transition={{ duration: 0.9, ease: IN_EASE }}
-                />
-                <MapPin className="relative z-10 w-4 h-4" />
-                <span className="relative z-10">Jak dojechać</span>
-              </button>
-            </motion.div>
+              <MapPin className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
+              <span>Jak dojechać</span>
+            </motion.button>
           </motion.div>
         </motion.div>
 
@@ -442,13 +413,13 @@ const CafeClient: React.FC = () => {
 
                 <Link
                   href="/sklep"
-                  className="inline-flex items-center gap-3 mt-10 group"
+                  className="inline-flex items-center gap-4 mt-10 group"
                 >
-                  <span className="text-brand-400 text-sm font-bold uppercase tracking-[0.15em] group-hover:text-white transition-colors duration-300">
+                  <span className="text-brand-400 text-sm font-bold uppercase tracking-[0.15em] transition-colors duration-300 group-hover:text-brand-200">
                     Zobacz nasze produkty
                   </span>
-                  <div className="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center group-hover:bg-white group-hover:border-white transition-all duration-300">
-                    <ChevronRight className="w-4 h-4 text-white/60 group-hover:text-brand-900 transition-colors duration-300" />
+                  <div className="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center transition-all duration-300 group-hover:border-brand-200 group-hover:translate-x-2">
+                    <ChevronRight className="w-4 h-4 text-white/50 transition-colors duration-300 group-hover:text-brand-200" />
                   </div>
                 </Link>
               </motion.div>
@@ -642,19 +613,19 @@ const CafeClient: React.FC = () => {
                   href="https://www.instagram.com/il_buoncaffe/" 
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 flex items-center justify-center gap-3 bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors"
+                  className="group flex-1 flex items-center justify-center gap-3 bg-white/5 border border-white/10 rounded-2xl p-4 transition-all duration-300 hover:bg-white/10 hover:border-white/30"
                 >
-                  <Instagram className="w-5 h-5 text-brand-300" />
-                  <span className="text-white/70">Instagram</span>
+                  <Instagram className="w-5 h-5 text-brand-400 transition-transform duration-300 group-hover:scale-110 group-hover:text-brand-300" />
+                  <span className="text-sm font-medium tracking-wide text-white/70 transition-colors duration-300 group-hover:text-white">Instagram</span>
                 </a>
                 <a 
                   href="https://www.facebook.com/IlBuonCaffeKoszalin" 
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 flex items-center justify-center gap-3 bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors"
+                  className="group flex-1 flex items-center justify-center gap-3 bg-white/5 border border-white/10 rounded-2xl p-4 transition-all duration-300 hover:bg-white/10 hover:border-white/30"
                 >
-                  <Facebook className="w-5 h-5 text-brand-300" />
-                  <span className="text-white/70">Facebook</span>
+                  <Facebook className="w-5 h-5 text-brand-400 transition-transform duration-300 group-hover:scale-110 group-hover:text-brand-300" />
+                  <span className="text-sm font-medium tracking-wide text-white/70 transition-colors duration-300 group-hover:text-white">Facebook</span>
                 </a>
               </div>
             </motion.div>
