@@ -24,6 +24,7 @@ const cafeJsonLd = {
   servesCuisine: ["Kawa", "Włoskie desery", "Wypieki", "Włoska kuchnia"],
   priceRange: "$$",
   telephone: "+48664937937",
+  email: "kontakt@ilbuoncaffe.pl",
   address: {
     "@type": "PostalAddress",
     streetAddress: "ul. Biskupa Czesława Domina 3/6",
