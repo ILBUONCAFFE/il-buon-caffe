@@ -4,12 +4,14 @@ import React, { useState, useEffect, useRef } from "react";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion, useMotionValue, useSpring } from "motion/react";
-import { ShoppingBag, User, Menu, X, Search, ChevronRight } from "lucide-react";
+import { ShoppingBag, User, Menu, X, Search, ChevronRight, Store, Coffee, MapPin, BookOpenText, ArrowUpRight, Sparkles } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { cn } from "@/lib/utils";
 import { SHOP_ENABLED, ACCOUNTS_ENABLED } from "@/config/launch";
+import { searchProducts } from "@/actions/products";
+import type { Product } from "@/types";
 
 const navLinks = [
   { name: "Start", href: "/" },
@@ -17,6 +19,81 @@ const navLinks = [
   { name: "Kawiarnia", href: "/kawiarnia" },
   { name: "Encyklopedia", href: "/encyklopedia" },
 ];
+
+type SearchShortcut = {
+  id: string;
+  title: string;
+  subtitle: string;
+  href: string;
+  icon: React.ElementType;
+  tags: string[];
+};
+
+const SEARCH_SHORTCUTS: SearchShortcut[] = [
+  {
+    id: "shop",
+    title: "Sklep",
+    subtitle: "Przeglądaj wszystkie produkty premium",
+    href: "/sklep",
+    icon: Store,
+    tags: ["sklep", "produkty", "kawa", "wino", "delikatesy"],
+  },
+  {
+    id: "coffee",
+    title: "Kawy specialty",
+    subtitle: "Ziarna, blendy i akcesoria baristy",
+    href: "/sklep/kawa",
+    icon: Coffee,
+    tags: ["kawa", "espresso", "specialty"],
+  },
+  {
+    id: "cafe",
+    title: "Kawiarnia stacjonarna",
+    subtitle: "Adres, menu i godziny otwarcia",
+    href: "/kawiarnia",
+    icon: MapPin,
+    tags: ["kawiarnia", "menu", "koszalin"],
+  },
+  {
+    id: "encyklopedia",
+    title: "Encyklopedia smaku",
+    subtitle: "Poradniki o winie, kawie i delikatesach",
+    href: "/encyklopedia",
+    icon: BookOpenText,
+    tags: ["encyklopedia", "poradnik", "wiedza"],
+  },
+];
+
+const SEARCH_CATEGORY_SLUG_MAP: Record<string, string> = {
+  coffee: "kawa",
+  alcohol: "wino",
+  wino: "wino",
+  kawa: "kawa",
+  sweets: "slodycze",
+  slodycze: "slodycze",
+  pantry: "spizarnia",
+  spizarnia: "spizarnia",
+  all: "wszystko",
+};
+
+const resolveSearchCategorySlug = (category?: string) => {
+  if (!category) return "wszystko";
+  const normalized = category.toLowerCase();
+  return SEARCH_CATEGORY_SLUG_MAP[normalized] || normalized;
+};
+
+const resolveSearchProductHref = (product: Product) => {
+  const categorySlug = resolveSearchCategorySlug(typeof product.category === "string" ? product.category : undefined);
+
+  if (!product.slug) {
+    return `/sklep/${categorySlug}`;
+  }
+
+  const productSlug = product.slug;
+  return `/sklep/${categorySlug}/${productSlug}`;
+};
+
+const formatSearchPrice = (price: number) => `${price.toFixed(2).replace(".", ",")} zł`;
 
 // Magnetic Link Component - links follow cursor within bounds
 const MagneticLink = ({
@@ -75,10 +152,15 @@ const MagneticLink = ({
 };
 
 export const Navbar = () => {
+  const router = useRouter();
   const [isScrolled, setIsScrolled] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [isSearchLoading, setIsSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [pillStyle, setPillStyle] = useState({ left: 0, width: 0 });
   const [isDarkTheme, setIsDarkTheme] = useState(false);
@@ -138,6 +220,10 @@ export const Navbar = () => {
   useEffect(() => {
     setIsMobileMenuOpen(false);
     setIsSearchOpen(false);
+    setSearchQuery("");
+    setSearchResults([]);
+    setSearchError(null);
+    setIsSearchLoading(false);
   }, [pathname]);
 
   useEffect(() => {
@@ -159,6 +245,45 @@ export const Navbar = () => {
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
   }, [isSearchOpen]);
+
+  useEffect(() => {
+    if (!isSearchOpen) return;
+
+    const query = searchQuery.trim();
+    if (query.length < 2) {
+      setSearchResults([]);
+      setSearchError(null);
+      setIsSearchLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsSearchLoading(true);
+    setSearchError(null);
+
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        const results = await searchProducts(query);
+        if (!cancelled) {
+          setSearchResults(results.slice(0, 8));
+        }
+      } catch {
+        if (!cancelled) {
+          setSearchResults([]);
+          setSearchError("Nie udało się pobrać wyników. Spróbuj ponownie.");
+        }
+      } finally {
+        if (!cancelled) {
+          setIsSearchLoading(false);
+        }
+      }
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+    };
+  }, [isSearchOpen, searchQuery]);
 
   // Focus traps for mobile menu and search modal
   useFocusTrap(mobileMenuRef as React.RefObject<HTMLElement>, isMobileMenuOpen, {
@@ -205,6 +330,29 @@ export const Navbar = () => {
   const isDarkText = !isMobileMenuOpen && (isScrolled || !isDarkHeroPage);
   const accountHref = ACCOUNTS_ENABLED ? '/account' : '/auth';
   const accountLabel = ACCOUNTS_ENABLED ? 'Konto' : 'Konto (wkrótce)';
+
+  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+  const hasTypedQuery = normalizedSearchQuery.length >= 2;
+
+  const filteredShortcuts = SEARCH_SHORTCUTS.filter((shortcut) => {
+    if (!normalizedSearchQuery) return true;
+
+    const searchable = `${shortcut.title} ${shortcut.subtitle} ${shortcut.tags.join(" ")}`.toLowerCase();
+    return searchable.includes(normalizedSearchQuery);
+  }).slice(0, 4);
+
+  const closeSearch = () => {
+    setIsSearchOpen(false);
+    setSearchQuery("");
+    setSearchResults([]);
+    setSearchError(null);
+    setIsSearchLoading(false);
+  };
+
+  const navigateFromSearch = (href: string) => {
+    closeSearch();
+    router.push(href);
+  };
 
   // Stagger animation variants
   const containerVariants = {
@@ -474,7 +622,13 @@ export const Navbar = () => {
               {/* Search */}
               <motion.button
                 ref={searchBtnRef}
-                onClick={() => setIsSearchOpen(true)}
+                onClick={() => {
+                  setIsSearchOpen(true);
+                  setSearchQuery("");
+                  setSearchResults([]);
+                  setSearchError(null);
+                  setIsSearchLoading(false);
+                }}
                 whileHover={{ scale: 1.15, rotate: 10 }}
                 whileTap={{ scale: 0.9 }}
                 className={cn(
@@ -740,8 +894,8 @@ export const Navbar = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-start justify-center pt-32"
-            onClick={() => setIsSearchOpen(false)}
+            className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-xl flex items-start justify-center pt-24 md:pt-28 px-4"
+            onClick={closeSearch}
             role="dialog"
             aria-modal="true"
             aria-label="Wyszukiwarka"
@@ -751,28 +905,185 @@ export const Navbar = () => {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -30, scale: 0.95 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="w-full max-w-xl px-6"
+              className="w-full max-w-5xl"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="relative bg-white rounded-2xl overflow-hidden shadow-2xl">
-                <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-400" />
-                <input
-                  type="text"
-                  id="search-input"
-                  placeholder="Czego szukasz?"
-                  autoFocus
-                  className="w-full py-5 pl-14 pr-14 text-lg text-brand-900 placeholder-brand-400 focus:outline-none"
-                />
-                <button
-                  onClick={() => setIsSearchOpen(false)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-brand-400 hover:text-brand-600 rounded-full hover:bg-brand-50 transition-colors"
-                  aria-label="Zamknij wyszukiwarkę"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+              <div className="relative overflow-hidden rounded-3xl border border-white/20 bg-[#fbf8f4]/95 shadow-[0_30px_80px_rgba(0,0,0,0.45)]">
+                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-400/80 to-transparent" />
+
+                <div className="relative border-b border-brand-200/70 px-4 md:px-6 py-4 md:py-5">
+                  <Search className="absolute left-8 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-500" />
+                  <input
+                    type="text"
+                    id="search-input"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key !== "Enter") return;
+                      e.preventDefault();
+
+                      if (hasTypedQuery && searchResults.length > 0) {
+                        navigateFromSearch(resolveSearchProductHref(searchResults[0]));
+                        return;
+                      }
+
+                      if (filteredShortcuts.length > 0) {
+                        navigateFromSearch(filteredShortcuts[0].href);
+                      }
+                    }}
+                    placeholder="Szukaj produktu, kategorii lub strony..."
+                    autoFocus
+                    className="w-full rounded-2xl border border-brand-200/80 bg-white py-4 pl-14 pr-24 text-base md:text-lg text-brand-900 placeholder-brand-500/70 focus:outline-none focus:ring-2 focus:ring-brand-400/50"
+                  />
+
+                  <div className="absolute right-7 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery("")}
+                        className="p-2 text-brand-500 hover:text-brand-700 rounded-full hover:bg-brand-50 transition-colors"
+                        aria-label="Wyczyść wyszukiwanie"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                    <button
+                      onClick={closeSearch}
+                      className="p-2 text-brand-500 hover:text-brand-700 rounded-full hover:bg-brand-50 transition-colors"
+                      aria-label="Zamknij wyszukiwarkę"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-[280px_1fr]">
+                  <aside className="border-b md:border-b-0 md:border-r border-brand-200/70 bg-brand-50/40 px-4 md:px-5 py-5">
+                    <p className="text-[11px] uppercase tracking-[0.22em] text-brand-600 mb-3">Skróty</p>
+                    <div className="space-y-2">
+                      {filteredShortcuts.map((shortcut) => (
+                        <button
+                          key={shortcut.id}
+                          type="button"
+                          onClick={() => navigateFromSearch(shortcut.href)}
+                          className="w-full text-left rounded-2xl border border-transparent hover:border-brand-200 hover:bg-white px-3 py-3 transition-all group"
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="mt-0.5 w-9 h-9 rounded-xl bg-brand-900 text-white flex items-center justify-center">
+                              <shortcut.icon className="w-4 h-4" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-semibold text-brand-900">{shortcut.title}</p>
+                              <p className="text-xs text-brand-600 mt-0.5 line-clamp-2">{shortcut.subtitle}</p>
+                            </div>
+                            <ArrowUpRight className="w-4 h-4 text-brand-400 group-hover:text-brand-700 transition-colors" />
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </aside>
+
+                  <section className="px-4 md:px-6 py-5 min-h-[320px]">
+                    {!hasTypedQuery && (
+                      <div className="h-full flex flex-col items-center justify-center text-center px-4">
+                        <div className="w-14 h-14 rounded-2xl bg-brand-900 text-white flex items-center justify-center mb-4">
+                          <Sparkles className="w-6 h-6" />
+                        </div>
+                        <h3 className="text-2xl md:text-3xl font-serif text-brand-900 mb-2">Inteligentne wyszukiwanie</h3>
+                        <p className="text-brand-600 max-w-md">
+                          Wpisz minimum 2 znaki, aby przeszukać produkty i szybko przejść do najważniejszych sekcji strony.
+                        </p>
+                        <div className="flex flex-wrap gap-2 mt-5 justify-center">
+                          {["barahonda", "kawa", "oliwa", "koszalin"].map((hint) => (
+                            <button
+                              key={hint}
+                              type="button"
+                              onClick={() => setSearchQuery(hint)}
+                              className="px-3 py-1.5 rounded-full border border-brand-200 bg-white text-xs text-brand-700 hover:border-brand-400 hover:text-brand-900 transition-colors"
+                            >
+                              {hint}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {hasTypedQuery && isSearchLoading && (
+                      <div className="space-y-3">
+                        {Array.from({ length: 4 }).map((_, i) => (
+                          <div key={i} className="h-20 rounded-2xl border border-brand-100 bg-brand-50/60 animate-pulse" />
+                        ))}
+                      </div>
+                    )}
+
+                    {hasTypedQuery && !isSearchLoading && searchError && (
+                      <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-5 text-red-700 text-sm">
+                        {searchError}
+                      </div>
+                    )}
+
+                    {hasTypedQuery && !isSearchLoading && !searchError && searchResults.length === 0 && (
+                      <div className="h-full flex flex-col items-center justify-center text-center px-4">
+                        <p className="text-lg font-medium text-brand-900 mb-2">Brak wyników dla "{searchQuery.trim()}"</p>
+                        <p className="text-brand-600 mb-5">Spróbuj innej frazy albo przejdź do pełnej oferty sklepu.</p>
+                        <button
+                          type="button"
+                          onClick={() => navigateFromSearch("/sklep")}
+                          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-900 text-white text-sm hover:bg-brand-700 transition-colors"
+                        >
+                          Przejdź do sklepu
+                          <ArrowUpRight className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+
+                    {hasTypedQuery && !isSearchLoading && !searchError && searchResults.length > 0 && (
+                      <div>
+                        <p className="text-[11px] uppercase tracking-[0.22em] text-brand-600 mb-3">
+                          Wyniki ({searchResults.length})
+                        </p>
+                        <div className="space-y-2">
+                          {searchResults.map((product) => (
+                            <button
+                              key={product.sku}
+                              type="button"
+                              onClick={() => navigateFromSearch(resolveSearchProductHref(product))}
+                              className="w-full text-left rounded-2xl border border-brand-100 bg-white hover:border-brand-300 hover:shadow-sm px-3 py-3 transition-all"
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-brand-100 flex-shrink-0">
+                                  <Image
+                                    src={product.imageUrl || product.image || "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=400&q=80"}
+                                    alt={product.name}
+                                    fill
+                                    className="object-cover"
+                                    sizes="56px"
+                                  />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-sm md:text-base font-semibold text-brand-900 truncate">{product.name}</p>
+                                  <p className="text-xs text-brand-600 mt-1 truncate">
+                                    {(typeof product.category === "string" && product.category) || "Produkt premium"}
+                                    {product.origin ? ` • ${product.origin}` : ""}
+                                  </p>
+                                </div>
+                                <div className="text-right ml-2">
+                                  <p className="text-sm font-bold text-brand-900 whitespace-nowrap">{formatSearchPrice(product.price)}</p>
+                                  <p className="text-[11px] text-brand-500">Produkt</p>
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </section>
+                </div>
               </div>
-              <p className="text-center text-white/50 text-sm mt-4">
-                Naciśnij <kbd className="px-2 py-1 bg-white/10 rounded text-white/70">ESC</kbd> aby zamknąć
+
+              <p className="text-center text-white/60 text-xs md:text-sm mt-4">
+                Naciśnij <kbd className="px-2 py-1 bg-white/10 rounded text-white/80">ESC</kbd> aby zamknąć,
+                <span className="mx-2">•</span>
+                <kbd className="px-2 py-1 bg-white/10 rounded text-white/80">ENTER</kbd> aby otworzyć pierwszy wynik
               </p>
             </motion.div>
           </motion.div>
