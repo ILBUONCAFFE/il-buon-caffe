@@ -234,7 +234,7 @@ export const Navbar = () => {
   return (
     <>
       {/* Main Navigation - Floating Islands Style */}
-      <header className="fixed top-0 left-0 right-0 z-50 pointer-events-none">
+      <header className="fixed left-0 right-0 z-50 pointer-events-none transition-[top] duration-500" style={{ top: "var(--promo-banner-h, 0px)" }}>
         {/* Scroll Progress Bar */}
         <motion.div
           className="absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-brand-700 via-brand-400 to-brand-600 origin-left z-10"

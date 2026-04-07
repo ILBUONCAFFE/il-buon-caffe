@@ -28,6 +28,10 @@ export const Shell = ({ children }: { children: React.ReactNode }) => {
             Przejdź do treści
           </a>
           {!isAdminPath && !isCatalogPath && <PromoBanner />}
+          {/* Spacer that mirrors the fixed PromoBanner height so content doesn't hide behind it */}
+          {!isAdminPath && !isCatalogPath && (
+            <div style={{ height: "var(--promo-banner-h, 0px)" }} aria-hidden="true" />
+          )}
           {!isAdminPath && !isCatalogPath && <Navbar />}
           <main id="main-content" className="flex-grow pt-0 min-h-screen">
             {children}
