@@ -25,7 +25,7 @@ const ClipReveal = ({
   delay: number;
   className?: string;
 }) => (
-  <div className={`overflow-hidden ${className ?? ""}`}>
+  <div className={`overflow-hidden pb-[0.24em] -mb-[0.24em] ${className ?? ""}`}>
     <motion.div
       initial={{ y: "120%" }}
       animate={{ y: "0%" }}
@@ -190,9 +190,9 @@ export const Hero = () => {
                   </span>
                 </ClipReveal>
 
-                <ClipReveal delay={0.4} className="ml-1 md:ml-3 lg:ml-5">
-                  <span className="block text-[clamp(3rem,10vw,10.5rem)] font-handwriting text-brand-400 leading-[1]">
-                    Caffè
+                <ClipReveal delay={0.4} className="ml-1 md:ml-3 lg:ml-5 pb-[0.44em] -mb-[0.44em]">
+                  <span className="block text-[clamp(3rem,10vw,10.5rem)] font-handwriting text-brand-400 leading-[1.08]">
+                    Caffe
                   </span>
                 </ClipReveal>
               </div>
