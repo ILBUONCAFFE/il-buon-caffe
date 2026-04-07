@@ -60,8 +60,8 @@ export async function backfillExchangeRates(env: Env): Promise<void> {
       await db
         .update(orders)
         .set({
-          totalPln:     sql`ROUND(${orders.total}::numeric * ${nbp.rate}, 2)::text`,
-          exchangeRate: nbp.rate.toFixed(6),
+          totalPln:     sql`ROUND(${orders.total}::numeric * ${nbp.rate}, 2)`,
+          exchangeRate: String(nbp.rate.toFixed(6)),
           rateDate:     nbp.rateDate,
         })
         .where(
