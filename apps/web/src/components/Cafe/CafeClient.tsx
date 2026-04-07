@@ -285,29 +285,49 @@ const CafeClient: React.FC = () => {
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              transition={{ duration: 0.3, ease: IN_EASE }}
+              transition={{ duration: 0.4, ease: IN_EASE }}
               onClick={() => {
                 setActiveTab("menu");
                 document.getElementById("menu")?.scrollIntoView({ behavior: "smooth" });
               }}
-              className="group flex items-center justify-center gap-3 px-8 py-4 bg-white text-brand-900 rounded-full font-bold text-[13px] uppercase tracking-[0.15em] transition-colors duration-300 hover:bg-brand-50"
+              className="group relative flex items-center justify-center gap-3 px-8 py-4 bg-white text-brand-900 rounded-full font-bold text-[13px] uppercase tracking-[0.15em] overflow-hidden border border-transparent"
             >
-              <Coffee className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
-              <span>Zobacz menu</span>
+              {/* Background Reveal */}
+              <div className="absolute inset-0 bg-brand-100 rounded-full translate-y-[101%] transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:translate-y-0" />
+              
+              <Coffee className="relative z-10 w-4 h-4 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:-rotate-12 group-hover:scale-110" />
+              
+              {/* Text Rolling Animation */}
+              <div className="relative z-10 overflow-hidden h-[16px]">
+                <div className="flex flex-col transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:-translate-y-[16px]">
+                  <span className="h-[16px] leading-[16px]">Zobacz menu</span>
+                  <span className="h-[16px] leading-[16px] text-brand-900">Zobacz menu</span>
+                </div>
+              </div>
             </motion.button>
 
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              transition={{ duration: 0.3, ease: IN_EASE }}
+              transition={{ duration: 0.4, ease: IN_EASE }}
               onClick={() => {
                 setActiveTab("about");
                 document.getElementById("location")?.scrollIntoView({ behavior: "smooth" });
               }}
-              className="group flex items-center justify-center gap-3 px-8 py-4 bg-transparent border border-white/30 text-white rounded-full font-bold text-[13px] uppercase tracking-[0.15em] transition-colors duration-300 hover:bg-white/10 hover:border-white/60"
+              className="group relative flex items-center justify-center gap-3 px-8 py-4 bg-transparent border border-white/30 text-white rounded-full font-bold text-[13px] uppercase tracking-[0.15em] overflow-hidden transition-colors duration-500 hover:border-white"
             >
-              <MapPin className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
-              <span>Jak dojechać</span>
+              {/* Background Reveal */}
+              <div className="absolute inset-0 bg-white rounded-full translate-y-[101%] transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:translate-y-0" />
+              
+              <MapPin className="relative z-10 w-4 h-4 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:text-brand-900 group-hover:scale-110 group-hover:rotate-12" />
+              
+              {/* Text Rolling Animation */}
+              <div className="relative z-10 overflow-hidden h-[16px]">
+                <div className="flex flex-col transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:-translate-y-[16px]">
+                  <span className="h-[16px] leading-[16px] text-white">Jak dojechać</span>
+                  <span className="h-[16px] leading-[16px] text-brand-900">Jak dojechać</span>
+                </div>
+              </div>
             </motion.button>
           </motion.div>
         </motion.div>
