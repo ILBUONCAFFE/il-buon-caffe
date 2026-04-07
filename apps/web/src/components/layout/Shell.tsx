@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { CartProvider } from "@/context/CartContext";
 import { Navbar } from "./Navbar";
 import { Footer } from "./Footer";
+import { PromoBanner } from "./PromoBanner";
 import CartSidebar from "./CartSidebar";
 import { NotificationProvider } from "../Notification/NotificationProvider";
 import { AgeVerificationModal } from "../ui/AgeVerificationModal";
@@ -26,6 +27,7 @@ export const Shell = ({ children }: { children: React.ReactNode }) => {
           >
             Przejdź do treści
           </a>
+          {!isAdminPath && !isCatalogPath && <PromoBanner />}
           {!isAdminPath && !isCatalogPath && <Navbar />}
           <main id="main-content" className="flex-grow pt-0 min-h-screen">
             {children}
