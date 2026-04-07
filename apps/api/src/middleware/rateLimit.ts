@@ -211,16 +211,33 @@ export async function checkRateLimitByKey(
     return c.json({ error: 'Zbyt wiele żądań. Spróbuj ponownie później.' }, 429)
   }
 
-  if (!record || now - record.firstAttempt > config.windowMs) {
+  const isNewWindow = !record || now - record.firstAttempt > config.windowMs
+  if (isNewWindow) {
     record = { attempts: 1, firstAttempt: now }
+    if (kv) {
+      try {
+        await kv.put(fullKey, JSON.stringify(record), { expirationTtl: Math.ceil(config.windowMs / 1000) + 60 })
+      } catch (e) {
+        console.warn('KV PUT (new window) failed:', e)
+        memoryStore.set(fullKey, record)
+      }
+    } else {
+      memoryStore.set(fullKey, record)
+    }
   } else {
     record.attempts += 1
+    if (!kv) memoryStore.set(fullKey, record)
   }
 
   if (record.attempts > config.limit) {
     record.blockedUntil = now + config.blockDurationMs
     if (kv) {
-      await kv.put(fullKey, JSON.stringify(record), { expirationTtl: Math.ceil(config.blockDurationMs / 1000) + 60 })
+      try {
+        await kv.put(fullKey, JSON.stringify(record), { expirationTtl: Math.ceil(config.blockDurationMs / 1000) + 60 })
+      } catch (e) {
+        console.warn('KV PUT (block record) failed:', e)
+        memoryStore.set(fullKey, record)
+      }
     } else {
       memoryStore.set(fullKey, record)
     }
@@ -230,10 +247,5 @@ export async function checkRateLimitByKey(
     return c.json({ error: 'Zbyt wiele żądań. Spróbuj ponownie później.' }, 429)
   }
 
-  if (kv) {
-    await kv.put(fullKey, JSON.stringify(record), { expirationTtl: Math.ceil(config.windowMs / 1000) + 60 })
-  } else {
-    memoryStore.set(fullKey, record)
-  }
   return null
 }
