@@ -218,9 +218,9 @@ export const ShopClient = ({ initialData }: ShopClientProps) => {
 
   return (
     <div className="min-h-screen bg-brand-50">
-      {/* Hero Header — Premium Redesign */}
-      <div className="relative bg-brand-900 text-white pt-24 pb-14 md:pt-32 md:pb-20 overflow-hidden">
-        {/* Category-aware background image (wine gets a special one) */}
+      {/* Hero Header */}
+      <div className="relative bg-brand-950 text-white pt-24 pb-14 md:pt-32 md:pb-18 overflow-hidden">
+        {/* Category-aware background image */}
         {selectedCategory === "wino" && (
           <>
             <div className="absolute inset-0 z-0">
@@ -228,12 +228,12 @@ export const ShopClient = ({ initialData }: ShopClientProps) => {
                 src="https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?q=80&w=2000&auto=format&fit=crop"
                 alt=""
                 fill
-                className="object-cover opacity-25"
+                className="object-cover opacity-20"
                 sizes="100vw"
                 priority
               />
             </div>
-            <div className="absolute inset-0 bg-gradient-to-b from-brand-900/40 via-brand-900/70 to-brand-900 z-[1]" />
+            <div className="absolute inset-0 bg-gradient-to-b from-brand-950/50 via-brand-950/80 to-brand-950 z-[1]" />
           </>
         )}
         {selectedCategory === "kawa" && (
@@ -243,117 +243,82 @@ export const ShopClient = ({ initialData }: ShopClientProps) => {
                 src="https://images.unsplash.com/photo-1447933601403-0c6688de566e?q=80&w=2000&auto=format&fit=crop"
                 alt=""
                 fill
-                className="object-cover opacity-20"
+                className="object-cover opacity-15"
                 sizes="100vw"
                 priority
               />
             </div>
-            <div className="absolute inset-0 bg-gradient-to-b from-brand-900/40 via-brand-900/70 to-brand-900 z-[1]" />
+            <div className="absolute inset-0 bg-gradient-to-b from-brand-950/50 via-brand-950/80 to-brand-950 z-[1]" />
           </>
         )}
 
-        {/* Decorative gradient orb */}
-        <div className="absolute -top-32 -right-32 w-96 h-96 bg-brand-700/20 rounded-full blur-[120px] pointer-events-none z-[1]" />
-
         <div className="container mx-auto px-6 lg:px-12 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end mb-10">
-            {/* Left — Title & Description */}
-            <div className="lg:col-span-8">
-              <motion.div
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                className="flex items-center gap-3 mb-6"
-              >
-                <span className="w-10 h-10 rounded-full bg-white/10 border border-white/10 flex items-center justify-center backdrop-blur-sm">
-                  {activeCategoryConfig?.icon}
-                </span>
-                <span className="text-xs font-bold uppercase tracking-[0.25em] text-brand-400">
-                  Sklep Online
-                </span>
-              </motion.div>
+          <div className="mb-10">
+            <motion.span
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+              className="block text-[11px] uppercase tracking-[0.3em] text-white/25 font-medium mb-6"
+            >
+              Sklep
+            </motion.span>
 
-              <motion.h1
-                key={selectedCategory}
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                className="text-5xl md:text-6xl lg:text-7xl font-serif mb-5 leading-[0.95]"
-              >
-                {activeCategoryConfig?.name || "Sklep"}
-              </motion.h1>
+            <motion.h1
+              key={selectedCategory}
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              className="text-5xl md:text-6xl lg:text-7xl font-serif mb-5 leading-[0.95]"
+            >
+              {activeCategoryConfig?.name || "Sklep"}
+            </motion.h1>
 
-              <motion.p
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.1 }}
-                className="text-white/60 max-w-xl text-lg leading-relaxed"
-              >
-                {selectedCategory === "wino"
-                  ? "Kolekcja wyselekcjonowanych win z W\u0142och i Hiszpanii. Ka\u017cda butelka opowiada swoj\u0105 histori\u0119 terroir."
-                  : selectedCategory === "kawa"
-                  ? "Speciality coffee z najlepszych plantacji. Palone na zam\u00f3wienie, aby zachowa\u0107 pe\u0142ni\u0119 aromatu."
-                  : selectedCategory === "slodycze"
-                  ? "Artyzanalne s\u0142odycze i czekolady, kt\u00f3re zachwycaj\u0105 nawet najbardziej wymagaj\u0105cych smakosz\u00f3w."
-                  : selectedCategory === "spizarnia"
-                  ? "Oliwy, w\u0119dliny, sosy i przetwory \u2014 smak Po\u0142udnia zamkni\u0119ty w ka\u017cdym s\u0142oiku."
-                  : "Odkryj nasz\u0105 kolekcj\u0119 wyselekcjonowanych w\u0142oskich i hiszpa\u0144skich specja\u0142\u00f3w."}
-              </motion.p>
-            </div>
-
-            {/* Right — Stats (visible for wine) */}
-            {selectedCategory === "wino" && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-                className="lg:col-span-4 flex gap-8 lg:justify-end"
-              >
-                {[
-                  { value: "4", label: "regiony" },
-                  { value: "IT \u00b7 ES", label: "pochodzenie" },
-                ].map((stat) => (
-                  <div key={stat.label} className="text-center lg:text-right">
-                    <span className="block text-3xl md:text-4xl font-serif text-white leading-none mb-1">
-                      {stat.value}
-                    </span>
-                    <span className="text-[10px] uppercase tracking-[0.2em] text-white/35 font-medium">
-                      {stat.label}
-                    </span>
-                  </div>
-                ))}
-              </motion.div>
-            )}
+            <motion.p
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="text-white/35 max-w-lg text-base leading-relaxed"
+            >
+              {selectedCategory === "wino"
+                ? "Wyselekcjonowane wina z Włoch i Hiszpanii. Od małych, rodzinnych winiarzy."
+                : selectedCategory === "kawa"
+                ? "Świeżo palona kawa specialty z najlepszych plantacji."
+                : selectedCategory === "slodycze"
+                ? "Tradycyjne włoskie słodycze i czekolady rzemieślnicze."
+                : selectedCategory === "spizarnia"
+                ? "Oliwy extra virgin, przetwory, makarony i przysmaki z Południa."
+                : "Ponad 300 wyselekcjonowanych włoskich i hiszpańskich specjałów."}
+            </motion.p>
           </div>
 
-          {/* Animated Divider */}
+          {/* Divider */}
           <motion.div
             initial={{ scaleX: 0 }}
             animate={{ scaleX: 1 }}
-            transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className="origin-left h-[1px] bg-gradient-to-r from-white/20 via-white/10 to-transparent mb-8"
+            transition={{ duration: 1, delay: 0.15, ease: [0.76, 0, 0.24, 1] }}
+            className="origin-left h-px bg-white/10 mb-8"
           />
 
-          {/* Category Pills — Redesigned */}
+          {/* Category Pills */}
           <div className="flex flex-wrap gap-2">
             {filteredCategories.map((cat, i) => (
               <motion.button
                 key={cat.id}
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.3 + i * 0.04 }}
+                transition={{ duration: 0.3, delay: 0.2 + i * 0.04 }}
                 onClick={() => handleCategorySelect(cat.slug)}
                 aria-pressed={selectedCategory === cat.id}
                 className={`
                   flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 border
                   ${
                     selectedCategory === cat.id
-                      ? "bg-white text-brand-900 border-white shadow-lg shadow-white/10"
-                      : "bg-white/[0.05] text-white/70 border-white/[0.08] hover:bg-white/[0.1] hover:border-white/20 hover:text-white backdrop-blur-sm"
+                      ? "bg-white text-brand-900 border-white"
+                      : "bg-white/[0.04] text-white/50 border-white/[0.06] hover:bg-white/[0.08] hover:border-white/15 hover:text-white/80"
                   }
                 `}
               >
-                <span aria-hidden="true" className="opacity-70">{cat.icon}</span>
+                <span aria-hidden="true" className="opacity-60">{cat.icon}</span>
                 {cat.name}
               </motion.button>
             ))}

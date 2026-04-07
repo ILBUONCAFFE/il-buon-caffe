@@ -61,7 +61,7 @@ const SpinningBadge = () => (
         animate={{ rotate: 360 }}
         transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
       >
-        <defs>
+            54º 11' 19.306" N &nbsp; 16º 10' 52.717" E
           <path
             id="heroCirclePath"
             d="M 50,50 m -37,0 a 37,37 0 1,1 74,0 a 37,37 0 1,1 -74,0"

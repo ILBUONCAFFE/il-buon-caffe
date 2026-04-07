@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { motion } from "motion/react";
-import { Heart, Star, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import type { Product } from "@/types";
 import type { ViewMode } from "./constants";
 import { SHOP_ENABLED } from "@/config/launch";
@@ -19,8 +19,6 @@ export const ProductCard: React.FC<{
 }> = ({ product, viewMode, onQuickAdd, categorySlug, index, isAdult }) => {
   const router = useRouter();
   const [isHovered, setIsHovered] = useState(false);
-  const [isLiked, setIsLiked] = useState(false);
-
   // Check if product is restricted
   const isRestricted = product.category === 'wino' && !isAdult;
 
@@ -199,23 +197,6 @@ export const ProductCard: React.FC<{
               )}
             </div>
 
-            {/* Wishlist button */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsLiked(!isLiked);
-              }}
-              aria-label={isLiked ? `Usu\u0144 ${product.name} z ulubionych` : `Dodaj ${product.name} do ulubionych`}
-              aria-pressed={isLiked}
-              className={`absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 ${
-                isLiked
-                  ? "bg-red-500 text-white"
-                  : "bg-white/90 backdrop-blur-sm text-brand-700 opacity-0 group-hover:opacity-100"
-              }`}
-            >
-              <Heart size={16} aria-hidden="true" fill={isLiked ? "currentColor" : "none"} />
-            </button>
-
             {/* Quick add button — hidden when shop is disabled */}
             {SHOP_ENABLED && (
               <div className={`absolute inset-x-0 bottom-0 p-4 transition-transform duration-300 flex justify-center ${isHovered ? 'translate-y-0' : 'translate-y-full'}`}>
@@ -248,21 +229,7 @@ export const ProductCard: React.FC<{
             {product.description}
           </p>
         )}
-        <div className="flex items-center gap-2 mt-1">
-          <div className="flex items-center gap-1">
-            {[...Array(5)].map((_, i) => (
-              <Star
-                key={i}
-                size={12}
-                className={
-                  i < 4 ? "text-amber-400 fill-amber-400" : "text-brand-200"
-                }
-              />
-            ))}
-          </div>
-          <span className="text-xs text-brand-600">(24)</span>
-        </div>
-        <div className="mt-auto pt-4">
+        <div className="mt-auto pt-3">
           <span className="font-bold text-brand-900 text-xl">
             {product.price.toFixed(2)}{" "}
             <span className="text-base font-normal text-brand-600">zł</span>
