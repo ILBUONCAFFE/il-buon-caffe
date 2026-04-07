@@ -61,7 +61,7 @@ const SpinningBadge = () => (
         animate={{ rotate: 360 }}
         transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
       >
-            54º 11' 19.306" N &nbsp; 16º 10' 52.717" E
+        <defs>
           <path
             id="heroCirclePath"
             d="M 50,50 m -37,0 a 37,37 0 1,1 74,0 a 37,37 0 1,1 -74,0"
@@ -268,7 +268,7 @@ export const Hero = () => {
             transition={{ duration: 1, delay: 1.4 }}
             className="hidden lg:block mt-16 text-[10px] uppercase tracking-[0.4em] text-white/15 font-medium"
           >
-            54°11&#8242;N &nbsp; 16°10&#8242;E
+            54º 11' 19.306" N &nbsp; 16º 10' 52.717" E
           </motion.span>
         </motion.div>
       </motion.div>
