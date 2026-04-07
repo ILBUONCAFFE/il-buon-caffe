@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { motion, useScroll, useTransform, useMotionValue, useMotionTemplate } from "motion/react";
+import { motion, useScroll, useTransform } from "motion/react";
 import { 
   Clock, 
   MapPin, 
@@ -17,6 +17,7 @@ import {
   Facebook
 } from "lucide-react";
 import { CAFE_MENU } from "@/lib/constants";
+import { CafeHeroButtons } from "./CafeHeroButtons";
 
 // Types
 interface MenuItem {
@@ -33,82 +34,7 @@ interface MenuCategory {
 
 const IN_EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
-const HERO_STAGGER = {
-  hidden: { opacity: 1 },
-  visible: {
-    opacity: 1,
-    transition: {
-      delayChildren: 0.1,
-      staggerChildren: 0.12,
-    },
-  },
-};
-
-const HERO_FADE_UP = {
-  hidden: { opacity: 0, y: 40, filter: "blur(12px)" },
-  visible: {
-    opacity: 1,
-    y: 0,
-    filter: "blur(0px)",
-    transition: { duration: 1.2, ease: IN_EASE },
-  },
-};
-
 // Menu Item Component
-const InteractiveFeatureButton = ({
-  onClick,
-  className,
-  children,
-  glowColor = "rgba(255,255,255,0.4)",
-}: {
-  onClick: () => void;
-  className: string;
-  children: React.ReactNode;
-  glowColor?: string;
-}) => {
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-
-  function handleMouseMove({ currentTarget, clientX, clientY }: React.MouseEvent) {
-    const { left, top } = currentTarget.getBoundingClientRect();
-    mouseX.set(clientX - left);
-    mouseY.set(clientY - top);
-  }
-
-  return (
-    <motion.button
-      onMouseMove={handleMouseMove}
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.97 }}
-      transition={{ type: "spring", bounce: 0.4, duration: 0.8 }}
-      onClick={onClick}
-      style={{ WebkitTapHighlightColor: "transparent" }}
-      className={`group relative flex items-center justify-center px-6 py-4 rounded-full font-bold text-[13px] uppercase tracking-[0.15em] overflow-hidden border border-transparent transition-all duration-500 hover:pr-5 hover:shadow-2xl ${className}`}
-    >
-      {/* Windows 11 Fluent Spotlight Tracking */}
-      <motion.div
-        className="pointer-events-none absolute -inset-px z-20 rounded-full opacity-0 transition-opacity duration-300 group-hover:opacity-100 mix-blend-overlay"
-        style={{
-          background: useMotionTemplate`
-            radial-gradient(
-              120px circle at ${mouseX}px ${mouseY}px,
-              ${glowColor},
-              transparent 80%
-            )
-          `,
-        }}
-      />
-      {/* Samsung Edge Vibrant Glow */}
-      <div className="pointer-events-none absolute inset-0 z-20 rounded-full opacity-0 transition-all duration-700 group-hover:opacity-100 group-hover:shadow-[inset_0_0_20px_rgba(255,255,255,0.4)]" />
-      
-      {/* Apple VisionOS Blur Reflection */}
-      <div className="pointer-events-none absolute top-0 -inset-x-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent z-20 rounded-t-full opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-      
-      {children}
-    </motion.button>
-  );
-};
-
 const MenuItemCard = ({ 
   item, 
   index, 
@@ -282,140 +208,26 @@ const CafeClient: React.FC = () => {
         <motion.div 
           style={{ opacity: heroOpacity }}
           className="relative z-20 text-center px-6 max-w-5xl"
-          initial="hidden"
-          animate="visible"
-          variants={HERO_STAGGER}
         >
-          {/* Badge */}
-          <motion.div
-            variants={HERO_FADE_UP}
-            className="mb-8"
-          >
-            <span className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-xs font-medium tracking-[0.2em] uppercase text-white/90">
-              <Star className="w-3.5 h-3.5 fill-brand-400 text-brand-400" />
-              Od 2003 roku w Koszalinie
-            </span>
-          </motion.div>
-
           {/* Title */}
-          <motion.h1
-            className="mb-8 leading-[1.08]"
-            variants={HERO_FADE_UP}
-            transition={{ duration: 0.95, ease: IN_EASE }}
-          >
-            <motion.span
-              initial={{ opacity: 0, y: 50, scale: 0.95, filter: "blur(12px)" }}
-              animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
-              transition={{ duration: 1.4, delay: 0.1, ease: IN_EASE }}
-              className="block text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-serif font-medium text-white tracking-tight"
-            >
+          <h1 className="mb-8 leading-[1.08]">
+            <span className="block text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-serif font-medium text-white tracking-tight">
               Kawiarnia
-            </motion.span>
-            <motion.span
-              initial={{ opacity: 0, y: 40, scale: 0.98, filter: "blur(12px)" }}
-              animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
-              transition={{ duration: 1.4, delay: 0.25, ease: IN_EASE }}
-              className="block mt-1 md:mt-0.5 text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-handwriting leading-[1.12] text-brand-300"
-            >
+            </span>
+            <span className="block mt-1 md:mt-0.5 text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-handwriting leading-[1.12] text-brand-300">
               & Delikatesy
-            </motion.span>
-          </motion.h1>
+            </span>
+          </h1>
 
           {/* Quote */}
-          <motion.p
-            variants={HERO_FADE_UP}
-            transition={{ duration: 1.2, delay: 0.45, ease: IN_EASE }}
-            className="text-lg md:text-xl text-white/70 max-w-2xl mx-auto leading-relaxed mb-12"
-          >
+          <p className="text-lg md:text-xl text-white/70 max-w-2xl mx-auto leading-relaxed mb-12">
             "Kawa to język, w którym milczenie smakuje najlepiej."
-          </motion.p>
+          </p>
 
           {/* Tabs */}
-          <motion.div
-            variants={HERO_FADE_UP}
-            transition={{ duration: 1.2, delay: 0.6, ease: IN_EASE }}
-            className="flex flex-wrap justify-center gap-4"
-          >
-            <InteractiveFeatureButton
-              onClick={() => {
-                setActiveTab("menu");
-                document.getElementById("menu")?.scrollIntoView({ behavior: "smooth" });
-              }}
-              className="bg-white text-brand-900 hover:shadow-brand-300/30"
-              glowColor="rgba(255,255,255,0.8)"
-            >
-              {/* Background Reveal */}
-              <div className="absolute inset-0 bg-brand-50 rounded-full translate-y-[101%] transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:translate-y-0 z-0" />
-              
-              <div className="relative z-10 flex items-center">
-                <Coffee className="w-4 h-4 mr-3 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:-rotate-12 group-hover:scale-110" />
-                
-                {/* Text Rolling Animation */}
-                <div className="relative z-10 overflow-hidden h-[16px] text-left">
-                  <div className="flex flex-col transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:-translate-y-[16px]">
-                    <span className="h-[16px] leading-[16px] whitespace-nowrap">Zobacz menu</span>
-                    <span className="h-[16px] leading-[16px] text-brand-900 whitespace-nowrap">Karta smaków</span>
-                  </div>
-                </div>
-
-                {/* Expanded Content - Menu Snippet */}
-                <div className="flex items-center overflow-hidden max-w-0 opacity-0 transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:max-w-[150px] group-hover:opacity-100 group-hover:ml-3">
-                  <div className="w-[1px] h-4 bg-brand-900/20 mr-3" />
-                  <div className="flex items-center gap-2.5 text-brand-900/60 pb-0.5">
-                    <Coffee className="w-3.5 h-3.5 transition-transform duration-500 delay-100 group-hover:scale-110 group-hover:text-brand-900 drop-shadow-md" />
-                    <Wine className="w-3 h-3 transition-transform duration-500 delay-150 group-hover:scale-110 group-hover:text-brand-900 drop-shadow-md" />
-                    <CakeSlice className="w-3 h-3 transition-transform duration-500 delay-200 group-hover:scale-110 group-hover:text-brand-900 drop-shadow-md" />
-                  </div>
-                </div>
-              </div>
-            </InteractiveFeatureButton>
-
-            <InteractiveFeatureButton
-              onClick={() => {
-                setActiveTab("about");
-                document.getElementById("location")?.scrollIntoView({ behavior: "smooth" });
-              }}
-              className="bg-transparent border border-white/30 text-white hover:border-white/20 hover:shadow-black/50"
-              glowColor="rgba(255,255,255,0.4)"
-            >
-              {/* Background Reveal - Glassy blur */}
-              <div className="absolute inset-0 bg-white/10 backdrop-blur-md rounded-full translate-y-[101%] transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:translate-y-0 z-0" />
-              
-              <div className="relative z-10 flex items-center">
-                <MapPin className="w-4 h-4 mr-3 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:text-brand-300 group-hover:scale-110 group-hover:rotate-12" />
-                
-                {/* Text Rolling Animation */}
-                <div className="relative z-10 overflow-hidden h-[16px] text-left">
-                  <div className="flex flex-col transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:-translate-y-[16px]">
-                    <span className="h-[16px] leading-[16px] text-white whitespace-nowrap">Jak dojechać</span>
-                    <span className="h-[16px] leading-[16px] text-white whitespace-nowrap">Koszalin, PL</span>
-                  </div>
-                </div>
-
-                {/* Expanded Content - Route Navigation map path */}
-                <div className="flex items-center overflow-hidden max-w-0 opacity-0 transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:max-w-[200px] group-hover:opacity-100 group-hover:ml-3">
-                  <div className="flex items-center">
-                    {/* Origin Dot */}
-                    <div className="w-1.5 h-1.5 rounded-full bg-brand-300 shadow-[0_0_8px_rgba(234,179,129,0.8)]" />
-                    {/* Dashed line with animated tracker */}
-                    <div className="w-10 sm:w-14 h-[1px] border-t border-dashed border-white/30 mx-1.5 relative overflow-hidden">
-                      <motion.div 
-                        initial={{ x: -20 }}
-                        animate={{ x: 60 }} 
-                        transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                        className="absolute top-[-1px] left-0 w-4 h-[2px] bg-brand-300 shadow-[0_0_8px_rgba(234,179,129,0.8)]"
-                      />
-                    </div>
-                    {/* Destination Pin */}
-                    <MapPin className="w-3 h-3 text-white/50" />
-                  </div>
-                  <span className="text-[10px] sm:text-[11px] tracking-[0.2em] text-white/90 whitespace-nowrap ml-2.5 pt-0.5 mix-blend-overlay">
-                    DOMINA 3/6
-                  </span>
-                </div>
-              </div>
-            </InteractiveFeatureButton>
-          </motion.div>
+          <div className="w-full flex justify-center">
+            <CafeHeroButtons />
+          </div>
         </motion.div>
 
         {/* Bottom fade to page background */}
@@ -606,29 +418,35 @@ const CafeClient: React.FC = () => {
 
       {/* ===== MENU SECTIONS ===== */}
       <div id="menu" className="scroll-mt-40 md:scroll-mt-48">
-        <MenuSection 
-          data={classicMenu} 
-          number="01" 
-          icon={Coffee}
-          variant="light"
-          description="Fundament naszej karty. Klasyczne, włoskie proporcje i perfekcyjna ekstrakcja z najlepszych ziaren."
-        />
+        <div id="klasyki" className="scroll-mt-20">
+          <MenuSection 
+            data={classicMenu} 
+            number="01" 
+            icon={Coffee}
+            variant="light"
+            description="Fundament naszej karty. Klasyczne, włoskie proporcje i perfekcyjna ekstrakcja z najlepszych ziaren."
+          />
+        </div>
         
-        <MenuSection 
-          data={specialMenu} 
-          number="02" 
-          icon={Wine}
-          variant="dark"
-          description="Autorskie kompozycje naszych baristów. Odważne połączenia smakowe i orzeźwiające propozycje."
-        />
+        <div id="specjaly" className="scroll-mt-20">
+          <MenuSection 
+            data={specialMenu} 
+            number="02" 
+            icon={Wine}
+            variant="dark"
+            description="Autorskie kompozycje naszych baristów. Odważne połączenia smakowe i orzeźwiające propozycje."
+          />
+        </div>
         
-        <MenuSection 
-          data={dessertMenu} 
-          number="03" 
-          icon={CakeSlice}
-          variant="light"
-          description="Słodkie zakończenie wizyty. Domowe wypieki i desery przygotowywane z pasją."
-        />
+        <div id="desery" className="scroll-mt-20">
+          <MenuSection 
+            data={dessertMenu} 
+            number="03" 
+            icon={CakeSlice}
+            variant="light"
+            description="Słodkie zakończenie wizyty. Domowe wypieki i desery przygotowywane z pasją."
+          />
+        </div>
       </div>
 
       {/* ===== LOCATION SECTION ===== */}

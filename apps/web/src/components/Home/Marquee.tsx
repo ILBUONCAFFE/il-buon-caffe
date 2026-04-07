@@ -3,59 +3,84 @@
 import React from "react";
 import { motion } from "motion/react";
 
-const MarqueeItem = ({ text }: { text: string }) => {
-  return (
-    <div className="flex items-center gap-4 px-4 overflow-hidden">
-      <span className="text-3xl md:text-5xl lg:text-6xl font-serif text-brand-900/10 whitespace-nowrap uppercase tracking-widest font-bold">
-        {text}
-      </span>
-      <span className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-brand-700/20" />
-    </div>
-  );
-};
+// ── Single marquee row ─────────────────────────────────────────────
+const MarqueeRow = ({
+  items,
+  duration,
+  reverse,
+  outlined,
+  className,
+}: {
+  items: string[];
+  duration: number;
+  reverse?: boolean;
+  outlined?: boolean;
+  className?: string;
+}) => (
+  <div className={`flex overflow-hidden select-none ${className ?? ""}`}>
+    {[0, 1].map((copy) => (
+      <motion.div
+        key={copy}
+        initial={{ x: reverse ? "-100%" : "0%" }}
+        animate={{ x: reverse ? "0%" : "-100%" }}
+        transition={{ duration, repeat: Infinity, ease: "linear" }}
+        className="flex flex-shrink-0"
+      >
+        {items.map((text, i) => (
+          <span
+            key={`${copy}-${i}`}
+            className="flex items-center gap-5 md:gap-8 px-5 md:px-8"
+          >
+            <span
+              className={`whitespace-nowrap ${outlined ? "[-webkit-text-stroke:1.5px_rgba(255,255,255,0.18)] md:[-webkit-text-stroke:2px_rgba(255,255,255,0.18)] text-transparent" : ""}`}
+            >
+              {text}
+            </span>
+            <span className="w-1.5 h-1.5 rounded-full bg-white/10 flex-shrink-0" />
+          </span>
+        ))}
+      </motion.div>
+    ))}
+  </div>
+);
 
-export const Marquee = () => {
-  const content = [
-    "Włoska Tradycja",
-    "Najwyższa Jakość",
-    "Est. 2003",
-    "Il Buon Caffe",
-    "Kawa Specialty",
-    "Wyborne Wina",
-  ];
+// ── Content ────────────────────────────────────────────────────────
+const ROW_TOP = [
+  "Kawa Specialty",
+  "Wina Włoskie",
+  "Oliwy Extra Virgin",
+  "Makarony Rzemieślnicze",
+  "Słodycze",
+  "Oliwki & Przetwory",
+];
 
-  return (
-    <section className="py-12 md:py-20 bg-white overflow-hidden border-b border-brand-100/50">
-      <div className="flex select-none">
-        <motion.div
-          initial={{ x: 0 }}
-          animate={{ x: "-100%" }}
-          transition={{
-            duration: 30,
-            repeat: Infinity,
-            ease: "linear",
-          }}
-          className="flex flex-shrink-0"
-        >
-          {content.map((item, i) => (
-            <MarqueeItem key={`1-${i}`} text={item} />
-          ))}
-        </motion.div>
-        <motion.div
-          initial={{ x: 0 }}
-          animate={{ x: "-100%" }}
-          transition={{
-            duration: 30,
-            repeat: Infinity,
-            ease: "linear",
-          }}
-          className="flex flex-shrink-0"
-        >
-          {content.map((item, i) => (
-            <MarqueeItem key={`2-${i}`} text={item} />
-          ))}
-        </motion.div>
-      </div>
-    </section>
-  );
-};
+const ROW_BOTTOM = [
+  "Espresso",
+  "Chianti",
+  "Taggiasca",
+  "Pappardelle",
+  "Cantuccini",
+  "Bruschetta",
+  "Amarone",
+  "Pesto Genovese",
+];
+
+export const Marquee = () => (
+  <section className="py-10 md:py-14 bg-brand-950 overflow-hidden">
+    {/* Top row — large outlined serif, scrolls left */}
+    <MarqueeRow
+      items={ROW_TOP}
+      duration={35}
+      outlined
+      className="text-3xl md:text-5xl lg:text-6xl font-serif tracking-tight mb-3 md:mb-4"
+    />
+
+    {/* Bottom row — small caps, opposite direction, muted */}
+    <MarqueeRow
+      items={ROW_BOTTOM}
+      duration={25}
+      reverse
+      className="text-[11px] md:text-sm uppercase tracking-[0.25em] font-medium text-white/20"
+    />
+  </section>
+);

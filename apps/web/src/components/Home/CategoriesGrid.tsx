@@ -1,15 +1,19 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { motion, useScroll, useTransform } from "motion/react";
+import {
+  motion,
+  useMotionValue,
+  useSpring,
+  AnimatePresence,
+} from "motion/react";
 import { ArrowUpRight } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { AnimatedText } from "@/components/ui/AnimatedText";
+
+const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
 interface Category {
-  id: string;
   title: string;
   subtitle: string;
   href: string;
@@ -18,190 +22,189 @@ interface Category {
 
 const categories: Category[] = [
   {
-    id: "coffee",
     title: "Kawa",
-    subtitle: "Speciality",
+    subtitle: "Specialty",
     href: "/sklep/kawa",
-    image: "https://images.unsplash.com/photo-1497935586351-b67a49e012bf?q=80&w=1200&auto=format&fit=crop",
+    image:
+      "https://images.unsplash.com/photo-1497935586351-b67a49e012bf?q=80&w=800&auto=format&fit=crop",
   },
   {
-    id: "wine",
     title: "Wina",
     subtitle: "i Alkohole",
     href: "/sklep/wino",
-    image: "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?q=80&w=1200&auto=format&fit=crop",
+    image:
+      "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?q=80&w=800&auto=format&fit=crop",
   },
   {
-    id: "deli",
     title: "Delikatesy",
     subtitle: "Włoskie",
     href: "/sklep/spizarnia",
-    image: "https://images.unsplash.com/photo-1550989460-0adf9ea622e2?q=80&w=1200&auto=format&fit=crop",
+    image:
+      "https://images.unsplash.com/photo-1550989460-0adf9ea622e2?q=80&w=800&auto=format&fit=crop",
   },
   {
-    id: "accessories",
     title: "Akcesoria",
     subtitle: "Baristy",
     href: "/sklep",
-    image: "https://images.unsplash.com/photo-1544244222-38db31cdaaf4?q=80&w=1200&auto=format&fit=crop",
+    image:
+      "https://images.unsplash.com/photo-1544244222-38db31cdaaf4?q=80&w=800&auto=format&fit=crop",
   },
 ];
 
-const CategoryCard = ({ 
-  category, 
-  index 
-}: { 
-  category: Category; 
+// ── Category row ───────────────────────────────────────────────────
+const CategoryRow = ({
+  category,
+  index,
+  onHover,
+  onMove,
+  onLeave,
+}: {
+  category: Category;
   index: number;
-}) => {
-  const cardRef = useRef<HTMLDivElement>(null);
-  
-  const { scrollYProgress } = useScroll({
-    target: cardRef,
-    offset: ["start end", "end start"],
-  });
-
-  // Parallax for the image inside
-  const imageY = useTransform(scrollYProgress, [0, 1], ["0%", "20%"]);
-  
-  // Staggered reveal based on index
-  const isEven = index % 2 === 0;
-
-  return (
-    <motion.div 
-      ref={cardRef}
-      initial={{ opacity: 0, y: 100 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-100px" }}
-      transition={{ 
-        duration: 0.8, 
-        delay: index * 0.15,
-        ease: [0.22, 1, 0.36, 1] 
-      }}
-      className={cn(
-        "group relative",
-        isEven ? "md:mt-0" : "md:mt-32"
-      )}
+  onHover: (idx: number) => void;
+  onMove: (e: React.MouseEvent) => void;
+  onLeave: () => void;
+}) => (
+  <motion.div
+    initial={{ opacity: 0, y: 40 }}
+    whileInView={{ opacity: 1, y: 0 }}
+    viewport={{ once: true, margin: "-60px" }}
+    transition={{ duration: 0.8, delay: index * 0.08, ease: EASE }}
+  >
+    <Link
+      href={category.href}
+      onMouseEnter={() => onHover(index)}
+      onMouseMove={onMove}
+      onMouseLeave={onLeave}
+      className="group flex items-center justify-between py-8 md:py-10 lg:py-12 border-b border-white/8 transition-colors duration-500 hover:border-white/20"
     >
-      <Link href={category.href} className="block">
-        {/* Image Container with Clip Effect */}
-        <div className="relative aspect-[3/4] overflow-hidden rounded-[2rem] bg-brand-900">
-          <motion.div 
-            style={{ y: imageY }}
-            className="absolute -inset-[20%]"
-          >
-            <Image
-              src={category.image}
-              alt={category.title}
-              fill
-              className="object-cover transition-transform duration-700 group-hover:scale-105"
-              sizes="(max-width: 768px) 100vw, 50vw"
-            />
-          </motion.div>
-          
-          {/* Dark Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-500" />
-          
-          {/* Floating Arrow */}
-          <div className="absolute top-6 right-6 w-14 h-14 rounded-full bg-white/0 border-2 border-white/30 flex items-center justify-center opacity-0 scale-50 group-hover:opacity-100 group-hover:scale-100 transition-all duration-500">
-            <ArrowUpRight className="w-6 h-6 text-white" />
-          </div>
+      {/* Left: number + name */}
+      <div className="flex items-baseline gap-4 md:gap-8">
+        <span className="text-[11px] font-mono text-white/20 tracking-wider tabular-nums">
+          {String(index + 1).padStart(2, "0")}
+        </span>
 
-          {/* Number Badge */}
-          <div className="absolute bottom-6 left-6">
-            <span className="text-[120px] md:text-[180px] font-serif leading-none text-white/10 select-none">
-              0{index + 1}
-            </span>
-          </div>
-        </div>
-
-        {/* Text Content - Below Image */}
-        <div className="mt-6 px-2">
-          <div className="flex items-baseline gap-3 mb-2">
-            <span className="text-xs font-bold uppercase tracking-[0.2em] text-brand-400">
-              {category.subtitle}
-            </span>
-            <div className="flex-1 h-[1px] bg-brand-200" />
-          </div>
-          
-          <h3 className="text-4xl md:text-5xl lg:text-6xl font-serif text-brand-900 group-hover:text-brand-600 transition-colors duration-300">
+        <div className="flex items-baseline gap-3 md:gap-4">
+          <h3 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-serif text-white/85 transition-colors duration-500 group-hover:text-white">
             {category.title}
           </h3>
-        </div>
-      </Link>
-    </motion.div>
-  );
-};
-
-export const CategoriesGrid = () => {
-  const sectionRef = useRef<HTMLElement>(null);
-  
-  const { scrollYProgress } = useScroll({
-    target: sectionRef,
-    offset: ["start end", "end start"],
-  });
-
-  // Big title parallax
-  const titleY = useTransform(scrollYProgress, [0, 1], ["0%", "-30%"]);
-
-  return (
-    <section ref={sectionRef} className="relative py-32 md:py-48 bg-white overflow-x-hidden">
-      {/* Large Background Text */}
-      <motion.div 
-        style={{ y: titleY }}
-        className="absolute top-1/4 left-0 right-0 pointer-events-none select-none hidden lg:block"
-      >
-        <h2 className="text-[20vw] font-serif text-brand-50 leading-none whitespace-nowrap text-center">
-          Odkryj
-        </h2>
-      </motion.div>
-
-      <div className="container mx-auto px-6 lg:px-12 relative z-10">
-        {/* Header */}
-        <div className="mb-20 md:mb-32 max-w-3xl">
-          <motion.span 
-            initial={{ opacity: 0, y: 15 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "0px 0px -10% 0px" }}
-            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-            className="inline-block text-xs font-bold uppercase tracking-[0.3em] text-brand-700 mb-6"
-          >
-            Kategorie
-          </motion.span>
-          
-          <div className="mb-6">
-            <AnimatedText
-              text="Nasz świat"
-              el="h2"
-              className="text-5xl md:text-7xl lg:text-8xl font-serif text-brand-900 leading-[0.9]"
-              delayChildren={0.1}
-            />
-            <AnimatedText
-              text="smaków"
-              el="h2"
-              className="block text-5xl md:text-7xl lg:text-8xl font-serif text-brand-300 italic leading-[0.9]"
-              delayChildren={0.3}
-            />
-          </div>
-          
-          <AnimatedText
-            text="Od wyselekcjonowanych ziaren kawy po wykwintne wina. Wszystko, czego potrzebujesz, by celebrować chwile."
-            className="text-brand-600 text-lg md:text-xl max-w-xl"
-            delayChildren={0.5}
-          />
-        </div>
-
-        {/* Bento Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 lg:gap-16">
-          {categories.map((category, index) => (
-            <CategoryCard 
-              key={category.id} 
-              category={category} 
-              index={index} 
-            />
-          ))}
+          <span className="text-sm md:text-base font-handwriting text-white/25 transition-colors duration-500 group-hover:text-brand-400">
+            {category.subtitle}
+          </span>
         </div>
       </div>
+
+      {/* Right: arrow */}
+      <div className="w-10 h-10 md:w-12 md:h-12 rounded-full border border-white/10 flex items-center justify-center transition-all duration-500 group-hover:border-white/30 group-hover:bg-white/5">
+        <ArrowUpRight className="w-4 h-4 md:w-5 md:h-5 text-white/30 transition-all duration-500 group-hover:text-white group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+      </div>
+    </Link>
+  </motion.div>
+);
+
+// ── Floating cursor image ──────────────────────────────────────────
+const CursorImage = ({
+  image,
+  x,
+  y,
+}: {
+  image: string;
+  x: ReturnType<typeof useSpring>;
+  y: ReturnType<typeof useSpring>;
+}) => (
+  <motion.div
+    className="fixed top-0 left-0 z-50 pointer-events-none hidden lg:block"
+    style={{ x, y }}
+  >
+    <motion.div
+      initial={{ opacity: 0, scale: 0.7, rotate: -6 }}
+      animate={{ opacity: 1, scale: 1, rotate: -3 }}
+      exit={{ opacity: 0, scale: 0.7, rotate: 4 }}
+      transition={{ duration: 0.4, ease: EASE }}
+      className="w-[280px] h-[360px] rounded-xl overflow-hidden shadow-2xl shadow-black/40 -translate-x-1/2 -translate-y-1/2"
+    >
+      <Image
+        src={image}
+        alt=""
+        fill
+        className="object-cover"
+        sizes="280px"
+      />
+    </motion.div>
+  </motion.div>
+);
+
+// ── Main section ───────────────────────────────────────────────────
+export const CategoriesGrid = () => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+
+  const rawX = useMotionValue(0);
+  const rawY = useMotionValue(0);
+  const springCfg = { stiffness: 150, damping: 20, mass: 0.5 };
+  const cursorX = useSpring(rawX, springCfg);
+  const cursorY = useSpring(rawY, springCfg);
+
+  const handleMove = useCallback(
+    (e: React.MouseEvent) => {
+      rawX.set(e.clientX);
+      rawY.set(e.clientY);
+    },
+    [rawX, rawY]
+  );
+
+  const handleHover = useCallback((idx: number) => setHoveredIdx(idx), []);
+  const handleLeave = useCallback(() => setHoveredIdx(null), []);
+
+  return (
+    <section ref={containerRef} className="relative bg-brand-950 overflow-hidden">
+      <div className="container mx-auto px-6 lg:px-12 py-24 md:py-32 lg:py-40">
+        {/* Minimal header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8, ease: EASE }}
+          className="mb-12 md:mb-16"
+        >
+          <span className="text-[11px] uppercase tracking-[0.3em] text-white/30 font-medium">
+            Kategorie
+          </span>
+        </motion.div>
+
+        {/* Top border */}
+        <motion.div
+          initial={{ scaleX: 0 }}
+          whileInView={{ scaleX: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 1.2, ease: [0.76, 0, 0.24, 1] }}
+          className="origin-left h-px bg-white/10 mb-0"
+        />
+
+        {/* Category rows */}
+        {categories.map((cat, i) => (
+          <CategoryRow
+            key={cat.title}
+            category={cat}
+            index={i}
+            onHover={handleHover}
+            onMove={handleMove}
+            onLeave={handleLeave}
+          />
+        ))}
+      </div>
+
+      {/* Floating image that follows cursor */}
+      <AnimatePresence>
+        {hoveredIdx !== null && (
+          <CursorImage
+            key={hoveredIdx}
+            image={categories[hoveredIdx].image}
+            x={cursorX}
+            y={cursorY}
+          />
+        )}
+      </AnimatePresence>
     </section>
   );
 };

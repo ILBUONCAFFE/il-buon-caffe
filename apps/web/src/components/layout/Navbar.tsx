@@ -438,21 +438,14 @@ export const Navbar = () => {
                     <div className={cn(
                       "absolute inset-0 rounded-full blur-md transition-all duration-500",
                       isScrolled 
-                        ? "bg-brand-700/20" 
+                        ? "bg-brand-700/10" 
                         : isDarkHeroPage 
-                          ? "bg-white/20 group-hover:bg-white/30" 
-                          : "bg-brand-700/15 group-hover:bg-brand-700/25"
+                          ? "bg-white/10 group-hover:bg-white/20" 
+                          : "bg-brand-700/10 group-hover:bg-brand-700/20"
                     )} />
                     
-                    {/* Logo container with subtle border */}
-                    <div className={cn(
-                      "relative w-12 h-12 rounded-full overflow-hidden flex items-center justify-center transition-all duration-500",
-                      isScrolled 
-                        ? "bg-gradient-to-br from-brand-50 to-brand-100 ring-1 ring-brand-200/50"
-                        : isDarkHeroPage
-                          ? "bg-white/10 ring-1 ring-white/20"
-                          : "bg-brand-100/50 ring-1 ring-brand-200/30"
-                    )}>
+                    {/* Logo container without border */}
+                    <div className="relative w-12 h-12 rounded-full overflow-hidden flex items-center justify-center transition-all duration-500 bg-transparent">
                       <Image
                         src="/assets/logo.png"
                         alt="Il Buon Caffe"
