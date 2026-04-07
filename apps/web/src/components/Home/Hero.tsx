@@ -24,17 +24,24 @@ const ClipReveal = ({
   children: React.ReactNode;
   delay: number;
   className?: string;
-}) => (
-  <div className={`overflow-hidden pb-[0.24em] -mb-[0.24em] ${className ?? ""}`}>
-    <motion.div
-      initial={{ y: "120%" }}
-      animate={{ y: "0%" }}
-      transition={{ duration: 1.4, delay, ease: EASE }}
+}) => {
+  const [isRevealed, setIsRevealed] = React.useState(false);
+
+  return (
+    <div
+      className={`${isRevealed ? "overflow-visible" : "overflow-hidden"} pb-[0.24em] -mb-[0.24em] ${className ?? ""}`}
     >
-      {children}
-    </motion.div>
-  </div>
-);
+      <motion.div
+        initial={{ y: "120%" }}
+        animate={{ y: "0%" }}
+        transition={{ duration: 1.4, delay, ease: EASE }}
+        onAnimationComplete={() => setIsRevealed(true)}
+      >
+        {children}
+      </motion.div>
+    </div>
+  );
+};
 
 // ── Spinning circular text (SVG textPath) ──────────────────────────
 const SpinningBadge = () => (
@@ -190,15 +197,15 @@ export const Hero = () => {
                   </span>
                 </ClipReveal>
 
-                <ClipReveal delay={0.4} className="ml-1 md:ml-3 lg:ml-5 pb-[0.44em] -mb-[0.44em]">
-                  <span className="block text-[clamp(3rem,10vw,10.5rem)] font-handwriting text-brand-400 leading-[1.08]">
+                <ClipReveal delay={0.4} className="ml-1 md:ml-3 lg:ml-5 pb-[0.56em] -mb-[0.5em]">
+                  <span className="block text-[clamp(3rem,10vw,10.5rem)] font-handwriting text-brand-400 leading-[1.14]">
                     Caffe
                   </span>
                 </ClipReveal>
               </div>
 
               {/* Descriptor */}
-              <div className="overflow-hidden mb-10 md:mb-12">
+              <div className="overflow-hidden mt-2 md:mt-3 mb-10 md:mb-12">
                 <motion.p
                   initial={{ y: "100%", opacity: 0, filter: "blur(10px)" }}
                   animate={{ y: "0%", opacity: 1, filter: "blur(0px)" }}
