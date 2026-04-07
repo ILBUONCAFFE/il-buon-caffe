@@ -10,9 +10,9 @@ const playfair = Playfair_Display({ subsets: ["latin"], variable: '--font-playfa
 const lato = Lato({ subsets: ["latin"], weight: ['100', '300', '400', '700', '900'], variable: '--font-lato', display: 'swap' });
 const pinyon = Pinyon_Script({ weight: ['400'], subsets: ["latin"], variable: '--font-pinyon', display: 'swap' });
 
-const cafeJsonLd = {
+const storeJsonLd = {
   "@context": "https://schema.org",
-  "@type": "CafeOrCoffeeShop",
+  "@type": "Store",
   name: "Il Buon Caffe",
   url: "https://ilbuoncaffe.pl",
   logo: {
@@ -20,11 +20,9 @@ const cafeJsonLd = {
     url: "https://ilbuoncaffe.pl/assets/logo.png",
   },
   image: "https://ilbuoncaffe.pl/assets/logo.png",
-  description: "Prawdziwa włoska kawiarnia w Koszalinie. Doskonałe espresso, świeżo palona kawa specialty, włoskie wypieki i delikatesy premium.",
-  servesCuisine: ["Kawa", "Włoskie desery", "Wypieki", "Włoska kuchnia"],
-  priceRange: "$$",
-  telephone: "+48664937937",
+  description: "Sklep internetowy z włoskimi delikatesami premium. Kawa ziarnista specialty, wina, oliwy, makarony rzemieślnicze i słodycze. Wysyłka na terenie całej Polski.",
   email: "kontakt@ilbuoncaffe.pl",
+  telephone: "+48664937937",
   address: {
     "@type": "PostalAddress",
     streetAddress: "ul. Biskupa Czesława Domina 3/6",
@@ -32,20 +30,12 @@ const cafeJsonLd = {
     postalCode: "75-065",
     addressCountry: "PL",
   },
-  openingHoursSpecification: [
-    {
-      "@type": "OpeningHoursSpecification",
-      dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-      opens: "09:00",
-      closes: "16:00",
-    },
-    {
-      "@type": "OpeningHoursSpecification",
-      dayOfWeek: ["Saturday"],
-      opens: "11:00",
-      closes: "14:00",
-    },
-  ],
+  areaServed: {
+    "@type": "Country",
+    name: "PL",
+  },
+  currenciesAccepted: "PLN",
+  paymentAccepted: "Przelewy24, BLIK, karta płatnicza, przelew bankowy",
   sameAs: [
     "https://www.instagram.com/il_buoncaffe/",
     "https://www.facebook.com/IlBuonCaffeKoszalin",
@@ -58,34 +48,34 @@ const faqJsonLd = {
   mainEntity: [
     {
       "@type": "Question",
-      name: "Gdzie wypić najlepszą kawę w Koszalinie?",
+      name: "Ile kosztuje dostawa?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Il Buon Caffe to prawdziwa włoska kawiarnia w Koszalinie przy ul. Biskupa Czesława Domina 3/6. Serwujemy doskonałe espresso i kawy specialty z wyselekcjonowanych ziaren, parzone przez doświadczonych baristów. Działamy od 2003 roku.",
+        text: "Realizujemy dostawę kurierem na terenie całej Polski. Bezpłatna wysyłka powyżej określonej kwoty zamówienia. Sprawdź aktualne warunki dostawy na stronie ilbuoncaffe.pl.",
       },
     },
     {
       "@type": "Question",
-      name: "Jakie godziny otwarcia ma Il Buon Caffe w Koszalinie?",
+      name: "Jak szybko wysyłacie zamówienia?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Il Buon Caffe jest otwarta od poniedziałku do piątku w godzinach 09:00–16:00 oraz w sobotę od 11:00 do 14:00.",
+        text: "Zamówienia złożone w dni robocze do godziny 14:00 wysyłamy tego samego dnia. Standardowy czas dostawy wynosi 1–2 dni robocze.",
       },
     },
     {
       "@type": "Question",
-      name: "Co znajdę w kawiarni Il Buon Caffe?",
+      name: "Czy można kupić prawdziwą włoską kawę specialty online?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "W Il Buon Caffe znajdziesz doskonałe espresso i kawy specialty, domowe wypieki, włoskie desery oraz sklep z delikatesami premium: kawa ziarnista, wina, oliwy i tradycyjne włoskie produkty.",
+        text: "Tak! Il Buon Caffe oferuje szeroki wybór kaw ziarnistych specialty od najlepszych włoskich palarni. Zamów przez ilbuoncaffe.pl z dostawą na terenie całej Polski.",
       },
     },
     {
       "@type": "Question",
-      name: "Gdzie znajduje się kawiarnia Il Buon Caffe?",
+      name: "Jakie produkty włoskie można zamówić przez internet?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Kawiarnia Il Buon Caffe mieści się w Koszalinie przy ul. Biskupa Czesława Domina 3/6 (75-065 Koszalin). Zapraszamy!",
+        text: "W sklepie Il Buon Caffe online znajdziesz: kawy ziarniste specialty, wina włoskie i hiszpańskie, oliwy z oliwek extra virgin, makarony rzemieślnicze, sery, wędliny oraz tradycyjne włoskie słodycze.",
       },
     },
   ],
@@ -153,7 +143,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body className={`${lato.variable} ${playfair.variable} ${pinyon.variable} font-sans antialiased`} suppressHydrationWarning>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(cafeJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(storeJsonLd) }}
         />
         <script
           type="application/ld+json"
