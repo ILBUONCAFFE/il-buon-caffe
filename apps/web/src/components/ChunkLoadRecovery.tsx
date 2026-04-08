@@ -28,11 +28,17 @@ function markReloadAttempt() {
 
 function isChunkRelatedError(payload: unknown): boolean {
   const text = String(payload ?? '').toLowerCase()
+
+  const hasNextChunkHint = text.includes('/_next/static/chunks/') || text.includes('loading chunk')
+  const hasChunkLoadError = text.includes('chunkloaderror')
+  const hasNextBuildAssetHint = text.includes('/_next/static/')
+  const hasMimeHtmlError = text.includes('mime type') && text.includes('text/html')
+
   return (
-    text.includes('chunkloaderror')
-    || text.includes('loading chunk')
-    || text.includes('/_next/static/chunks/')
-    || (text.includes('mime type') && text.includes('text/html'))
+    hasChunkLoadError
+    || hasNextChunkHint
+    // Only treat MIME/type mismatch as chunk-related if it points to Next static assets.
+    || (hasMimeHtmlError && hasNextBuildAssetHint)
   )
 }
 
