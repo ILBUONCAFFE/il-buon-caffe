@@ -16,18 +16,41 @@ const consentBootstrapScript = `
 window.dataLayer = window.dataLayer || [];
 window.gtag = window.gtag || function gtag(){window.dataLayer.push(arguments);};
 
+function readConsentCookie() {
+  const prefix = "ibc_consent=";
+  const consentCookie = document.cookie
+    .split(";")
+    .map(function(part) { return part.trim(); })
+    .find(function(part) { return part.startsWith(prefix); });
+
+  if (!consentCookie) return null;
+  return decodeURIComponent(consentCookie.slice(prefix.length));
+}
+
+function readStoredConsent() {
+  try {
+    const localStorageChoice = window.localStorage.getItem("${CONSENT_STORAGE_KEY}");
+    if (localStorageChoice) return localStorageChoice;
+  } catch (_err) {
+    // Ignore storage access failures and fallback to cookie.
+  }
+
+  return readConsentCookie();
+}
+
 window.gtag("consent", "default", {
   ad_storage: "denied",
   ad_user_data: "denied",
   ad_personalization: "denied",
   analytics_storage: "denied",
   functionality_storage: "granted",
+  personalization_storage: "denied",
   security_storage: "granted",
   wait_for_update: 500,
 });
 
 try {
-  const storedConsent = window.localStorage.getItem("${CONSENT_STORAGE_KEY}");
+  const storedConsent = readStoredConsent();
 
   if (storedConsent === "all") {
     window.gtag("consent", "update", {
@@ -35,6 +58,9 @@ try {
       ad_user_data: "granted",
       ad_personalization: "granted",
       analytics_storage: "granted",
+      functionality_storage: "granted",
+      personalization_storage: "granted",
+      security_storage: "granted",
     });
   }
 
@@ -44,6 +70,9 @@ try {
       ad_user_data: "denied",
       ad_personalization: "denied",
       analytics_storage: "granted",
+      functionality_storage: "granted",
+      personalization_storage: "denied",
+      security_storage: "granted",
     });
   }
 
@@ -53,6 +82,9 @@ try {
       ad_user_data: "denied",
       ad_personalization: "denied",
       analytics_storage: "denied",
+      functionality_storage: "granted",
+      personalization_storage: "denied",
+      security_storage: "granted",
     });
   }
 } catch (_err) {

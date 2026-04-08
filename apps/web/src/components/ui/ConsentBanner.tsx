@@ -11,9 +11,13 @@ type ConsentPayload = {
   ad_user_data: ConsentValue;
   ad_personalization: ConsentValue;
   analytics_storage: ConsentValue;
+  functionality_storage: ConsentValue;
+  personalization_storage: ConsentValue;
+  security_storage: ConsentValue;
 };
 
 const CONSENT_STORAGE_KEY = "ibc-consent-v1";
+const CONSENT_COOKIE_KEY = "ibc_consent";
 const ONE_YEAR_IN_SECONDS = 60 * 60 * 24 * 365;
 
 const CONSENT_BY_CHOICE: Record<ConsentChoice, ConsentPayload> = {
@@ -22,18 +26,27 @@ const CONSENT_BY_CHOICE: Record<ConsentChoice, ConsentPayload> = {
     ad_user_data: "granted",
     ad_personalization: "granted",
     analytics_storage: "granted",
+    functionality_storage: "granted",
+    personalization_storage: "granted",
+    security_storage: "granted",
   },
   analytics: {
     ad_storage: "denied",
     ad_user_data: "denied",
     ad_personalization: "denied",
     analytics_storage: "granted",
+    functionality_storage: "granted",
+    personalization_storage: "denied",
+    security_storage: "granted",
   },
   necessary: {
     ad_storage: "denied",
     ad_user_data: "denied",
     ad_personalization: "denied",
     analytics_storage: "denied",
+    functionality_storage: "granted",
+    personalization_storage: "denied",
+    security_storage: "granted",
   },
 };
 
@@ -57,6 +70,32 @@ function applyConsent(choice: ConsentChoice) {
   globalWindow.gtag("consent", "update", CONSENT_BY_CHOICE[choice]);
 }
 
+function readCookieConsent(): ConsentChoice | null {
+  const prefix = `${CONSENT_COOKIE_KEY}=`;
+  const consentCookie = document.cookie
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(prefix));
+
+  if (!consentCookie) return null;
+
+  const cookieValue = decodeURIComponent(consentCookie.slice(prefix.length));
+  return isConsentChoice(cookieValue) ? cookieValue : null;
+}
+
+function readStoredConsent(): ConsentChoice | null {
+  try {
+    const rawValue = window.localStorage.getItem(CONSENT_STORAGE_KEY);
+    if (isConsentChoice(rawValue)) {
+      return rawValue;
+    }
+  } catch (_err) {
+    // Ignore storage read failures and fallback to cookie.
+  }
+
+  return readCookieConsent();
+}
+
 function persistConsent(choice: ConsentChoice) {
   try {
     window.localStorage.setItem(CONSENT_STORAGE_KEY, choice);
@@ -64,7 +103,8 @@ function persistConsent(choice: ConsentChoice) {
     // Storage can fail in private mode; consent update still works for current session.
   }
 
-  document.cookie = `ibc_consent=${choice}; Max-Age=${ONE_YEAR_IN_SECONDS}; Path=/; SameSite=Lax`;
+  const secureFlag = window.location.protocol === "https:" ? "; Secure" : "";
+  document.cookie = `${CONSENT_COOKIE_KEY}=${encodeURIComponent(choice)}; Max-Age=${ONE_YEAR_IN_SECONDS}; Path=/; SameSite=Lax${secureFlag}`;
 }
 
 export function ConsentBanner() {
@@ -83,16 +123,7 @@ export function ConsentBanner() {
       return;
     }
 
-    let storedChoice: ConsentChoice | null = null;
-
-    try {
-      const rawValue = window.localStorage.getItem(CONSENT_STORAGE_KEY);
-      if (isConsentChoice(rawValue)) {
-        storedChoice = rawValue;
-      }
-    } catch (_err) {
-      // Ignore read failures and show the banner.
-    }
+    const storedChoice = readStoredConsent();
 
     if (storedChoice) {
       applyConsent(storedChoice);
