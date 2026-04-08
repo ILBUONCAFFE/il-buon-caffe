@@ -36,23 +36,101 @@ function formatAmount(value: number | undefined | null, currency = 'PLN'): strin
   return `${Number(value).toFixed(2)} ${symbol[currency] ?? currency}`
 }
 
-function shipmentStatusLabel(value: string | null | undefined): string {
-  switch (value) {
-    case 'label_created':
-      return 'Etykieta wygenerowana'
-    case 'in_transit':
-      return 'W drodze'
-    case 'out_for_delivery':
-      return 'W doreczeniu'
-    case 'delivered':
-      return 'Dostarczona'
-    case 'issue':
-      return 'Problem z przesylka'
-    case 'none':
-      return 'Brak przesylki'
-    default:
-      return 'Status nieznany'
-  }
+
+const TRACKING_STEPS = [
+  { key: 'label_created', label: 'Etykieta' },
+  { key: 'in_transit', label: 'W drodze' },
+  { key: 'out_for_delivery', label: 'W doreczeniu' },
+  { key: 'delivered', label: 'Dostarczono' },
+] as const
+
+const STEP_INDEX: Record<string, number> = {
+  none: -1,
+  label_created: 0,
+  in_transit: 1,
+  out_for_delivery: 2,
+  delivered: 3,
+  issue: -1,
+  unknown: -1,
+}
+
+function TrackingTimeline({
+  displayStatus,
+  trackingStatus,
+  updatedAt,
+  freshness,
+  loading,
+}: {
+  displayStatus: string
+  trackingStatus: string | null
+  updatedAt: string | null
+  freshness: string
+  loading: boolean
+}) {
+  const activeIdx = STEP_INDEX[displayStatus] ?? -1
+  const isIssue = displayStatus === 'issue'
+
+  return (
+    <div className="mt-3 mb-1">
+      {/* Step bar */}
+      <div className="flex items-center gap-0">
+        {TRACKING_STEPS.map((step, i) => {
+          const isActive = i <= activeIdx
+          const isCurrent = i === activeIdx
+          return (
+            <div key={step.key} className="flex items-center flex-1 last:flex-none">
+              <div className="flex flex-col items-center gap-1">
+                <div
+                  className={`w-3 h-3 rounded-full border-2 transition-colors ${
+                    isIssue && isCurrent
+                      ? 'border-red-500 bg-red-500'
+                      : isActive
+                        ? 'border-[#1A1A1A] bg-[#1A1A1A]'
+                        : 'border-[#D4D3D0] bg-white'
+                  }`}
+                />
+                <span
+                  className={`text-[10px] leading-tight text-center whitespace-nowrap ${
+                    isActive ? 'text-[#1A1A1A] font-medium' : 'text-[#A3A3A3]'
+                  }`}
+                >
+                  {step.label}
+                </span>
+              </div>
+              {i < TRACKING_STEPS.length - 1 && (
+                <div
+                  className={`flex-1 h-0.5 mx-1 -mt-4 ${
+                    i < activeIdx ? 'bg-[#1A1A1A]' : 'bg-[#E5E4E1]'
+                  }`}
+                />
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Status detail */}
+      <div className="mt-3 space-y-1">
+        {isIssue && (
+          <div className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-md px-2.5 py-1.5">
+            Problem: {trackingStatus ?? 'Wystapil problem z przesylka'}
+          </div>
+        )}
+        {!isIssue && trackingStatus && (
+          <p className="text-xs text-[#666]">{trackingStatus}</p>
+        )}
+        {updatedAt && (
+          <p className="text-[11px] text-[#A3A3A3]">
+            Zaktualizowano: {formatDate(updatedAt)}
+            {freshness === 'stale' && !loading && ' — dane moga byc nieaktualne'}
+          </p>
+        )}
+        {loading && (
+          <p className="text-[11px] text-[#A3A3A3] animate-pulse">Pobieranie statusu...</p>
+        )}
+      </div>
+    </div>
+  )
 }
 
 function InfoRow({ label, value }: { label: string; value: string | ReactNode }) {
@@ -85,8 +163,7 @@ export function OrderDetailModal({
 
   const refreshTrackingSnapshot = useCallback(async (showError = true) => {
     if (!order) return
-    if (order.source !== 'allegro') return
-    if (!order.allegroShipmentId) return
+    if (order.source !== 'allegro' || !order.externalId) return
 
     setTrackingLoading(true)
     setTrackingError(null)
@@ -110,7 +187,8 @@ export function OrderDetailModal({
 
     const shouldAutoRefresh =
       order.source === 'allegro' &&
-      !!order.allegroShipmentId &&
+      !!order.externalId &&
+      ['shipped', 'delivered'].includes(order.status) &&
       (order.shipmentFreshness === 'stale' || order.shipmentFreshness === 'unknown')
 
     if (shouldAutoRefresh) {
@@ -138,7 +216,8 @@ export function OrderDetailModal({
 
   const customer = order.customerData
   const address = customer?.shippingAddress
-  const hasShipment = !!order.allegroShipmentId
+  const hasTracking = !!order.trackingNumber || !!order.allegroShipmentId || ['shipped', 'delivered'].includes(order.status)
+  const canRefresh = order.source === 'allegro' && !!order.externalId
   const canShip = ['paid', 'processing'].includes(order.status)
   const canCancel = ['pending', 'paid', 'processing'].includes(order.status)
   const effectiveTrackingNumber = tracking?.trackingNumber ?? order.trackingNumber ?? null
@@ -269,34 +348,33 @@ export function OrderDetailModal({
               <InfoRow label="Oplacono" value={formatDate(order.paidAt)} />
 
               <SectionLabel>Przesylka</SectionLabel>
-              {hasShipment ? (
+              {hasTracking ? (
                 <>
-                  <InfoRow label="Numer" value={<span className="font-mono text-xs">{effectiveTrackingNumber ?? '-'}</span>} />
-                  {order.allegroFulfillmentStatus && (
-                    <InfoRow label="Status Allegro" value={order.allegroFulfillmentStatus} />
+                  {effectiveTrackingNumber && (
+                    <InfoRow label="Numer" value={<span className="font-mono text-xs">{effectiveTrackingNumber}</span>} />
                   )}
-                  <InfoRow
-                    label="Status"
-                    value={effectiveTrackingStatus ?? shipmentStatusLabel(effectiveShipmentDisplayStatus)}
-                  />
-                  <InfoRow
-                    label="Ostatnia aktualizacja"
-                    value={effectiveTrackingStatusUpdatedAt ? formatDate(effectiveTrackingStatusUpdatedAt) : '-'}
-                  />
-                  {effectiveShipmentFreshness === 'stale' && (
-                    <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-2.5 py-1.5 inline-flex w-fit">
-                      Status moze byc nieaktualny
-                    </p>
+                  {order.shippingMethod && (
+                    <InfoRow label="Metoda" value={order.shippingMethod} />
                   )}
+
+                  {/* Visual tracking timeline */}
+                  <TrackingTimeline
+                    displayStatus={effectiveShipmentDisplayStatus}
+                    trackingStatus={effectiveTrackingStatus}
+                    updatedAt={effectiveTrackingStatusUpdatedAt}
+                    freshness={effectiveShipmentFreshness}
+                    loading={trackingLoading}
+                  />
+
                   {trackingError && (
-                    <p className="text-xs text-red-600">{trackingError}</p>
+                    <p className="text-xs text-red-600 mt-2">{trackingError}</p>
                   )}
-                  {order.source === 'allegro' && (
+                  {canRefresh && (
                     <button
                       type="button"
                       onClick={() => void refreshTrackingSnapshot()}
                       disabled={trackingLoading}
-                      className="mt-2 text-xs font-medium text-[#1A1A1A] hover:text-[#666] disabled:text-[#A3A3A3] disabled:cursor-not-allowed"
+                      className="mt-3 text-xs font-medium text-[#1A1A1A] hover:text-[#666] disabled:text-[#A3A3A3] disabled:cursor-not-allowed underline underline-offset-2"
                     >
                       {trackingLoading ? 'Odswiezanie...' : 'Odswiez status'}
                     </button>
@@ -319,7 +397,7 @@ export function OrderDetailModal({
           </div>
 
           <div className="flex gap-3">
-            {hasShipment && onDownloadLabel ? (
+            {order.allegroShipmentId && onDownloadLabel ? (
               <button className="btn-primary text-sm" onClick={() => onDownloadLabel(order)}>
                 Pobierz etykiete PDF
               </button>

@@ -378,7 +378,7 @@ adminOrdersRouter.post('/:id/tracking/refresh', async (c) => {
       trackingLastEventAt: order.trackingLastEventAt,
     })
 
-    if (order.source !== 'allegro' || !order.externalId || !order.allegroShipmentId) {
+    if (order.source !== 'allegro' || !order.externalId) {
       return c.json({
         success: true,
         refreshed: false,
@@ -409,20 +409,39 @@ adminOrdersRouter.post('/:id/tracking/refresh', async (c) => {
 
     await c.env.ALLEGRO_KV.put(lockKey, String(Date.now()), { expirationTtl: TRACKING_REFRESH_LOCK_TTL_SECONDS })
 
-    c.executionCtx.waitUntil((async () => {
-      try {
-        const refreshDb = createDb(c.env.DATABASE_URL)
-        await refreshOrderTrackingSnapshot(refreshDb, c.env, order.id, order.externalId!)
-      } finally {
-        await c.env.ALLEGRO_KV.delete(lockKey).catch(() => {})
-      }
-    })())
+    // Synchronous refresh — returns fresh data to the frontend immediately
+    try {
+      await refreshOrderTrackingSnapshot(db, c.env, order.id, order.externalId!)
+    } finally {
+      await c.env.ALLEGRO_KV.delete(lockKey).catch(() => {})
+    }
+
+    // Re-read updated tracking data from DB
+    const [updated] = await db.select({
+      id: orders.id,
+      status: orders.status,
+      trackingNumber: orders.trackingNumber,
+      trackingStatus: orders.trackingStatus,
+      trackingStatusCode: orders.trackingStatusCode,
+      trackingStatusUpdatedAt: orders.trackingStatusUpdatedAt,
+      trackingLastEventAt: orders.trackingLastEventAt,
+    }).from(orders).where(eq(orders.id, orderId)).limit(1)
+
+    const freshSnapshot = updated ? buildTrackingSnapshot({
+      id: updated.id,
+      status: updated.status,
+      trackingNumber: updated.trackingNumber,
+      trackingStatus: updated.trackingStatus,
+      trackingStatusCode: updated.trackingStatusCode,
+      trackingStatusUpdatedAt: updated.trackingStatusUpdatedAt,
+      trackingLastEventAt: updated.trackingLastEventAt,
+    }) : snapshot
 
     return c.json({
       success: true,
       refreshed: true,
-      reason: 'queued',
-      data: snapshot,
+      reason: 'refreshed',
+      data: freshSnapshot,
     })
   } catch (err) {
     return serverError(c, 'POST /admin/orders/:id/tracking/refresh', err)

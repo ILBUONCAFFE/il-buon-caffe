@@ -4,7 +4,7 @@
 
 import { createDb } from '@repo/db/client'
 import { orders } from '@repo/db/schema'
-import { and, eq, inArray, isNotNull, sql } from 'drizzle-orm' // sql used in selectTrackingRefreshCandidates
+import { and, eq, inArray, isNotNull, sql } from 'drizzle-orm'
 import { getActiveAllegroToken } from '../allegro-tokens'
 import { allegroHeaders } from './helpers'
 import type { Env } from '../../index'
@@ -235,7 +235,6 @@ export async function selectTrackingRefreshCandidates(
     .where(
       and(
         eq(orders.source, 'allegro'),
-        isNotNull(orders.allegroShipmentId),
         inArray(orders.status, ['shipped', 'delivered']),
         isNotNull(orders.externalId),
         sql`COALESCE(${orders.shippedAt}, ${orders.createdAt}) > ${cutoffDate}`,
