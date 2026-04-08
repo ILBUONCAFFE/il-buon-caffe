@@ -121,6 +121,11 @@ const nextConfig = {
         hostname: 'barahonda.com',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'media.ilbuoncaffe.pl',
+        pathname: '/**',
+      },
     ],
   },
 };
