@@ -4,7 +4,7 @@
 
 import { createDb } from '@repo/db/client'
 import { orders } from '@repo/db/schema'
-import { and, eq, inArray, isNotNull, sql } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull, sql } from 'drizzle-orm' // sql used in selectTrackingRefreshCandidates
 import { getActiveAllegroToken } from '../allegro-tokens'
 import { allegroHeaders } from './helpers'
 import type { Env } from '../../index'
@@ -205,59 +205,10 @@ export async function refreshOrderTrackingSnapshot(
 const BATCH_SIZE = 15
 const CONCURRENCY = 3
 const HARD_CUTOFF_DAYS = 30
-const TRACKING_SCHEMA_CACHE_TTL_MS = 10 * 60 * 1000
-const TRACKING_REQUIRED_COLUMNS = [
-  'allegro_shipment_id',
-  'tracking_status_code',
-  'tracking_status_updated_at',
-  'tracking_last_event_at',
-] as const
 
-let trackingSchemaCheckedAt = 0
-let trackingSchemaReady: boolean | null = null
-
-async function hasTrackingSchema(db: ReturnType<typeof createDb>): Promise<boolean> {
-  const now = Date.now()
-  if (trackingSchemaReady !== null && now - trackingSchemaCheckedAt < TRACKING_SCHEMA_CACHE_TTL_MS) {
-    return trackingSchemaReady
-  }
-
-  try {
-    const result = await db.execute(sql`
-      SELECT column_name
-      FROM information_schema.columns
-      WHERE table_schema = 'public'
-        AND table_name = 'orders'
-        AND column_name IN ('allegro_shipment_id', 'tracking_status_code', 'tracking_status_updated_at', 'tracking_last_event_at')
-    `)
-
-    const rows = (result as { rows?: unknown[] }).rows ?? []
-    const found = new Set(
-      rows
-        .map((row) => {
-          if (!row || typeof row !== 'object') return null
-          const value = (row as { column_name?: unknown }).column_name
-          return typeof value === 'string' ? value : null
-        })
-        .filter((x): x is string => x !== null),
-    )
-
-    const missing = TRACKING_REQUIRED_COLUMNS.filter((column) => !found.has(column))
-    trackingSchemaReady = missing.length === 0
-
-    if (!trackingSchemaReady) {
-      console.error(`[TrackingSync] Brak wymaganych kolumn w tabeli orders: ${missing.join(', ')}. Uruchom migracje Drizzle.`)
-    }
-  } catch (err) {
-    // Do not block sync permanently if metadata query fails transiently.
-    trackingSchemaReady = true
-    console.warn('[TrackingSync] Nie udało się zweryfikować schematu orders:', formatDbError(err))
-  } finally {
-    trackingSchemaCheckedAt = now
-  }
-
-  return trackingSchemaReady ?? true
-}
+// KV key: '0' = no active tracked orders (skip DB), absent/other = check DB.
+// Cleared by processEvent when an order becomes shipped so tracking kicks in immediately.
+export const TRACKING_ACTIVE_KV_KEY = 'allegro:tracking:has_active_orders'
 
 /**
  * Select orders whose tracking snapshot is stale and needs refreshing.
@@ -341,11 +292,12 @@ export async function selectTrackingRefreshCandidates(
  * so cron and user-triggered refreshes never race on the same order.
  */
 export async function runTrackingStatusSync(env: Env): Promise<void> {
-  const db = createDb(env.DATABASE_URL)
+  // KV guard: skip DB entirely when no active tracked orders exist.
+  // This prevents waking Neon on every 5-min cron run during idle periods.
+  const activeFlag = await env.ALLEGRO_KV.get(TRACKING_ACTIVE_KV_KEY)
+  if (activeFlag === '0') return
 
-  if (!(await hasTrackingSchema(db))) {
-    return
-  }
+  const db = createDb(env.DATABASE_URL)
 
   let candidates: Array<{ id: number; externalId: string }>
   try {
@@ -355,7 +307,11 @@ export async function runTrackingStatusSync(env: Env): Promise<void> {
     return
   }
 
-  if (candidates.length === 0) return
+  if (candidates.length === 0) {
+    // No active orders — set flag so next runs skip DB entirely
+    await env.ALLEGRO_KV.put(TRACKING_ACTIVE_KV_KEY, '0', { expirationTtl: 60 * 60 }).catch(() => {})
+    return
+  }
 
   const token = await getActiveAllegroToken(env)
   if (!token) {

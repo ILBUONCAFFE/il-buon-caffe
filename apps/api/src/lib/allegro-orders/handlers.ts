@@ -13,6 +13,7 @@ import {
 import { eq, and, or } from 'drizzle-orm'
 import type { AllegroCheckoutForm, AllegroOrderEvent } from './types'
 import { generateOrderNumber, buildShippingAddress, buildCustomerData, fetchCheckoutForm } from './helpers'
+import { TRACKING_ACTIVE_KV_KEY } from './tracking-refresh'
 import { getRate, type ForeignCurrency } from '../nbp'
 
 // ── Extract real purchase date from Allegro checkout form ─────────────────
@@ -441,6 +442,7 @@ export async function handleCancelled(
 export async function reconcileOrder(
   db: ReturnType<typeof createDb>,
   form: AllegroCheckoutForm,
+  kv?: KVNamespace,
 ): Promise<void> {
   const [existing] = await db
     .select({
@@ -524,6 +526,11 @@ export async function reconcileOrder(
       updatedAt: new Date(),
     })
     .where(eq(orders.externalId, form.id))
+
+  // When order becomes shipped → clear KV idle flag so tracking sync starts immediately
+  if (newLocalStatus === 'shipped' && kv) {
+    await kv.delete(TRACKING_ACTIVE_KV_KEY).catch(() => {})
+  }
 
   // If newly cancelled AND was previously paid → restore stock
   if (
@@ -609,7 +616,7 @@ export async function processEvent(
   // ★ Reconcile for ALL event types — catches manual seller changes,
   //   fulfillment status updates, and any future Allegro event types.
   //   Idempotent: revision check prevents unnecessary DB writes.
-  await reconcileOrder(db, form)
+  await reconcileOrder(db, form, kv)
 
   return true
 }
