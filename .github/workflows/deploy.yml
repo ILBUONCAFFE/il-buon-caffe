@@ -21,6 +21,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Create R2 buckets (if not exist)
+        run: |
+          npx wrangler r2 bucket create il-buon-caffe-images || true
+          npx wrangler r2 bucket create il-buon-caffe-catalogs || true
+          npx wrangler r2 bucket create il-buon-caffe-media || true
+        working-directory: apps/api
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+
       - name: Deploy API Worker
         run: npx wrangler deploy
         working-directory: apps/api
