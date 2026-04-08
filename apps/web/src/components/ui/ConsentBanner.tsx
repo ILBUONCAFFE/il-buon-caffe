@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
-type ConsentChoice = "all" | "analytics" | "necessary";
+// ─── Types ──────────────────────────────────────────────────────────────────
+
 type ConsentValue = "granted" | "denied";
 
 type ConsentPayload = {
@@ -16,45 +19,38 @@ type ConsentPayload = {
   security_storage: ConsentValue;
 };
 
-const CONSENT_STORAGE_KEY = "ibc-consent-v1";
+type ConsentSettings = {
+  analytics: boolean;
+  marketing: boolean;
+};
+
+type StoredConsent = {
+  version: 2;
+  analytics: boolean;
+  marketing: boolean;
+};
+
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+const CONSENT_STORAGE_KEY = "ibc-consent-v2";
 const CONSENT_COOKIE_KEY = "ibc_consent";
 const ONE_YEAR_IN_SECONDS = 60 * 60 * 24 * 365;
 
-const CONSENT_BY_CHOICE: Record<ConsentChoice, ConsentPayload> = {
-  all: {
-    ad_storage: "granted",
-    ad_user_data: "granted",
-    ad_personalization: "granted",
-    analytics_storage: "granted",
-    functionality_storage: "granted",
-    personalization_storage: "granted",
-    security_storage: "granted",
-  },
-  analytics: {
-    ad_storage: "denied",
-    ad_user_data: "denied",
-    ad_personalization: "denied",
-    analytics_storage: "granted",
-    functionality_storage: "granted",
-    personalization_storage: "denied",
-    security_storage: "granted",
-  },
-  necessary: {
-    ad_storage: "denied",
-    ad_user_data: "denied",
-    ad_personalization: "denied",
-    analytics_storage: "denied",
-    functionality_storage: "granted",
-    personalization_storage: "denied",
-    security_storage: "granted",
-  },
-};
+// ─── Consent logic ───────────────────────────────────────────────────────────
 
-function isConsentChoice(value: string | null): value is ConsentChoice {
-  return value === "all" || value === "analytics" || value === "necessary";
+function buildPayload(settings: ConsentSettings): ConsentPayload {
+  return {
+    ad_storage: settings.marketing ? "granted" : "denied",
+    ad_user_data: settings.marketing ? "granted" : "denied",
+    ad_personalization: settings.marketing ? "granted" : "denied",
+    analytics_storage: settings.analytics ? "granted" : "denied",
+    functionality_storage: "granted",
+    personalization_storage: settings.marketing ? "granted" : "denied",
+    security_storage: "granted",
+  };
 }
 
-function applyConsent(choice: ConsentChoice) {
+function applyConsent(settings: ConsentSettings) {
   const globalWindow = window as Window & {
     dataLayer?: unknown[];
     gtag?: (...args: unknown[]) => void;
@@ -67,50 +63,298 @@ function applyConsent(choice: ConsentChoice) {
       globalWindow.dataLayer?.push(arguments);
     };
 
-  globalWindow.gtag("consent", "update", CONSENT_BY_CHOICE[choice]);
+  globalWindow.gtag("consent", "update", buildPayload(settings));
 }
 
-function readCookieConsent(): ConsentChoice | null {
-  const prefix = `${CONSENT_COOKIE_KEY}=`;
-  const consentCookie = document.cookie
-    .split(";")
-    .map((part) => part.trim())
-    .find((part) => part.startsWith(prefix));
-
-  if (!consentCookie) return null;
-
-  const cookieValue = decodeURIComponent(consentCookie.slice(prefix.length));
-  return isConsentChoice(cookieValue) ? cookieValue : null;
-}
-
-function readStoredConsent(): ConsentChoice | null {
+function readStoredConsent(): StoredConsent | null {
   try {
-    const rawValue = window.localStorage.getItem(CONSENT_STORAGE_KEY);
-    if (isConsentChoice(rawValue)) {
-      return rawValue;
+    const raw = window.localStorage.getItem(CONSENT_STORAGE_KEY);
+    if (!raw) return readCookieConsent();
+    const parsed = JSON.parse(raw) as unknown;
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      "version" in parsed &&
+      (parsed as StoredConsent).version === 2
+    ) {
+      return parsed as StoredConsent;
     }
-  } catch (_err) {
-    // Ignore storage read failures and fallback to cookie.
+  } catch {
+    // ignore
   }
-
   return readCookieConsent();
 }
 
-function persistConsent(choice: ConsentChoice) {
+function readCookieConsent(): StoredConsent | null {
+  const prefix = `${CONSENT_COOKIE_KEY}=`;
+  const raw = document.cookie
+    .split(";")
+    .map((p) => p.trim())
+    .find((p) => p.startsWith(prefix));
+  if (!raw) return null;
+
   try {
-    window.localStorage.setItem(CONSENT_STORAGE_KEY, choice);
-  } catch (_err) {
-    // Storage can fail in private mode; consent update still works for current session.
+    const parsed = JSON.parse(
+      decodeURIComponent(raw.slice(prefix.length))
+    ) as unknown;
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      "version" in parsed &&
+      (parsed as StoredConsent).version === 2
+    ) {
+      return parsed as StoredConsent;
+    }
+  } catch {
+    // ignore legacy v1 cookie
+  }
+  return null;
+}
+
+function persistConsent(settings: ConsentSettings) {
+  const stored: StoredConsent = { version: 2, ...settings };
+  const json = JSON.stringify(stored);
+
+  try {
+    window.localStorage.setItem(CONSENT_STORAGE_KEY, json);
+  } catch {
+    // private mode — session-only
   }
 
-  const secureFlag = window.location.protocol === "https:" ? "; Secure" : "";
-  document.cookie = `${CONSENT_COOKIE_KEY}=${encodeURIComponent(choice)}; Max-Age=${ONE_YEAR_IN_SECONDS}; Path=/; SameSite=Lax${secureFlag}`;
+  const secure = window.location.protocol === "https:" ? "; Secure" : "";
+  document.cookie = `${CONSENT_COOKIE_KEY}=${encodeURIComponent(json)}; Max-Age=${ONE_YEAR_IN_SECONDS}; Path=/; SameSite=Lax${secure}`;
 }
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function Toggle({
+  enabled,
+  locked,
+  onChange,
+}: {
+  enabled: boolean;
+  locked?: boolean;
+  onChange?: (v: boolean) => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={enabled}
+      disabled={locked}
+      onClick={() => !locked && onChange?.(!enabled)}
+      className={[
+        "relative h-6 w-10 flex-shrink-0 rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-700 focus-visible:ring-offset-2",
+        locked
+          ? "cursor-not-allowed bg-brand-300"
+          : enabled
+            ? "cursor-pointer bg-brand-900"
+            : "cursor-pointer bg-brand-200",
+      ].join(" ")}
+    >
+      <span
+        className={[
+          "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200",
+          enabled ? "translate-x-[18px]" : "translate-x-0.5",
+        ].join(" ")}
+      />
+    </button>
+  );
+}
+
+type Category = {
+  id: keyof ConsentSettings;
+  label: string;
+  description: string;
+  examples: string;
+};
+
+const CATEGORIES: Category[] = [
+  {
+    id: "analytics",
+    label: "Analityczne",
+    description:
+      "Pomagają nam zrozumieć, jak odwiedzasz nasz sklep — które strony są popularne i jak poruszasz się po witrynie.",
+    examples: "Google Analytics 4",
+  },
+  {
+    id: "marketing",
+    label: "Marketingowe",
+    description:
+      "Umożliwiają wyświetlanie spersonalizowanych reklam dopasowanych do Twoich zainteresowań w serwisach zewnętrznych.",
+    examples: "Google Ads, remarketing",
+  },
+];
+
+// ─── Settings panel ───────────────────────────────────────────────────────────
+
+function SettingsPanel({
+  initial,
+  onSave,
+  onClose,
+}: {
+  initial: ConsentSettings;
+  onSave: (s: ConsentSettings) => void;
+  onClose: () => void;
+}) {
+  const [settings, setSettings] = useState<ConsentSettings>(initial);
+
+  const toggle = (id: keyof ConsentSettings) =>
+    setSettings((prev) => ({ ...prev, [id]: !prev[id] }));
+
+  return (
+    <motion.div
+      key="settings"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] flex items-end justify-center p-4 sm:items-center"
+    >
+      {/* Backdrop */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="absolute inset-0 bg-brand-950/60 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      {/* Panel */}
+      <motion.div
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 24 }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        className="relative z-10 w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Ustawienia prywatności"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-brand-100 px-6 py-4">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-500">
+              Il Buon Caffè
+            </p>
+            <h2 className="mt-0.5 text-base font-semibold text-brand-950">
+              Ustawienia prywatności
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Zamknij"
+            className="rounded-lg p-1.5 text-brand-400 transition hover:bg-brand-50 hover:text-brand-700"
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="space-y-3 p-6">
+          {/* Necessary — always on */}
+          <div className="flex items-start justify-between gap-4 rounded-xl border border-brand-100 bg-brand-50/50 p-4">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-brand-950">Niezbędne</p>
+              <p className="mt-1 text-xs leading-relaxed text-brand-500">
+                Wymagane do prawidłowego działania sklepu: sesja, koszyk,
+                bezpieczeństwo.
+              </p>
+            </div>
+            <div className="flex flex-col items-end gap-1 pt-0.5">
+              <Toggle enabled locked />
+              <span className="text-[10px] font-medium uppercase tracking-wide text-brand-400">
+                zawsze
+              </span>
+            </div>
+          </div>
+
+          {/* Optional categories */}
+          {CATEGORIES.map((cat) => (
+            <div
+              key={cat.id}
+              className="flex items-start justify-between gap-4 rounded-xl border border-brand-100 p-4 transition hover:border-brand-200"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-brand-950">
+                  {cat.label}
+                </p>
+                <p className="mt-1 text-xs leading-relaxed text-brand-500">
+                  {cat.description}
+                </p>
+                <p className="mt-1.5 text-[11px] text-brand-400">
+                  {cat.examples}
+                </p>
+              </div>
+              <div className="flex-shrink-0 pt-0.5">
+                <Toggle
+                  enabled={settings[cat.id]}
+                  onChange={() => toggle(cat.id)}
+                />
+              </div>
+            </div>
+          ))}
+
+          {/* Legal links */}
+          <p className="px-1 text-xs text-brand-400">
+            Więcej informacji:{" "}
+            <Link
+              href="/polityka-prywatnosci"
+              className="underline underline-offset-2 hover:text-brand-700"
+            >
+              Polityka prywatności
+            </Link>{" "}
+            ·{" "}
+            <Link
+              href="/polityka-cookies"
+              className="underline underline-offset-2 hover:text-brand-700"
+            >
+              Polityka cookies
+            </Link>
+          </p>
+        </div>
+
+        {/* Footer */}
+        <div className="flex flex-col gap-2 border-t border-brand-100 px-6 py-4 sm:flex-row sm:justify-between">
+          <button
+            type="button"
+            onClick={() => onSave({ analytics: false, marketing: false })}
+            className="rounded-xl border border-brand-200 px-4 py-2.5 text-sm font-semibold text-brand-700 transition hover:border-brand-400 hover:text-brand-900"
+          >
+            Odrzuć opcjonalne
+          </button>
+          <button
+            type="button"
+            onClick={() => onSave(settings)}
+            className="rounded-xl bg-brand-950 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-800"
+          >
+            Zapisz ustawienia
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// ─── Main banner ─────────────────────────────────────────────────────────────
 
 export function ConsentBanner() {
   const pathname = usePathname();
   const [isMounted, setIsMounted] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -123,10 +367,9 @@ export function ConsentBanner() {
       return;
     }
 
-    const storedChoice = readStoredConsent();
-
-    if (storedChoice) {
-      applyConsent(storedChoice);
+    const stored = readStoredConsent();
+    if (stored) {
+      applyConsent({ analytics: stored.analytics, marketing: stored.marketing });
       setIsVisible(false);
       return;
     }
@@ -134,56 +377,96 @@ export function ConsentBanner() {
     setIsVisible(true);
   }, [isMounted, pathname]);
 
-  const handleConsentChoice = (choice: ConsentChoice) => {
-    persistConsent(choice);
-    applyConsent(choice);
+  const handleAccept = (settings: ConsentSettings) => {
+    persistConsent(settings);
+    applyConsent(settings);
     setIsVisible(false);
+    setShowSettings(false);
   };
 
-  if (!isMounted || !isVisible) return null;
+  if (!isMounted) return null;
 
   return (
-    <aside
-      role="dialog"
-      aria-live="polite"
-      aria-label="Zgoda na pliki cookies"
-      className="fixed bottom-4 left-1/2 z-[90] w-[calc(100%-1.5rem)] max-w-5xl -translate-x-1/2 rounded-2xl border border-brand-200 bg-white/95 p-4 shadow-2xl backdrop-blur-md md:p-5"
-    >
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div className="max-w-3xl space-y-2">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-700">
-              Ustawienia prywatności
-          </p>
-          <p className="text-sm leading-relaxed text-brand-900 md:text-[15px]">
-              Korzystamy z plików cookies do niezbędnego działania sklepu oraz analityki. Możesz
-              zaakceptować wszystkie cele, włączyć tylko analitykę lub pozostać przy niezbędnych.
-          </p>
-        </div>
+    <AnimatePresence>
+      {isVisible && !showSettings && (
+        <motion.aside
+          key="banner"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 16 }}
+          transition={{ type: "spring", stiffness: 280, damping: 28 }}
+          role="dialog"
+          aria-live="polite"
+          aria-label="Zgoda na pliki cookies"
+          className="fixed bottom-4 left-1/2 z-[90] w-[calc(100%-1.5rem)] max-w-2xl -translate-x-1/2 overflow-hidden rounded-2xl border border-brand-200 bg-white/97 shadow-2xl backdrop-blur-md"
+        >
+          {/* Thin brand accent line */}
+          <div className="h-0.5 w-full bg-gradient-to-r from-brand-300 via-brand-700 to-brand-300" />
 
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
-          <button
-            type="button"
-            onClick={() => handleConsentChoice("necessary")}
-            className="rounded-xl border border-brand-300 px-4 py-2 text-sm font-semibold text-brand-700 transition hover:border-brand-500 hover:text-brand-900"
-          >
-              Tylko niezbędne
-          </button>
-          <button
-            type="button"
-            onClick={() => handleConsentChoice("analytics")}
-            className="rounded-xl border border-brand-900/20 bg-brand-100 px-4 py-2 text-sm font-semibold text-brand-900 transition hover:bg-brand-200"
-          >
-            Tylko analityczne
-          </button>
-          <button
-            type="button"
-            onClick={() => handleConsentChoice("all")}
-            className="rounded-xl bg-brand-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-800"
-          >
-              Akceptuję wszystko
-          </button>
-        </div>
-      </div>
-    </aside>
+          <div className="p-5">
+            {/* Title + description */}
+            <div className="mb-4">
+              <div className="mb-1.5 flex items-center gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-500">
+                  Il Buon Caffè
+                </span>
+                <span className="text-brand-200">·</span>
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-700">
+                  Prywatność
+                </span>
+              </div>
+              <p className="text-sm leading-relaxed text-brand-800">
+                Używamy plików cookies do prawidłowego działania sklepu oraz
+                analizy ruchu. Możesz zaakceptować wszystkie lub dostosować
+                ustawienia.{" "}
+                <Link
+                  href="/polityka-prywatnosci"
+                  className="font-medium text-brand-700 underline underline-offset-2 hover:text-brand-950"
+                >
+                  Polityka prywatności
+                </Link>
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowSettings(true)}
+                className="rounded-xl border border-brand-200 px-4 py-2 text-sm font-medium text-brand-600 transition hover:border-brand-400 hover:text-brand-900"
+              >
+                Ustawienia
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  handleAccept({ analytics: false, marketing: false })
+                }
+                className="rounded-xl border border-brand-300 px-4 py-2 text-sm font-semibold text-brand-800 transition hover:border-brand-500 hover:text-brand-950"
+              >
+                Tylko niezbędne
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  handleAccept({ analytics: true, marketing: true })
+                }
+                className="rounded-xl bg-brand-950 px-5 py-2 text-sm font-semibold text-white transition hover:bg-brand-800"
+              >
+                Akceptuję wszystko
+              </button>
+            </div>
+          </div>
+        </motion.aside>
+      )}
+
+      {isVisible && showSettings && (
+        <SettingsPanel
+          initial={{ analytics: false, marketing: false }}
+          onSave={handleAccept}
+          onClose={() => setShowSettings(false)}
+        />
+      )}
+    </AnimatePresence>
   );
 }
