@@ -188,6 +188,37 @@ Project-specific skills are in `.claude/skills/`. Consult them for detailed patt
 - Podgląd schematu: `mcp__Neon__describe_table_schema` / `mcp__Neon__get_database_tables`
 - Nigdy nie każ użytkownikowi ręcznie wchodzić do terminala po operacje DB — rób to sam przez MCP
 
+## Neon / Cloudflare Workers — Lessons Learned
+
+### Dlaczego Neon nie zasypia (pułapki)
+Neon zawiesza endpoint po **5 min bezczynności**. Każdy z poniższych wzorców to potencjalny killer:
+
+- **`/health` z `SELECT 1`** — monitoring co 30–60s = Neon nigdy nie śpi. Health endpoint nie powinien dotykać DB.
+- **In-memory cache w Workers** — module-level variables (`let cache = null`) NIE są współdzielone między invocations. Każde wywołanie crona to fresh isolate = cache zawsze pusty = query za każdym razem.
+- **Plaintext tokeny w KV** — jeśli kod zapisuje token bez szyfrowania, a odczytuje z `decryptText()`, każdy odczyt rzuca błąd → fallback do DB → wake-up. Zawsze szyfruj symetrycznie przy zapisie i odczycie.
+- **Schema check przez `information_schema`** — `hasTrackingSchema()` odpytywał `information_schema.columns` co 5 min. To query do DB, nie do metadanych Workers. Weryfikuj schemat tylko podczas migracji, nie runtime.
+- **Brak KV guard przed "idle" DB query** — cron wywołujący `SELECT ... FROM orders WHERE ...` co 5 min, nawet gdy nie ma zamówień, budzi Neon. Wzorzec: sprawdź KV flag najpierw, uderz w DB tylko gdy jest co robić.
+
+### Wzorzec KV idle guard
+```ts
+// Na początku funkcji cron:
+const flag = await kv.get('feature:has_active_work')
+if (flag === '0') return // DB nie budzone
+
+// Gdy brak pracy:
+await kv.put('feature:has_active_work', '0', { expirationTtl: 60 * 60 })
+
+// Gdy pojawia się nowa praca (np. nowe zamówienie):
+await kv.delete('feature:has_active_work')
+```
+
+### Diagnoza "baza aktywna cały dzień"
+Patrzeć na wykres Neon Rows → jeśli regularne spiki bez realnego ruchu → cron job. Sprawdź:
+1. `wrangler.json` → `triggers.crons` — jakie interwały
+2. Każda funkcja crona — czy uderza w DB bezwarunkowo czy ma guard
+3. `/health` endpoint — czy ma `dbMiddleware` (nie powinien)
+4. KV token flow — czy zapis i odczyt używają tego samego szyfrowania
+
 ## Project Status
 
 - Phase 1 (Foundation, DB, Auth, Products, Admin): complete
