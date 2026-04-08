@@ -8,11 +8,146 @@ import {
   useTransform,
   useSpring,
   useMotionValue,
+  useReducedMotion,
 } from "motion/react";
 import { ArrowUpRight } from "lucide-react";
 
 const EASE: [number, number, number, number] = [0.76, 0, 0.24, 1];
 const EASE_OUT: [number, number, number, number] = [0.16, 1, 0.3, 1];
+
+const SHADOW_VOLUMES = [
+  {
+    top: "-14%",
+    right: "-8%",
+    width: "56vw",
+    height: "82vh",
+    blur: "96px",
+    radius: "46% 54% 58% 42% / 52% 46% 54% 48%",
+    opacity: 0.92,
+    duration: 34,
+    delay: 0,
+    drift: -18,
+  },
+  {
+    top: "18%",
+    right: "12%",
+    width: "44vw",
+    height: "48vh",
+    blur: "82px",
+    radius: "62% 38% 49% 51% / 45% 56% 44% 55%",
+    opacity: 0.7,
+    duration: 29,
+    delay: 2,
+    drift: 14,
+  },
+  {
+    top: "46%",
+    right: "30%",
+    width: "36vw",
+    height: "34vh",
+    blur: "72px",
+    radius: "42% 58% 38% 62% / 63% 43% 57% 37%",
+    opacity: 0.54,
+    duration: 27,
+    delay: 5,
+    drift: -10,
+  },
+] as const;
+
+const LIGHT_SHAFTS = [
+  {
+    top: "-28%",
+    right: "20%",
+    width: "2px",
+    height: "170vh",
+    angle: "34deg",
+    blur: "0px",
+    glow: "rgba(236, 206, 165, 0.62)",
+    duration: 14,
+    delay: 0,
+    travel: 12,
+    opacity: [0.45, 0.9, 0.5],
+  },
+  {
+    top: "-22%",
+    right: "17%",
+    width: "8vw",
+    height: "150vh",
+    angle: "34deg",
+    blur: "26px",
+    glow: "rgba(194, 138, 77, 0.24)",
+    duration: 18,
+    delay: 1.5,
+    travel: -18,
+    opacity: [0.12, 0.34, 0.14],
+  },
+  {
+    top: "-18%",
+    right: "24%",
+    width: "14vw",
+    height: "138vh",
+    angle: "34deg",
+    blur: "42px",
+    glow: "rgba(131, 87, 47, 0.2)",
+    duration: 22,
+    delay: 3,
+    travel: 10,
+    opacity: [0.08, 0.2, 0.1],
+  },
+] as const;
+
+const DUST_MOTES = [
+  {
+    top: "16%",
+    left: "56%",
+    size: "13vw",
+    blur: "18px",
+    duration: 28,
+    delay: 0,
+    drift: 56,
+    opacity: 0.56,
+  },
+  {
+    top: "28%",
+    left: "67%",
+    size: "9vw",
+    blur: "16px",
+    duration: 32,
+    delay: 3,
+    drift: -44,
+    opacity: 0.5,
+  },
+  {
+    top: "38%",
+    left: "74%",
+    size: "11vw",
+    blur: "22px",
+    duration: 34,
+    delay: 7,
+    drift: 36,
+    opacity: 0.42,
+  },
+  {
+    top: "50%",
+    left: "61%",
+    size: "15vw",
+    blur: "26px",
+    duration: 30,
+    delay: 1.5,
+    drift: -30,
+    opacity: 0.38,
+  },
+  {
+    top: "62%",
+    left: "70%",
+    size: "10vw",
+    blur: "20px",
+    duration: 36,
+    delay: 5,
+    drift: 48,
+    opacity: 0.34,
+  },
+] as const;
 
 // ── Clip-path line reveal ──────────────────────────────────────────
 const ClipReveal = ({
@@ -93,6 +228,7 @@ const SpinningBadge = () => (
 
 export const Hero = () => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const reduceMotion = useReducedMotion();
 
   // ── Scroll-driven parallax ──
   const { scrollYProgress } = useScroll({
@@ -110,6 +246,27 @@ export const Hero = () => {
   const cfg = { stiffness: 30, damping: 28, mass: 1.2 };
   const textX = useSpring(useTransform(mx, [0, 1], [14, -14]), cfg);
   const textY = useSpring(useTransform(my, [0, 1], [8, -8]), cfg);
+  const atmosphereX = useSpring(
+    useTransform(mx, [0, 1], [-16, 16]),
+    { stiffness: 22, damping: 30, mass: 1.1 }
+  );
+  const atmosphereY = useSpring(
+    useTransform(my, [0, 1], [-10, 10]),
+    { stiffness: 22, damping: 30, mass: 1.1 }
+  );
+  const warmLightX = useSpring(
+    useTransform(mx, [0, 1], [-26, 26]),
+    { stiffness: 20, damping: 28, mass: 1.2 }
+  );
+  const warmLightY = useSpring(
+    useTransform(my, [0, 1], [14, -14]),
+    { stiffness: 20, damping: 28, mass: 1.2 }
+  );
+  const hazeRotate = useSpring(
+    useTransform(mx, [0, 1], [-3.2, 3.2]),
+    { stiffness: 20, damping: 28, mass: 1.2 }
+  );
+  const backgroundLoop = reduceMotion ? 0 : Infinity;
 
   const onMouse = useCallback(
     (e: MouseEvent) => {
@@ -132,87 +289,226 @@ export const Hero = () => {
       {/* ── Background animation ── */}
       <motion.div
         style={{ y: imageY, scale: imageScale }}
-        className="absolute inset-0 bg-[#0c0806]"
+        className="absolute inset-0 bg-[#080503]"
       >
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 4, ease: EASE_OUT }}
+          transition={{ duration: 2.8, ease: EASE_OUT }}
           className="w-full h-full relative overflow-hidden"
         >
-          {/* Base: Warm, dimly lit enoteca atmosphere */}
-          <div className="absolute inset-0 bg-[#0c0806]" />
+          <div className="absolute inset-0 bg-[#080503]" />
 
-          {/* Golden Hour Core Wash: Deep amber/orange sun glow diffused through glass */}
-          <motion.div
-            animate={{
-              scale: [1, 1.05, 0.98, 1],
-              opacity: [0.35, 0.45, 0.35],
-              y: ["0%", "-2%", "1%", "0%"]
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage:
+                "radial-gradient(132% 116% at 78% 14%, rgba(227, 170, 99, 0.4) 0%, rgba(127, 75, 35, 0.27) 29%, rgba(36, 19, 12, 0.76) 58%, rgba(8, 5, 3, 1) 100%), linear-gradient(112deg, #060302 0%, #090503 34%, #1a0f09 61%, #2a170d 100%)",
             }}
-            transition={{ duration: 20, ease: "easeInOut", repeat: Infinity }}
-            className="absolute top-[-10%] right-[-5%] w-[80vw] h-[90vh] bg-[radial-gradient(ellipse_at_center,rgba(163,127,91,0.45)_0%,rgba(196,91,20,0.15)_40%,transparent_70%)] blur-[60px] mix-blend-screen pointer-events-none origin-center"
           />
 
-          {/* Architectural Shadows: Heavy, organic occlusion acting like stone walls or wine racks */}
           <motion.div
-            animate={{
-              x: ["0%", "-3%", "1%", "0%"],
-              scale: [1, 1.02, 0.99, 1]
-            }}
-            transition={{ duration: 28, ease: "easeInOut", repeat: Infinity }}
-            className="absolute top-[10%] right-[15%] w-[50vw] h-[100vh] bg-[#060403] rounded-[40%_60%_70%_30%/50%_40%_60%_50%] blur-[80px] opacity-95 pointer-events-none origin-bottom"
-          />
-
-          {/* Primary Window Light Slit: Sharp, blinding ray of setting sun */}
-          <motion.div
-            animate={{ opacity: [0.6, 0.85, 0.6], x: [-5, 10, -5] }}
-            transition={{ duration: 12, ease: "easeInOut", repeat: Infinity }}
-            className="absolute top-[-20%] right-[25%] w-[2px] h-[150vh] bg-gradient-to-b from-transparent via-brand-200/80 to-transparent rotate-[32deg] blur-[1px] mix-blend-color-dodge shadow-[0_0_20px_rgba(209,190,168,0.5)] pointer-events-none"
-          />
-
-          {/* Secondary Light Ray: Softer, scattered from the window edge */}
-          <motion.div
-            animate={{ opacity: [0.2, 0.4, 0.2], x: [10, -5, 10] }}
-            transition={{ duration: 15, ease: "easeInOut", repeat: Infinity, delay: 1 }}
-            className="absolute top-[-15%] right-[22%] w-[12vw] h-[140vh] bg-gradient-to-b from-transparent via-brand-400/20 to-transparent rotate-[32deg] blur-[30px] mix-blend-color-dodge pointer-events-none"
-          />
-
-          {/* Tertiary Heat: The deep red underglow of late dusk hitting wood/leather */}
-          <motion.div
-            animate={{ opacity: [0.1, 0.2, 0.1], scale: [0.9, 1.1, 0.9] }}
-            transition={{ duration: 25, ease: "easeInOut", repeat: Infinity, delay: 3 }}
-            className="absolute bottom-[-10%] right-[20%] w-[60vw] h-[60vh] bg-[radial-gradient(circle_at_center,rgba(102,30,5,0.4)_0%,transparent_60%)] blur-[50px] mix-blend-color-dodge pointer-events-none"
-          />
-
-          {/* Floating Dust Bokeh: Slow moving particles catching the light */}
-          {[...Array(5)].map((_, i) => (
+            style={{ x: atmosphereX, y: atmosphereY }}
+            className="absolute inset-0 pointer-events-none"
+          >
             <motion.div
-              key={i}
-              initial={{ y: "120%", opacity: 0, scale: i % 2 === 0 ? 0.8 : 1.2 }}
-              animate={{ 
-                y: "-50%", 
-                opacity: [0, 0.6, 0.8, 0],
-                x: [0, (i % 2 === 0 ? 60 : -60), 0]
-              }}
+              animate={
+                reduceMotion
+                  ? { opacity: 0.42, scale: 1, y: "0%" }
+                  : {
+                      opacity: [0.34, 0.48, 0.38],
+                      scale: [1, 1.04, 0.98, 1],
+                      y: ["0%", "-3%", "1%", "0%"],
+                    }
+              }
               transition={{
-                duration: 20 + i * 5,
-                repeat: Infinity,
-                ease: "linear",
-                delay: i * 3.5
+                duration: 26,
+                ease: "easeInOut",
+                repeat: backgroundLoop,
               }}
-              className="absolute mix-blend-screen pointer-events-none rounded-full blur-[24px] bg-[radial-gradient(circle_at_center,rgba(209,190,168,0.3)_0%,transparent_70%)]"
+              className="absolute -top-[18%] right-[-4%] w-[84vw] h-[95vh] rounded-[56%_44%_58%_42%/45%_56%_44%_55%] blur-[68px] mix-blend-screen"
               style={{
-                right: `${15 + i * 8}%`,
-                width: `${15 + (i % 3) * 5}vw`,
-                height: `${15 + (i % 3) * 5}vw`,
+                background:
+                  "radial-gradient(ellipse at center, rgba(244, 206, 152, 0.42) 0%, rgba(214, 137, 66, 0.18) 34%, rgba(120, 62, 30, 0.08) 58%, transparent 74%)",
+              }}
+            />
+
+            <motion.div
+              style={{ x: warmLightX, y: warmLightY }}
+              animate={
+                reduceMotion
+                  ? { opacity: 0.28, scale: 1 }
+                  : {
+                      opacity: [0.2, 0.34, 0.24],
+                      scale: [0.95, 1.08, 1],
+                    }
+              }
+              transition={{
+                duration: 22,
+                ease: "easeInOut",
+                repeat: backgroundLoop,
+                delay: 1,
+              }}
+              className="absolute bottom-[-22%] right-[14%] w-[68vw] h-[55vh] blur-[54px] mix-blend-color-dodge"
+              style={{
+                background:
+                  "radial-gradient(circle at center, rgba(136, 61, 27, 0.34) 0%, rgba(76, 31, 14, 0.24) 38%, transparent 70%)",
+              }}
+            />
+          </motion.div>
+
+          {SHADOW_VOLUMES.map((shape, index) => (
+            <motion.div
+              key={`shadow-volume-${index}`}
+              animate={
+                reduceMotion
+                  ? { x: 0, scale: 1, opacity: shape.opacity }
+                  : {
+                      x: [0, shape.drift, shape.drift * -0.55, 0],
+                      scale: [1, 1.03, 0.99, 1],
+                      opacity: [shape.opacity * 0.9, shape.opacity, shape.opacity * 0.88],
+                    }
+              }
+              transition={{
+                duration: shape.duration,
+                ease: "easeInOut",
+                repeat: backgroundLoop,
+                delay: shape.delay,
+              }}
+              className="absolute pointer-events-none"
+              style={{
+                top: shape.top,
+                right: shape.right,
+                width: shape.width,
+                height: shape.height,
+                borderRadius: shape.radius,
+                filter: `blur(${shape.blur})`,
+                background:
+                  "radial-gradient(ellipse at center, rgba(17, 9, 6, 0.95) 0%, rgba(8, 5, 3, 0.9) 45%, rgba(6, 4, 3, 0.15) 82%)",
               }}
             />
           ))}
 
-          {/* Deep Vignette / Text Canvas Mask: Ensures left and bottom are submerged in deep shadow for readability */}
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_60%,transparent_0%,#0a0705_85%)] pointer-events-none" />
-          <div className="absolute w-[70%] h-full left-0 top-0 bg-gradient-to-r from-[#070403] via-[#070403]/90 to-transparent pointer-events-none" />
+          <motion.div
+            animate={
+              reduceMotion
+                ? { opacity: 0.24 }
+                : {
+                    opacity: [0.18, 0.28, 0.22],
+                    scale: [1, 1.03, 1],
+                  }
+            }
+            transition={{
+              duration: 30,
+              ease: "easeInOut",
+              repeat: backgroundLoop,
+              delay: 1.2,
+            }}
+            className="absolute top-[-30%] right-[-14%] w-[92vw] h-[132vh] pointer-events-none blur-[46px] mix-blend-screen"
+            style={{
+              rotate: hazeRotate,
+              background:
+                "conic-gradient(from 170deg at 66% 46%, rgba(255, 224, 176, 0.2) 0deg, rgba(201, 122, 58, 0.14) 72deg, rgba(58, 30, 17, 0.04) 178deg, rgba(151, 96, 54, 0.16) 288deg, rgba(255, 224, 176, 0.2) 360deg)",
+            }}
+          />
+
+          {LIGHT_SHAFTS.map((shaft, index) => (
+            <motion.div
+              key={`light-shaft-${index}`}
+              animate={
+                reduceMotion
+                  ? { x: 0, opacity: shaft.opacity[1] }
+                  : {
+                      x: [0, shaft.travel, shaft.travel * -0.35, 0],
+                      opacity: shaft.opacity,
+                    }
+              }
+              transition={{
+                duration: shaft.duration,
+                ease: "easeInOut",
+                repeat: backgroundLoop,
+                delay: shaft.delay,
+              }}
+              className="absolute pointer-events-none mix-blend-color-dodge"
+              style={{
+                top: shaft.top,
+                right: shaft.right,
+                width: shaft.width,
+                height: shaft.height,
+                transform: `rotate(${shaft.angle})`,
+                filter: `blur(${shaft.blur})`,
+                background: `linear-gradient(to bottom, transparent 0%, ${shaft.glow} 46%, transparent 100%)`,
+                boxShadow:
+                  shaft.width === "2px"
+                    ? "0 0 26px rgba(255, 223, 176, 0.55)"
+                    : "none",
+              }}
+            />
+          ))}
+
+          <div
+            className="absolute inset-0 opacity-[0.12] mix-blend-soft-light pointer-events-none"
+            style={{
+              backgroundImage:
+                "repeating-linear-gradient(90deg, rgba(236, 214, 182, 0.08) 0px, rgba(236, 214, 182, 0.08) 1px, transparent 1px, transparent 44px), repeating-linear-gradient(0deg, rgba(92, 57, 34, 0.18) 0px, rgba(92, 57, 34, 0.18) 1px, transparent 1px, transparent 22px)",
+              backgroundSize: "100% 100%, 100% 100%",
+            }}
+          />
+
+          <motion.div
+            animate={
+              reduceMotion
+                ? { opacity: 0.14 }
+                : { opacity: [0.1, 0.18, 0.12], y: ["0%", "-2%", "0%"] }
+            }
+            transition={{
+              duration: 24,
+              ease: "easeInOut",
+              repeat: backgroundLoop,
+            }}
+            className="absolute inset-0 mix-blend-overlay pointer-events-none"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle at 72% 22%, rgba(255, 240, 215, 0.16) 0%, transparent 42%), radial-gradient(circle at 85% 42%, rgba(216, 169, 114, 0.1) 0%, transparent 38%), radial-gradient(circle at 64% 62%, rgba(140, 88, 50, 0.08) 0%, transparent 36%)",
+            }}
+          />
+
+          {DUST_MOTES.map((particle, index) => (
+            <motion.div
+              key={`dust-${index}`}
+              initial={{ y: "18%", opacity: 0 }}
+              animate={
+                reduceMotion
+                  ? { y: "0%", opacity: particle.opacity * 0.45, x: 0, scale: 1 }
+                  : {
+                      y: ["20%", "-36%", "-56%"],
+                      x: [0, particle.drift, particle.drift * -0.22],
+                      opacity: [0, particle.opacity, particle.opacity * 0.72, 0],
+                      scale: [0.84, 1.06, 0.92],
+                    }
+              }
+              transition={{
+                duration: particle.duration,
+                ease: "easeInOut",
+                repeat: backgroundLoop,
+                delay: particle.delay,
+              }}
+              className="absolute rounded-full pointer-events-none mix-blend-screen"
+              style={{
+                top: particle.top,
+                left: particle.left,
+                width: particle.size,
+                height: particle.size,
+                filter: `blur(${particle.blur})`,
+                background:
+                  "radial-gradient(circle at 38% 38%, rgba(255, 233, 198, 0.44) 0%, rgba(230, 190, 140, 0.2) 34%, rgba(255, 233, 198, 0) 72%)",
+              }}
+            />
+          ))}
+
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_28%_58%,transparent_0%,rgba(5,3,2,0.94)_80%)] pointer-events-none" />
+          <div className="absolute inset-y-0 left-0 w-[72%] bg-gradient-to-r from-[#050302] via-[#050302]/96 to-transparent pointer-events-none" />
+          <div className="absolute inset-x-0 bottom-0 h-[38%] bg-gradient-to-t from-[#050302] via-[#050302]/70 to-transparent pointer-events-none" />
         </motion.div>
       </motion.div>
 
