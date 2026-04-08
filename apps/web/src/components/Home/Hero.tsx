@@ -2,7 +2,6 @@
 
 import React, { useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import {
   motion,
   useScroll,
@@ -128,31 +127,79 @@ export const Hero = () => {
   return (
     <section
       ref={containerRef}
-      className="relative h-screen w-full overflow-hidden bg-brand-950"
+      className="relative h-screen w-full overflow-hidden bg-[#020202]"
     >
-      {/* ── Background image ── */}
+      {/* ── Background animation ── */}
       <motion.div
         style={{ y: imageY, scale: imageScale }}
-        className="absolute inset-0"
+        className="absolute inset-0 bg-[#030303]"
       >
         <motion.div
-          initial={{ scale: 1.18, filter: "blur(20px)" }}
-          animate={{ scale: 1, filter: "blur(0px)" }}
-          transition={{ duration: 2.4, ease: EASE_OUT }}
-          className="w-full h-full"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 4, ease: EASE_OUT }}
+          className="w-full h-full relative overflow-hidden"
         >
-          <Image
-            src="https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?q=80&w=2670&auto=format&fit=crop"
-            alt="Kawa serwowana w kawiarni Il Buon Caffe w Koszalinie"
-            fill
-            priority
-            className="object-cover"
-            sizes="100vw"
+          {/* Base darkness and vast, controlled negative space */}
+          <div className="absolute inset-0 bg-[#030303]" />
+
+          {/* Primary Form: A monolithic, unidentifiable presence */}
+          <motion.div
+            animate={{
+              rotate: [0, 1.5, -0.5, 0],
+              scale: [1, 1.01, 0.99, 1],
+            }}
+            transition={{ duration: 28, ease: "easeInOut", repeat: Infinity }}
+            className="absolute -top-[15%] -right-[15%] w-[110vw] h-[140vh] md:w-[80vw] bg-gradient-to-b from-[#0a0a0a] to-[#010101] opacity-95 origin-bottom-right"
+            style={{
+              borderRadius: "40% 60% 70% 30% / 40% 50% 60% 50%",
+              boxShadow: "inset 40px 0 120px rgba(0,0,0,0.9), -20px 40px 100px rgba(0,0,0,0.95)",
+            }}
           />
+
+          {/* Secondary Form: Impossible Balance & Tension */}
+          <motion.div
+            animate={{
+              rotate: [0, -2, 1, 0],
+              y: ["0%", "2%", "-1%", "0%"],
+            }}
+            transition={{ duration: 35, ease: "easeInOut", repeat: Infinity }}
+            className="absolute top-[20%] right-[15%] w-[40vw] h-[90vh] bg-gradient-to-tr from-[#111] to-transparent backdrop-blur-[2px] origin-top-left mix-blend-color-dodge"
+            style={{
+              borderRadius: "20% 80% 30% 70% / 50% 30% 70% 50%",
+              boxShadow: "inset -5px -5px 30px rgba(255,255,255,0.01)",
+              border: "1px solid rgba(255,255,255,0.02)",
+            }}
+          />
+
+          {/* Edge Tension: Subtle interacting mass */}
+          <motion.div
+            animate={{
+              x: ["0%", "-2%", "1%", "0%"],
+            }}
+            transition={{ duration: 40, ease: "easeInOut", repeat: Infinity }}
+            className="absolute bottom-[-20%] left-[20%] w-[50vw] h-[50vh] bg-[#050505] rounded-[60%_40%_30%_70%/50%_60%_40%_50%] origin-center"
+            style={{
+              boxShadow: "inset 0 40px 80px rgba(0,0,0,1), 0 -20px 60px rgba(0,0,0,0.8)",
+            }}
+          />
+
+          {/* Surgical Lighting: Quiet, deliberate slit of light revealing the texture */}
+          <div className="absolute top-[-10%] right-[30%] w-[1px] h-[130vh] bg-gradient-to-b from-transparent via-white/10 to-transparent rotate-[28deg] mix-blend-screen opacity-70" />
+          
+          <motion.div
+            animate={{ opacity: [0.02, 0.04, 0.02] }}
+            transition={{ duration: 8, ease: "easeInOut", repeat: Infinity }}
+            className="absolute top-[5%] right-[25%] w-[35vw] h-[150vh] bg-[conic-gradient(from_152deg_at_50%_0%,rgba(255,255,255,1)_0deg,transparent_15deg,transparent_345deg,rgba(255,255,255,1)_360deg)] rotate-[28deg] mix-blend-overlay transform-gpu"
+            style={{ transformOrigin: "top center" }}
+          />
+
+          {/* Atmospherics: Unresolved shadows breathing over the scene */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_35%_65%,transparent_0%,#010101_85%)]" />
+          
+          {/* Vast controlled negative space masking content side */}
+          <div className="absolute w-[65%] h-full left-0 top-0 bg-gradient-to-r from-[#020202] via-[#020202]/90 to-transparent" />
         </motion.div>
-        {/* Layered overlays */}
-        <div className="absolute inset-0 bg-gradient-to-t from-brand-950 via-brand-950/40 to-brand-950/10" />
-        <div className="absolute inset-0 bg-gradient-to-r from-brand-950/70 via-brand-950/25 to-transparent" />
       </motion.div>
 
       {/* ── Film grain ── */}
