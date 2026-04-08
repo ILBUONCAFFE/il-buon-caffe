@@ -263,20 +263,24 @@ function SettingsPanel({
         </div>
 
         {/* Body */}
-        <div className="space-y-3 p-6">
+        <div className="max-h-[60vh] overflow-y-auto p-6 space-y-4">
+          <p className="text-sm text-brand-600 mb-4">
+            Zarządzaj swoimi preferencjami dotyczącymi plików cookies. Pamiętaj, że zablokowanie niektórych rodzajów cookies może wpłynąć na wygodę korzystania z naszej strony.
+          </p>
+
           {/* Necessary — always on */}
-          <div className="flex items-start justify-between gap-4 rounded-xl border border-brand-100 bg-brand-50/50 p-4">
+          <div className="flex items-start justify-between gap-4 rounded-xl border border-brand-200 bg-brand-50 p-4">
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-brand-950">Niezbędne</p>
-              <p className="mt-1 text-xs leading-relaxed text-brand-500">
+              <p className="mt-1 text-xs leading-relaxed text-brand-600">
                 Wymagane do prawidłowego działania sklepu: sesja, koszyk,
-                bezpieczeństwo.
+                bezpieczeństwo. Nie można ich wyłączyć.
               </p>
             </div>
             <div className="flex flex-col items-end gap-1 pt-0.5">
               <Toggle enabled locked />
-              <span className="text-[10px] font-medium uppercase tracking-wide text-brand-400">
-                zawsze
+              <span className="text-[10px] font-medium uppercase tracking-wider text-brand-500">
+                zawsze włączone
               </span>
             </div>
           </div>
@@ -285,17 +289,17 @@ function SettingsPanel({
           {CATEGORIES.map((cat) => (
             <div
               key={cat.id}
-              className="flex items-start justify-between gap-4 rounded-xl border border-brand-100 p-4 transition hover:border-brand-200"
+              className="flex items-start justify-between gap-4 rounded-xl border border-brand-200 p-4 transition-colors hover:border-brand-300"
             >
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-brand-950">
                   {cat.label}
                 </p>
-                <p className="mt-1 text-xs leading-relaxed text-brand-500">
+                <p className="mt-1 text-xs leading-relaxed text-brand-600">
                   {cat.description}
                 </p>
-                <p className="mt-1.5 text-[11px] text-brand-400">
-                  {cat.examples}
+                <p className="mt-2 text-[11px] text-brand-500 font-medium">
+                  Przykłady: {cat.examples}
                 </p>
               </div>
               <div className="flex-shrink-0 pt-0.5">
@@ -308,39 +312,46 @@ function SettingsPanel({
           ))}
 
           {/* Legal links */}
-          <p className="px-1 text-xs text-brand-400">
-            Więcej informacji:{" "}
+          <div className="pt-2 px-1 text-xs text-brand-500">
+            Więcej informacji znajdziesz w naszej{" "}
             <Link
               href="/polityka-prywatnosci"
-              className="underline underline-offset-2 hover:text-brand-700"
+              className="font-medium text-brand-700 underline underline-offset-2 transition hover:text-brand-950"
             >
-              Polityka prywatności
+              Polityce prywatności
             </Link>{" "}
-            ·{" "}
+            oraz{" "}
             <Link
               href="/polityka-cookies"
-              className="underline underline-offset-2 hover:text-brand-700"
+              className="font-medium text-brand-700 underline underline-offset-2 transition hover:text-brand-950"
             >
-              Polityka cookies
-            </Link>
-          </p>
+              Polityce cookies
+            </Link>.
+          </div>
         </div>
 
         {/* Footer */}
-        <div className="flex flex-col gap-2 border-t border-brand-100 px-6 py-4 sm:flex-row sm:justify-between">
+        <div className="flex flex-col gap-3 border-t border-brand-100 bg-brand-50/50 px-6 py-4 sm:flex-row sm:items-center sm:justify-end">
           <button
             type="button"
             onClick={() => onSave({ analytics: false, marketing: false })}
-            className="rounded-xl border border-brand-200 px-4 py-2.5 text-sm font-semibold text-brand-700 transition hover:border-brand-400 hover:text-brand-900"
+            className="w-full sm:w-auto rounded-xl border border-brand-300 bg-white px-4 py-2.5 text-sm font-medium text-brand-700 shadow-sm transition hover:bg-brand-50 hover:text-brand-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
           >
             Odrzuć opcjonalne
           </button>
           <button
             type="button"
             onClick={() => onSave(settings)}
-            className="rounded-xl bg-brand-950 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-800"
+            className="w-full sm:w-auto rounded-xl border border-brand-300 bg-white px-4 py-2.5 text-sm font-semibold text-brand-800 shadow-sm transition hover:bg-brand-50 hover:text-brand-950 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
           >
-            Zapisz ustawienia
+            Zapisz wybrane
+          </button>
+          <button
+            type="button"
+            onClick={() => onSave({ analytics: true, marketing: true })}
+            className="w-full sm:w-auto rounded-xl bg-brand-950 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-800 focus:outline-none focus:ring-2 focus:ring-brand-900 focus:ring-offset-2"
+          >
+            Akceptuj wszystkie
           </button>
         </div>
       </motion.div>
@@ -429,20 +440,21 @@ export function ConsentBanner() {
             </div>
 
             {/* Actions */}
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-3">
               <button
                 type="button"
                 onClick={() => setShowSettings(true)}
-                className="rounded-xl border border-brand-200 px-4 py-2 text-sm font-medium text-brand-600 transition hover:border-brand-400 hover:text-brand-900"
+                className="rounded-xl bg-brand-50 px-4 py-2 text-sm font-medium text-brand-700 transition hover:bg-brand-100 hover:text-brand-900 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
               >
                 Ustawienia
               </button>
+              <div className="flex-1" />
               <button
                 type="button"
                 onClick={() =>
                   handleAccept({ analytics: false, marketing: false })
                 }
-                className="rounded-xl border border-brand-300 px-4 py-2 text-sm font-semibold text-brand-800 transition hover:border-brand-500 hover:text-brand-950"
+                className="rounded-xl border border-brand-300 bg-white px-4 py-2 text-sm font-semibold text-brand-800 shadow-sm transition hover:bg-brand-50 hover:text-brand-950 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
               >
                 Tylko niezbędne
               </button>
@@ -451,9 +463,9 @@ export function ConsentBanner() {
                 onClick={() =>
                   handleAccept({ analytics: true, marketing: true })
                 }
-                className="rounded-xl bg-brand-950 px-5 py-2 text-sm font-semibold text-white transition hover:bg-brand-800"
+                className="rounded-xl bg-brand-950 px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-800 focus:outline-none focus:ring-2 focus:ring-brand-900 focus:ring-offset-2"
               >
-                Akceptuję wszystko
+                Akceptuj wszystko
               </button>
             </div>
           </div>
