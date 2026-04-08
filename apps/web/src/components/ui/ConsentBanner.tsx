@@ -50,8 +50,8 @@ function applyConsent(choice: ConsentChoice) {
   globalWindow.dataLayer = globalWindow.dataLayer || [];
   globalWindow.gtag =
     globalWindow.gtag ||
-    function gtag(...args: unknown[]) {
-      globalWindow.dataLayer?.push(args);
+    function gtag() {
+      globalWindow.dataLayer?.push(arguments);
     };
 
   globalWindow.gtag("consent", "update", CONSENT_BY_CHOICE[choice]);
