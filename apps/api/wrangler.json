@@ -15,6 +15,11 @@
 			"binding": "CATALOGS_BUCKET",
 			"bucket_name": "il-buon-caffe-catalogs",
 			"preview_bucket_name": "il-buon-caffe-catalogs-dev"
+		},
+		{
+			"binding": "MEDIA_BUCKET",
+			"bucket_name": "il-buon-caffe-media",
+			"preview_bucket_name": "il-buon-caffe-media-dev"
 		}
 	],
 	"kv_namespaces": [

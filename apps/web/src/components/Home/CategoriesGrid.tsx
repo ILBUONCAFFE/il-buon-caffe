@@ -20,34 +20,32 @@ interface Category {
   image: string;
 }
 
+const R2_MEDIA_BASE = process.env.NEXT_PUBLIC_R2_MEDIA_URL || "https://media.ilbuoncaffe.pl";
+
 const categories: Category[] = [
   {
     title: "Kawa",
     subtitle: "Specialty",
     href: "/sklep/kawa",
-    image:
-      "https://images.unsplash.com/photo-1497935586351-b67a49e012bf?q=80&w=800&auto=format&fit=crop",
+    image: `${R2_MEDIA_BASE}/categories/kawa.webp`,
   },
   {
     title: "Wina",
     subtitle: "i Alkohole",
     href: "/sklep/wino",
-    image:
-      "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?q=80&w=800&auto=format&fit=crop",
+    image: `${R2_MEDIA_BASE}/categories/wino.webp`,
   },
   {
     title: "Delikatesy",
     subtitle: "Włoskie",
     href: "/sklep/spizarnia",
-    image:
-      "https://images.unsplash.com/photo-1550989460-0adf9ea622e2?q=80&w=800&auto=format&fit=crop",
+    image: `${R2_MEDIA_BASE}/categories/delikatesy.webp`,
   },
   {
     title: "Akcesoria",
     subtitle: "Baristy",
     href: "/sklep",
-    image:
-      "https://images.unsplash.com/photo-1544244222-38db31cdaaf4?q=80&w=800&auto=format&fit=crop",
+    image: `${R2_MEDIA_BASE}/categories/akcesoria.webp`,
   },
 ];
 
