@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Playfair_Display, Lato, Pinyon_Script } from "next/font/google";
-import { GoogleTagManager } from "@next/third-parties/google";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
 import { Shell } from "@/components/layout/Shell";
 import ChunkLoadRecovery from "@/components/ChunkLoadRecovery";
@@ -157,7 +157,6 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pl" suppressHydrationWarning>
-      <GoogleTagManager gtmId="GTM-PQJ24P8L" />
       <body className={`${lato.variable} ${playfair.variable} ${pinyon.variable} font-sans antialiased`} suppressHydrationWarning>
         <script
           type="application/ld+json"
@@ -172,6 +171,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           {children}
         </Shell>
       </body>
+      <GoogleAnalytics gaId="G-9X9LN9GQYD" />
     </html>
   );
 }
