@@ -127,12 +127,12 @@ export const Hero = () => {
   return (
     <section
       ref={containerRef}
-      className="relative h-screen w-full overflow-hidden bg-[#020202]"
+      className="relative h-screen w-full overflow-hidden bg-[#0a0705]"
     >
       {/* ── Background animation ── */}
       <motion.div
         style={{ y: imageY, scale: imageScale }}
-        className="absolute inset-0 bg-[#030303]"
+        className="absolute inset-0 bg-[#0c0806]"
       >
         <motion.div
           initial={{ opacity: 0 }}
@@ -140,65 +140,79 @@ export const Hero = () => {
           transition={{ duration: 4, ease: EASE_OUT }}
           className="w-full h-full relative overflow-hidden"
         >
-          {/* Base darkness and vast, controlled negative space */}
-          <div className="absolute inset-0 bg-[#030303]" />
+          {/* Base: Warm, dimly lit enoteca atmosphere */}
+          <div className="absolute inset-0 bg-[#0c0806]" />
 
-          {/* Primary Form: A monolithic, unidentifiable presence */}
+          {/* Golden Hour Core Wash: Deep amber/orange sun glow diffused through glass */}
           <motion.div
             animate={{
-              rotate: [0, 1.5, -0.5, 0],
-              scale: [1, 1.01, 0.99, 1],
+              scale: [1, 1.05, 0.98, 1],
+              opacity: [0.35, 0.45, 0.35],
+              y: ["0%", "-2%", "1%", "0%"]
+            }}
+            transition={{ duration: 20, ease: "easeInOut", repeat: Infinity }}
+            className="absolute top-[-10%] right-[-5%] w-[80vw] h-[90vh] bg-[radial-gradient(ellipse_at_center,rgba(163,127,91,0.45)_0%,rgba(196,91,20,0.15)_40%,transparent_70%)] blur-[60px] mix-blend-screen pointer-events-none origin-center"
+          />
+
+          {/* Architectural Shadows: Heavy, organic occlusion acting like stone walls or wine racks */}
+          <motion.div
+            animate={{
+              x: ["0%", "-3%", "1%", "0%"],
+              scale: [1, 1.02, 0.99, 1]
             }}
             transition={{ duration: 28, ease: "easeInOut", repeat: Infinity }}
-            className="absolute -top-[15%] -right-[15%] w-[110vw] h-[140vh] md:w-[80vw] bg-gradient-to-b from-[#0a0a0a] to-[#010101] opacity-95 origin-bottom-right"
-            style={{
-              borderRadius: "40% 60% 70% 30% / 40% 50% 60% 50%",
-              boxShadow: "inset 40px 0 120px rgba(0,0,0,0.9), -20px 40px 100px rgba(0,0,0,0.95)",
-            }}
+            className="absolute top-[10%] right-[15%] w-[50vw] h-[100vh] bg-[#060403] rounded-[40%_60%_70%_30%/50%_40%_60%_50%] blur-[80px] opacity-95 pointer-events-none origin-bottom"
           />
 
-          {/* Secondary Form: Impossible Balance & Tension */}
+          {/* Primary Window Light Slit: Sharp, blinding ray of setting sun */}
           <motion.div
-            animate={{
-              rotate: [0, -2, 1, 0],
-              y: ["0%", "2%", "-1%", "0%"],
-            }}
-            transition={{ duration: 35, ease: "easeInOut", repeat: Infinity }}
-            className="absolute top-[20%] right-[15%] w-[40vw] h-[90vh] bg-gradient-to-tr from-[#111] to-transparent backdrop-blur-[2px] origin-top-left mix-blend-color-dodge"
-            style={{
-              borderRadius: "20% 80% 30% 70% / 50% 30% 70% 50%",
-              boxShadow: "inset -5px -5px 30px rgba(255,255,255,0.01)",
-              border: "1px solid rgba(255,255,255,0.02)",
-            }}
+            animate={{ opacity: [0.6, 0.85, 0.6], x: [-5, 10, -5] }}
+            transition={{ duration: 12, ease: "easeInOut", repeat: Infinity }}
+            className="absolute top-[-20%] right-[25%] w-[2px] h-[150vh] bg-gradient-to-b from-transparent via-brand-200/80 to-transparent rotate-[32deg] blur-[1px] mix-blend-color-dodge shadow-[0_0_20px_rgba(209,190,168,0.5)] pointer-events-none"
           />
 
-          {/* Edge Tension: Subtle interacting mass */}
+          {/* Secondary Light Ray: Softer, scattered from the window edge */}
           <motion.div
-            animate={{
-              x: ["0%", "-2%", "1%", "0%"],
-            }}
-            transition={{ duration: 40, ease: "easeInOut", repeat: Infinity }}
-            className="absolute bottom-[-20%] left-[20%] w-[50vw] h-[50vh] bg-[#050505] rounded-[60%_40%_30%_70%/50%_60%_40%_50%] origin-center"
-            style={{
-              boxShadow: "inset 0 40px 80px rgba(0,0,0,1), 0 -20px 60px rgba(0,0,0,0.8)",
-            }}
+            animate={{ opacity: [0.2, 0.4, 0.2], x: [10, -5, 10] }}
+            transition={{ duration: 15, ease: "easeInOut", repeat: Infinity, delay: 1 }}
+            className="absolute top-[-15%] right-[22%] w-[12vw] h-[140vh] bg-gradient-to-b from-transparent via-brand-400/20 to-transparent rotate-[32deg] blur-[30px] mix-blend-color-dodge pointer-events-none"
           />
 
-          {/* Surgical Lighting: Quiet, deliberate slit of light revealing the texture */}
-          <div className="absolute top-[-10%] right-[30%] w-[1px] h-[130vh] bg-gradient-to-b from-transparent via-white/10 to-transparent rotate-[28deg] mix-blend-screen opacity-70" />
-          
+          {/* Tertiary Heat: The deep red underglow of late dusk hitting wood/leather */}
           <motion.div
-            animate={{ opacity: [0.02, 0.04, 0.02] }}
-            transition={{ duration: 8, ease: "easeInOut", repeat: Infinity }}
-            className="absolute top-[5%] right-[25%] w-[35vw] h-[150vh] bg-[conic-gradient(from_152deg_at_50%_0%,rgba(255,255,255,1)_0deg,transparent_15deg,transparent_345deg,rgba(255,255,255,1)_360deg)] rotate-[28deg] mix-blend-overlay transform-gpu"
-            style={{ transformOrigin: "top center" }}
+            animate={{ opacity: [0.1, 0.2, 0.1], scale: [0.9, 1.1, 0.9] }}
+            transition={{ duration: 25, ease: "easeInOut", repeat: Infinity, delay: 3 }}
+            className="absolute bottom-[-10%] right-[20%] w-[60vw] h-[60vh] bg-[radial-gradient(circle_at_center,rgba(102,30,5,0.4)_0%,transparent_60%)] blur-[50px] mix-blend-color-dodge pointer-events-none"
           />
 
-          {/* Atmospherics: Unresolved shadows breathing over the scene */}
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_35%_65%,transparent_0%,#010101_85%)]" />
-          
-          {/* Vast controlled negative space masking content side */}
-          <div className="absolute w-[65%] h-full left-0 top-0 bg-gradient-to-r from-[#020202] via-[#020202]/90 to-transparent" />
+          {/* Floating Dust Bokeh: Slow moving particles catching the light */}
+          {[...Array(5)].map((_, i) => (
+            <motion.div
+              key={i}
+              initial={{ y: "120%", opacity: 0, scale: i % 2 === 0 ? 0.8 : 1.2 }}
+              animate={{ 
+                y: "-50%", 
+                opacity: [0, 0.6, 0.8, 0],
+                x: [0, (i % 2 === 0 ? 60 : -60), 0]
+              }}
+              transition={{
+                duration: 20 + i * 5,
+                repeat: Infinity,
+                ease: "linear",
+                delay: i * 3.5
+              }}
+              className="absolute mix-blend-screen pointer-events-none rounded-full blur-[24px] bg-[radial-gradient(circle_at_center,rgba(209,190,168,0.3)_0%,transparent_70%)]"
+              style={{
+                right: `${15 + i * 8}%`,
+                width: `${15 + (i % 3) * 5}vw`,
+                height: `${15 + (i % 3) * 5}vw`,
+              }}
+            />
+          ))}
+
+          {/* Deep Vignette / Text Canvas Mask: Ensures left and bottom are submerged in deep shadow for readability */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_60%,transparent_0%,#0a0705_85%)] pointer-events-none" />
+          <div className="absolute w-[70%] h-full left-0 top-0 bg-gradient-to-r from-[#070403] via-[#070403]/90 to-transparent pointer-events-none" />
         </motion.div>
       </motion.div>
 
