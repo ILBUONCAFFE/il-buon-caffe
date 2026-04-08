@@ -121,11 +121,11 @@ export function ConsentBanner() {
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div className="max-w-3xl space-y-2">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-700">
-            Ustawienia prywatnosci
+              Ustawienia prywatności
           </p>
           <p className="text-sm leading-relaxed text-brand-900 md:text-[15px]">
-            Korzystamy z plikow cookies do niezbednego dzialania sklepu oraz analityki. Mozesz
-            zaakceptowac wszystkie cele, wlaczyc tylko analityke lub pozostac przy niezbednych.
+              Korzystamy z plików cookies do niezbędnego działania sklepu oraz analityki. Możesz
+              zaakceptować wszystkie cele, włączyć tylko analitykę lub pozostać przy niezbędnych.
           </p>
         </div>
 
@@ -135,7 +135,7 @@ export function ConsentBanner() {
             onClick={() => handleConsentChoice("necessary")}
             className="rounded-xl border border-brand-300 px-4 py-2 text-sm font-semibold text-brand-700 transition hover:border-brand-500 hover:text-brand-900"
           >
-            Tylko niezbedne
+              Tylko niezbędne
           </button>
           <button
             type="button"
@@ -149,7 +149,7 @@ export function ConsentBanner() {
             onClick={() => handleConsentChoice("all")}
             className="rounded-xl bg-brand-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-800"
           >
-            Akceptuje wszystko
+              Akceptuję wszystko
           </button>
         </div>
       </div>
