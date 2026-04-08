@@ -4,6 +4,76 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const API_ORIGIN = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8787'
+const R2_MEDIA_URL = process.env.NEXT_PUBLIC_R2_MEDIA_URL
+
+const parseRemotePatternFromUrl = (urlValue) => {
+  if (!urlValue) {
+    return null
+  }
+
+  try {
+    const parsed = new URL(urlValue)
+    const protocol = parsed.protocol.replace(':', '')
+
+    if (protocol !== 'http' && protocol !== 'https') {
+      return null
+    }
+
+    return {
+      protocol,
+      hostname: parsed.hostname,
+      pathname: '/**',
+    }
+  } catch {
+    return null
+  }
+}
+
+const IMAGE_REMOTE_PATTERNS = [
+  {
+    protocol: 'https',
+    hostname: 'images.unsplash.com',
+    pathname: '/**',
+  },
+  {
+    protocol: 'https',
+    hostname: 'plus.unsplash.com',
+    pathname: '/**',
+  },
+  {
+    protocol: 'https',
+    hostname: 'barahonda.com',
+    pathname: '/**',
+  },
+  {
+    protocol: 'https',
+    hostname: 'media.ilbuoncaffe.pl',
+    pathname: '/**',
+  },
+  {
+    protocol: 'https',
+    hostname: 'il-buon-caffe-media-dev.r2.cloudflarestorage.com',
+    pathname: '/**',
+  },
+  {
+    protocol: 'https',
+    hostname: 'il-buon-caffe-media.r2.cloudflarestorage.com',
+    pathname: '/**',
+  },
+]
+
+const envMediaPattern = parseRemotePatternFromUrl(R2_MEDIA_URL)
+
+if (
+  envMediaPattern &&
+  !IMAGE_REMOTE_PATTERNS.some(
+    pattern =>
+      pattern.protocol === envMediaPattern.protocol &&
+      pattern.hostname === envMediaPattern.hostname
+  )
+) {
+  IMAGE_REMOTE_PATTERNS.push(envMediaPattern)
+}
 
 // Security headers applied to all routes.
 // Admin routes receive additional hardened headers (CSP nonce, COOP/COEP/CORP)
@@ -106,28 +176,7 @@ const nextConfig = {
     root: path.resolve(__dirname, '../..'),
   },
   images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'images.unsplash.com',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'plus.unsplash.com',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'barahonda.com',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'media.ilbuoncaffe.pl',
-        pathname: '/**',
-      },
-    ],
+    remotePatterns: IMAGE_REMOTE_PATTERNS,
   },
 };
 

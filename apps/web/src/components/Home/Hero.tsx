@@ -94,7 +94,7 @@ const LIGHT_SHAFTS = [
     travel: 10,
     opacity: [0.08, 0.2, 0.1],
   },
-] as const;
+];
 
 const DUST_MOTES = [
   {
@@ -334,7 +334,6 @@ export const Hero = () => {
             />
 
             <motion.div
-              style={{ x: warmLightX, y: warmLightY }}
               animate={
                 reduceMotion
                   ? { opacity: 0.28, scale: 1 }
@@ -351,6 +350,8 @@ export const Hero = () => {
               }}
               className="absolute bottom-[-22%] right-[14%] w-[68vw] h-[55vh] blur-[54px] mix-blend-color-dodge"
               style={{
+                x: warmLightX,
+                y: warmLightY,
                 background:
                   "radial-gradient(circle at center, rgba(136, 61, 27, 0.34) 0%, rgba(76, 31, 14, 0.24) 38%, transparent 70%)",
               }}
