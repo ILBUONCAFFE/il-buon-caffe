@@ -1,5 +1,4 @@
 import { Hono } from 'hono'
-import { createDb } from '@repo/db/client'
 import { legalDocuments } from '@repo/db/schema'
 import { eq, and, desc, lte } from 'drizzle-orm'
 import type { Env } from '../index'
@@ -24,7 +23,13 @@ legalRouter.get('/:type', async (c) => {
       return c.json({ error: 'Nieprawidłowy typ dokumentu. Dozwolone: privacy-policy, terms, cookies' }, 400)
     }
 
-    const db     = createDb(c.env.DATABASE_URL)
+    // ── Edge cache — 30 min TTL (legal docs change very rarely) ──
+    const cache    = caches.default
+    const cacheKey = new Request(c.req.url)
+    const cached   = await cache.match(cacheKey)
+    if (cached) return cached
+
+    const db     = c.get('db')
     const dbType = toDbType(type)
 
     const doc = await db.query.legalDocuments.findFirst({
@@ -39,7 +44,7 @@ legalRouter.get('/:type', async (c) => {
       return c.json({ error: 'Dokument nie znaleziony' }, 404)
     }
 
-    return c.json({
+    const body     = JSON.stringify({
       success: true,
       data: {
         type:          doc.type,
@@ -49,6 +54,15 @@ legalRouter.get('/:type', async (c) => {
         contentType:   'text/html',
       },
     })
+    const response = new Response(body, {
+      status: 200,
+      headers: {
+        'Content-Type':  'application/json',
+        'Cache-Control': 'public, max-age=1800, s-maxage=1800',
+      },
+    })
+    c.executionCtx.waitUntil(cache.put(cacheKey, response.clone()))
+    return response
   } catch (err) {
     console.error('GET /legal/:type error:', err instanceof Error ? err.message : String(err))
     return c.json({ error: 'Błąd serwera' }, 500)
@@ -66,7 +80,7 @@ legalRouter.get('/:type/history', async (c) => {
       return c.json({ error: 'Nieprawidłowy typ dokumentu' }, 400)
     }
 
-    const db     = createDb(c.env.DATABASE_URL)
+    const db     = c.get('db')
     const dbType = toDbType(type)
 
     const docs = await db

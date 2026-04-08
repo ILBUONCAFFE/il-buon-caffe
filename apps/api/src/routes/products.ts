@@ -1,5 +1,4 @@
 import { Hono } from 'hono'
-import { createDb } from '@repo/db/client'
 import { products, categories, productImages } from '@repo/db/schema'
 import { eq, and, gt, sql, asc, desc, count } from 'drizzle-orm'
 import type { Env } from '../index'
@@ -18,7 +17,7 @@ productsRouter.get('/', async (c) => {
     const cached   = await cache.match(cacheKey)
     if (cached) return cached
 
-    const db = createDb(c.env.DATABASE_URL)
+    const db = c.get('db')
 
     // Parse query params
     const categorySlug = c.req.query('category')
@@ -124,7 +123,7 @@ productsRouter.get('/:slug', async (c) => {
     const cached   = await cache.match(cacheKey)
     if (cached) return cached
 
-    const db   = createDb(c.env.DATABASE_URL)
+    const db   = c.get('db')
     const slug = c.req.param('slug')
 
     const product = await db.query.products.findFirst({

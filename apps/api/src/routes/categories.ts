@@ -1,5 +1,4 @@
 import { Hono } from 'hono'
-import { createDb } from '@repo/db/client'
 import { categories, products } from '@repo/db/schema'
 import { eq, and, count, sql } from 'drizzle-orm'
 import type { Env } from '../index'
@@ -19,7 +18,7 @@ categoriesRouter.get('/', async (c) => {
     const cached   = await cache.match(cacheKey)
     if (cached) return cached
 
-    const db = createDb(c.env.DATABASE_URL)
+    const db = c.get('db')
 
     const rows = await db
       .select({
@@ -75,7 +74,13 @@ categoriesRouter.get('/', async (c) => {
 // ============================================
 categoriesRouter.get('/:slug', async (c) => {
   try {
-    const db   = createDb(c.env.DATABASE_URL)
+    // ── Edge cache — 10 min TTL (same as list) ──
+    const cache    = caches.default
+    const cacheKey = new Request(c.req.url)
+    const cached   = await cache.match(cacheKey)
+    if (cached) return cached
+
+    const db   = c.get('db')
     const slug = c.req.param('slug')
 
     const cat = await db.query.categories.findFirst({
@@ -86,7 +91,16 @@ categoriesRouter.get('/:slug', async (c) => {
       return c.json({ error: 'Kategoria nie znaleziona' }, 404)
     }
 
-    return c.json({ success: true, data: cat })
+    const body     = JSON.stringify({ success: true, data: cat })
+    const response = new Response(body, {
+      status: 200,
+      headers: {
+        'Content-Type':  'application/json',
+        'Cache-Control': 'public, max-age=600, s-maxage=600',
+      },
+    })
+    c.executionCtx.waitUntil(cache.put(cacheKey, response.clone()))
+    return response
   } catch (error) {
     return serverError(c, 'GET /categories/:slug', error)
   }

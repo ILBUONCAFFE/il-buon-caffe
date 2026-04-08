@@ -87,40 +87,16 @@ app.use('/health', healthRateLimiter)
 // Shared DB client per request — all routes/middleware read c.get('db')
 app.use('/api/*', dbMiddleware())
 app.use('/admin/*', dbMiddleware())
-app.use('/health', dbMiddleware())
 
 // ── Health / Ping ─────────────────────────────────────────────────────────
 app.get('/', (c) => c.text('Il Buon Caffe API is running!'))
 
-// Cache health-check result for 30s to avoid needless Neon wake-ups
-let _healthCache: { ts: number; json: Record<string, unknown>; code: number } | null = null
-const HEALTH_CACHE_TTL = 30_000
-
-app.get('/health', async (c) => {
-  const now = Date.now()
-  if (_healthCache && now - _healthCache.ts < HEALTH_CACHE_TTL) {
-    return c.json(_healthCache.json, _healthCache.code as 200 | 503)
-  }
-
-  const result: { status: string; timestamp: string; database?: string; error?: string } = {
+// Health check — lightweight, NO database query (prevents Neon wake-ups from monitoring)
+app.get('/health', (c) => {
+  return c.json({
     status:    'ok',
     timestamp: new Date().toISOString(),
-  }
-
-  try {
-    const db       = c.get('db')
-    const dbResult = await db.execute('SELECT 1' as any)
-    result.database = dbResult.rows?.length ? 'connected' : 'no response'
-  } catch (err) {
-    console.error('[Health] DB check failed:', err instanceof Error ? err.message : String(err))
-    result.status   = 'degraded'
-    result.database = 'disconnected'
-    result.error    = 'database_unavailable'
-  }
-
-  const code = result.status === 'ok' ? 200 : 503
-  _healthCache = { ts: now, json: result, code }
-  return c.json(result, code as 200 | 503)
+  })
 })
 
 // ── Auth ──────────────────────────────────────────────────────────────────
@@ -247,8 +223,8 @@ async function autoRefreshAllegroToken(env: Env): Promise<void> {
     if (env.ALLEGRO_KV) {
       const ttl = Math.max(Math.floor((expiresAt.getTime() - Date.now()) / 1000), 60)
       await Promise.all([
-        env.ALLEGRO_KV.put(KV_KEYS.ACCESS_TOKEN,  tokens.access_token,  { expirationTtl: ttl }),
-        env.ALLEGRO_KV.put(KV_KEYS.REFRESH_TOKEN, tokens.refresh_token),
+        env.ALLEGRO_KV.put(KV_KEYS.ACCESS_TOKEN,  encAccess,  { expirationTtl: ttl }),
+        env.ALLEGRO_KV.put(KV_KEYS.REFRESH_TOKEN, encRefresh),
         env.ALLEGRO_KV.put(KV_KEYS.ENVIRONMENT,   environment),
         env.ALLEGRO_KV.put('allegro:token_expires_at', expiresAt.toISOString()),
         env.ALLEGRO_KV.delete(KV_KEYS.STATUS),
