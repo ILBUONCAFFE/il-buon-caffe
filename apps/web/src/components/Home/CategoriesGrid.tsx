@@ -41,12 +41,6 @@ const categories: Category[] = [
     href: "/sklep/spizarnia",
     image: `${R2_MEDIA_BASE}/categories/delikatesy.webp`,
   },
-  {
-    title: "Akcesoria",
-    subtitle: "Baristy",
-    href: "/sklep",
-    image: `${R2_MEDIA_BASE}/categories/akcesoria.webp`,
-  },
 ];
 
 // ── Category row ───────────────────────────────────────────────────
