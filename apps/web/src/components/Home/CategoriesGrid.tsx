@@ -37,7 +37,7 @@ const categories: Category[] = [
   },
   {
     title: "Delikatesy",
-    subtitle: "Włoskie",
+    subtitle: "Włoskie i hiszpańskie",
     href: "/sklep/spizarnia",
     image: `${R2_MEDIA_BASE}/categories/delikatesy.webp`,
   },
