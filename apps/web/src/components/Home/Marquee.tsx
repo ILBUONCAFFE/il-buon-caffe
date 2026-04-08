@@ -1,7 +1,4 @@
-"use client";
-
 import React from "react";
-import { motion } from "motion/react";
 
 // ── Single marquee row ─────────────────────────────────────────────
 const MarqueeRow = ({
@@ -17,14 +14,14 @@ const MarqueeRow = ({
   outlined?: boolean;
   className?: string;
 }) => (
-  <div className={`flex overflow-hidden select-none ${className ?? ""}`}>
+  <div
+    className={`flex overflow-hidden select-none ${className ?? ""}`}
+    style={{ "--marquee-duration": `${duration}s` } as React.CSSProperties}
+  >
     {[0, 1].map((copy) => (
-      <motion.div
+      <div
         key={copy}
-        initial={{ x: reverse ? "-100%" : "0%" }}
-        animate={{ x: reverse ? "0%" : "-100%" }}
-        transition={{ duration, repeat: Infinity, ease: "linear" }}
-        className="flex flex-shrink-0"
+        className={`flex flex-shrink-0 ${reverse ? "animate-marquee-right" : "animate-marquee-left"}`}
       >
         {items.map((text, i) => (
           <span
@@ -39,7 +36,7 @@ const MarqueeRow = ({
             <span className="w-1.5 h-1.5 rounded-full bg-white/10 flex-shrink-0" />
           </span>
         ))}
-      </motion.div>
+      </div>
     ))}
   </div>
 );

@@ -3,16 +3,13 @@
 import React, { useRef, useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { motion } from "motion/react";
 import { ArrowUpRight, Plus } from "lucide-react";
 import { getFeaturedProducts } from "@/actions/products";
 import { Product } from "@/types";
 import { useCart } from "@/context/CartContext";
-import Lenis from "lenis";
 import { CATEGORY_NAMES } from "@/lib/constants";
 import { SHOP_ENABLED } from "@/config/launch";
-
-const EASE_OUT: [number, number, number, number] = [0.16, 1, 0.3, 1];
+import { InView } from "@/components/ui/InView";
 
 // ── Product card ───────────────────────────────────────────────────
 const ProductCard = ({
@@ -56,67 +53,66 @@ const ProductCard = ({
     "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=800";
 
   return (
-    <motion.div
-      className="relative flex-shrink-0 w-[280px] md:w-[340px] group select-none"
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.7, delay: index * 0.08, ease: EASE_OUT }}
-      viewport={{ once: true, margin: "-80px" }}
+    <InView
+      className="animate-reveal-up"
+      style={{ animationDelay: `${index * 80}ms` }}
     >
-      <Link
-        href={`/sklep/${categorySlug}/${productSlug}`}
-        className="block"
-      >
-        {/* Image */}
-        <div className="relative aspect-[3/4] rounded-xl bg-white border border-brand-100 overflow-hidden mb-5 transition-all duration-500 group-hover:border-brand-200 group-hover:shadow-lg group-hover:shadow-brand-900/5">
-          <Image
-            src={imageUrl}
-            alt={product.name}
-            fill
-            className="object-contain p-3 transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.04]"
-            sizes="(max-width: 768px) 280px, 340px"
-            draggable={false}
-            priority={index < 3}
-          />
+      <div className="relative flex-shrink-0 w-[280px] md:w-[340px] group select-none">
+        <Link
+          href={`/sklep/${categorySlug}/${productSlug}`}
+          className="block"
+        >
+          {/* Image */}
+          <div className="relative aspect-[3/4] rounded-xl bg-white border border-brand-100 overflow-hidden mb-5 transition-all duration-500 group-hover:border-brand-200 group-hover:shadow-lg group-hover:shadow-brand-900/5">
+            <Image
+              src={imageUrl}
+              alt={product.name}
+              fill
+              className="object-contain p-3 transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.04]"
+              sizes="(max-width: 768px) 280px, 340px"
+              draggable={false}
+              priority={index < 3}
+            />
 
-          {/* New badge */}
-          {product.isNew && (
-            <span className="absolute top-4 left-4 text-[10px] uppercase tracking-[0.2em] font-bold text-brand-500">
-              Nowe
-            </span>
-          )}
+            {/* New badge */}
+            {product.isNew && (
+              <span className="absolute top-4 left-4 text-[10px] uppercase tracking-[0.2em] font-bold text-brand-500">
+                Nowe
+              </span>
+            )}
 
-          {/* Add to cart — hover only */}
-          {SHOP_ENABLED && (
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                addToCart(product);
-              }}
-              className="absolute bottom-4 right-4 w-10 h-10 rounded-full bg-brand-900 text-white flex items-center justify-center opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-400 hover:bg-brand-700"
-            >
-              <Plus className="w-4 h-4" strokeWidth={2.5} />
-            </button>
-          )}
-        </div>
+            {/* Add to cart — hover only */}
+            {SHOP_ENABLED && (
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  addToCart(product);
+                }}
+                className="absolute bottom-4 right-4 w-10 h-10 rounded-full bg-brand-900 text-white flex items-center justify-center opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-400 hover:bg-brand-700"
+              >
+                <Plus className="w-4 h-4" strokeWidth={2.5} />
+              </button>
+            )}
+          </div>
 
-        {/* Info */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h3 className="text-lg font-serif text-brand-900 leading-snug truncate transition-colors duration-300 group-hover:text-brand-600">
-              {product.name}
-            </h3>
-            <span className="text-[11px] uppercase tracking-[0.15em] text-brand-400 mt-1 block">
-              {product.origin?.split(",")[0] || categoryName}
+          {/* Info */}
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h3 className="text-lg font-serif text-brand-900 leading-snug truncate transition-colors duration-300 group-hover:text-brand-600">
+                {product.name}
+              </h3>
+              <span className="text-[11px] uppercase tracking-[0.15em] text-brand-400 mt-1 block">
+                {product.origin?.split(",")[0] || categoryName}
+              </span>
+            </div>
+            <span className="text-base font-mono text-brand-700 font-medium whitespace-nowrap pt-0.5">
+              {product.price.toFixed(0)} zł
             </span>
           </div>
-          <span className="text-base font-mono text-brand-700 font-medium whitespace-nowrap pt-0.5">
-            {product.price.toFixed(0)} zł
-          </span>
-        </div>
-      </Link>
-    </motion.div>
+        </Link>
+      </div>
+    </InView>
   );
 };
 
@@ -137,33 +133,6 @@ export const FeaturedProducts = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [products, setProducts] = useState<Product[]>([]);
 
-  // Horizontal Lenis scroll
-  useEffect(() => {
-    if (!containerRef.current) return;
-
-    const lenis = new Lenis({
-      wrapper: containerRef.current,
-      content: containerRef.current.firstElementChild as HTMLElement,
-      orientation: "horizontal",
-      gestureOrientation: "both",
-      duration: 1.2,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      smoothWheel: true,
-    });
-
-    let raf: number;
-    const loop = (time: number) => {
-      lenis.raf(time);
-      raf = requestAnimationFrame(loop);
-    };
-    raf = requestAnimationFrame(loop);
-
-    return () => {
-      cancelAnimationFrame(raf);
-      lenis.destroy();
-    };
-  }, []);
-
   useEffect(() => {
     getFeaturedProducts(10)
       .then(setProducts)
@@ -174,22 +143,13 @@ export const FeaturedProducts = () => {
     <section className="bg-brand-50 overflow-hidden py-24 md:py-32">
       {/* Header */}
       <div className="container mx-auto px-6 lg:px-12 mb-12 md:mb-16 flex items-end justify-between">
-        <motion.span
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.7, ease: EASE_OUT }}
-          className="text-[11px] uppercase tracking-[0.3em] text-brand-400 font-medium"
-        >
-          Wyróżnione
-        </motion.span>
+        <InView className="animate-reveal-up">
+          <span className="text-[11px] uppercase tracking-[0.3em] text-brand-400 font-medium">
+            Wyróżnione
+          </span>
+        </InView>
 
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.7, delay: 0.1, ease: EASE_OUT }}
-        >
+        <InView className="animate-reveal-up" style={{ animationDelay: "100ms" }}>
           <Link
             href="/sklep"
             className="group inline-flex items-center gap-2 text-brand-500 hover:text-brand-900 transition-colors duration-500"
@@ -202,13 +162,13 @@ export const FeaturedProducts = () => {
               strokeWidth={2}
             />
           </Link>
-        </motion.div>
+        </InView>
       </div>
 
-      {/* Horizontal scroll */}
+      {/* Horizontal scroll — native CSS */}
       <div
         ref={containerRef}
-        className="pl-6 lg:pl-12 overflow-x-auto scrollbar-hide"
+        className="pl-6 lg:pl-12 overflow-x-auto scrollbar-hide scroll-smooth"
       >
         <div className="flex gap-6 md:gap-8 w-max pr-12 pb-4">
           {products.length === 0

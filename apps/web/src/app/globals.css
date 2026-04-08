@@ -3,6 +3,7 @@
 
 @layer base {
   html {
+    scroll-behavior: smooth;
     scrollbar-width: thin;
     scrollbar-color: rgba(163, 127, 91, 0.4) transparent;
   }
@@ -287,6 +288,98 @@
 .animate-fade-in {
   animation: fade-in 0.4s ease-out forwards;
 }
+
+/* ===== Intersection Observer Animations ===== */
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-x-in {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes clip-up {
+  from {
+    transform: translateY(120%);
+  }
+  to {
+    transform: translateY(0%);
+  }
+}
+
+.animate-reveal-up {
+  opacity: 0;
+  animation: reveal-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-scale-x-left {
+  transform: scaleX(0);
+  transform-origin: left;
+  animation: scale-x-in 1.4s cubic-bezier(0.76, 0, 0.24, 1) forwards;
+}
+
+.animate-scale-x-right {
+  transform: scaleX(0);
+  transform-origin: right;
+  animation: scale-x-in 1.4s cubic-bezier(0.76, 0, 0.24, 1) forwards;
+}
+
+.animate-scale-x-center {
+  transform: scaleX(0);
+  transform-origin: center;
+  animation: scale-x-in 1.2s cubic-bezier(0.76, 0, 0.24, 1) forwards;
+}
+
+.animate-clip-up-text {
+  transform: translateY(120%);
+  animation: clip-up 1.2s cubic-bezier(0.76, 0, 0.24, 1) forwards;
+}
+
+/* Marquee CSS-only infinite scroll */
+@keyframes marquee-left {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes marquee-right {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.animate-marquee-left {
+  animation: marquee-left var(--marquee-duration, 35s) linear infinite;
+}
+
+.animate-marquee-right {
+  animation: marquee-right var(--marquee-duration, 25s) linear infinite;
+}
+
+/* Stagger delay utilities */
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
+.delay-500 { animation-delay: 500ms; }
 
 /* ===== Utility Classes ===== */
 

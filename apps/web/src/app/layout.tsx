@@ -3,11 +3,10 @@ import { Playfair_Display, Lato, Pinyon_Script } from "next/font/google";
 import { GoogleTagManager } from "@next/third-parties/google";
 import "./globals.css";
 import { Shell } from "@/components/layout/Shell";
-import SmoothScroll from "@/components/SmoothScroll";
 import ChunkLoadRecovery from "@/components/ChunkLoadRecovery";
 
 const playfair = Playfair_Display({ subsets: ["latin"], variable: '--font-playfair', display: 'swap' });
-const lato = Lato({ subsets: ["latin"], weight: ['100', '300', '400', '700', '900'], variable: '--font-lato', display: 'swap' });
+const lato = Lato({ subsets: ["latin"], weight: ['300', '400', '700'], variable: '--font-lato', display: 'swap' });
 const pinyon = Pinyon_Script({ weight: ['400'], subsets: ["latin"], variable: '--font-pinyon', display: 'swap' });
 
 const storeJsonLd = {
@@ -169,11 +168,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
         />
         <ChunkLoadRecovery />
-        <SmoothScroll>
-          <Shell>
-            {children}
-          </Shell>
-        </SmoothScroll>
+        <Shell>
+          {children}
+        </Shell>
       </body>
     </html>
   );
