@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { ShopClient } from "@/components/Shop/ShopClient";
 import { getFilteredProducts } from "@/actions/products";
 
-// ISR: rebuild shop listing every 5 minutes
-export const revalidate = 300;
+// ISR: rebuild shop listing every 10 minutes — matches LIST_TTL
+export const revalidate = 600;
 
 export const metadata: Metadata = {
   title: "Sklep Online – Włoskie Delikatesy",

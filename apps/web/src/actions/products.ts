@@ -6,9 +6,9 @@ import type { Product } from '@/types';
 
 // Cache TTL — admin revalidateTag('products') handles manual invalidation,
 // so longer TTLs are safe: there's no need to re-hit Neon on every page load.
-const LIST_TTL = 300;      // 5 min (was 1 min)
-const PRODUCT_TTL = 3600;  // 1 hour (was 2 min)
-const CATEGORY_TTL = 7200; // 2 hours (was 5 min)
+const LIST_TTL = 600;      // 10 min — safe: admin revalidateTag('products') handles manual invalidation
+const PRODUCT_TTL = 3600;  // 1 hour
+const CATEGORY_TTL = 7200; // 2 hours
 
 // ── Cached data functions (unstable_cache requires serializable args) ──
 
