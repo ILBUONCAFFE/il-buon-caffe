@@ -3,7 +3,6 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
-import { motion, AnimatePresence } from "motion/react";
 import { getFilteredProducts } from "@/actions/products";
 import { Product, Category } from "@/types";
 import type { FilteredProductsResult, PriceRange, WineFilterOptions } from "@/types/filters";
@@ -153,13 +152,25 @@ export const ShopClient = ({ initialData }: ShopClientProps) => {
     fetchFiltered();
   }, [selectedCategory, debouncedSearch, sortOption, priceFilters, selectedOrigins, selectedCountry, selectedRegion, selectedGrape]);
 
-  // ── Derived values from server response ──
-  const filteredProducts = filteredResult.products.filter(p => !p.isArchived);
-  const availableOrigins = filteredResult.availableOrigins;
-  const wineFilterOptions: WineFilterOptions = filteredResult.wineFilterOptions || { countries: [], regions: [], grapes: [] };
+  // ── Derived values from server response (memoized) ──
+  const filteredProducts = useMemo(
+    () => filteredResult.products.filter(p => !p.isArchived),
+    [filteredResult.products]
+  );
+  const availableOrigins = useMemo(
+    () => filteredResult.availableOrigins,
+    [filteredResult.availableOrigins]
+  );
+  const wineFilterOptions: WineFilterOptions = useMemo(
+    () => filteredResult.wineFilterOptions || { countries: [], regions: [], grapes: [] },
+    [filteredResult.wineFilterOptions]
+  );
 
   // Show wine filters when viewing wine category OR when wine filter options have data
-  const showWineFilters = (selectedCategory === 'wino' || selectedCategory === 'all') && wineFilterOptions.countries.length > 0;
+  const showWineFilters = useMemo(
+    () => (selectedCategory === 'wino' || selectedCategory === 'all') && wineFilterOptions.countries.length > 0,
+    [selectedCategory, wineFilterOptions.countries.length]
+  );
 
   // ── Handlers ──
   const togglePrice = useCallback((id: string) => {
@@ -212,9 +223,11 @@ export const ShopClient = ({ initialData }: ShopClientProps) => {
     setSelectedCategory((found?.id || "all") as Category);
   }, []);
 
-  const hasActiveFilters: boolean =
-    priceFilters.length > 0 || selectedOrigins.length > 0 || searchQuery.length > 0 ||
-    selectedCountry !== null || selectedRegion !== null || selectedGrape !== null;
+  const hasActiveFilters = useMemo(
+    () => priceFilters.length > 0 || selectedOrigins.length > 0 || searchQuery.length > 0 ||
+      selectedCountry !== null || selectedRegion !== null || selectedGrape !== null,
+    [priceFilters.length, selectedOrigins.length, searchQuery.length, selectedCountry, selectedRegion, selectedGrape]
+  );
 
   return (
     <div className="min-h-screen bg-brand-50">
@@ -254,31 +267,18 @@ export const ShopClient = ({ initialData }: ShopClientProps) => {
 
         <div className="container mx-auto px-6 lg:px-12 relative z-10">
           <div className="mb-10">
-            <motion.span
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-              className="block text-[11px] uppercase tracking-[0.3em] text-white/25 font-medium mb-6"
-            >
+            <span className="block text-[11px] uppercase tracking-[0.3em] text-white/25 font-medium mb-6 animate-fade-in-up">
               Sklep
-            </motion.span>
+            </span>
 
-            <motion.h1
+            <h1
               key={selectedCategory}
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-              className="text-5xl md:text-6xl lg:text-7xl font-serif mb-5 leading-[0.95]"
+              className="text-5xl md:text-6xl lg:text-7xl font-serif mb-5 leading-[0.95] animate-fade-in-up"
             >
               {activeCategoryConfig?.name || "Sklep"}
-            </motion.h1>
+            </h1>
 
-            <motion.p
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="text-white/35 max-w-lg text-base leading-relaxed"
-            >
+            <p className="text-white/35 max-w-lg text-base leading-relaxed animate-fade-in-up delay-100">
               {selectedCategory === "wino"
                 ? "Wyselekcjonowane wina z Włoch i Hiszpanii. Od małych, rodzinnych winiarzy."
                 : selectedCategory === "kawa"
@@ -288,39 +288,32 @@ export const ShopClient = ({ initialData }: ShopClientProps) => {
                 : selectedCategory === "spizarnia"
                 ? "Oliwy extra virgin, przetwory, makarony i przysmaki z Południa."
                 : "Ponad 300 wyselekcjonowanych włoskich i hiszpańskich specjałów."}
-            </motion.p>
+            </p>
           </div>
 
           {/* Divider */}
-          <motion.div
-            initial={{ scaleX: 0 }}
-            animate={{ scaleX: 1 }}
-            transition={{ duration: 1, delay: 0.15, ease: [0.76, 0, 0.24, 1] }}
-            className="origin-left h-px bg-white/10 mb-8"
-          />
+          <div className="origin-left h-px bg-white/10 mb-8 animate-scale-x-left" />
 
           {/* Category Pills */}
           <div className="flex flex-wrap gap-2">
             {filteredCategories.map((cat, i) => (
-              <motion.button
+              <button
                 key={cat.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.2 + i * 0.04 }}
                 onClick={() => handleCategorySelect(cat.slug)}
                 aria-pressed={selectedCategory === cat.id}
                 className={`
-                  flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 border
+                  flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 border animate-fade-in-up
                   ${
                     selectedCategory === cat.id
                       ? "bg-white text-brand-900 border-white"
                       : "bg-white/[0.04] text-white/50 border-white/[0.06] hover:bg-white/[0.08] hover:border-white/15 hover:text-white/80"
                   }
                 `}
+                style={{ animationDelay: `${200 + i * 40}ms` }}
               >
                 <span aria-hidden="true" className="opacity-60">{cat.icon}</span>
                 {cat.name}
-              </motion.button>
+              </button>
             ))}
           </div>
         </div>
@@ -330,76 +323,66 @@ export const ShopClient = ({ initialData }: ShopClientProps) => {
       <div className="container mx-auto px-6 lg:px-12 py-10">
         <div className="flex flex-col lg:flex-row gap-10">
           {/* Mobile Filter Overlay */}
-          <AnimatePresence>
-            {isMobileFiltersOpen && (
-              <>
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-                  onClick={() => setIsMobileFiltersOpen(false)}
-                />
-                <motion.aside
-                  id="mobile-filters-panel"
-                  initial={{ x: "-100%" }}
-                  animate={{ x: 0 }}
-                  exit={{ x: "-100%" }}
-                  transition={{ type: "tween", duration: 0.3 }}
-                  role="dialog"
-                  aria-modal="true"
-                  aria-labelledby="mobile-filters-title"
-                  data-lenis-prevent
-                  className="fixed inset-y-0 left-0 w-80 bg-white z-50 p-6 overflow-y-auto lg:hidden"
-                >
-                  <div className="flex justify-between items-center mb-8">
-                    <h2 id="mobile-filters-title" className="font-serif text-2xl text-brand-900">
-                      Filtry
-                    </h2>
-                    <button
-                      onClick={() => setIsMobileFiltersOpen(false)}
-                      aria-label="Zamknij filtry"
-                      className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center hover:bg-brand-200 transition-colors"
-                    >
-                      <X size={20} aria-hidden="true" className="text-brand-700" />
-                    </button>
-                  </div>
+          {isMobileFiltersOpen && (
+            <>
+              <div
+                className="fixed inset-0 bg-black/50 z-40 lg:hidden animate-fade-in"
+                onClick={() => setIsMobileFiltersOpen(false)}
+              />
+              <aside
+                id="mobile-filters-panel"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="mobile-filters-title"
+                className="fixed inset-y-0 left-0 w-80 bg-white z-50 p-6 overflow-y-auto lg:hidden animate-[slide-in-left_0.3s_ease-out]"
+              >
+                <div className="flex justify-between items-center mb-8">
+                  <h2 id="mobile-filters-title" className="font-serif text-2xl text-brand-900">
+                    Filtry
+                  </h2>
+                  <button
+                    onClick={() => setIsMobileFiltersOpen(false)}
+                    aria-label="Zamknij filtry"
+                    className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center hover:bg-brand-200 transition-colors"
+                  >
+                    <X size={20} aria-hidden="true" className="text-brand-700" />
+                  </button>
+                </div>
 
-                  {/* Mobile Filter Content */}
-                  <FilterContent
-                    searchQuery={searchQuery}
-                    setSearchQuery={setSearchQuery}
-                    isCategoryOpen={isCategoryOpen}
-                    setIsCategoryOpen={setIsCategoryOpen}
-                    selectedCategory={selectedCategory}
-                    handleCategorySelect={handleCategorySelect}
-                    isPriceOpen={isPriceOpen}
-                    setIsPriceOpen={setIsPriceOpen}
-                    priceFilters={priceFilters}
-                    isAdult={isAdult}
-                    togglePrice={togglePrice}
-                    isOriginOpen={isOriginOpen}
-                    setIsOriginOpen={setIsOriginOpen}
-                    availableOrigins={availableOrigins}
-                    selectedOrigins={selectedOrigins}
-                    toggleOrigin={toggleOrigin}
-                    hasActiveFilters={hasActiveFilters}
-                    clearAllFilters={clearAllFilters}
-                    isWineFiltersOpen={isWineFiltersOpen}
-                    setIsWineFiltersOpen={setIsWineFiltersOpen}
-                    wineFilterOptions={wineFilterOptions}
-                    selectedCountry={selectedCountry}
-                    setSelectedCountry={handleCountryChange}
-                    selectedRegion={selectedRegion}
-                    setSelectedRegion={handleRegionChange}
-                    selectedGrape={selectedGrape}
-                    setSelectedGrape={handleGrapeChange}
-                    showWineFilters={showWineFilters}
-                  />
-                </motion.aside>
-              </>
-            )}
-          </AnimatePresence>
+                {/* Mobile Filter Content */}
+                <FilterContent
+                  searchQuery={searchQuery}
+                  setSearchQuery={setSearchQuery}
+                  isCategoryOpen={isCategoryOpen}
+                  setIsCategoryOpen={setIsCategoryOpen}
+                  selectedCategory={selectedCategory}
+                  handleCategorySelect={handleCategorySelect}
+                  isPriceOpen={isPriceOpen}
+                  setIsPriceOpen={setIsPriceOpen}
+                  priceFilters={priceFilters}
+                  isAdult={isAdult}
+                  togglePrice={togglePrice}
+                  isOriginOpen={isOriginOpen}
+                  setIsOriginOpen={setIsOriginOpen}
+                  availableOrigins={availableOrigins}
+                  selectedOrigins={selectedOrigins}
+                  toggleOrigin={toggleOrigin}
+                  hasActiveFilters={hasActiveFilters}
+                  clearAllFilters={clearAllFilters}
+                  isWineFiltersOpen={isWineFiltersOpen}
+                  setIsWineFiltersOpen={setIsWineFiltersOpen}
+                  wineFilterOptions={wineFilterOptions}
+                  selectedCountry={selectedCountry}
+                  setSelectedCountry={handleCountryChange}
+                  selectedRegion={selectedRegion}
+                  setSelectedRegion={handleRegionChange}
+                  selectedGrape={selectedGrape}
+                  setSelectedGrape={handleGrapeChange}
+                  showWineFilters={showWineFilters}
+                />
+              </aside>
+            </>
+          )}
 
           {/* Desktop Sidebar */}
           <aside className="hidden lg:block w-72 flex-shrink-0 self-start sticky top-28">
@@ -492,157 +475,131 @@ export const ShopClient = ({ initialData }: ShopClientProps) => {
             </div>
 
             {/* Active Filters */}
-            <AnimatePresence>
-              {hasActiveFilters && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="flex flex-wrap gap-2 mb-6"
+            {hasActiveFilters && (
+              <div className="flex flex-wrap gap-2 mb-6 animate-fade-in">
+                {priceFilters.map((id) => (
+                  <FilterChip
+                    key={id}
+                    label={PRICE_RANGES.find((r) => r.id === id)?.label || id}
+                    onRemove={() => togglePrice(id)}
+                  />
+                ))}
+                {selectedOrigins.map((origin) => (
+                  <FilterChip
+                    key={origin}
+                    label={origin}
+                    onRemove={() => toggleOrigin(origin)}
+                  />
+                ))}
+                {selectedCountry && (
+                  <FilterChip
+                    label={`Kraj: ${selectedCountry}`}
+                    onRemove={() => handleCountryChange(null)}
+                  />
+                )}
+                {selectedRegion && (
+                  <FilterChip
+                    label={`Region: ${selectedRegion}`}
+                    onRemove={() => handleRegionChange(null)}
+                  />
+                )}
+                {selectedGrape && (
+                  <FilterChip
+                    label={`Szczep: ${selectedGrape}`}
+                    onRemove={() => handleGrapeChange(null)}
+                  />
+                )}
+                {searchQuery && (
+                  <FilterChip
+                    label={`"${searchQuery}"`}
+                    onRemove={() => setSearchQuery("")}
+                  />
+                )}
+                <button
+                  onClick={clearAllFilters}
+                  className="text-xs font-medium text-brand-700 hover:text-brand-700 underline underline-offset-2 px-2"
                 >
-                  {priceFilters.map((id) => (
-                    <FilterChip
-                      key={id}
-                      label={PRICE_RANGES.find((r) => r.id === id)?.label || id}
-                      onRemove={() => togglePrice(id)}
-                    />
-                  ))}
-                  {selectedOrigins.map((origin) => (
-                    <FilterChip
-                      key={origin}
-                      label={origin}
-                      onRemove={() => toggleOrigin(origin)}
-                    />
-                  ))}
-                  {selectedCountry && (
-                    <FilterChip
-                      label={`Kraj: ${selectedCountry}`}
-                      onRemove={() => handleCountryChange(null)}
-                    />
-                  )}
-                  {selectedRegion && (
-                    <FilterChip
-                      label={`Region: ${selectedRegion}`}
-                      onRemove={() => handleRegionChange(null)}
-                    />
-                  )}
-                  {selectedGrape && (
-                    <FilterChip
-                      label={`Szczep: ${selectedGrape}`}
-                      onRemove={() => handleGrapeChange(null)}
-                    />
-                  )}
-                  {searchQuery && (
-                    <FilterChip
-                      label={`"${searchQuery}"`}
-                      onRemove={() => setSearchQuery("")}
-                    />
-                  )}
-                  <button
-                    onClick={clearAllFilters}
-                    className="text-xs font-medium text-brand-700 hover:text-brand-700 underline underline-offset-2 px-2"
-                  >
-                    Wyczyść wszystko
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  Wyczyść wszystko
+                </button>
+              </div>
+            )}
 
             {/* Products Grid */}
             <div className="min-h-[70vh]">
-              <AnimatePresence mode="wait">
-                {isLoading ? (
-                  <motion.div
-                    key="loading"
-                    role="status"
-                    aria-label="Ładowanie produktów"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className={
-                      viewMode === "grid"
-                        ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
-                        : "flex flex-col gap-4"
-                    }
-                  >
-                    {[...Array(6)].map((_, i) => (
-                      <div key={i} className="animate-pulse">
-                        {viewMode === "grid" ? (
-                          <>
-                            <div className="bg-brand-100 rounded-2xl aspect-[3/4] mb-4" />
-                            <div className="h-3 bg-brand-100 rounded w-1/3 mb-2" />
-                            <div className="h-5 bg-brand-100 rounded w-3/4 mb-2" />
-                            <div className="h-4 bg-brand-100 rounded w-1/4" />
-                          </>
-                        ) : (
-                          <div className="flex gap-6 p-5 bg-white rounded-2xl border border-brand-100">
-                            <div className="w-36 h-36 bg-brand-100 rounded-xl" />
-                            <div className="flex-1 py-2">
-                              <div className="h-3 bg-brand-100 rounded w-1/4 mb-3" />
-                              <div className="h-6 bg-brand-100 rounded w-2/3 mb-3" />
-                              <div className="h-4 bg-brand-100 rounded w-full mb-4" />
-                              <div className="h-5 bg-brand-100 rounded w-1/4" />
-                            </div>
+              {isLoading ? (
+                <div
+                  role="status"
+                  aria-label="Ładowanie produktów"
+                  className={`animate-fade-in ${
+                    viewMode === "grid"
+                      ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
+                      : "flex flex-col gap-4"
+                  }`}
+                >
+                  {[...Array(6)].map((_, i) => (
+                    <div key={i} className="animate-pulse">
+                      {viewMode === "grid" ? (
+                        <>
+                          <div className="bg-brand-100 rounded-2xl aspect-[3/4] mb-4" />
+                          <div className="h-3 bg-brand-100 rounded w-1/3 mb-2" />
+                          <div className="h-5 bg-brand-100 rounded w-3/4 mb-2" />
+                          <div className="h-4 bg-brand-100 rounded w-1/4" />
+                        </>
+                      ) : (
+                        <div className="flex gap-6 p-5 bg-white rounded-2xl border border-brand-100">
+                          <div className="w-36 h-36 bg-brand-100 rounded-xl" />
+                          <div className="flex-1 py-2">
+                            <div className="h-3 bg-brand-100 rounded w-1/4 mb-3" />
+                            <div className="h-6 bg-brand-100 rounded w-2/3 mb-3" />
+                            <div className="h-4 bg-brand-100 rounded w-full mb-4" />
+                            <div className="h-5 bg-brand-100 rounded w-1/4" />
                           </div>
-                        )}
-                      </div>
-                    ))}
-                  </motion.div>
-                ) : filteredProducts.length === 0 ? (
-                  <motion.div
-                    key="empty"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="py-20 text-center bg-white rounded-2xl border border-brand-100"
-                  >
-                    <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-brand-100 flex items-center justify-center">
-                      <Search size={32} className="text-brand-400" />
+                        </div>
+                      )}
                     </div>
-                    <h3 className="text-2xl font-serif text-brand-900 mb-2">
-                      Brak wyników
-                    </h3>
-                    <p className="text-brand-700 mb-8 max-w-md mx-auto">
-                      Nie znaleźliśmy produktów spełniających Twoje kryteria. Spróbuj
-                      zmienić filtry lub wyszukać coś innego.
-                    </p>
-                    <button
-                      onClick={clearAllFilters}
-                      className="px-8 py-3 bg-brand-900 text-white text-sm font-bold uppercase tracking-wider rounded-full hover:bg-brand-700 transition-all inline-flex items-center gap-2"
-                    >
-                      Wyczyść filtry
-                      <ArrowRight size={16} />
-                    </button>
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="products"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className={
-                      viewMode === "grid"
-                        ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-14"
-                        : "flex flex-col gap-4"
-                    }
+                  ))}
+                </div>
+              ) : filteredProducts.length === 0 ? (
+                <div className="py-20 text-center bg-white rounded-2xl border border-brand-100 animate-fade-in-up">
+                  <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-brand-100 flex items-center justify-center">
+                    <Search size={32} className="text-brand-400" />
+                  </div>
+                  <h3 className="text-2xl font-serif text-brand-900 mb-2">
+                    Brak wyników
+                  </h3>
+                  <p className="text-brand-700 mb-8 max-w-md mx-auto">
+                    Nie znaleźliśmy produktów spełniających Twoje kryteria. Spróbuj
+                    zmienić filtry lub wyszukać coś innego.
+                  </p>
+                  <button
+                    onClick={clearAllFilters}
+                    className="px-8 py-3 bg-brand-900 text-white text-sm font-bold uppercase tracking-wider rounded-full hover:bg-brand-700 transition-all inline-flex items-center gap-2"
                   >
-                    {filteredProducts.map((product, idx) => (
-                      <ProductCard
-                        key={product.sku}
-                        product={product}
-                        viewMode={viewMode}
-                        onQuickAdd={() => addToCart(product)}
-                        categorySlug={activeCategoryConfig?.slug || "wszystko"}
-                        index={idx}
-                        isAdult={isAdult}
-                      />
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                    Wyczyść filtry
+                    <ArrowRight size={16} />
+                  </button>
+                </div>
+              ) : (
+                <div
+                  className={`animate-fade-in ${
+                    viewMode === "grid"
+                      ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-14"
+                      : "flex flex-col gap-4"
+                  }`}
+                >
+                  {filteredProducts.map((product, idx) => (
+                    <ProductCard
+                      key={product.sku}
+                      product={product}
+                      viewMode={viewMode}
+                      onQuickAdd={() => addToCart(product)}
+                      categorySlug={activeCategoryConfig?.slug || "wszystko"}
+                      index={idx}
+                      isAdult={isAdult}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </main>
         </div>

@@ -374,6 +374,16 @@
   animation: marquee-right var(--marquee-duration, 25s) linear infinite;
 }
 
+/* Slide-in from left (mobile filters) */
+@keyframes slide-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
 /* Stagger delay utilities */
 .delay-100 { animation-delay: 100ms; }
 .delay-200 { animation-delay: 200ms; }

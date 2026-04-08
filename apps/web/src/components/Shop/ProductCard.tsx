@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, memo } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { motion } from "motion/react";
 import { Plus } from "lucide-react";
 import type { Product } from "@/types";
 import type { ViewMode } from "./constants";
@@ -16,7 +15,7 @@ export const ProductCard: React.FC<{
   categorySlug: string;
   index: number;
   isAdult: boolean;
-}> = ({ product, viewMode, onQuickAdd, categorySlug, index, isAdult }) => {
+}> = memo(({ product, viewMode, onQuickAdd, categorySlug, index, isAdult }) => {
   const router = useRouter();
   const [isHovered, setIsHovered] = useState(false);
   // Check if product is restricted
@@ -99,6 +98,7 @@ export const ProductCard: React.FC<{
             alt={product.name}
             fill
             className="object-contain p-2 transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:scale-[1.05]"
+            sizes="144px"
           />
           {product.isNew && !isRestricted && (
             <span className="absolute top-2 left-2 px-2 py-0.5 bg-brand-700 text-white text-[10px] font-bold uppercase tracking-wider rounded-md">
@@ -181,6 +181,7 @@ export const ProductCard: React.FC<{
           alt={product.name}
           fill
           className="object-contain p-3 transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:scale-[1.05]"
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
         />
 
         {/* Subtle overlay on hover */}
@@ -238,4 +239,4 @@ export const ProductCard: React.FC<{
       </div>
     </div>
   );
-};
+});
