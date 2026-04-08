@@ -29,9 +29,9 @@ const footerLinks = {
     { label: "Kontakt", href: "/contact" },
   ],
   legal: [
-    { label: "Regulamin", href: "/terms" },
-    { label: "Polityka prywatności", href: "/privacy" },
-    { label: "Pliki cookie", href: "/cookies" },
+    { label: "Regulamin", href: "/regulamin" },
+    { label: "Polityka prywatności", href: "/polityka-prywatnosci" },
+    { label: "Pliki cookie", href: "/polityka-cookies" },
   ],
 };
 
