@@ -9,6 +9,7 @@ import { PromoBanner } from "./PromoBanner";
 import CartSidebar from "./CartSidebar";
 import { NotificationProvider } from "../Notification/NotificationProvider";
 import { AgeVerificationModal } from "../ui/AgeVerificationModal";
+import { ConsentBanner } from "../ui/ConsentBanner";
 
 export const Shell = ({ children }: { children: React.ReactNode }) => {
 
@@ -39,6 +40,7 @@ export const Shell = ({ children }: { children: React.ReactNode }) => {
           {!isAdminPath && !isCatalogPath && <Footer />}
           {!isCatalogPath && <CartSidebar />}
           {!isCatalogPath && <AgeVerificationModal />}
+          {!isAdminPath && <ConsentBanner />}
         </div>
       </CartProvider>
     </NotificationProvider>

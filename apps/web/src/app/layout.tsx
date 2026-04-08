@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Playfair_Display, Lato, Pinyon_Script } from "next/font/google";
 import { GoogleAnalytics } from "@next/third-parties/google";
+import Script from "next/script";
 import "./globals.css";
 import { Shell } from "@/components/layout/Shell";
 import ChunkLoadRecovery from "@/components/ChunkLoadRecovery";
@@ -8,6 +9,56 @@ import ChunkLoadRecovery from "@/components/ChunkLoadRecovery";
 const playfair = Playfair_Display({ subsets: ["latin"], variable: '--font-playfair', display: 'swap' });
 const lato = Lato({ subsets: ["latin"], weight: ['300', '400', '700'], variable: '--font-lato', display: 'swap' });
 const pinyon = Pinyon_Script({ weight: ['400'], subsets: ["latin"], variable: '--font-pinyon', display: 'swap' });
+
+const CONSENT_STORAGE_KEY = "ibc-consent-v1";
+
+const consentBootstrapScript = `
+window.dataLayer = window.dataLayer || [];
+window.gtag = window.gtag || function gtag(){window.dataLayer.push(arguments);};
+
+window.gtag("consent", "default", {
+  ad_storage: "denied",
+  ad_user_data: "denied",
+  ad_personalization: "denied",
+  analytics_storage: "denied",
+  functionality_storage: "granted",
+  security_storage: "granted",
+  wait_for_update: 500,
+});
+
+try {
+  const storedConsent = window.localStorage.getItem("${CONSENT_STORAGE_KEY}");
+
+  if (storedConsent === "all") {
+    window.gtag("consent", "update", {
+      ad_storage: "granted",
+      ad_user_data: "granted",
+      ad_personalization: "granted",
+      analytics_storage: "granted",
+    });
+  }
+
+  if (storedConsent === "analytics") {
+    window.gtag("consent", "update", {
+      ad_storage: "denied",
+      ad_user_data: "denied",
+      ad_personalization: "denied",
+      analytics_storage: "granted",
+    });
+  }
+
+  if (storedConsent === "necessary") {
+    window.gtag("consent", "update", {
+      ad_storage: "denied",
+      ad_user_data: "denied",
+      ad_personalization: "denied",
+      analytics_storage: "denied",
+    });
+  }
+} catch (_err) {
+  // Ignore storage access failures (private mode / restricted browser settings).
+}
+`;
 
 const storeJsonLd = {
   "@context": "https://schema.org",
@@ -158,6 +209,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="pl" suppressHydrationWarning>
       <body className={`${lato.variable} ${playfair.variable} ${pinyon.variable} font-sans antialiased`} suppressHydrationWarning>
+        <Script id="ga-consent-bootstrap" strategy="beforeInteractive">
+          {consentBootstrapScript}
+        </Script>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(storeJsonLd) }}
