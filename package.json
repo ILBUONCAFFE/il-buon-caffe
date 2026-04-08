@@ -5,11 +5,15 @@
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
-    "clean": "turbo run clean"
+    "clean": "turbo run clean",
+    "media:generate": "node scripts/generate-placeholder-images.js",
+    "media:upload": "bash scripts/upload-r2-media.sh il-buon-caffe-media-dev",
+    "media:upload:prod": "bash scripts/upload-r2-media.sh il-buon-caffe-media"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "drizzle-kit": "^0.31.8",
+    "sharp": "^0.34.5",
     "tsx": "^4.21.0",
     "turbo": "latest"
   },
