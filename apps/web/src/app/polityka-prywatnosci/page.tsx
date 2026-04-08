@@ -23,65 +23,63 @@ export default function PolitykaPrywatnosciPage() {
           </p>
         </header>
 
-        <article className="prose prose-brand max-w-none prose-headings:font-serif prose-headings:tracking-tight prose-p:leading-relaxed prose-li:leading-relaxed prose-a:text-brand-700 prose-a:underline prose-a:decoration-brand-300 hover:prose-a:decoration-brand-500 prose-a:underline-offset-2">
-          <Section id="administrator" title="&sect; 1. Administrator danych">
-            <p>
+        <div className="space-y-10">
+          <Section id="administrator" title="§ 1. Administrator danych">
+            <P>
               Administratorem Twoich danych osobowych jest{" "}
-              <strong>Il Buon Caffe</strong> z siedzibą w Koszalinie, ul.
-              Biskupa Czesława Domina 3/6, 75-065 Koszalin, NIP: [NIP], REGON:
-              [REGON] (dalej: &bdquo;Administrator&rdquo;).
-            </p>
-            <p>
+              <strong>Il Buon Caffe Dariusz Praczyk</strong> z siedzibą przy
+              ul. Biskupa Czesława Domina 3/6, 75-065 Koszalin, NIP:{" "}
+              <strong>6692036051</strong>, REGON: <strong>330511794</strong>{" "}
+              (dalej: „Administrator").
+            </P>
+            <P>
               W sprawach związanych z ochroną danych osobowych możesz
               skontaktować się z nami:
-            </p>
-            <ul>
+            </P>
+            <Ul>
               <li>
                 e-mail:{" "}
-                <a href="mailto:kontakt@ilbuoncaffe.pl">
+                <A href="mailto:kontakt@ilbuoncaffe.pl">
                   kontakt@ilbuoncaffe.pl
-                </a>
+                </A>
               </li>
               <li>
-                telefon: <a href="tel:+48664937937">+48 664 937 937</a>
+                telefon: <A href="tel:+48664937937">+48 664 937 937</A>
               </li>
               <li>
                 pisemnie: ul. Biskupa Czesława Domina 3/6, 75-065 Koszalin
               </li>
-            </ul>
+            </Ul>
           </Section>
 
           <Section
             id="jakie-dane"
-            title="&sect; 2. Jakie dane zbieramy i w jakim celu"
+            title="§ 2. Jakie dane zbieramy i w jakim celu"
           >
-            <h3>2.1. Rejestracja konta</h3>
-            <p>Podczas rejestracji zbieramy:</p>
-            <ul>
+            <H3>2.1. Rejestracja konta</H3>
+            <P>Podczas rejestracji zbieramy:</P>
+            <Ul>
               <li>
-                <strong>imię</strong> &mdash; aby personalizować komunikację,
+                <strong>imię</strong> — aby personalizować komunikację,
               </li>
               <li>
-                <strong>adres e-mail</strong> &mdash; jako identyfikator konta i
-                kanał kontaktu,
+                <strong>adres e-mail</strong> — jako identyfikator konta i kanał
+                kontaktu,
               </li>
               <li>
-                <strong>hasło</strong> &mdash; przechowywane wyłącznie w postaci
+                <strong>hasło</strong> — przechowywane wyłącznie w postaci
                 zahashowanej (bcrypt); nigdy nie przechowujemy hasła w jawnej
                 formie.
               </li>
-            </ul>
-            <p>
+            </Ul>
+            <P>
               <strong>Podstawa prawna:</strong> art. 6 ust. 1 lit. b RODO
-              (wykonanie umowy &mdash; świadczenie usługi konta).
-            </p>
+              (wykonanie umowy — świadczenie usługi konta).
+            </P>
 
-            <h3>2.2. Składanie zamówienia</h3>
-            <p>
-              Podczas składania zamówienia zbieramy dane niezbędne do jego
-              realizacji:
-            </p>
-            <ul>
+            <H3>2.2. Składanie zamówienia</H3>
+            <P>Podczas składania zamówienia zbieramy:</P>
+            <Ul>
               <li>imię i nazwisko,</li>
               <li>adres dostawy (ulica, miasto, kod pocztowy, kraj),</li>
               <li>numer telefonu,</li>
@@ -89,149 +87,128 @@ export default function PolitykaPrywatnosciPage() {
               <li>
                 opcjonalnie: nazwa firmy, NIP (w przypadku faktury VAT).
               </li>
-            </ul>
-            <p>
+            </Ul>
+            <P>
               <strong>Podstawa prawna:</strong> art. 6 ust. 1 lit. b RODO
               (wykonanie umowy sprzedaży).
-            </p>
+            </P>
 
-            <h3>2.3. Płatności</h3>
-            <p>
+            <H3>2.3. Płatności</H3>
+            <P>
               Płatności obsługuje operator{" "}
               <strong>
                 Przelewy24 (DialCom24 Sp. z o.o. / PayPro S.A.)
               </strong>
               . Przekazujemy operatorowi: numer zamówienia, kwotę, adres e-mail
-              Klienta. Nie przechowujemy danych kart płatniczych &mdash; są one
+              Klienta. Nie przechowujemy danych kart płatniczych — są one
               przetwarzane wyłącznie przez Przelewy24 zgodnie z ich{" "}
-              <a
+              <A
                 href="https://www.przelewy24.pl/regulamin"
                 target="_blank"
                 rel="noopener noreferrer"
               >
                 regulaminem
-              </a>
+              </A>
               .
-            </p>
-            <p>
+            </P>
+            <P>
               <strong>Podstawa prawna:</strong> art. 6 ust. 1 lit. b RODO
-              (wykonanie umowy), art. 6 ust. 1 lit. c RODO (obowiązek prawny
-              &mdash; rachunkowość).
-            </p>
+              (wykonanie umowy), art. 6 ust. 1 lit. c RODO (obowiązek prawny —
+              rachunkowość).
+            </P>
 
-            <h3>2.4. Bezpieczeństwo i logi</h3>
-            <p>W celach bezpieczeństwa rejestrujemy:</p>
-            <ul>
+            <H3>2.4. Bezpieczeństwo i logi</H3>
+            <P>W celach bezpieczeństwa rejestrujemy:</P>
+            <Ul>
               <li>adres IP,</li>
               <li>typ przeglądarki (user agent),</li>
               <li>datę i godzinę logowania,</li>
               <li>liczbę nieudanych prób logowania.</li>
-            </ul>
-            <p>
+            </Ul>
+            <P>
               <strong>Podstawa prawna:</strong> art. 6 ust. 1 lit. f RODO
-              (prawnie uzasadniony interes Administratora &mdash; ochrona przed
+              (prawnie uzasadniony interes Administratora — ochrona przed
               nieuprawnionym dostępem).
-            </p>
+            </P>
 
-            <h3>2.5. Zgody (consent)</h3>
-            <p>
+            <H3>2.5. Zgody (consent records)</H3>
+            <P>
               Przy udzielaniu zgód (regulamin, polityka prywatności, marketing,
-              analityka) rejestrujemy: rodzaj zgody, wersję dokumentu, datę, adres
-              IP i user agent. Dane te służą do wykazania spełnienia obowiązku
-              informacyjnego.
-            </p>
-            <p>
+              analityka) rejestrujemy: rodzaj zgody, wersję dokumentu, datę,
+              adres IP i user agent. Dane te służą do wykazania spełnienia
+              obowiązku informacyjnego.
+            </P>
+            <P>
               <strong>Podstawa prawna:</strong> art. 6 ust. 1 lit. c RODO
-              (obowiązek prawny &mdash; rozliczalność zgód), art. 7 ust. 1
-              RODO.
-            </p>
+              (obowiązek prawny — rozliczalność zgód), art. 7 ust. 1 RODO.
+            </P>
 
-            <h3>2.6. Newsletter</h3>
-            <p>
+            <H3>2.6. Newsletter</H3>
+            <P>
               Jeśli zapiszesz się do newslettera, zbieramy Twój adres e-mail w
               celu przesyłania informacji handlowych.
-            </p>
-            <p>
+            </P>
+            <P>
               <strong>Podstawa prawna:</strong> art. 6 ust. 1 lit. a RODO
               (zgoda). Zgodę możesz wycofać w każdej chwili.
-            </p>
+            </P>
           </Section>
 
           <Section
             id="odbiorcy"
-            title="&sect; 3. Odbiorcy danych (podmioty przetwarzające)"
+            title="§ 3. Odbiorcy danych (podmioty przetwarzające)"
           >
-            <p>
+            <P>
               Twoje dane osobowe mogą być przekazywane następującym kategoriom
               odbiorców:
-            </p>
-            <table>
-              <thead>
-                <tr>
-                  <th>Odbiorca</th>
-                  <th>Cel</th>
-                  <th>Dane</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>
-                    <strong>Przelewy24</strong> (DialCom24 / PayPro S.A.)
-                  </td>
-                  <td>Obsługa płatności</td>
-                  <td>E-mail, kwota zamówienia, nr zamówienia</td>
-                </tr>
-                <tr>
-                  <td>
-                    <strong>Google LLC</strong> (Google Analytics 4)
-                  </td>
-                  <td>Analiza ruchu na stronie (po wyrażeniu zgody)</td>
-                  <td>
-                    Zanonimizowane dane o wizytach, identyfikator cookie
-                  </td>
-                </tr>
-                <tr>
-                  <td>
-                    <strong>Cloudflare, Inc.</strong>
-                  </td>
-                  <td>Hosting, CDN, ochrona DDoS</td>
-                  <td>Adres IP, dane żądań HTTP</td>
-                </tr>
-                <tr>
-                  <td>
-                    <strong>Neon, Inc.</strong>
-                  </td>
-                  <td>Hosting bazy danych</td>
-                  <td>Dane przechowywane w bazie (szyfrowane w tranzycie)</td>
-                </tr>
-                <tr>
-                  <td>
-                    <strong>Allegro.pl</strong> (Allegro sp. z o.o.)
-                  </td>
-                  <td>Realizacja zamówień z marketplace</td>
-                  <td>Dane zamówień składanych przez Allegro</td>
-                </tr>
-                <tr>
-                  <td>
-                    <strong>Firmy kurierskie</strong>
-                  </td>
-                  <td>Dostawa zamówień</td>
-                  <td>Imię, nazwisko, adres dostawy, telefon</td>
-                </tr>
-              </tbody>
-            </table>
+            </P>
+            <Table
+              headers={["Odbiorca", "Cel", "Przekazywane dane"]}
+              rows={[
+                [
+                  "Przelewy24 (DialCom24 / PayPro S.A.)",
+                  "Obsługa płatności",
+                  "E-mail, kwota zamówienia, nr zamówienia",
+                ],
+                [
+                  "Google LLC (Google Analytics 4)",
+                  "Analiza ruchu na stronie (po wyrażeniu zgody)",
+                  "Zanonimizowane dane o wizytach, identyfikator cookie",
+                ],
+                [
+                  "Cloudflare, Inc.",
+                  "Hosting, CDN, ochrona DDoS",
+                  "Adres IP, dane żądań HTTP",
+                ],
+                [
+                  "Neon, Inc.",
+                  "Hosting bazy danych",
+                  "Dane przechowywane w bazie (szyfrowane w tranzycie)",
+                ],
+                [
+                  "Allegro sp. z o.o.",
+                  "Realizacja zamówień z marketplace",
+                  "Dane zamówień składanych przez Allegro",
+                ],
+                [
+                  "Firmy kurierskie",
+                  "Dostawa zamówień",
+                  "Imię, nazwisko, adres dostawy, telefon",
+                ],
+              ]}
+            />
           </Section>
 
           <Section
             id="transfer"
-            title="&sect; 4. Przekazywanie danych poza EOG"
+            title="§ 4. Przekazywanie danych poza EOG"
           >
-            <p>
+            <P>
               Niektórzy z naszych podwykonawców (Google LLC, Cloudflare, Inc.)
               mogą przetwarzać dane w Stanach Zjednoczonych. Transfer odbywa się
               na podstawie:
-            </p>
-            <ul>
+            </P>
+            <Ul>
               <li>
                 decyzji Komisji Europejskiej o adekwatności (EU-U.S. Data
                 Privacy Framework), lub
@@ -240,174 +217,166 @@ export default function PolitykaPrywatnosciPage() {
                 standardowych klauzul umownych (SCC) zatwierdzonych przez
                 Komisję Europejską.
               </li>
-            </ul>
+            </Ul>
           </Section>
 
           <Section
             id="okres-przechowywania"
-            title="&sect; 5. Okres przechowywania danych"
+            title="§ 5. Okres przechowywania danych"
           >
-            <table>
-              <thead>
-                <tr>
-                  <th>Kategoria danych</th>
-                  <th>Okres przechowywania</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>Dane konta użytkownika</td>
-                  <td>Do usunięcia konta lub anonimizacji na żądanie</td>
-                </tr>
-                <tr>
-                  <td>Dane zamówień (faktury, transakcje)</td>
-                  <td>5 lat od końca roku podatkowego (obowiązek rachunkowy)</td>
-                </tr>
-                <tr>
-                  <td>Logi bezpieczeństwa (IP, logowania)</td>
-                  <td>1 rok</td>
-                </tr>
-                <tr>
-                  <td>Zgody (consent records)</td>
-                  <td>
-                    Do czasu wycofania zgody + 3 lata (przedawnienie roszczeń)
-                  </td>
-                </tr>
-                <tr>
-                  <td>Dane analityczne (GA4)</td>
-                  <td>14 miesięcy (domyślne ustawienie Google Analytics)</td>
-                </tr>
-                <tr>
-                  <td>Sesje wygasłe</td>
-                  <td>30 dni po wygaśnięciu</td>
-                </tr>
-              </tbody>
-            </table>
+            <Table
+              headers={["Kategoria danych", "Okres przechowywania"]}
+              rows={[
+                [
+                  "Dane konta użytkownika",
+                  "Do usunięcia konta lub anonimizacji na żądanie",
+                ],
+                [
+                  "Dane zamówień (faktury, transakcje)",
+                  "5 lat od końca roku podatkowego (obowiązek rachunkowy)",
+                ],
+                [
+                  "Logi bezpieczeństwa (IP, logowania)",
+                  "1 rok",
+                ],
+                [
+                  "Zgody (consent records)",
+                  "Do czasu wycofania zgody + 3 lata (przedawnienie roszczeń)",
+                ],
+                [
+                  "Dane analityczne (GA4)",
+                  "14 miesięcy (domyślne ustawienie Google Analytics)",
+                ],
+                [
+                  "Sesje wygasłe",
+                  "30 dni po wygaśnięciu",
+                ],
+              ]}
+            />
           </Section>
 
-          <Section id="prawa" title="&sect; 6. Twoje prawa">
-            <p>Na podstawie RODO przysługują Ci następujące prawa:</p>
-            <ol>
+          <Section id="prawa" title="§ 6. Twoje prawa">
+            <P>Na podstawie RODO przysługują Ci następujące prawa:</P>
+            <Ol>
               <li>
-                <strong>Prawo dostępu</strong> (art. 15 RODO) &mdash; możesz
-                uzyskać informację, czy i jakie Twoje dane przetwarzamy, oraz
-                otrzymać ich kopię.
+                <strong>Prawo dostępu</strong> (art. 15 RODO) — możesz uzyskać
+                informację, czy i jakie Twoje dane przetwarzamy, oraz otrzymać
+                ich kopię.
               </li>
               <li>
-                <strong>Prawo do sprostowania</strong> (art. 16 RODO) &mdash;
-                możesz żądać poprawienia nieprawidłowych lub uzupełnienia
-                niekompletnych danych.
+                <strong>Prawo do sprostowania</strong> (art. 16 RODO) — możesz
+                żądać poprawienia nieprawidłowych lub uzupełnienia niekompletnych
+                danych.
               </li>
               <li>
-                <strong>Prawo do usunięcia (&bdquo;prawo do bycia zapomnianym&rdquo;)</strong>{" "}
-                (art. 17 RODO) &mdash; możesz żądać usunięcia swoich danych.
-                Realizujemy to prawo poprzez anonimizację &mdash; Twoje dane
-                osobowe zostają trwale zastąpione danymi zanonimizowanymi,
-                uniemożliwiającymi identyfikację, przy zachowaniu danych
-                transakcyjnych wymaganych przepisami prawa.
+                <strong>
+                  Prawo do usunięcia („prawo do bycia zapomnianym")
+                </strong>{" "}
+                (art. 17 RODO) — możesz żądać usunięcia swoich danych.
+                Realizujemy to prawo poprzez anonimizację — Twoje dane osobowe
+                zostają trwale zastąpione danymi zanonimizowanymi, przy
+                zachowaniu danych transakcyjnych wymaganych przepisami prawa.
               </li>
               <li>
                 <strong>Prawo do ograniczenia przetwarzania</strong> (art. 18
-                RODO) &mdash; w określonych sytuacjach możesz żądać
-                ograniczenia przetwarzania Twoich danych.
+                RODO) — w określonych sytuacjach możesz żądać ograniczenia
+                przetwarzania Twoich danych.
               </li>
               <li>
-                <strong>Prawo do przenoszenia danych</strong> (art. 20 RODO)
-                &mdash; możesz otrzymać swoje dane w ustrukturyzowanym,
-                powszechnie używanym formacie (JSON) i przesłać je innemu
-                administratorowi.
+                <strong>Prawo do przenoszenia danych</strong> (art. 20 RODO) —
+                możesz otrzymać swoje dane w ustrukturyzowanym, powszechnie
+                używanym formacie (JSON) i przesłać je innemu administratorowi.
               </li>
               <li>
-                <strong>Prawo do sprzeciwu</strong> (art. 21 RODO) &mdash;
-                możesz wnieść sprzeciw wobec przetwarzania danych opartego na
-                prawnie uzasadnionym interesie Administratora.
+                <strong>Prawo do sprzeciwu</strong> (art. 21 RODO) — możesz
+                wnieść sprzeciw wobec przetwarzania danych opartego na prawnie
+                uzasadnionym interesie Administratora.
               </li>
               <li>
                 <strong>Prawo do wycofania zgody</strong> (art. 7 ust. 3 RODO)
-                &mdash; jeśli przetwarzanie opiera się na zgodzie, możesz ją
-                wycofać w dowolnym momencie. Wycofanie zgody nie wpływa na
-                zgodność z prawem przetwarzania dokonanego przed jej
-                wycofaniem.
+                — jeśli przetwarzanie opiera się na zgodzie, możesz ją wycofać w
+                dowolnym momencie bez wpływu na zgodność wcześniejszego
+                przetwarzania z prawem.
               </li>
               <li>
-                <strong>Prawo do skargi</strong> &mdash; masz prawo wniesienia
-                skargi do Prezesa Urzędu Ochrony Danych Osobowych (PUODO), ul.
-                Stawki 2, 00-193 Warszawa,{" "}
-                <a
+                <strong>Prawo do skargi</strong> — masz prawo wniesienia skargi
+                do Prezesa Urzędu Ochrony Danych Osobowych (PUODO), ul. Stawki
+                2, 00-193 Warszawa,{" "}
+                <A
                   href="https://uodo.gov.pl"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
                   uodo.gov.pl
-                </a>
+                </A>
                 .
               </li>
-            </ol>
-            <p>
+            </Ol>
+            <P className="mt-4">
               W celu skorzystania z powyższych praw skontaktuj się z nami
               mailowo:{" "}
-              <a href="mailto:kontakt@ilbuoncaffe.pl">
+              <A href="mailto:kontakt@ilbuoncaffe.pl">
                 kontakt@ilbuoncaffe.pl
-              </a>
+              </A>
               . Odpowiemy na Twoje żądanie w terminie 30 dni.
-            </p>
+            </P>
           </Section>
 
           <Section
             id="bezpieczenstwo"
-            title="&sect; 7. Bezpieczeństwo danych"
+            title="§ 7. Bezpieczeństwo danych"
           >
-            <p>Stosujemy następujące środki ochrony danych:</p>
-            <ul>
-              <li>
-                szyfrowanie połączeń (HTTPS/TLS) na wszystkich stronach Sklepu,
-              </li>
-              <li>
-                hashowanie haseł algorytmem bcrypt (nieodwracalne),
-              </li>
-              <li>
-                szyfrowanie tokenów uwierzytelniających algorytmem AES-256-GCM,
-              </li>
+            <P>Stosujemy następujące środki ochrony danych:</P>
+            <Ul>
+              <li>szyfrowanie połączeń (HTTPS/TLS) na wszystkich stronach Sklepu,</li>
+              <li>hashowanie haseł algorytmem bcrypt (nieodwracalne),</li>
+              <li>szyfrowanie tokenów uwierzytelniających algorytmem AES-256-GCM,</li>
               <li>
                 tokeny dostępu (JWT) z krótkim czasem życia i rotacją tokenów
                 odświeżania,
               </li>
-              <li>
-                cookies z flagami HttpOnly, Secure, SameSite=Strict,
-              </li>
+              <li>cookies z flagami HttpOnly, Secure, SameSite=Strict,</li>
               <li>
                 blokada konta po 5 nieudanych próbach logowania (na 1 godzinę),
               </li>
-              <li>
-                audyt logów dostępu administratorów,
-              </li>
-              <li>
-                hosting na infrastrukturze Cloudflare (ochrona DDoS, WAF).
-              </li>
-            </ul>
+              <li>audyt logów dostępu administratorów,</li>
+              <li>hosting na infrastrukturze Cloudflare (ochrona DDoS, WAF).</li>
+            </Ul>
           </Section>
 
-          <Section id="cookies" title="&sect; 8. Pliki cookies">
-            <p>
+          <Section id="cookies" title="§ 8. Pliki cookies">
+            <P>
               Szczegółowe informacje o plikach cookies wykorzystywanych w
               Sklepie znajdziesz w{" "}
-              <Link href="/polityka-cookies">Polityce cookies</Link>.
-            </p>
+              <Link
+                href="/polityka-cookies"
+                className="text-brand-600 underline decoration-brand-300 underline-offset-2 hover:decoration-brand-500 transition-colors"
+              >
+                Polityce cookies
+              </Link>
+              .
+            </P>
           </Section>
 
-          <Section id="zmiany" title="&sect; 9. Zmiany polityki prywatności">
-            <p>
+          <Section
+            id="zmiany"
+            title="§ 9. Zmiany polityki prywatności"
+          >
+            <P>
               Administrator zastrzega sobie prawo do zmiany niniejszej Polityki
-              prywatności. O istotnych zmianach poinformujemy poprzez
-              komunikat w Sklepie lub drogą e-mailową. Aktualna wersja
-              Polityki prywatności jest zawsze dostępna pod adresem{" "}
-              <Link href="/polityka-prywatnosci">
+              prywatności. O istotnych zmianach poinformujemy poprzez komunikat
+              w Sklepie lub drogą e-mailową. Aktualna wersja jest zawsze
+              dostępna pod adresem{" "}
+              <Link
+                href="/polityka-prywatnosci"
+                className="text-brand-600 underline decoration-brand-300 underline-offset-2 hover:decoration-brand-500 transition-colors"
+              >
                 ilbuoncaffe.pl/polityka-prywatnosci
               </Link>
               .
-            </p>
+            </P>
           </Section>
-        </article>
+        </div>
       </div>
     </main>
   );
@@ -423,9 +392,118 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} className="mb-10 scroll-mt-24">
-      <h2>{title}</h2>
+    <section id={id} className="scroll-mt-24">
+      <h2 className="text-xl font-serif font-semibold text-brand-900 mb-4 pb-2 border-b border-brand-200">
+        {title}
+      </h2>
       {children}
     </section>
+  );
+}
+
+function H3({ children }: { children: React.ReactNode }) {
+  return (
+    <h3 className="text-base font-semibold text-brand-800 mt-5 mb-2">
+      {children}
+    </h3>
+  );
+}
+
+function P({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <p
+      className={`text-brand-700 leading-relaxed text-[15px] mb-3 ${className ?? ""}`}
+    >
+      {children}
+    </p>
+  );
+}
+
+function Ol({ children }: { children: React.ReactNode }) {
+  return (
+    <ol className="list-decimal pl-5 space-y-2.5 text-brand-700 leading-relaxed text-[15px]">
+      {children}
+    </ol>
+  );
+}
+
+function Ul({ children }: { children: React.ReactNode }) {
+  return (
+    <ul className="list-disc pl-5 space-y-1.5 text-brand-700 leading-relaxed text-[15px]">
+      {children}
+    </ul>
+  );
+}
+
+function A({
+  href,
+  children,
+  target,
+  rel,
+}: {
+  href: string;
+  children: React.ReactNode;
+  target?: string;
+  rel?: string;
+}) {
+  return (
+    <a
+      href={href}
+      target={target}
+      rel={rel}
+      className="text-brand-600 underline decoration-brand-300 underline-offset-2 hover:decoration-brand-500 transition-colors"
+    >
+      {children}
+    </a>
+  );
+}
+
+function Table({
+  headers,
+  rows,
+}: {
+  headers: string[];
+  rows: string[][];
+}) {
+  return (
+    <div className="overflow-x-auto rounded-lg border border-brand-200 my-4">
+      <table className="w-full text-[14px] border-collapse">
+        <thead>
+          <tr className="bg-brand-100">
+            {headers.map((h) => (
+              <th
+                key={h}
+                className="text-left px-4 py-3 font-semibold text-brand-800 text-xs uppercase tracking-wider border-b border-brand-200"
+              >
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => (
+            <tr
+              key={i}
+              className={i % 2 === 0 ? "bg-white" : "bg-brand-50/60"}
+            >
+              {row.map((cell, j) => (
+                <td
+                  key={j}
+                  className="px-4 py-3 text-brand-700 border-b border-brand-100 last:border-b-0 align-top"
+                >
+                  {cell}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

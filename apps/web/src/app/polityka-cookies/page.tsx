@@ -23,304 +23,243 @@ export default function PolitykaCookiesPage() {
           </p>
         </header>
 
-        <article className="prose prose-brand max-w-none prose-headings:font-serif prose-headings:tracking-tight prose-p:leading-relaxed prose-li:leading-relaxed prose-a:text-brand-700 prose-a:underline prose-a:decoration-brand-300 hover:prose-a:decoration-brand-500 prose-a:underline-offset-2">
-          <Section id="czym-sa-cookies" title="&sect; 1. Czym są pliki cookies?">
-            <p>
-              Pliki cookies (ciasteczka) to niewielkie pliki tekstowe
-              zapisywane na Twoim urządzeniu (komputerze, telefonie, tablecie)
-              przez przeglądarkę internetową podczas korzystania ze stron
-              internetowych. Cookies pozwalają stronie &bdquo;zapamiętać&rdquo;
-              Twoje preferencje, dane logowania i inne ustawienia.
-            </p>
+        <div className="space-y-10">
+          <Section id="czym-sa-cookies" title="§ 1. Czym są pliki cookies?">
+            <P>
+              Pliki cookies (ciasteczka) to niewielkie pliki tekstowe zapisywane
+              na Twoim urządzeniu (komputerze, telefonie, tablecie) przez
+              przeglądarkę internetową podczas korzystania ze stron
+              internetowych. Cookies pozwalają stronie „zapamiętać" Twoje
+              preferencje, dane logowania i inne ustawienia.
+            </P>
           </Section>
 
           <Section
             id="rodzaje-cookies"
-            title="&sect; 2. Rodzaje cookies stosowane w Sklepie"
+            title="§ 2. Rodzaje cookies stosowane w Sklepie"
           >
-            <h3>2.1. Cookies niezbędne (wymagane)</h3>
-            <p>
+            <H3>2.1. Cookies niezbędne (wymagane)</H3>
+            <P>
               Są konieczne do prawidłowego działania Sklepu. Nie wymagają
               Twojej zgody, ponieważ bez nich Sklep nie mógłby funkcjonować.
-            </p>
-            <table>
-              <thead>
-                <tr>
-                  <th>Nazwa</th>
-                  <th>Cel</th>
-                  <th>Ważność</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>
-                    <code>__Host-access_token</code>
-                  </td>
-                  <td>
-                    Token uwierzytelniający sesję użytkownika (JWT). Flagi:
-                    HttpOnly, Secure, SameSite=Strict.
-                  </td>
-                  <td>2 godziny (24h z &bdquo;zapamiętaj mnie&rdquo;)</td>
-                </tr>
-                <tr>
-                  <td>
-                    <code>__Host-refresh_token</code>
-                  </td>
-                  <td>
-                    Token odświeżający sesję. Flagi: HttpOnly, Secure,
-                    SameSite=Strict.
-                  </td>
-                  <td>7 dni</td>
-                </tr>
-                <tr>
-                  <td>
-                    <code>ibc_consent</code>
-                  </td>
-                  <td>
-                    Zapamiętanie Twojego wyboru dotyczącego cookies (niezbędne /
-                    analityczne / wszystkie).
-                  </td>
-                  <td>365 dni</td>
-                </tr>
-              </tbody>
-            </table>
-            <p>
-              Dodatkowo używamy <code>localStorage</code> (klucz{" "}
-              <code>ibc-consent-v1</code>) do przechowywania Twojego wyboru
+            </P>
+            <Table
+              headers={["Nazwa", "Cel", "Ważność"]}
+              rows={[
+                [
+                  "__Host-access_token",
+                  "Token uwierzytelniający sesję użytkownika (JWT). Flagi: HttpOnly, Secure, SameSite=Strict.",
+                  '2 godziny (24h z \u201Ezapamiętaj mnie\u201D)',
+                ],
+                [
+                  "__Host-refresh_token",
+                  "Token odświeżający sesję. Flagi: HttpOnly, Secure, SameSite=Strict.",
+                  "7 dni",
+                ],
+                [
+                  "ibc_consent",
+                  "Zapamiętanie Twojego wyboru dotyczącego cookies (niezbędne / analityczne / wszystkie).",
+                  "365 dni",
+                ],
+              ]}
+            />
+            <P>
+              Dodatkowo używamy <Code>localStorage</Code> (klucz{" "}
+              <Code>ibc-consent-v1</Code>) do przechowywania Twojego wyboru
               zgody na cookies po stronie przeglądarki.
-            </p>
+            </P>
 
-            <h3>2.2. Cookies analityczne (opcjonalne)</h3>
-            <p>
-              Są stosowane wyłącznie po wyrażeniu przez Ciebie zgody.
-              Pomagają nam zrozumieć, w jaki sposób użytkownicy korzystają ze
-              Sklepu, co pozwala nam ulepszać jego działanie.
-            </p>
-            <table>
-              <thead>
-                <tr>
-                  <th>Nazwa</th>
-                  <th>Dostawca</th>
-                  <th>Cel</th>
-                  <th>Ważność</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>
-                    <code>_ga</code>
-                  </td>
-                  <td>Google Analytics 4</td>
-                  <td>
-                    Rozróżnianie użytkowników w celu analizy ruchu na stronie
-                  </td>
-                  <td>2 lata</td>
-                </tr>
-                <tr>
-                  <td>
-                    <code>_ga_9X9LN9GQYD</code>
-                  </td>
-                  <td>Google Analytics 4</td>
-                  <td>Utrzymanie stanu sesji analitycznej</td>
-                  <td>2 lata</td>
-                </tr>
-              </tbody>
-            </table>
-            <p>
+            <H3>2.2. Cookies analityczne (opcjonalne)</H3>
+            <P>
+              Są stosowane wyłącznie po wyrażeniu przez Ciebie zgody. Pomagają
+              nam zrozumieć, w jaki sposób użytkownicy korzystają ze Sklepu, co
+              pozwala nam ulepszać jego działanie.
+            </P>
+            <Table
+              headers={["Nazwa", "Dostawca", "Cel", "Ważność"]}
+              rows={[
+                [
+                  "_ga",
+                  "Google Analytics 4",
+                  "Rozróżnianie użytkowników w celu analizy ruchu na stronie",
+                  "2 lata",
+                ],
+                [
+                  "_ga_9X9LN9GQYD",
+                  "Google Analytics 4",
+                  "Utrzymanie stanu sesji analitycznej",
+                  "2 lata",
+                ],
+              ]}
+            />
+            <P>
               Stosujemy <strong>Google Consent Mode v2</strong>, co oznacza, że
               Google Analytics nie zapisuje żadnych cookies ani nie zbiera danych
-              do celów analitycznych, dopóki nie wyrazisz na to zgody.
-              Domyślny stan wszystkich opcjonalnych cookies to
-              &bdquo;denied&rdquo; (odrzucone).
-            </p>
+              do celów analitycznych, dopóki nie wyrazisz na to zgody. Domyślny
+              stan wszystkich opcjonalnych cookies to „denied" (odrzucone).
+            </P>
           </Section>
 
           <Section
             id="consent-mode"
-            title="&sect; 3. Google Consent Mode v2"
+            title="§ 3. Google Consent Mode v2 — szczegóły"
           >
-            <p>
+            <P>
               Sklep implementuje mechanizm Google Consent Mode v2, który
               zarządza następującymi kategoriami zgód:
-            </p>
-            <table>
-              <thead>
-                <tr>
-                  <th>Kategoria</th>
-                  <th>Domyślny stan</th>
-                  <th>Opis</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>
-                    <code>analytics_storage</code>
-                  </td>
-                  <td>denied</td>
-                  <td>Cookies analityczne Google Analytics</td>
-                </tr>
-                <tr>
-                  <td>
-                    <code>ad_storage</code>
-                  </td>
-                  <td>denied</td>
-                  <td>Cookies reklamowe (obecnie nieużywane)</td>
-                </tr>
-                <tr>
-                  <td>
-                    <code>ad_user_data</code>
-                  </td>
-                  <td>denied</td>
-                  <td>Dane użytkownika dla celów reklamowych</td>
-                </tr>
-                <tr>
-                  <td>
-                    <code>ad_personalization</code>
-                  </td>
-                  <td>denied</td>
-                  <td>Personalizacja reklam</td>
-                </tr>
-                <tr>
-                  <td>
-                    <code>personalization_storage</code>
-                  </td>
-                  <td>denied</td>
-                  <td>Personalizacja treści strony</td>
-                </tr>
-                <tr>
-                  <td>
-                    <code>functionality_storage</code>
-                  </td>
-                  <td>granted</td>
-                  <td>Funkcjonalność strony (niezbędne)</td>
-                </tr>
-                <tr>
-                  <td>
-                    <code>security_storage</code>
-                  </td>
-                  <td>granted</td>
-                  <td>Bezpieczeństwo (niezbędne)</td>
-                </tr>
-              </tbody>
-            </table>
+            </P>
+            <Table
+              headers={["Kategoria", "Stan domyślny", "Opis"]}
+              rows={[
+                [
+                  "analytics_storage",
+                  "denied",
+                  "Cookies analityczne Google Analytics",
+                ],
+                [
+                  "ad_storage",
+                  "denied",
+                  "Cookies reklamowe (obecnie nieużywane)",
+                ],
+                [
+                  "ad_user_data",
+                  "denied",
+                  "Dane użytkownika dla celów reklamowych",
+                ],
+                [
+                  "ad_personalization",
+                  "denied",
+                  "Personalizacja reklam",
+                ],
+                [
+                  "personalization_storage",
+                  "denied",
+                  "Personalizacja treści strony",
+                ],
+                [
+                  "functionality_storage",
+                  "granted",
+                  "Funkcjonalność strony (niezbędne cookies)",
+                ],
+                [
+                  "security_storage",
+                  "granted",
+                  "Bezpieczeństwo (niezbędne cookies)",
+                ],
+              ]}
+            />
           </Section>
 
           <Section
             id="zarzadzanie"
-            title="&sect; 4. Zarządzanie zgodami na cookies"
+            title="§ 4. Zarządzanie zgodami na cookies"
           >
-            <p>
+            <P>
               Przy pierwszej wizycie w Sklepie wyświetlamy baner informacyjny,
               w którym możesz:
-            </p>
-            <ul>
+            </P>
+            <Ul>
               <li>
-                <strong>zaakceptować tylko niezbędne cookies</strong> &mdash;
-                Sklep działa bez analityki,
+                <strong>zaakceptować tylko niezbędne cookies</strong> — Sklep
+                działa bez analityki,
               </li>
               <li>
-                <strong>zaakceptować cookies analityczne</strong> &mdash;
-                włącza Google Analytics,
+                <strong>zaakceptować cookies analityczne</strong> — włącza
+                Google Analytics,
               </li>
               <li>
-                <strong>zaakceptować wszystkie cookies</strong> &mdash; włącza
-                pełną analitykę i personalizację.
+                <strong>zaakceptować wszystkie cookies</strong> — włącza pełną
+                analitykę i personalizację.
               </li>
-            </ul>
-            <p>
+            </Ul>
+            <P>
               Swoją decyzję możesz zmienić w każdej chwili, czyszcząc pliki
-              cookies w ustawieniach przeglądarki &mdash; baner pojawi się
-              ponownie.
-            </p>
-
-            <h3>Zarządzanie cookies w przeglądarce</h3>
-            <p>
+              cookies w ustawieniach przeglądarki — baner pojawi się ponownie.
+            </P>
+            <H3>Zarządzanie cookies w przeglądarce</H3>
+            <P>
               Większość przeglądarek pozwala na zarządzanie cookies w
-              ustawieniach. Możesz:
-            </p>
-            <ul>
-              <li>blokować wszystkie cookies,</li>
-              <li>usuwać istniejące cookies,</li>
-              <li>
-                ustawiać powiadomienia o zapisywaniu nowych cookies.
-              </li>
-            </ul>
-            <p>
-              Pamiętaj, że zablokowanie cookies niezbędnych może uniemożliwić
-              korzystanie z niektórych funkcji Sklepu (np. logowanie, koszyk).
-            </p>
+              ustawieniach. Możesz blokować wszystkie cookies, usuwać istniejące
+              lub ustawiać powiadomienia o ich zapisywaniu. Pamiętaj, że
+              zablokowanie cookies niezbędnych może uniemożliwić korzystanie z
+              niektórych funkcji Sklepu (np. logowanie, koszyk).
+            </P>
           </Section>
 
           <Section
             id="local-storage"
-            title="&sect; 5. Dane w localStorage"
+            title="§ 5. Dane w localStorage"
           >
-            <p>
+            <P>
               Oprócz cookies Sklep wykorzystuje mechanizm localStorage
-              przeglądarki do przechowywania:
-            </p>
-            <table>
-              <thead>
-                <tr>
-                  <th>Klucz</th>
-                  <th>Cel</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>
-                    <code>ibc-consent-v1</code>
-                  </td>
-                  <td>
-                    Zapamiętanie Twojego wyboru dotyczącego cookies
-                    (&bdquo;necessary&rdquo;, &bdquo;analytics&rdquo; lub
-                    &bdquo;all&rdquo;)
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-            <p>
+              przeglądarki:
+            </P>
+            <Table
+              headers={["Klucz", "Cel"]}
+              rows={[
+                [
+                  "ibc-consent-v1",
+                  'Zapamiętanie Twojego wyboru dotyczącego cookies (\u201Enecessary\u201D, \u201Eanalytics\u201D lub \u201Eall\u201D)',
+                ],
+              ]}
+            />
+            <P>
               Dane w localStorage nie są wysyłane do serwera automatycznie i
               pozostają wyłącznie na Twoim urządzeniu. Możesz je usunąć w
-              ustawieniach przeglądarki (Narzędzia deweloperskie &rarr;
-              Aplikacja &rarr; localStorage).
-            </p>
+              ustawieniach przeglądarki (Narzędzia deweloperskie → Aplikacja →
+              localStorage).
+            </P>
           </Section>
 
-          <Section id="zmiany-cookies" title="&sect; 6. Zmiany polityki cookies">
-            <p>
+          <Section
+            id="zmiany-cookies"
+            title="§ 6. Zmiany polityki cookies"
+          >
+            <P>
               Zastrzegamy sobie prawo do zmiany niniejszej Polityki cookies.
               Aktualna wersja jest zawsze dostępna pod adresem{" "}
-              <Link href="/polityka-cookies">
+              <Link
+                href="/polityka-cookies"
+                className="text-brand-600 underline decoration-brand-300 underline-offset-2 hover:decoration-brand-500 transition-colors"
+              >
                 ilbuoncaffe.pl/polityka-cookies
               </Link>
               . O istotnych zmianach poinformujemy poprzez ponowne wyświetlenie
               banera cookies.
-            </p>
+            </P>
           </Section>
 
-          <Section id="kontakt-cookies" title="&sect; 7. Kontakt">
-            <p>
+          <Section id="kontakt-cookies" title="§ 7. Kontakt">
+            <P>
               W razie pytań dotyczących plików cookies skontaktuj się z nami:
-            </p>
-            <ul>
+            </P>
+            <Ul>
               <li>
                 e-mail:{" "}
-                <a href="mailto:kontakt@ilbuoncaffe.pl">
+                <A href="mailto:kontakt@ilbuoncaffe.pl">
                   kontakt@ilbuoncaffe.pl
-                </a>
+                </A>
               </li>
               <li>
-                telefon: <a href="tel:+48664937937">+48 664 937 937</a>
+                telefon: <A href="tel:+48664937937">+48 664 937 937</A>
               </li>
-            </ul>
-            <p>
-              Więcej informacji o ochronie danych osobowych znajdziesz w
-              naszej{" "}
-              <Link href="/polityka-prywatnosci">Polityce prywatności</Link>.
-            </p>
+              <li>
+                <strong>Il Buon Caffe Dariusz Praczyk</strong>, NIP 6692036051,
+                ul. Biskupa Czesława Domina 3/6, 75-065 Koszalin
+              </li>
+            </Ul>
+            <P className="mt-4">
+              Więcej informacji o ochronie danych osobowych znajdziesz w naszej{" "}
+              <Link
+                href="/polityka-prywatnosci"
+                className="text-brand-600 underline decoration-brand-300 underline-offset-2 hover:decoration-brand-500 transition-colors"
+              >
+                Polityce prywatności
+              </Link>
+              .
+            </P>
           </Section>
-        </article>
+        </div>
       </div>
     </main>
   );
@@ -336,9 +275,115 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} className="mb-10 scroll-mt-24">
-      <h2>{title}</h2>
+    <section id={id} className="scroll-mt-24">
+      <h2 className="text-xl font-serif font-semibold text-brand-900 mb-4 pb-2 border-b border-brand-200">
+        {title}
+      </h2>
       {children}
     </section>
+  );
+}
+
+function H3({ children }: { children: React.ReactNode }) {
+  return (
+    <h3 className="text-base font-semibold text-brand-800 mt-5 mb-2">
+      {children}
+    </h3>
+  );
+}
+
+function P({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <p
+      className={`text-brand-700 leading-relaxed text-[15px] mb-3 ${className ?? ""}`}
+    >
+      {children}
+    </p>
+  );
+}
+
+function Ul({ children }: { children: React.ReactNode }) {
+  return (
+    <ul className="list-disc pl-5 space-y-1.5 text-brand-700 leading-relaxed text-[15px] mb-3">
+      {children}
+    </ul>
+  );
+}
+
+function A({
+  href,
+  children,
+  target,
+  rel,
+}: {
+  href: string;
+  children: React.ReactNode;
+  target?: string;
+  rel?: string;
+}) {
+  return (
+    <a
+      href={href}
+      target={target}
+      rel={rel}
+      className="text-brand-600 underline decoration-brand-300 underline-offset-2 hover:decoration-brand-500 transition-colors"
+    >
+      {children}
+    </a>
+  );
+}
+
+function Code({ children }: { children: React.ReactNode }) {
+  return (
+    <code className="bg-brand-100 text-brand-700 px-1.5 py-0.5 rounded text-[13px] font-mono">
+      {children}
+    </code>
+  );
+}
+
+function Table({
+  headers,
+  rows,
+}: {
+  headers: string[];
+  rows: string[][];
+}) {
+  return (
+    <div className="overflow-x-auto rounded-lg border border-brand-200 my-4">
+      <table className="w-full text-[14px] border-collapse">
+        <thead>
+          <tr className="bg-brand-100">
+            {headers.map((h) => (
+              <th
+                key={h}
+                className="text-left px-4 py-3 font-semibold text-brand-800 text-xs uppercase tracking-wider border-b border-brand-200 whitespace-nowrap"
+              >
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => (
+            <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-brand-50/60"}>
+              {row.map((cell, j) => (
+                <td
+                  key={j}
+                  className="px-4 py-3 text-brand-700 align-top border-b border-brand-100"
+                >
+                  {cell}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

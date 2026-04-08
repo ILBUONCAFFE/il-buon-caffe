@@ -23,27 +23,25 @@ export default function RegulaminPage() {
           </p>
         </header>
 
-        <article className="prose prose-brand max-w-none prose-headings:font-serif prose-headings:tracking-tight prose-p:leading-relaxed prose-li:leading-relaxed prose-a:text-brand-700 prose-a:underline prose-a:decoration-brand-300 hover:prose-a:decoration-brand-500 prose-a:underline-offset-2">
-          <Section id="postanowienia-ogolne" title="&sect; 1. Postanowienia ogólne">
-            <ol>
+        <div className="space-y-10">
+          <Section id="postanowienia-ogolne" title="§ 1. Postanowienia ogólne">
+            <Ol>
               <li>
                 Niniejszy Regulamin określa zasady korzystania ze sklepu
                 internetowego dostępnego pod adresem{" "}
-                <strong>ilbuoncaffe.pl</strong> (dalej: &bdquo;Sklep&rdquo;).
+                <strong>ilbuoncaffe.pl</strong> (dalej: „Sklep").
               </li>
               <li>
                 Właścicielem i operatorem Sklepu jest{" "}
-                <strong>Il Buon Caffe</strong> z siedzibą w Koszalinie, ul.
-                Biskupa Czesława Domina 3/6, 75-065 Koszalin, NIP: [NIP], REGON:
-                [REGON] (dalej: &bdquo;Sprzedawca&rdquo;).
+                <strong>Il Buon Caffe Dariusz Praczyk</strong> z siedzibą przy
+                ul. Biskupa Czesława Domina 3/6, 75-065 Koszalin, NIP:{" "}
+                <strong>6692036051</strong>, REGON: <strong>330511794</strong>{" "}
+                (dalej: „Sprzedawca").
               </li>
               <li>
                 Kontakt ze Sprzedawcą:{" "}
-                <a href="mailto:kontakt@ilbuoncaffe.pl">
-                  kontakt@ilbuoncaffe.pl
-                </a>
-                , tel.{" "}
-                <a href="tel:+48664937937">+48 664 937 937</a>, pn&ndash;pt
+                <A href="mailto:kontakt@ilbuoncaffe.pl">kontakt@ilbuoncaffe.pl</A>
+                , tel. <A href="tel:+48664937937">+48 664 937 937</A>, pn&ndash;pt
                 09:00&ndash;16:00, sob 11:00&ndash;14:00.
               </li>
               <li>
@@ -52,70 +50,74 @@ export default function RegulaminPage() {
                 Internetu na terenie Rzeczypospolitej Polskiej.
               </li>
               <li>
-                Korzystanie ze Sklepu wymaga urządzenia z dostępem do Internetu,
-                aktualnej przeglądarki internetowej (Chrome, Firefox, Safari,
-                Edge) z włączoną obsługą JavaScript i cookies oraz aktywnego
-                adresu e-mail.
+                Korzystanie ze Sklepu wymaga urządzenia z dostępem do
+                Internetu, aktualnej przeglądarki internetowej (Chrome, Firefox,
+                Safari, Edge) z włączoną obsługą JavaScript i cookies oraz
+                aktywnego adresu e-mail.
               </li>
               <li>
                 Ceny podane w Sklepie są cenami brutto (zawierają podatek VAT) i
                 wyrażone są w złotych polskich (PLN). Cena wiążąca to cena
                 widniejąca przy produkcie w chwili składania zamówienia.
               </li>
-            </ol>
+            </Ol>
           </Section>
 
-          <Section id="definicje" title="&sect; 2. Definicje">
-            <ol>
+          <Section id="definicje" title="§ 2. Definicje">
+            <Ol>
               <li>
-                <strong>Klient</strong> &mdash; osoba fizyczna posiadająca pełną
+                <strong>Klient</strong> — osoba fizyczna posiadająca pełną
                 zdolność do czynności prawnych, osoba prawna lub jednostka
                 organizacyjna nieposiadająca osobowości prawnej, która korzysta
                 ze Sklepu.
               </li>
               <li>
-                <strong>Konsument</strong> &mdash; Klient będący osobą fizyczną,
+                <strong>Konsument</strong> — Klient będący osobą fizyczną,
                 dokonujący zakupu niezwiązanego bezpośrednio z jego
-                działalnością gospodarczą lub zawodową (art. 22
-                <sup>1</sup> Kodeksu cywilnego), a także osoba fizyczna
-                prowadząca jednoosobową działalność gospodarczą, gdy zakup nie ma
-                dla niej charakteru zawodowego (art. 385
-                <sup>5</sup> k.c.).
+                działalnością gospodarczą lub zawodową (art. 22<sup>1</sup>{" "}
+                Kodeksu cywilnego), a także osoba fizyczna prowadząca
+                jednoosobową działalność gospodarczą, gdy zakup nie ma dla niej
+                charakteru zawodowego (art. 385<sup>5</sup> k.c.).
               </li>
               <li>
-                <strong>Konto</strong> &mdash; indywidualne konto Klienta w
-                Sklepie, chronione adresem e-mail i hasłem, umożliwiające
-                składanie zamówień, przeglądanie historii zakupów i zarządzanie
-                danymi.
+                <strong>Konto</strong> — indywidualne konto Klienta w Sklepie,
+                chronione adresem e-mail i hasłem, umożliwiające składanie
+                zamówień, przeglądanie historii zakupów i zarządzanie danymi.
               </li>
               <li>
-                <strong>Zamówienie</strong> &mdash; oświadczenie woli Klienta
+                <strong>Zamówienie</strong> — oświadczenie woli Klienta
                 zmierzające do zawarcia umowy sprzedaży produktów ze
                 Sprzedawcą.
               </li>
               <li>
-                <strong>Produkt</strong> &mdash; rzecz ruchoma dostępna w
-                Sklepie, będąca przedmiotem umowy sprzedaży.
+                <strong>Produkt</strong> — rzecz ruchoma dostępna w Sklepie,
+                będąca przedmiotem umowy sprzedaży.
               </li>
-            </ol>
+            </Ol>
           </Section>
 
-          <Section id="konto" title="&sect; 3. Konto użytkownika">
-            <ol>
+          <Section id="konto" title="§ 3. Konto użytkownika">
+            <Ol>
               <li>
                 Rejestracja Konta jest dobrowolna i bezpłatna. Wymaga podania
                 imienia, adresu e-mail, ustawienia hasła oraz zaakceptowania
                 niniejszego Regulaminu i{" "}
-                <Link href="/polityka-prywatnosci">Polityki prywatności</Link>.
+                <Link
+                  href="/polityka-prywatnosci"
+                  className="text-brand-600 underline decoration-brand-300 underline-offset-2 hover:decoration-brand-500 transition-colors"
+                >
+                  Polityki prywatności
+                </Link>
+                .
               </li>
               <li>
-                Hasło musi spełniać wymagania bezpieczeństwa: minimum 12 znaków,
-                w tym wielka i mała litera, cyfra oraz znak specjalny.
+                Hasło musi spełniać wymagania bezpieczeństwa: minimum 12
+                znaków, w tym wielka i mała litera, cyfra oraz znak specjalny.
               </li>
               <li>
-                Klient zobowiązuje się do zachowania poufności danych
-                logowania. Sprzedawca nie ponosi odpowiedzialności za
-                udostępnienie danych logowania osobom trzecim przez Klienta.
+                Klient zobowiązuje się do zachowania poufności danych logowania.
+                Sprzedawca nie ponosi odpowiedzialności za udostępnienie danych
+                logowania osobom trzecim przez Klienta.
               </li>
               <li>
                 Klient może w każdej chwili usunąć Konto, kontaktując się ze
@@ -127,18 +129,18 @@ export default function RegulaminPage() {
                 Regulaminu, po uprzednim poinformowaniu Klienta drogą
                 elektroniczną.
               </li>
-            </ol>
+            </Ol>
           </Section>
 
-          <Section id="zamowienia" title="&sect; 4. Składanie zamówień">
-            <ol>
+          <Section id="zamowienia" title="§ 4. Składanie zamówień">
+            <Ol>
               <li>
                 Zamówienia można składać 24 godziny na dobę, 7 dni w tygodniu
                 za pośrednictwem Sklepu internetowego.
               </li>
               <li>
                 W celu złożenia zamówienia Klient:
-                <ol className="list-[lower-alpha]">
+                <ol className="mt-2 space-y-1.5 pl-5 list-[lower-alpha] text-brand-700 leading-relaxed">
                   <li>wybiera Produkty i dodaje je do koszyka,</li>
                   <li>
                     podaje dane niezbędne do realizacji zamówienia (imię,
@@ -146,8 +148,7 @@ export default function RegulaminPage() {
                   </li>
                   <li>wybiera sposób dostawy i metodę płatności,</li>
                   <li>
-                    potwierdza zamówienie przyciskiem &bdquo;Zamawiam i
-                    płacę&rdquo;.
+                    potwierdza zamówienie przyciskiem „Zamawiam i płacę".
                   </li>
                 </ol>
               </li>
@@ -167,20 +168,20 @@ export default function RegulaminPage() {
                 Zamówienie może zostać anulowane przez Klienta do momentu
                 nadania przesyłki, poprzez kontakt ze Sprzedawcą.
               </li>
-            </ol>
+            </Ol>
           </Section>
 
-          <Section id="platnosci" title="&sect; 5. Płatności">
-            <ol>
+          <Section id="platnosci" title="§ 5. Płatności">
+            <Ol>
               <li>
                 Sklep umożliwia płatność za pośrednictwem serwisu{" "}
-                <strong>Przelewy24</strong> (DialCom24 Sp. z o.o., PayPro S.A.)
-                w następujących formach:
-                <ul>
+                <strong>Przelewy24</strong> (DialCom24 Sp. z o.o. / PayPro
+                S.A.) w następujących formach:
+                <Ul className="mt-2">
                   <li>karta płatnicza (Visa, Mastercard),</li>
                   <li>BLIK,</li>
                   <li>przelew bankowy online.</li>
-                </ul>
+                </Ul>
               </li>
               <li>
                 Klient zobowiązany jest do dokonania płatności w ciągu 24 godzin
@@ -193,11 +194,11 @@ export default function RegulaminPage() {
                 Klienta, który poda dane do faktury podczas składania
                 zamówienia.
               </li>
-            </ol>
+            </Ol>
           </Section>
 
-          <Section id="dostawa" title="&sect; 6. Dostawa">
-            <ol>
+          <Section id="dostawa" title="§ 6. Dostawa">
+            <Ol>
               <li>
                 Dostawa realizowana jest na terenie Rzeczypospolitej Polskiej
                 pod adres wskazany przez Klienta w zamówieniu.
@@ -222,14 +223,14 @@ export default function RegulaminPage() {
                 przypadku uszkodzenia opakowania zaleca się sporządzenie
                 protokołu szkody.
               </li>
-            </ol>
+            </Ol>
           </Section>
 
           <Section
             id="odstapienie"
-            title="&sect; 7. Prawo odstąpienia od umowy"
+            title="§ 7. Prawo odstąpienia od umowy"
           >
-            <ol>
+            <Ol>
               <li>
                 Konsument ma prawo odstąpić od umowy zawartej na odległość w
                 terminie <strong>14 dni</strong> od dnia otrzymania Produktu,
@@ -240,33 +241,30 @@ export default function RegulaminPage() {
                 Aby skorzystać z prawa odstąpienia, Konsument powinien
                 poinformować Sprzedawcę o swojej decyzji w drodze jednoznacznego
                 oświadczenia przesłanego na adres e-mail{" "}
-                <a href="mailto:kontakt@ilbuoncaffe.pl">
-                  kontakt@ilbuoncaffe.pl
-                </a>{" "}
+                <A href="mailto:kontakt@ilbuoncaffe.pl">kontakt@ilbuoncaffe.pl</A>{" "}
                 lub pisemnie na adres siedziby Sprzedawcy.
               </li>
               <li>
                 Prawo odstąpienia od umowy <strong>nie przysługuje</strong> w
-                odniesieniu do umów, których przedmiotem jest:
-                <ul>
+                odniesieniu do:
+                <Ul className="mt-2">
                   <li>
-                    rzecz ulegająca szybkiemu zepsuciu lub mająca krótki termin
-                    przydatności do użycia (np. świeża kawa mielona na
+                    rzeczy ulegającej szybkiemu zepsuciu lub mającej krótki
+                    termin przydatności do użycia (np. świeża kawa mielona na
                     zamówienie),
                   </li>
                   <li>
-                    rzecz dostarczana w zapieczętowanym opakowaniu, której po
-                    otwarciu opakowania nie można zwrócić ze względu na ochronę
-                    zdrowia lub ze względów higienicznych, jeżeli opakowanie
-                    zostało otwarte po dostarczeniu,
+                    rzeczy dostarczanej w zapieczętowanym opakowaniu, której po
+                    otwarciu nie można zwrócić ze względu na ochronę zdrowia lub
+                    ze względów higienicznych, jeżeli opakowanie zostało otwarte
+                    po dostarczeniu,
                   </li>
                   <li>
-                    napoje alkoholowe (wino), których cena została uzgodniona
-                    przy zawarciu umowy sprzedaży, a których dostarczenie może
-                    nastąpić dopiero po upływie 30 dni i których wartość zależy
-                    od wahań na rynku, nad którymi Sprzedawca nie ma kontroli.
+                    napojów alkoholowych (wino), których cena została uzgodniona
+                    przy zawarciu umowy sprzedaży, a których wartość zależy od
+                    wahań na rynku, nad którymi Sprzedawca nie ma kontroli.
                   </li>
-                </ul>
+                </Ul>
               </li>
               <li>
                 Sprzedawca zwróci Konsumentowi wszystkie otrzymane płatności,
@@ -277,23 +275,21 @@ export default function RegulaminPage() {
                 odstąpieniu.
               </li>
               <li>
-                Konsument ponosi bezpośrednie koszty zwrotu Produktu.
-                Produkt powinien zostać zwrócony w stanie niepogorszonym, w
-                oryginalnym opakowaniu (jeśli to możliwe).
+                Konsument ponosi bezpośrednie koszty zwrotu Produktu. Produkt
+                powinien zostać zwrócony w stanie niepogorszonym, w oryginalnym
+                opakowaniu (jeśli to możliwe).
               </li>
-            </ol>
+            </Ol>
           </Section>
 
-          <Section id="reklamacje" title="&sect; 8. Reklamacje i rękojmia">
-            <ol>
+          <Section id="reklamacje" title="§ 8. Reklamacje i rękojmia">
+            <Ol>
               <li>
                 Sprzedawca jest zobowiązany dostarczyć Produkt wolny od wad.
               </li>
               <li>
                 Reklamacje należy składać drogą elektroniczną na adres{" "}
-                <a href="mailto:kontakt@ilbuoncaffe.pl">
-                  kontakt@ilbuoncaffe.pl
-                </a>{" "}
+                <A href="mailto:kontakt@ilbuoncaffe.pl">kontakt@ilbuoncaffe.pl</A>{" "}
                 lub pisemnie na adres siedziby Sprzedawcy.
               </li>
               <li>
@@ -312,14 +308,14 @@ export default function RegulaminPage() {
                 Produktu zgodnie z przepisami Kodeksu cywilnego (art. 556 i
                 nast. k.c.).
               </li>
-            </ol>
+            </Ol>
           </Section>
 
           <Section
             id="sprzedaz-alkoholu"
-            title="&sect; 9. Sprzedaż napojów alkoholowych"
+            title="§ 9. Sprzedaż napojów alkoholowych"
           >
-            <ol>
+            <Ol>
               <li>
                 Sprzedaż napojów alkoholowych (wina) odbywa się wyłącznie na
                 rzecz osób pełnoletnich, zgodnie z ustawą z dnia 26 października
@@ -334,14 +330,11 @@ export default function RegulaminPage() {
                 Kurier może zweryfikować wiek odbiorcy przy doręczeniu
                 przesyłki zawierającej napoje alkoholowe.
               </li>
-            </ol>
+            </Ol>
           </Section>
 
-          <Section
-            id="odpowiedzialnosc"
-            title="&sect; 10. Odpowiedzialność"
-          >
-            <ol>
+          <Section id="odpowiedzialnosc" title="§ 10. Odpowiedzialność">
+            <Ol>
               <li>
                 Sprzedawca nie ponosi odpowiedzialności za niedostępność Sklepu
                 spowodowaną siłą wyższą, awarią techniczną lub pracami
@@ -354,75 +347,80 @@ export default function RegulaminPage() {
               </li>
               <li>
                 Klient zobowiązuje się do korzystania ze Sklepu zgodnie z
-                obowiązującym prawem i niniejszym Regulaminem, a w
-                szczególności do niepodawania danych niezgodnych z
-                rzeczywistością.
+                obowiązującym prawem i niniejszym Regulaminem.
               </li>
-            </ol>
+            </Ol>
           </Section>
 
-          <Section id="dane-osobowe" title="&sect; 11. Dane osobowe">
-            <ol>
+          <Section id="dane-osobowe" title="§ 11. Dane osobowe">
+            <Ol>
               <li>
-                Administratorem danych osobowych Klientów jest Sprzedawca.
+                Administratorem danych osobowych Klientów jest Sprzedawca —{" "}
+                <strong>Il Buon Caffe Dariusz Praczyk</strong>, NIP 6692036051.
               </li>
               <li>
-                Szczegółowe informacje dotyczące przetwarzania danych osobowych,
-                w tym cele, podstawy prawne, okres przechowywania i prawa
-                Klientów, zawiera{" "}
-                <Link href="/polityka-prywatnosci">Polityka prywatności</Link>.
+                Szczegółowe informacje dotyczące przetwarzania danych osobowych
+                zawiera{" "}
+                <Link
+                  href="/polityka-prywatnosci"
+                  className="text-brand-600 underline decoration-brand-300 underline-offset-2 hover:decoration-brand-500 transition-colors"
+                >
+                  Polityka prywatności
+                </Link>
+                .
               </li>
               <li>
-                Informacje dotyczące plików cookies zawiera{" "}
-                <Link href="/polityka-cookies">Polityka cookies</Link>.
+                Informacje o plikach cookies zawiera{" "}
+                <Link
+                  href="/polityka-cookies"
+                  className="text-brand-600 underline decoration-brand-300 underline-offset-2 hover:decoration-brand-500 transition-colors"
+                >
+                  Polityka cookies
+                </Link>
+                .
               </li>
-            </ol>
+            </Ol>
           </Section>
 
           <Section
             id="pozasadowe"
-            title="&sect; 12. Pozasądowe rozwiązywanie sporów"
+            title="§ 12. Pozasądowe rozwiązywanie sporów"
           >
-            <ol>
+            <Ol>
               <li>
                 Konsument ma możliwość skorzystania z pozasądowych sposobów
-                rozpatrywania reklamacji i dochodzenia roszczeń, w
-                szczególności:
-                <ul>
+                rozpatrywania reklamacji i dochodzenia roszczeń:
+                <Ul className="mt-2">
                   <li>
-                    złożenia wniosku o rozstrzygnięcie sporu do stałego
-                    polubownego sądu konsumenckiego działającego przy
-                    Wojewódzkim Inspektorze Inspekcji Handlowej,
+                    złożenia wniosku do stałego polubownego sądu konsumenckiego
+                    przy Wojewódzkim Inspektorze Inspekcji Handlowej,
                   </li>
                   <li>
                     zwrócenia się do Miejskiego (Powiatowego) Rzecznika
-                    Konsumentów o pomoc w rozwiązaniu sporu,
+                    Konsumentów,
                   </li>
                   <li>
-                    skorzystania z platformy internetowego rozstrzygania sporów
-                    (ODR) dostępnej pod adresem:{" "}
-                    <a
+                    skorzystania z platformy ODR:{" "}
+                    <A
                       href="https://ec.europa.eu/consumers/odr"
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      https://ec.europa.eu/consumers/odr
-                    </a>
+                      ec.europa.eu/consumers/odr
+                    </A>
                     .
                   </li>
-                </ul>
+                </Ul>
               </li>
-            </ol>
+            </Ol>
           </Section>
 
           <Section
             id="postanowienia-koncowe"
-            title="&sect; 13. Postanowienia końcowe"
+            title="§ 13. Postanowienia końcowe"
           >
-            <ol>
-              <li>
-                Regulamin wchodzi w życie z dniem opublikowania w Sklepie.
-              </li>
+            <Ol>
+              <li>Regulamin wchodzi w życie z dniem opublikowania w Sklepie.</li>
               <li>
                 Sprzedawca zastrzega sobie prawo do zmiany Regulaminu z ważnych
                 przyczyn (zmiana przepisów prawa, zmiana sposobów płatności lub
@@ -430,23 +428,22 @@ export default function RegulaminPage() {
                 wyprzedzeniem co najmniej 14 dni.
               </li>
               <li>
-                Zamówienia złożone przed wejściem w życie zmian Regulaminu
-                realizowane są na dotychczasowych zasadach.
+                Zamówienia złożone przed wejściem w życie zmian realizowane są
+                na dotychczasowych zasadach.
               </li>
               <li>
-                W sprawach nieuregulowanych niniejszym Regulaminem zastosowanie
-                mają przepisy prawa polskiego, w szczególności Kodeksu
-                cywilnego, ustawy o prawach konsumenta oraz ustawy o
-                świadczeniu usług drogą elektroniczną.
+                W sprawach nieuregulowanych zastosowanie mają przepisy prawa
+                polskiego, w szczególności Kodeksu cywilnego, ustawy o prawach
+                konsumenta oraz ustawy o świadczeniu usług drogą elektroniczną.
               </li>
               <li>
                 Ewentualne spory wynikające z umów zawartych za pośrednictwem
-                Sklepu będą rozstrzygane przez sąd właściwy zgodnie z
-                przepisami Kodeksu postępowania cywilnego.
+                Sklepu będą rozstrzygane przez sąd właściwy zgodnie z przepisami
+                Kodeksu postępowania cywilnego.
               </li>
-            </ol>
+            </Ol>
           </Section>
-        </article>
+        </div>
       </div>
     </main>
   );
@@ -462,9 +459,58 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} className="mb-10 scroll-mt-24">
-      <h2>{title}</h2>
+    <section id={id} className="scroll-mt-24">
+      <h2 className="text-xl font-serif font-semibold text-brand-900 mb-4 pb-2 border-b border-brand-200">
+        {title}
+      </h2>
       {children}
     </section>
+  );
+}
+
+function Ol({ children }: { children: React.ReactNode }) {
+  return (
+    <ol className="list-decimal pl-5 space-y-2.5 text-brand-700 leading-relaxed text-[15px]">
+      {children}
+    </ol>
+  );
+}
+
+function Ul({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <ul
+      className={`list-disc pl-5 space-y-1.5 text-brand-700 leading-relaxed text-[15px] ${className ?? ""}`}
+    >
+      {children}
+    </ul>
+  );
+}
+
+function A({
+  href,
+  children,
+  target,
+  rel,
+}: {
+  href: string;
+  children: React.ReactNode;
+  target?: string;
+  rel?: string;
+}) {
+  return (
+    <a
+      href={href}
+      target={target}
+      rel={rel}
+      className="text-brand-600 underline decoration-brand-300 underline-offset-2 hover:decoration-brand-500 transition-colors"
+    >
+      {children}
+    </a>
   );
 }
