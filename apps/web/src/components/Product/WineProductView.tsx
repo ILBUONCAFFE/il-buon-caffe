@@ -82,6 +82,8 @@ export const WineProductView = ({ product, categoryName }: WineProductViewProps)
   const bottleY = useTransform(scrollYProgress, [0, 1], [0, 120]);
   const bottleScale = useTransform(scrollYProgress, [0, 0.5], [1, 0.9]);
   const bgOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
+  const decorBgY1 = useTransform(scrollYProgress, [0, 1], [0, -100]);
+  const decorBgY2 = useTransform(scrollYProgress, [0, 1], [0, 100]);
 
   const wineDetails = getWineDetailsForProduct(product);
 
@@ -118,7 +120,7 @@ export const WineProductView = ({ product, categoryName }: WineProductViewProps)
           style={{
             background: `radial-gradient(circle, ${palette.accentSoft} 0%, transparent 60%)`,
             opacity: bgOpacity,
-            y: useTransform(scrollYProgress, [0, 1], [0, -100])
+            y: decorBgY1
           }}
         />
         <motion.div
@@ -126,7 +128,7 @@ export const WineProductView = ({ product, categoryName }: WineProductViewProps)
           style={{
             background: `radial-gradient(circle, rgba(166, 139, 91, 0.08) 0%, transparent 60%)`,
             opacity: bgOpacity,
-            y: useTransform(scrollYProgress, [0, 1], [0, 100])
+            y: decorBgY2
           }}
         />
 
