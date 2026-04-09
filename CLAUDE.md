@@ -156,6 +156,17 @@ Security middleware (`securityMiddleware`) is global — applies CORS, security 
 - **GDPR/RODO**: audit all user data mutations, maintain consent records in `userConsents`, support data export + anonymization (never hard delete)
 - **`products.sku` is the PK** — it's a varchar, not a serial id. All FK references use `productSku` varchar column
 
+## Context Window Management
+
+Używaj context-mode MCP tools zamiast czytać duże pliki bezpośrednio — zachowuje możliwości, nie marnuje okna:
+
+- **Eksploracja / analiza**: `ctx_batch_execute` lub `ctx_execute_file` — wyniki trafiają do sandboxa, nie do kontekstu
+- **Wiele zapytań naraz**: `ctx_search(queries: ["q1", "q2"])` — jedna wywołanie zamiast wielu Grep
+- **Read** używaj TYLKO gdy zamierzasz edytować plik (Edit wymaga treści w kontekście)
+- **Bash** tylko do git/mkdir/rm/mv i komend z krótkim outputem (<20 linii)
+
+Zasada: pełne możliwości diagnostyczne — ale wyniki trzymaj w sandboxie, nie w kontekście.
+
 ## Skills
 
 Project-specific skills are in `.claude/skills/`. Consult them for detailed patterns:
