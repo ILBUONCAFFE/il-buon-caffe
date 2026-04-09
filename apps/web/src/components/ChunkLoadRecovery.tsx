@@ -53,6 +53,13 @@ function hardReloadWithCacheBust() {
 
 export default function ChunkLoadRecovery() {
   useEffect(() => {
+    // Strip cache-bust param from URL after successful reload
+    const url = new URL(window.location.href)
+    if (url.searchParams.has('__r')) {
+      url.searchParams.delete('__r')
+      history.replaceState(null, '', url.toString())
+    }
+
     const onError = (event: ErrorEvent | Event) => {
       // Runtime error case (ErrorEvent)
       if ('message' in event && isChunkRelatedError(event.message)) {
