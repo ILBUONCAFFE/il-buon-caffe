@@ -230,6 +230,15 @@ Patrzeć na wykres Neon Rows → jeśli regularne spiki bez realnego ruchu → c
 3. `/health` endpoint — czy ma `dbMiddleware` (nie powinien)
 4. KV token flow — czy zapis i odczyt używają tego samego szyfrowania
 
+### Incydent 500 na stronie produktu (2026-04)
+- **`workers.dev` bywa mylący**: domena workers.dev jest za Cloudflare Access (302 do logowania), więc do smoke-testów publicznych używaj zawsze `https://ilbuoncaffe.pl`.
+- **500 w App Router może nie mieć stack trace**: dla produkcyjnych błędów RSC używaj `wrangler tail il-buon-caffe-web --format json`, bo przeglądarka często pokazuje tylko generyczny 500.
+- **To nie był globalny problem R2**: strona produktu zwracała 500 przez ścieżkę renderu RSC, podczas gdy główny obraz produktu z `media.ilbuoncaffe.pl` działał poprawnie.
+- **`generateMetadata` musi być odporne**: dla dynamicznych stron produktu unikaj kruchej logiki (runtime DB fetch + złożone OG zależne od danych), bo wyjątek w metadata potrafi wywalić cały request.
+- **Ścieżki uploadów wymagają pełnego klucza R2**: `/api/uploads/image/:key` oczekuje realnego key (z prefiksem folderu). URL-e typu `/api/uploads/image/Birria.png` często kończą się 404/522, jeśli obiekt jest zapisany pod inną ścieżką albo nie istnieje.
+- **Uważaj na env leakage przy deployu weba**: build OpenNext uruchomiony z lokalnymi wartościami (`NEXT_PUBLIC_API_URL=http://127.0.0.1:8787`) może wypchnąć localhost do bundle i generować błędy CSP/assetów na produkcji.
+- **Praktyka deployowa**: dla `apps/web` upewnij się, że podczas `cf:build` używane są produkcyjne API/site URL (`https://api.ilbuoncaffe.pl`, `https://ilbuoncaffe.pl`) albo buduj w czystym środowisku CI.
+
 ## Project Status
 
 - Phase 1 (Foundation, DB, Auth, Products, Admin): complete
