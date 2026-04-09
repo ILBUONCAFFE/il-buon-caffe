@@ -356,6 +356,13 @@ function toString(value: unknown, fallback: string): string {
   return typeof value === 'string' ? value : fallback;
 }
 
+function normalizeUploadImageUrl(value: string): string {
+  if (!value.startsWith('/api/uploads/')) return value;
+
+  const apiOrigin = (process.env.NEXT_PUBLIC_API_URL || 'https://api.ilbuoncaffe.pl').replace(/\/+$/, '');
+  return `${apiOrigin}${value}`;
+}
+
 function normalizeWineDetails(details: WineDetails): WineDetails {
   const tastingNotes: Record<string, unknown> = isRecord(details.tastingNotes) ? details.tastingNotes : {};
 
@@ -368,7 +375,7 @@ function normalizeWineDetails(details: WineDetails): WineDetails {
           name: item.name,
           description: item.description,
           ...(typeof item.emoji === 'string' ? { emoji: item.emoji } : {}),
-          ...(typeof item.imageUrl === 'string' ? { imageUrl: item.imageUrl } : {}),
+          ...(typeof item.imageUrl === 'string' ? { imageUrl: normalizeUploadImageUrl(item.imageUrl) } : {}),
           ...(typeof item.category === 'string' ? { category: item.category as WineFoodPairing['category'] } : {}),
         }))
     : [];

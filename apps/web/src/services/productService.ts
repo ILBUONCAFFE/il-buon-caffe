@@ -18,15 +18,33 @@ function logDbError(label: string, error: unknown) {
   if (process.env.DATABASE_URL) console.error(label, error);
 }
 
+function normalizeProductImageUrl(imageUrl?: string | null): string | undefined {
+  if (!imageUrl) return undefined;
+  if (/^https?:\/\//i.test(imageUrl)) return imageUrl;
+
+  if (imageUrl.startsWith('/api/uploads/')) {
+    const apiOrigin = (
+      process.env.NEXT_PUBLIC_API_URL ||
+      process.env.INTERNAL_API_URL ||
+      'https://api.ilbuoncaffe.pl'
+    ).replace(/\/+$/, '');
+    return `${apiOrigin}${imageUrl}`;
+  }
+
+  return imageUrl;
+}
+
 function mapDbProductToProduct(dbProduct: DbProduct, categorySlug?: string): Product {
+  const normalizedImageUrl = normalizeProductImageUrl(dbProduct.imageUrl);
+
   return {
     sku: dbProduct.sku,
     name: dbProduct.name,
     description: dbProduct.description || undefined,
     price: parseFloat(dbProduct.price),
     category: categorySlug || 'all',
-    imageUrl: dbProduct.imageUrl || undefined,
-    image: dbProduct.imageUrl || undefined,
+    imageUrl: normalizedImageUrl,
+    image: normalizedImageUrl,
     stock: dbProduct.stock,
     isNew: dbProduct.isNew,
     isArchived: !dbProduct.isActive,

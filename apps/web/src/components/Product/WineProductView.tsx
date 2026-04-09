@@ -149,7 +149,7 @@ export const WineProductView = ({ product, categoryName }: WineProductViewProps)
                   className="relative flex justify-center h-full w-full"
                 >
                   <img
-                    src={product.image || product.imageUrl}
+                    src={product.image || product.imageUrl || '/assets/placeholder.webp'}
                     alt={product.name}
                     className="h-full w-auto object-contain"
                     style={{

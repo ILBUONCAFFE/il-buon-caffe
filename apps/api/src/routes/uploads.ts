@@ -32,10 +32,30 @@ const ALLOWED_FOLDERS = ['dishes', 'products', 'banners', 'catalogs'] as const
 const ALLOWED_TYPES = ['image/webp', 'image/jpeg', 'image/png', 'image/avif', 'application/pdf']
 const MAX_SIZE_MB = 4
 const MAX_PDF_SIZE_MB = 20
+const DEFAULT_MEDIA_PUBLIC_URL = 'https://media.ilbuoncaffe.pl'
 
 type Folder = typeof ALLOWED_FOLDERS[number]
 
 const app = new Hono<{ Bindings: Env }>()
+
+function encodeR2KeyForUrl(key: string): string {
+  return key
+    .split('/')
+    .map((part) => encodeURIComponent(part))
+    .join('/')
+}
+
+function getMediaPublicBaseUrl(c: { env: Env }): string {
+  return (c.env.MEDIA_PUBLIC_URL || DEFAULT_MEDIA_PUBLIC_URL).replace(/\/+$/, '')
+}
+
+function buildProxyUrl(key: string): string {
+  return `/api/uploads/image/${encodeR2KeyForUrl(key)}`
+}
+
+function buildPublicMediaUrl(c: { env: Env }, key: string): string {
+  return `${getMediaPublicBaseUrl(c)}/${encodeR2KeyForUrl(key)}`
+}
 
 // ─────────────────────────────────────────────────────────
 // POST /api/uploads/image
@@ -92,16 +112,18 @@ app.post('/image', requireAdminOrProxy(), async (c) => {
     key = `products/${productSku.toLowerCase()}/main.${ext}`
   }
 
+  const uploadBucket = folder === 'catalogs' ? c.env.CATALOGS_BUCKET : c.env.MEDIA_BUCKET
   const buffer = await file.arrayBuffer()
 
-  await c.env.IMAGES_BUCKET.put(key, buffer, {
+  await uploadBucket.put(key, buffer, {
     httpMetadata: {
       contentType: file.type,
       cacheControl: 'public, max-age=31536000, immutable',
     },
   })
 
-  const url = `/api/uploads/image/${key}`
+  const proxyUrl = buildProxyUrl(key)
+  const url = folder === 'catalogs' ? proxyUrl : buildPublicMediaUrl(c, key)
 
   if (shouldPersistProductUrl) {
     try {
@@ -111,7 +133,7 @@ app.post('/image', requireAdminOrProxy(), async (c) => {
         .where(eq(products.sku, productSku))
     } catch (error) {
       // Nie zostawiaj osieroconego pliku, jeśli zapis URL do DB się nie powiedzie.
-      await c.env.IMAGES_BUCKET.delete(key).catch(() => undefined)
+      await uploadBucket.delete(key).catch(() => undefined)
       console.error('[uploads] failed to persist imageUrl in DB', error)
       return c.json({ error: 'Nie udało się zapisać URL zdjęcia w bazie' }, 500)
     }
@@ -119,9 +141,10 @@ app.post('/image', requireAdminOrProxy(), async (c) => {
 
   return c.json({
     key,
-    // Gdy będziesz miał domenę: `https://images.ilbuoncaffe.pl/${key}`
-    // Na razie proxy przez ten endpoint:
+    // Dla media zwracamy publiczny URL CDN; proxy zostaje jako fallback.
     url,
+    proxyUrl,
+    bucket: folder === 'catalogs' ? 'catalogs' : 'media',
     productSku: shouldPersistProductUrl ? productSku : undefined,
     persistedInDb: shouldPersistProductUrl,
     size: file.size,
@@ -136,7 +159,8 @@ app.post('/image', requireAdminOrProxy(), async (c) => {
 app.get('/image/:key{.+}', async (c) => {
   const key = c.req.param('key')   // Hono automatycznie dekoduje %20, %C3%B3 itp.
 
-  const object = await c.env.IMAGES_BUCKET.get(key)
+  // New uploads are in MEDIA_BUCKET. IMAGES_BUCKET is kept as legacy fallback.
+  const object = (await c.env.MEDIA_BUCKET.get(key)) || (await c.env.IMAGES_BUCKET.get(key))
   if (!object) {
     return c.json({ error: 'Plik nie znaleziony' }, 404)
   }
@@ -154,7 +178,12 @@ app.get('/image/:key{.+}', async (c) => {
 // ─────────────────────────────────────────────────────────
 app.delete('/image/:key{.+}', requireAdminOrProxy(), async (c) => {
   const key = c.req.param('key')!
-  await c.env.IMAGES_BUCKET.delete(key)
+  // Delete in both buckets to support mixed legacy/new storage.
+  await Promise.allSettled([
+    c.env.MEDIA_BUCKET.delete(key),
+    c.env.IMAGES_BUCKET.delete(key),
+    c.env.CATALOGS_BUCKET.delete(key),
+  ])
   return c.json({ deleted: key })
 })
 
@@ -168,13 +197,55 @@ app.get('/list/:folder', requireAdminOrProxy(), async (c) => {
     return c.json({ error: 'Niedozwolony folder' }, 400)
   }
 
-  const listed = await c.env.IMAGES_BUCKET.list({ prefix: `${folder}/`, limit: 200 })
-  const files = listed.objects.map(obj => ({
-    key: obj.key,
-    size: obj.size,
-    uploaded: obj.uploaded,
-    url: `/api/uploads/image/${obj.key}`,
-  }))
+  const prefix = `${folder}/`
+  const files: Array<{
+    key: string
+    size: number
+    uploaded: Date
+    url: string
+    source: 'media' | 'images-legacy' | 'catalogs'
+  }> = []
+  const seen = new Set<string>()
+
+  if (folder === 'catalogs') {
+    const listed = await c.env.CATALOGS_BUCKET.list({ prefix, limit: 200 })
+    for (const obj of listed.objects) {
+      files.push({
+        key: obj.key,
+        size: obj.size,
+        uploaded: obj.uploaded,
+        url: buildProxyUrl(obj.key),
+        source: 'catalogs',
+      })
+    }
+  } else {
+    const [mediaListed, legacyListed] = await Promise.all([
+      c.env.MEDIA_BUCKET.list({ prefix, limit: 200 }),
+      c.env.IMAGES_BUCKET.list({ prefix, limit: 200 }),
+    ])
+
+    for (const obj of mediaListed.objects) {
+      seen.add(obj.key)
+      files.push({
+        key: obj.key,
+        size: obj.size,
+        uploaded: obj.uploaded,
+        url: buildPublicMediaUrl(c, obj.key),
+        source: 'media',
+      })
+    }
+
+    for (const obj of legacyListed.objects) {
+      if (seen.has(obj.key)) continue
+      files.push({
+        key: obj.key,
+        size: obj.size,
+        uploaded: obj.uploaded,
+        url: buildProxyUrl(obj.key),
+        source: 'images-legacy',
+      })
+    }
+  }
 
   return c.json({ folder, count: files.length, files })
 })

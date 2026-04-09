@@ -34,7 +34,9 @@ export interface Env {
   NODE_ENV?: string
   AUTH_RATE_LIMIT?: KVNamespace
   IMAGES_BUCKET: R2Bucket
+  MEDIA_BUCKET: R2Bucket
   CATALOGS_BUCKET: R2Bucket
+  MEDIA_PUBLIC_URL?: string
   INTERNAL_API_SECRET?: string
 
   // Public URLs (for building return/webhook URLs)

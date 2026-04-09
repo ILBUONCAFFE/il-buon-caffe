@@ -44,6 +44,7 @@
 	},
 	"vars": {
 		"NODE_ENV": "production",
+		"MEDIA_PUBLIC_URL": "https://media.ilbuoncaffe.pl",
 		"ALLEGRO_ENVIRONMENT": "production",
 		"ALLEGRO_REDIRECT_URI": "https://api.ilbuoncaffe.pl/api/admin/allegro/callback",
 		"ALLEGRO_ADMIN_REDIRECT_URL": "https://ilbuoncaffe.pl/admin/settings",

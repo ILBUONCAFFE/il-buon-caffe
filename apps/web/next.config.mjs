@@ -60,9 +60,15 @@ const IMAGE_REMOTE_PATTERNS = [
     hostname: 'il-buon-caffe-media.r2.cloudflarestorage.com',
     pathname: '/**',
   },
+  {
+    protocol: 'https',
+    hostname: 'api.ilbuoncaffe.pl',
+    pathname: '/**',
+  },
 ]
 
 const envMediaPattern = parseRemotePatternFromUrl(R2_MEDIA_URL)
+const envApiPattern = parseRemotePatternFromUrl(API_ORIGIN)
 
 if (
   envMediaPattern &&
@@ -73,6 +79,17 @@ if (
   )
 ) {
   IMAGE_REMOTE_PATTERNS.push(envMediaPattern)
+}
+
+if (
+  envApiPattern &&
+  !IMAGE_REMOTE_PATTERNS.some(
+    pattern =>
+      pattern.protocol === envApiPattern.protocol &&
+      pattern.hostname === envApiPattern.hostname
+  )
+) {
+  IMAGE_REMOTE_PATTERNS.push(envApiPattern)
 }
 
 // Security headers applied to all routes.
