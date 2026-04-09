@@ -20,6 +20,15 @@ import type {
   AdminReturn,
   ReturnsQueryParams,
   ReturnsResponse,
+  AdminProductsResponse,
+  AdminProductsQueryParams,
+  AdminProductResponse,
+  AdminCategoriesResponse,
+  CreateAdminProductPayload,
+  UpdateAdminProductPayload,
+  UpdateProductStockPayload,
+  UpdateProductStockResponse,
+  UploadProductImageResponse,
 } from '../types/admin-api'
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
@@ -149,6 +158,76 @@ export const adminApi = {
       body: JSON.stringify({ status }),
     }),
 
+  // ── Products ───────────────────────────────────────────────────────────────
+  getProducts: (params?: AdminProductsQueryParams) => {
+    const qs = new URLSearchParams()
+    if (params?.page) qs.set('page', String(params.page))
+    if (params?.limit) qs.set('limit', String(params.limit))
+    if (params?.search) qs.set('search', params.search)
+    if (params?.active) qs.set('active', params.active)
+    if (params?.category) qs.set('category', params.category)
+
+    const suffix = qs.toString()
+    return request<AdminProductsResponse>(`/api/admin/products${suffix ? `?${suffix}` : ''}`)
+  },
+
+  getProduct: (sku: string) =>
+    request<AdminProductResponse>(`/api/admin/products/${encodeURIComponent(sku)}`),
+
+  createProduct: (payload: CreateAdminProductPayload) =>
+    request<AdminProductResponse>('/api/admin/products', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  updateProduct: (sku: string, payload: UpdateAdminProductPayload) =>
+    request<AdminProductResponse>(`/api/admin/products/${encodeURIComponent(sku)}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+
+  updateProductStock: (sku: string, payload: UpdateProductStockPayload) =>
+    request<UpdateProductStockResponse>(`/api/admin/products/${encodeURIComponent(sku)}/stock`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+
+  deactivateProduct: (sku: string) =>
+    request<{ success: boolean; message: string }>(`/api/admin/products/${encodeURIComponent(sku)}`, {
+      method: 'DELETE',
+    }),
+
+  getCategories: () =>
+    request<AdminCategoriesResponse>('/api/admin/categories'),
+
+  uploadProductMainImage: async (sku: string, file: File): Promise<UploadProductImageResponse> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('folder', 'products')
+    formData.append('productSku', sku)
+
+    const res = await fetch('/api/admin/uploads/image', {
+      method: 'POST',
+      body: formData,
+      credentials: 'include',
+    })
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({})) as {
+        error?: { code?: string; message?: string } | string
+      }
+      const errObj = body?.error
+      const code = typeof errObj === 'object' && errObj?.code ? errObj.code : 'UPLOAD_ERROR'
+      const message =
+        (typeof errObj === 'object' && errObj?.message) ||
+        (typeof errObj === 'string' ? errObj : null) ||
+        `Błąd uploadu (HTTP ${res.status})`
+      throw new ApiError(res.status, code, message)
+    }
+
+    return res.json() as Promise<UploadProductImageResponse>
+  },
+
   // ── Activity feed ──────────────────────────────────────────────────────────
   getActivityFeed: (limit = 10) =>
     request<ActivityFeedResponse>(`/api/admin/activity?limit=${limit}`),
@@ -239,4 +318,16 @@ export type {
   OrderTrackingSnapshot,
   OrderTrackingRefreshResponse,
   AllegroSalesQualityResponse,
+  AdminProduct,
+  AdminProductImage,
+  AdminProductsResponse,
+  AdminProductsQueryParams,
+  AdminProductResponse,
+  AdminCategory,
+  AdminCategoriesResponse,
+  CreateAdminProductPayload,
+  UpdateAdminProductPayload,
+  UpdateProductStockPayload,
+  UpdateProductStockResponse,
+  UploadProductImageResponse,
 } from '../types/admin-api'

@@ -339,6 +339,92 @@ const defaultWineDetails: WineDetails = {
   countryCode: "",
 };
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function toNumber(value: unknown, fallback: number): number {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return fallback;
+}
+
+function toString(value: unknown, fallback: string): string {
+  return typeof value === 'string' ? value : fallback;
+}
+
+function normalizeWineDetails(details: WineDetails): WineDetails {
+  const tastingNotes = isRecord(details.tastingNotes) ? details.tastingNotes : {};
+
+  const foodPairing: WineFoodPairing[] = Array.isArray(details.foodPairing)
+    ? details.foodPairing
+        .filter((item): item is WineFoodPairing => {
+          return isRecord(item) && typeof item.name === 'string' && typeof item.description === 'string';
+        })
+        .map((item) => ({
+          name: item.name,
+          description: item.description,
+          ...(typeof item.emoji === 'string' ? { emoji: item.emoji } : {}),
+          ...(typeof item.imageUrl === 'string' ? { imageUrl: item.imageUrl } : {}),
+          ...(typeof item.category === 'string' ? { category: item.category as WineFoodPairing['category'] } : {}),
+        }))
+    : [];
+
+  const awards: WineAward[] = Array.isArray(details.awards)
+    ? details.awards
+        .filter((item): item is WineAward => {
+          return (
+            isRecord(item) &&
+            typeof item.year === 'string' &&
+            typeof item.award === 'string' &&
+            typeof item.competition === 'string'
+          );
+        })
+        .map((item) => ({
+          year: item.year,
+          award: item.award,
+          competition: item.competition,
+        }))
+    : [];
+
+  return {
+    ...defaultWineDetails,
+    ...details,
+    grape: toString(details.grape, defaultWineDetails.grape),
+    alcohol: toString(details.alcohol, defaultWineDetails.alcohol),
+    body: toString(details.body, defaultWineDetails.body),
+    bodyValue: toNumber(details.bodyValue, defaultWineDetails.bodyValue),
+    tannins: toNumber(details.tannins, defaultWineDetails.tannins),
+    acidity: toNumber(details.acidity, defaultWineDetails.acidity),
+    sweetness: toNumber(details.sweetness, defaultWineDetails.sweetness),
+    aging: toString(details.aging, defaultWineDetails.aging),
+    servingTemp: toString(details.servingTemp, defaultWineDetails.servingTemp),
+    decanting: toString(details.decanting, defaultWineDetails.decanting),
+    agingPotential: toString(details.agingPotential, defaultWineDetails.agingPotential),
+    winery: toString(details.winery, defaultWineDetails.winery),
+    established: toString(details.established, defaultWineDetails.established),
+    altitude: toString(details.altitude, defaultWineDetails.altitude),
+    soil: toString(details.soil, defaultWineDetails.soil),
+    climate: toString(details.climate, defaultWineDetails.climate),
+    vinification: toString(details.vinification, defaultWineDetails.vinification),
+    wineryDescription:
+      details.wineryDescription === undefined
+        ? undefined
+        : toString(details.wineryDescription, defaultWineDetails.wineryDescription ?? ''),
+    tastingNotes: {
+      eye: toString(tastingNotes.eye, defaultWineDetails.tastingNotes.eye),
+      nose: toString(tastingNotes.nose, defaultWineDetails.tastingNotes.nose),
+      palate: toString(tastingNotes.palate, defaultWineDetails.tastingNotes.palate),
+    },
+    foodPairing,
+    awards,
+    countryCode: toString(details.countryCode, defaultWineDetails.countryCode),
+  };
+}
+
 // ============================================
 // DEEP MERGE HELPER
 // ============================================
@@ -352,20 +438,24 @@ function deepMerge(base: WineDetails, override: Record<string, unknown>): WineDe
   const result: Record<string, unknown> = { ...base };
   
   for (const [key, value] of Object.entries(override)) {
-    if (
-      value !== null &&
-      value !== undefined &&
-      typeof value === 'object' &&
-      !Array.isArray(value) &&
-      typeof result[key] === 'object' &&
-      !Array.isArray(result[key]) &&
-      result[key] !== null
-    ) {
-      // Recursive merge for nested objects (e.g. tastingNotes)
-      result[key] = { ...(result[key] as Record<string, unknown>), ...(value as Record<string, unknown>) };
-    } else {
-      result[key] = value;
+    // Ignore nullish overrides so partial JSONB payloads don't erase safe defaults.
+    if (value === null || value === undefined) {
+      continue;
     }
+
+    const current = result[key];
+
+    if (isRecord(current) && isRecord(value)) {
+      // Recursive merge for nested objects (e.g. tastingNotes)
+      result[key] = { ...current, ...value };
+      continue;
+    }
+
+    // Keep the base type if override has incompatible shape.
+    if (Array.isArray(current) && !Array.isArray(value)) continue;
+    if (isRecord(current) && !isRecord(value)) continue;
+
+    result[key] = value;
   }
   
   return result as unknown as WineDetails;
@@ -428,10 +518,10 @@ export function getWineDetailsForProduct(product: {
   
   // Layer 1: DB override (partial merge from Electron admin)
   if (product.wineDetails && Object.keys(product.wineDetails).length > 0) {
-    return deepMerge(staticData, product.wineDetails);
+    return normalizeWineDetails(deepMerge(staticData, product.wineDetails));
   }
   
-  return staticData;
+  return normalizeWineDetails(staticData);
 }
 
 // ============================================

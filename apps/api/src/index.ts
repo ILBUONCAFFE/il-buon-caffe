@@ -122,6 +122,7 @@ app.route('/api/catalogs', catalogsRouter)
 app.route('/admin',             adminRouter)
 app.route('/admin/allegro',     allegroRouter)   // reached via generic /admin/[...slug] Next.js proxy
 app.route('/api/admin/allegro', allegroRouter)   // reached via specific allegro Next.js proxy
+app.route('/admin/uploads',     uploadsRouter)   // reached via /api/admin/uploads/* proxy (admin_session)
 
 // ── Asset uploads (R2) ───────────────────────────────────────────────────
 app.route('/api/uploads', uploadsRouter)

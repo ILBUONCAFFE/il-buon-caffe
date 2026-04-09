@@ -82,14 +82,21 @@ async function proxyAdminRequest(
   const upstreamUrl = `${API_ORIGIN}/admin/${path}${search}`
 
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
     'X-Admin-Internal-Secret': INTERNAL_SECRET_STR,
     'X-Admin-User-Id': String(session.userId),
   }
 
-  let body: string | undefined
+  const incomingContentType = req.headers.get('content-type')
+  if (incomingContentType) {
+    headers['Content-Type'] = incomingContentType
+  }
+
+  let body: ArrayBuffer | undefined
   if (method !== 'GET' && method !== 'HEAD') {
-    body = await req.text().catch(() => undefined)
+    const rawBody = await req.arrayBuffer().catch(() => undefined)
+    if (rawBody && rawBody.byteLength > 0) {
+      body = rawBody
+    }
   }
 
   // 4. Forward to CF Worker

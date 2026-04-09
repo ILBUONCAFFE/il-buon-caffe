@@ -23,7 +23,7 @@ const navItems = [
   {
     id: 'inventory', icon: Package, label: 'Magazyn', destination: 'Stan magazynowy',
     children: [
-      { id: 'inventory-products', path: '/admin/inventory/products', label: 'Produkty', icon: Archive },
+      { id: 'inventory-products', path: '/admin/products', label: 'Produkty', icon: Archive },
       { id: 'inventory-connections', path: '/admin/inventory/connections', label: 'Połączenia', icon: Link }
     ]
   },

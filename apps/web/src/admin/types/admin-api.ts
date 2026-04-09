@@ -157,6 +157,128 @@ export interface OrdersResponse {
   meta: ApiListMeta
 }
 
+// ── Products ────────────────────────────────────────────────────────────────
+export interface AdminCategory {
+  id: number
+  name: string
+  slug: string
+  description: string | null
+  imageUrl: string | null
+  isActive: boolean
+  sortOrder: number
+  productCount?: number
+}
+
+export interface AdminProductImage {
+  id: number
+  url: string
+  altText: string | null
+  sortOrder: number
+  isPrimary: boolean
+}
+
+export interface AdminProduct {
+  sku: string
+  slug: string
+  name: string
+  description: string | null
+  longDescription: string | null
+  categoryId: number | null
+  category?: {
+    id: number
+    name: string
+    slug: string
+  } | null
+  price: number
+  compareAtPrice: number | null
+  currency: string
+  stock: number
+  reserved: number
+  available: number
+  imageUrl: string | null
+  origin: string | null
+  year: string | null
+  weight: number | null
+  isActive: boolean
+  isNew: boolean
+  isFeatured: boolean
+  allegroOfferId: string | null
+  images?: AdminProductImage[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AdminProductsQueryParams {
+  page?: number
+  limit?: number
+  search?: string
+  active?: 'true' | 'false'
+  category?: string
+}
+
+export interface AdminProductsResponse {
+  success: boolean
+  data: AdminProduct[]
+  meta: ApiListMeta
+}
+
+export interface AdminProductResponse {
+  success: boolean
+  data: AdminProduct
+}
+
+export interface AdminCategoriesResponse {
+  success: boolean
+  data: AdminCategory[]
+}
+
+export interface CreateAdminProductPayload {
+  sku: string
+  name: string
+  description?: string
+  longDescription?: string
+  categoryId?: number | null
+  price: number
+  compareAtPrice?: number | null
+  stock?: number
+  imageUrl?: string
+  origin?: string
+  year?: string
+  weight?: number | null
+  isActive?: boolean
+  isNew?: boolean
+  isFeatured?: boolean
+  allegroOfferId?: string | null
+}
+
+export type UpdateAdminProductPayload = Partial<Omit<CreateAdminProductPayload, 'sku' | 'stock'>>
+
+export interface UpdateProductStockPayload {
+  stock: number
+  reason: 'manual' | 'inventory' | 'damage' | 'cancellation'
+  notes?: string
+}
+
+export interface UpdateProductStockResponse {
+  success: boolean
+  data: {
+    sku: string
+    previousStock: number
+    newStock: number
+    change: number
+    available: number
+  }
+}
+
+export interface UploadProductImageResponse {
+  key: string
+  url: string
+  productSku?: string
+  persistedInDb?: boolean
+  size: number
+  type: string
+}
+
 // ── Allegro Order Details (fetched live from Allegro REST API) ────────────────
 export interface AllegroOrderDetails {
   status: string | null

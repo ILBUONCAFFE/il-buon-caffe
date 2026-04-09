@@ -1,6 +1,9 @@
 import { Hono } from 'hono'
+import { eq } from 'drizzle-orm'
+import { products } from '@repo/db/schema'
 import type { Env } from '../index'
-import { requireAdmin } from '../middleware/auth'
+import { requireAdminOrProxy } from '../middleware/auth'
+import { sanitize } from '../lib/sanitize'
 
 /**
  * ═══════════════════════════════════════════════════════════
@@ -9,6 +12,7 @@ import { requireAdmin } from '../middleware/auth'
  *
  * POST /api/uploads/image
  *   → Upload pliku do R2, zwraca klucz i publiczny URL (po skonfigurowaniu domeny)
+ *   → Dla folderu "products" można podać "productSku" — wtedy URL jest zapisywany do Neon DB
  *
  * GET  /api/uploads/image/:key
  *   → Pobierz plik z R2 (proxy — bucket jest prywatny)
@@ -36,12 +40,14 @@ const app = new Hono<{ Bindings: Env }>()
 // ─────────────────────────────────────────────────────────
 // POST /api/uploads/image
 // Body: multipart/form-data — pole "file" + "folder"
-// Wymaga: JWT admin
+// Wymaga: admin (JWT lub Next.js proxy z internal secret)
 // ─────────────────────────────────────────────────────────
-app.post('/image', requireAdmin(), async (c) => {
+app.post('/image', requireAdminOrProxy(), async (c) => {
   const formData = await c.req.formData()
   const file = formData.get('file') as File | null
   const folder = (formData.get('folder') as string) ?? 'products'
+  const productSku = sanitize(formData.get('productSku'), 50).toUpperCase()
+  const shouldPersistProductUrl = folder === 'products' && !!productSku
 
   if (!file) {
     return c.json({ error: 'Brak pliku w polu "file"' }, 400)
@@ -61,15 +67,30 @@ app.post('/image', requireAdmin(), async (c) => {
     return c.json({ error: `Plik za duży. Maksymalna wielkość: ${maxSize}MB` }, 413)
   }
 
-  // Klucz: folder/timestamp-nazwa.ext
-  const ext = file.name.split('.').pop() ?? 'webp'
+  const extFromType = file.type === 'application/pdf' ? 'pdf' : file.type.split('/')[1]
+  const ext = (file.name.split('.').pop() || extFromType || 'webp').toLowerCase()
   const safeName = file.name
     .replace(/\.[^.]+$/, '')                  // usuń rozszerzenie
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')             // znaki specjalne → myślnik
     .replace(/^-+|-+$/g, '')                  // obetnij krawędziowe myślniki
     .slice(0, 60)
-  const key = `${folder}/${Date.now()}-${safeName}.${ext}`
+  let key = `${folder}/${Date.now()}-${safeName}.${ext}`
+
+  const db = c.get('db')
+  if (shouldPersistProductUrl) {
+    const product = await db.query.products.findFirst({
+      columns: { sku: true },
+      where: eq(products.sku, productSku),
+    })
+
+    if (!product) {
+      return c.json({ error: `Produkt SKU '${productSku}' nie istnieje` }, 404)
+    }
+
+    // Stabilny klucz oparty o SKU — zmiana nazwy/slugu produktu nie łamie URL obrazka.
+    key = `products/${productSku.toLowerCase()}/main.${ext}`
+  }
 
   const buffer = await file.arrayBuffer()
 
@@ -80,11 +101,29 @@ app.post('/image', requireAdmin(), async (c) => {
     },
   })
 
+  const url = `/api/uploads/image/${key}`
+
+  if (shouldPersistProductUrl) {
+    try {
+      await db
+        .update(products)
+        .set({ imageUrl: url, updatedAt: new Date() })
+        .where(eq(products.sku, productSku))
+    } catch (error) {
+      // Nie zostawiaj osieroconego pliku, jeśli zapis URL do DB się nie powiedzie.
+      await c.env.IMAGES_BUCKET.delete(key).catch(() => undefined)
+      console.error('[uploads] failed to persist imageUrl in DB', error)
+      return c.json({ error: 'Nie udało się zapisać URL zdjęcia w bazie' }, 500)
+    }
+  }
+
   return c.json({
     key,
     // Gdy będziesz miał domenę: `https://images.ilbuoncaffe.pl/${key}`
     // Na razie proxy przez ten endpoint:
-    url: `/api/uploads/image/${key}`,
+    url,
+    productSku: shouldPersistProductUrl ? productSku : undefined,
+    persistedInDb: shouldPersistProductUrl,
     size: file.size,
     type: file.type,
   }, 201)
@@ -113,7 +152,7 @@ app.get('/image/:key{.+}', async (c) => {
 // ─────────────────────────────────────────────────────────
 // DELETE /api/uploads/image/:key
 // ─────────────────────────────────────────────────────────
-app.delete('/image/:key{.+}', requireAdmin(), async (c) => {
+app.delete('/image/:key{.+}', requireAdminOrProxy(), async (c) => {
   const key = c.req.param('key')!
   await c.env.IMAGES_BUCKET.delete(key)
   return c.json({ deleted: key })
@@ -122,7 +161,7 @@ app.delete('/image/:key{.+}', requireAdmin(), async (c) => {
 // ─────────────────────────────────────────────────────────
 // GET /api/uploads/list/:folder — lista plików w folderze
 // ─────────────────────────────────────────────────────────
-app.get('/list/:folder', requireAdmin(), async (c) => {
+app.get('/list/:folder', requireAdminOrProxy(), async (c) => {
   const { folder } = c.req.param()
 
   if (!ALLOWED_FOLDERS.includes(folder as Folder)) {
