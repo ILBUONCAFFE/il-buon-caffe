@@ -2,7 +2,6 @@ import { ProductClient } from "@/components/Product/ProductClient";
 
 import { getProductBySlug, getProducts } from "@/actions/products";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 
 const BASE_URL = "https://ilbuoncaffe.pl";
 
@@ -29,10 +28,12 @@ const normalizeCategorySlug = (category?: string) => {
   return categorySlugMap[category] || category;
 };
 
-const toAbsoluteUrl = (value?: string) => {
-  if (!value) return undefined;
-  if (/^https?:\/\//i.test(value)) return value;
-  return `${BASE_URL}${value.startsWith("/") ? value : `/${value}`}`;
+const toAbsoluteUrl = (value?: unknown) => {
+  if (typeof value !== "string") return undefined;
+  const normalized = value.trim();
+  if (!normalized) return undefined;
+  if (/^https?:\/\//i.test(normalized)) return normalized;
+  return `${BASE_URL}${normalized.startsWith("/") ? normalized : `/${normalized}`}`;
 };
 
 type ProductRouteParams = { category: string; slug: string };
@@ -97,23 +98,25 @@ export default async function ProductDetailsPage({ params }: { params: Promise<P
   const { slug, category } = await params;
   const product = await getProductBySlug(slug);
   if (!product) {
-    notFound();
+    return <ProductClient initialProduct={null} />;
   }
 
   const parsedPrice = Number(product.price);
   const safePrice = Number.isFinite(parsedPrice) ? parsedPrice : 0;
+  const safeName = typeof product.name === "string" && product.name.trim() ? product.name : "Produkt";
+  const safeDescription = typeof product.description === "string" ? product.description : "";
 
   const normalizedCategory = normalizeCategorySlug(product.category) || normalizeCategorySlug(category);
   const normalizedSlug = product.slug || slug;
-  const categoryLabel = categoryLabelMap[normalizedCategory] || normalizedCategory;
+  const categoryLabel = categoryLabelMap[normalizedCategory] || normalizedCategory || "Sklep";
   const productUrl = `${BASE_URL}/sklep/${normalizedCategory}/${normalizedSlug}`;
   const productImage = toAbsoluteUrl(product.imageUrl || product.image);
 
   const productJsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
-    name: product.name,
-    description: product.description,
+    name: safeName,
+    description: safeDescription,
     sku: product.sku,
     category: categoryLabel,
     image: productImage ? [productImage] : undefined,
@@ -153,7 +156,7 @@ export default async function ProductDetailsPage({ params }: { params: Promise<P
       {
         "@type": "ListItem",
         position: 3,
-        name: product.name,
+        name: safeName,
         item: productUrl,
       },
     ],
