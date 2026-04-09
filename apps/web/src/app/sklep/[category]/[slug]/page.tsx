@@ -41,6 +41,7 @@ type ProductRouteParams = { category: string; slug: string };
 export const revalidate = 3600;
 
 export async function generateStaticParams() {
+  if (!process.env.DATABASE_URL) return [];
   const allProducts = await getProducts();
   return allProducts
     .filter((product) => product.slug)

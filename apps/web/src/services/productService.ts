@@ -11,6 +11,13 @@ export type { SortOption, PriceRange, ProductFilters, FilteredProductsResult, Wi
 // HELPERS
 // ============================================
 
+// Suppress DB error logs during Next.js build when DATABASE_URL is not set —
+// those errors are expected (no DB access at build time) and already handled
+// by each method's catch block returning safe empty values.
+function logDbError(label: string, error: unknown) {
+  if (process.env.DATABASE_URL) console.error(label, error);
+}
+
 function mapDbProductToProduct(dbProduct: DbProduct, categorySlug?: string): Product {
   return {
     sku: dbProduct.sku,
@@ -215,7 +222,7 @@ export const productService = {
         wineFilterOptions: wineFilterOpts,
       };
     } catch (error) {
-      console.error('[productService.getFiltered]', error);
+      logDbError('[productService.getFiltered]', error);
       return { products: [], totalCount: 0, availableOrigins: [], priceRange: { min: 0, max: 0 } };
     }
   },
@@ -332,7 +339,7 @@ export const productService = {
           .map(r => ({ value: r.value.trim(), count: Number(r.count) })),
       };
     } catch (error) {
-      console.error('[productService._getWineFilterOptions]', error);
+      logDbError('[productService._getWineFilterOptions]', error);
       return { countries: [], regions: [], grapes: [] };
     }
   },
@@ -403,7 +410,7 @@ export const productService = {
 
       return results.map(r => mapDbProductToProduct(r.product, r.categorySlug || undefined));
     } catch (error) {
-      console.error('[productService.getAll]', error);
+      logDbError('[productService.getAll]', error);
       return [];
     }
   },
@@ -434,7 +441,7 @@ export const productService = {
 
       return mapDbProductToProduct(results[0].product, results[0].categorySlug || undefined);
     } catch (error) {
-      console.error('[productService.getBySku]', error);
+      logDbError('[productService.getBySku]', error);
       return null;
     }
   },
@@ -473,7 +480,7 @@ export const productService = {
 
       return mapDbProductToProduct(results[0].product, results[0].categorySlug || undefined);
     } catch (error) {
-      console.error('[productService.getBySlug]', error);
+      logDbError('[productService.getBySlug]', error);
       return null;
     }
   },
@@ -491,7 +498,7 @@ export const productService = {
 
       return results;
     } catch (error) {
-      console.error('[productService.getCategories]', error);
+      logDbError('[productService.getCategories]', error);
       return [];
     }
   },
@@ -521,7 +528,7 @@ export const productService = {
 
       return results.map(r => mapDbProductToProduct(r.product, r.categorySlug || undefined));
     } catch (error) {
-      console.error('[productService.getFeatured]', error);
+      logDbError('[productService.getFeatured]', error);
       return [];
     }
   },
@@ -544,7 +551,7 @@ export const productService = {
 
       return results.map(r => mapDbProductToProduct(r.product, r.categorySlug || undefined));
     } catch (error) {
-      console.error('[productService.getNew]', error);
+      logDbError('[productService.getNew]', error);
       return [];
     }
   },
