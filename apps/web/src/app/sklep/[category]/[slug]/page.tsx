@@ -58,29 +58,16 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Promise<ProductRouteParams> }): Promise<Metadata> {
   const { slug, category } = await params;
   const requestedCategory = normalizeCategorySlug(category);
-  const product = await getProductBySlug(slug);
-
-  if (!product) {
-    return {
-      title: "Produkt nieznaleziony | Sklep Il Buon Caffe",
-      description: "Przepraszamy, szukany produkt nie istnieje.",
-      robots: {
-        index: false,
-        follow: false,
-      },
-      alternates: {
-        canonical: `/sklep/${requestedCategory}/${slug}`,
-      },
-    };
-  }
-
-  const normalizedCategory = normalizeCategorySlug(product.category) || requestedCategory;
-  const normalizedSlug = product.slug || slug;
-  const canonicalPath = `/sklep/${normalizedCategory}/${normalizedSlug}`;
-  const title = `${product.name} | Sklep Il Buon Caffe`;
-  const description = product.description || `Kup ${product.name} w sklepie Il Buon Caffe. Najwyższa jakość, szybka dostawa.`;
-  const imageUrl = toAbsoluteUrl(product.imageUrl || product.image);
-  const ogImagePath = `${canonicalPath}/opengraph-image`;
+  const prettySlug = slug
+    .split("-")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+  const safeName = prettySlug || "Produkt";
+  const canonicalPath = `/sklep/${requestedCategory}/${slug}`;
+  const title = `${safeName} | Sklep Il Buon Caffe`;
+  const description = `Kup ${safeName} w sklepie Il Buon Caffe. Najwyższa jakość, szybka dostawa.`;
+  const defaultOgImage = `${BASE_URL}/assets/kawiarnia.jpg`;
 
   return {
     title,
@@ -95,16 +82,13 @@ export async function generateMetadata({ params }: { params: Promise<ProductRout
       locale: "pl_PL",
       siteName: "Il Buon Caffe",
       url: canonicalPath,
-      images: [
-        { url: ogImagePath, width: 1200, height: 630, alt: product.name },
-        ...(imageUrl ? [{ url: imageUrl, alt: product.name }] : []),
-      ],
+      images: [{ url: defaultOgImage, width: 1920, height: 998, alt: safeName }],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: [ogImagePath],
+      images: [defaultOgImage],
     },
   };
 }
