@@ -357,7 +357,7 @@ function toString(value: unknown, fallback: string): string {
 }
 
 function normalizeWineDetails(details: WineDetails): WineDetails {
-  const tastingNotes = isRecord(details.tastingNotes) ? details.tastingNotes : {};
+  const tastingNotes: Record<string, unknown> = isRecord(details.tastingNotes) ? details.tastingNotes : {};
 
   const foodPairing: WineFoodPairing[] = Array.isArray(details.foodPairing)
     ? details.foodPairing
@@ -415,9 +415,9 @@ function normalizeWineDetails(details: WineDetails): WineDetails {
         ? undefined
         : toString(details.wineryDescription, defaultWineDetails.wineryDescription ?? ''),
     tastingNotes: {
-      eye: toString(tastingNotes.eye, defaultWineDetails.tastingNotes.eye),
-      nose: toString(tastingNotes.nose, defaultWineDetails.tastingNotes.nose),
-      palate: toString(tastingNotes.palate, defaultWineDetails.tastingNotes.palate),
+      eye: toString(tastingNotes['eye'], defaultWineDetails.tastingNotes.eye),
+      nose: toString(tastingNotes['nose'], defaultWineDetails.tastingNotes.nose),
+      palate: toString(tastingNotes['palate'], defaultWineDetails.tastingNotes.palate),
     },
     foodPairing,
     awards,
