@@ -5,11 +5,12 @@ import { jwtVerify } from 'jose';
 // ⚠️  WAŻNE DLA AGENTÓW AI / IMPORTANT FOR AI AGENTS ⚠️
 // ─────────────────────────────────────────────────────────────────────────────
 // Next.js 16 przemianował konwencję `middleware.ts` → `proxy.ts`.
-// Ten plik (src/proxy.ts) to Edge runtime proxy — wymagany przez OpenNext/
-// Cloudflare Workers. Działa TYLKO w Edge runtime (nie Node.js).
+// W tym projekcie z OpenNext/Cloudflare MUSIMY pozostać przy middleware.ts,
+// bo `proxy.ts` działa domyślnie na Node.js runtime i nie jest wspierane przez
+// aktualny adapter OpenNext dla Workers.
 //
-// ❌ NIE TWÓRZ src/middleware.ts — używaj tylko tego pliku (src/proxy.ts).
-// ❌ DO NOT CREATE src/middleware.ts — this file (src/proxy.ts) IS the proxy.
+// ❌ Nie migruj tego pliku do src/proxy.ts, dopóki adapter nie wesprze Node proxy.
+// ❌ Do not migrate this file to src/proxy.ts until the adapter supports Node proxy.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
@@ -131,12 +132,7 @@ function addPublicSecurityHeaders(response: NextResponse): NextResponse {
   return response;
 }
 
-// ─── Proxy / Edge Middleware ──────────────────────────────────────────────────
-// NOTE: OpenNext/Cloudflare requires Edge Middleware (middleware.ts convention).
-// Next.js 16 deprecated `middleware` in favour of `proxy`, but the new `proxy`
-// runs on Node.js runtime which OpenNext does NOT support. Until OpenNext adds
-// support for proxy.ts, we keep the `middleware` export name — Next.js 16 still
-// accepts it (deprecation warning only, no build error).
+// ─── Middleware / Edge Runtime ────────────────────────────────────────────────
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
