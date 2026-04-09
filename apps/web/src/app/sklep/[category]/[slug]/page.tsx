@@ -39,16 +39,20 @@ type ProductRouteParams = { category: string; slug: string };
 
 // ISR: rebuild product pages at most every hour
 export const revalidate = 3600;
+export const dynamicParams = true;
 
 export async function generateStaticParams() {
-  if (!process.env.DATABASE_URL) return [];
-  const allProducts = await getProducts();
-  return allProducts
-    .filter((product) => product.slug)
-    .map((product) => ({
-      category: normalizeCategorySlug(product.category) || "kawa",
-      slug: product.slug!,
-    }));
+  try {
+    const allProducts = await getProducts();
+    return allProducts
+      .filter((product) => product.slug)
+      .map((product) => ({
+        category: normalizeCategorySlug(product.category) || "kawa",
+        slug: product.slug!,
+      }));
+  } catch {
+    return [];
+  }
 }
 
 export async function generateMetadata({ params }: { params: Promise<ProductRouteParams> }): Promise<Metadata> {
@@ -112,6 +116,9 @@ export default async function ProductDetailsPage({ params }: { params: Promise<P
     notFound();
   }
 
+  const parsedPrice = Number(product.price);
+  const safePrice = Number.isFinite(parsedPrice) ? parsedPrice : 0;
+
   const normalizedCategory = normalizeCategorySlug(product.category) || normalizeCategorySlug(category);
   const normalizedSlug = product.slug || slug;
   const categoryLabel = categoryLabelMap[normalizedCategory] || normalizedCategory;
@@ -133,7 +140,7 @@ export default async function ProductDetailsPage({ params }: { params: Promise<P
     offers: {
       "@type": "Offer",
       priceCurrency: "PLN",
-      price: product.price.toFixed(2),
+      price: safePrice.toFixed(2),
       availability:
         typeof product.stock === "number" && product.stock <= 0
           ? "https://schema.org/OutOfStock"
