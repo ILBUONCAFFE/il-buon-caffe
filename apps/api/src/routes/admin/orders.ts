@@ -50,7 +50,32 @@ function mapShipmentDisplayStatus(input: {
   const code = normalizeTrackingCode(input.trackingStatusCode)
   const statusText = (input.trackingStatus ?? '').toLowerCase()
 
-  if (!input.trackingNumber) return 'none'
+  if (!input.trackingNumber) {
+    const code = normalizeTrackingCode(input.trackingStatusCode)
+    if (!code) return 'none'
+    if (
+      code.includes('DELIVERED') ||
+      code.includes('PICKED_UP') ||
+      code.includes('PICKUP') ||
+      code.includes('RECEIVED')
+    ) return 'delivered'
+    if (
+      code.includes('OUT_FOR_DELIVERY') ||
+      code.includes('COURIER')
+    ) return 'out_for_delivery'
+    if (
+      code.includes('IN_TRANSIT') ||
+      code.includes('TRANSIT') ||
+      code.includes('SENT') ||
+      code.includes('SHIPPED')
+    ) return 'in_transit'
+    if (
+      code.includes('LABEL_CREATED') ||
+      code.includes('CREATED') ||
+      code.includes('REGISTERED')
+    ) return 'label_created'
+    return 'none'
+  }
 
   if (status === 'delivered') return 'delivered'
 
