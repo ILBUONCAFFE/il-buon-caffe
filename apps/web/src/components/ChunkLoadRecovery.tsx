@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 
 const RELOAD_GUARD_KEY = 'ibc:chunk-reload-once:v1'
-const GUARD_TTL_MS = 2 * 60 * 1000
+const GUARD_TTL_MS = 10 * 60 * 1000
 
 function shouldAttemptReload(): boolean {
   try {
@@ -26,20 +26,20 @@ function markReloadAttempt() {
   }
 }
 
-function isChunkRelatedError(payload: unknown): boolean {
+// For runtime JS errors (ErrorEvent) — only match by error name/type.
+// Matching by URL patterns in message/stack would cause false positives
+// for any error that happens to mention /_next/static/ in its stacktrace.
+function isChunkRelatedRuntimeError(payload: unknown): boolean {
   const text = String(payload ?? '').toLowerCase()
+  return text.includes('chunkloaderror') || text.includes('loading chunk')
+}
 
-  const hasNextChunkHint = text.includes('/_next/static/chunks/') || text.includes('loading chunk')
-  const hasChunkLoadError = text.includes('chunkloaderror')
-  const hasNextBuildAssetHint = text.includes('/_next/static/')
-  const hasMimeHtmlError = text.includes('mime type') && text.includes('text/html')
-
-  return (
-    hasChunkLoadError
-    || hasNextChunkHint
-    // Only treat MIME/type mismatch as chunk-related if it points to Next static assets.
-    || (hasMimeHtmlError && hasNextBuildAssetHint)
-  )
+// For resource load errors (HTMLScriptElement failed to fetch) — match by URL.
+function isChunkRelatedResourceError(src: string): boolean {
+  const text = src.toLowerCase()
+  const isNextChunk = text.includes('/_next/static/chunks/')
+  const hasMimeHtmlError = text.includes('mime type') && text.includes('text/html') && text.includes('/_next/static/')
+  return isNextChunk || hasMimeHtmlError
 }
 
 function hardReloadWithCacheBust() {
@@ -61,15 +61,15 @@ export default function ChunkLoadRecovery() {
     }
 
     const onError = (event: ErrorEvent | Event) => {
-      // Runtime error case (ErrorEvent)
-      if ('message' in event && isChunkRelatedError(event.message)) {
+      // Runtime error case (ErrorEvent) — match only by error type, not URL patterns
+      if (event instanceof ErrorEvent && isChunkRelatedRuntimeError(event.message)) {
         hardReloadWithCacheBust()
         return
       }
 
-      // Resource load error case (script tag could return HTML 404)
+      // Resource load error case (script tag failed to fetch a chunk)
       const target = event.target
-      if (target instanceof HTMLScriptElement && isChunkRelatedError(target.src)) {
+      if (target instanceof HTMLScriptElement && isChunkRelatedResourceError(target.src)) {
         hardReloadWithCacheBust()
       }
     }
@@ -77,7 +77,7 @@ export default function ChunkLoadRecovery() {
     const onUnhandledRejection = (event: PromiseRejectionEvent) => {
       const reason = event.reason
       const message = reason instanceof Error ? `${reason.name}: ${reason.message}` : String(reason)
-      if (isChunkRelatedError(message)) {
+      if (isChunkRelatedRuntimeError(message)) {
         hardReloadWithCacheBust()
       }
     }
