@@ -23,7 +23,7 @@ import { getAllegroApiBase, type AllegroEnvironment } from '../allegro'
 import type { Env } from '../../index'
 import type { BackfillResult, AllegroCheckoutForm } from './types'
 import { writeCursor, allegroHeaders, sleep, withRetry } from './helpers'
-import { handleBought, handleFilledIn, handleReadyForProcessing, handleCancelled } from './handlers'
+import { handleBought, handleFilledIn, handleReadyForProcessing, handleCancelled, reconcileOrder } from './handlers'
 import { resolveAccessToken } from './resolve-token'
 import type { createDb } from '@repo/db/client'
 
@@ -149,6 +149,7 @@ async function _backfillInner(
               await handleFilledIn(db, form, kv)
             }
           }
+          await reconcileOrder(db, form, kv)
         }, 3)
         imported++
         batchImported++
