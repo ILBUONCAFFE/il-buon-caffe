@@ -2,13 +2,15 @@ import type { Metadata } from "next";
 import { Playfair_Display, Lato, Pinyon_Script } from "next/font/google";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import Script from "next/script";
+import { headers } from "next/headers";
 import "./globals.css";
 import { Shell } from "@/components/layout/Shell";
 import ChunkLoadRecovery from "@/components/ChunkLoadRecovery";
 
 const playfair = Playfair_Display({ subsets: ["latin"], variable: '--font-playfair', display: 'swap' });
 const lato = Lato({ subsets: ["latin"], weight: ['300', '400', '700'], variable: '--font-lato', display: 'swap' });
-const pinyon = Pinyon_Script({ weight: ['400'], subsets: ["latin"], variable: '--font-pinyon', display: 'swap' });
+// preload: false — dekoracyjna czcionka, nieużywana na wszystkich stronach, unika preload warning
+const pinyon = Pinyon_Script({ weight: ['400'], subsets: ["latin"], variable: '--font-pinyon', display: 'swap', preload: false });
 
 const CONSENT_STORAGE_KEY = "ibc-consent-v1";
 
@@ -237,13 +239,20 @@ export const metadata: Metadata = {
   publisher: "Il Buon Caffe",
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  // Middleware ustawia x-nonce tylko dla /admin/* — jeśli nagłówek jest obecny, jesteśmy na admin route.
+  // Na admin stronach pomijamy GA: nonce-based CSP i tak by je zablokował, a tracking admina jest niepożądany.
+  const headersList = await headers();
+  const isAdminRoute = !!headersList.get('x-nonce');
+
   return (
     <html lang="pl" suppressHydrationWarning>
       <body className={`${lato.variable} ${playfair.variable} ${pinyon.variable} font-sans antialiased`} suppressHydrationWarning>
-        <Script id="ga-consent-bootstrap" strategy="beforeInteractive">
-          {consentBootstrapScript}
-        </Script>
+        {!isAdminRoute && (
+          <Script id="ga-consent-bootstrap" strategy="beforeInteractive">
+            {consentBootstrapScript}
+          </Script>
+        )}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(storeJsonLd) }}
@@ -257,7 +266,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           {children}
         </Shell>
       </body>
-      <GoogleAnalytics gaId="G-9X9LN9GQYD" />
+      {!isAdminRoute && <GoogleAnalytics gaId="G-9X9LN9GQYD" />}
     </html>
   );
 }
