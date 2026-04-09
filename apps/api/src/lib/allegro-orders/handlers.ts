@@ -519,7 +519,10 @@ export async function reconcileOrder(
       ...(trackingSnapshotCode && {
         trackingStatusCode: trackingSnapshotCode,
         trackingStatus: trackingSnapshotLabel,
-        trackingStatusUpdatedAt: new Date(),
+        // trackingStatusUpdatedAt is intentionally omitted when isSent without a waybill,
+        // so getShipmentFreshness returns 'stale'/'unknown' and the cron fetches the waybill immediately.
+        // For cancelled orders the field is also left as-is (no tracking to refresh).
+        ...(isCancelled && { trackingStatusUpdatedAt: new Date() }),
       }),
       ...(newLocalStatus === 'cancelled' && { status: 'cancelled' as const }),
       ...(newLocalStatus === 'shipped'   && { status: 'shipped' as const, shippedAt: new Date() }),
