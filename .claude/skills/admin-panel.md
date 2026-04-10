@@ -1,7 +1,7 @@
 ---
 name: admin-panel
 description: >
-  Build and extend the Il Buon Caffè web-based admin panel (dashboard, CRUD views, tables, forms, analytics).
+  Build and extend the Il Buon Caffe web-based admin panel (dashboard, CRUD views, tables, forms, analytics).
   Use this skill whenever the user wants to add admin features, management pages, dashboard widgets,
   data tables, forms, or modify the admin UI. Triggers on: "admin", "dashboard", "panel admina",
   "zarządzanie", "CRUD", "tabela", "formularz", "command palette", "admin page", "management view",
@@ -9,7 +9,7 @@ description: >
   bulk operations, data export, search, and filtering in the admin context.
 ---
 
-# Admin Panel Skill — Il Buon Caffè
+# Admin Panel Skill — Il Buon Caffe
 
 Build the web-based admin panel for product, order, customer, and analytics management.
 

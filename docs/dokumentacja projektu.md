@@ -1,4 +1,4 @@
-# Il Buon Caffè — Dokumentacja Projektu
+# Il Buon Caffe — Dokumentacja Projektu
 
 > **Wersja:** 3.0  
 > **Data:** 2026-02-21  
@@ -30,7 +30,7 @@
 
 ## 1. Wizja & Cel
 
-**Il Buon Caffè** — sklep internetowy z kawą speciality, winami, słodyczami i delikatesami włoskimi. Projekt łączy sprzedaż przez własną stronę z integracją Allegro, zarządzany przez jedną osobę (właściciel = admin = developer).
+**Il Buon Caffe** — sklep internetowy z kawą speciality, winami, słodyczami i delikatesami włoskimi. Projekt łączy sprzedaż przez własną stronę z integracją Allegro, zarządzany przez jedną osobę (właściciel = admin = developer).
 
 ### Założenia fundamentalne
 

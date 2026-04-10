@@ -1,4 +1,4 @@
-# Launch Checklist — Il Buon Caffè
+# Launch Checklist — Il Buon Caffe
 
 > Cel: wypuścić działający sklep online jak najszybciej, bezpiecznie, zgodnie z polskim prawem.
 > Dwa tory biegną równolegle. Zacznij oba w Dniu 1.

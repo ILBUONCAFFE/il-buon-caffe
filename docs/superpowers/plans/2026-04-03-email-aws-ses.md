@@ -208,7 +208,7 @@ function emailLayout(content: string): string {
         </tr>
         <tr>
           <td style="padding:16px 32px;background:#f5f0eb;text-align:center;">
-            <p style="margin:0;color:#888;font-size:12px;">Il Buon Caffè · kontakt@ilbuoncaffe.pl</p>
+            <p style="margin:0;color:#888;font-size:12px;">Il Buon Caffe · kontakt@ilbuoncaffe.pl</p>
           </td>
         </tr>
       </table>
@@ -234,13 +234,13 @@ export function buildVerificationEmail(
 ): { subject: string; html: string } {
   const link = `${frontendUrl}/auth/verify-email?token=${encodeURIComponent(token)}`
   return {
-    subject: 'Zweryfikuj swój adres email — Il Buon Caffè',
+    subject: 'Zweryfikuj swój adres email — Il Buon Caffe',
     html: emailLayout(`
-      <h2 style="margin:0 0 16px;color:#1a0a00;font-size:22px;">Witaj w Il Buon Caffè</h2>
+      <h2 style="margin:0 0 16px;color:#1a0a00;font-size:22px;">Witaj w Il Buon Caffe</h2>
       <p style="color:#333;line-height:1.6;">Dziękujemy za rejestrację. Kliknij poniższy przycisk, aby potwierdzić swój adres email.</p>
       <p style="color:#666;font-size:14px;">Link jest ważny przez <strong>6 godzin</strong>.</p>
       ${btn(link, 'Zweryfikuj adres email')}
-      <p style="color:#999;font-size:13px;margin-top:24px;">Jeśli nie rejestrowano konta w Il Buon Caffè, zignoruj tę wiadomość.</p>
+      <p style="color:#999;font-size:13px;margin-top:24px;">Jeśli nie rejestrowano konta w Il Buon Caffe, zignoruj tę wiadomość.</p>
       <p style="color:#bbb;font-size:12px;word-break:break-all;">Lub skopiuj link: ${link}</p>
     `),
   }
@@ -252,7 +252,7 @@ export function buildPasswordResetEmail(
 ): { subject: string; html: string } {
   const link = `${frontendUrl}/auth/reset-password?token=${encodeURIComponent(token)}`
   return {
-    subject: 'Reset hasła — Il Buon Caffè',
+    subject: 'Reset hasła — Il Buon Caffe',
     html: emailLayout(`
       <h2 style="margin:0 0 16px;color:#1a0a00;font-size:22px;">Reset hasła</h2>
       <p style="color:#333;line-height:1.6;">Otrzymaliśmy prośbę o reset hasła do Twojego konta.</p>
@@ -281,7 +281,7 @@ export function buildOrderConfirmationEmail(
   const { street, city, postalCode } = order.shippingAddress
 
   return {
-    subject: `Potwierdzenie zamówienia #${order.orderNumber} — Il Buon Caffè`,
+    subject: `Potwierdzenie zamówienia #${order.orderNumber} — Il Buon Caffe`,
     html: emailLayout(`
       <h2 style="margin:0 0 8px;color:#1a0a00;font-size:22px;">Dziękujemy za zamówienie!</h2>
       <p style="color:#666;margin:0 0 24px;">Numer zamówienia: <strong style="color:#1a0a00;">#${order.orderNumber}</strong></p>

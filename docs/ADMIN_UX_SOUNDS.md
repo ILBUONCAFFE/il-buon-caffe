@@ -1,4 +1,4 @@
-# Admin UX Sounds — Il Buon Caffè
+# Admin UX Sounds — Il Buon Caffe
 
 Panel admina to narzędzie pracy — dźwięki mają być **subtelne, szybkie, niedramatyczne**.  
 Styl: clean Apple comfort — glassy sine tones, soft attack, zero roughness, jak macOS Sonoma / iOS notification palette.

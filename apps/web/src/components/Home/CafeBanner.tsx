@@ -17,7 +17,7 @@ export const CafeBanner = () => (
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-6 text-sm text-white/40">
               <span className="flex items-center gap-2">
                 <MapPin className="w-3.5 h-3.5 text-brand-400/60 flex-shrink-0" />
-                ul. Bpa Cz. Domina 3/6, Koszalin
+                ul. Biskupa Czesława Domina 3/6, Koszalin
               </span>
               <span className="flex items-center gap-2">
                 <Clock className="w-3.5 h-3.5 text-brand-400/60 flex-shrink-0" />

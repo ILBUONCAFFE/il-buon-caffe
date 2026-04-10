@@ -40,8 +40,7 @@ export default function RegulaminPage() {
               </li>
               <li>
                 Kontakt ze Sprzedawcą:{" "}
-                <A href="mailto:kontakt@ilbuoncaffe.pl">kontakt@ilbuoncaffe.pl</A>
-                , tel. <A href="tel:+48664937937">+48 664 937 937</A>, pn&ndash;pt
+                <A href="mailto:kontakt@ilbuoncaffe.pl">kontakt@ilbuoncaffe.pl</A>, pn&ndash;pt
                 09:00&ndash;16:00, sob 11:00&ndash;14:00.
               </li>
               <li>

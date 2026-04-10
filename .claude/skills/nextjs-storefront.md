@@ -1,7 +1,7 @@
 ---
 name: nextjs-storefront
 description: >
-  Build pages, components, and layouts for the Il Buon Caffè Next.js 14 storefront.
+  Build pages, components, and layouts for the Il Buon Caffe Next.js 14 storefront.
   Use this skill whenever the user wants to create a new page, component, layout, or modify the public-facing shop.
   Triggers on: "new page", "component", "layout", "storefront", "shop page", "product page", "landing page",
   "navigation", "footer", "hero section", "Tailwind", "Framer Motion", "animation",
@@ -9,7 +9,7 @@ description: >
   Also use for data fetching patterns, Server Components vs Client Components decisions, and styling questions.
 ---
 
-# Next.js Storefront Skill — Il Buon Caffè
+# Next.js Storefront Skill — Il Buon Caffe
 
 Build the public-facing luxury e-commerce storefront with Next.js 14, React 19, Tailwind CSS 4, and Framer Motion.
 
@@ -153,7 +153,7 @@ export const api = {
 
 ### Design Language
 
-Il Buon Caffè is a **luxury Italian brand**. The design should feel:
+Il Buon Caffe is a **luxury Italian brand**. The design should feel:
 
 - **Warm & earthy**: amber, espresso brown, cream, olive tones
 - **Elegant typography**: serif headings (e.g., Playfair Display), clean sans body
@@ -234,7 +234,7 @@ Every page should export metadata for SEO:
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Kawa | Il Buon Caffè',
+  title: 'Kawa | Il Buon Caffe',
   description: 'Najlepsza włoska kawa — espresso, arabica, specialty coffee.',
 };
 ```
@@ -245,7 +245,7 @@ For dynamic pages, use `generateMetadata`:
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const product = await api.products.get(params.slug);
   return {
-    title: `${product.name} | Il Buon Caffè`,
+    title: `${product.name} | Il Buon Caffe`,
     description: product.description?.slice(0, 160),
   };
 }

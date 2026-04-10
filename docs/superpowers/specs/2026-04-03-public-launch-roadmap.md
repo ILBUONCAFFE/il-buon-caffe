@@ -1,4 +1,4 @@
-# Il Buon Caffè — Public Launch Roadmap
+# Il Buon Caffe — Public Launch Roadmap
 
 **Date:** 2026-04-03  
 **Status:** Approved  

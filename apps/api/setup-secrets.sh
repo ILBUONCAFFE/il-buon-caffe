@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────────────────────
-# Il Buon Caffè — Production Secrets Setup for Cloudflare Worker
+# Il Buon Caffe — Production Secrets Setup for Cloudflare Worker
 # ─────────────────────────────────────────────────────────────────────────────
 #
 # This script sets all required CF Worker secrets for production.
@@ -18,7 +18,7 @@
 set -euo pipefail
 
 echo "═══════════════════════════════════════════════════════════════════"
-echo "  Il Buon Caffè — CF Worker Secrets Setup (Production)"
+echo "  Il Buon Caffe — CF Worker Secrets Setup (Production)"
 echo "═══════════════════════════════════════════════════════════════════"
 echo ""
 echo "This will set all required secrets for the 'il-buon-caffe-api' worker."

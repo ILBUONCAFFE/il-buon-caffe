@@ -1,4 +1,4 @@
-# 🚀 Il Buon Caffè - Deployment Guide (v2.0)
+# 🚀 Il Buon Caffe - Deployment Guide (v2.0)
 
 > Instrukcja wdrożenia aplikacji na środowisko produkcyjne.  
 > **Wersja:** 2.0 (RODO-Compliant, Security Hardened)

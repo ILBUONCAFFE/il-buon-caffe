@@ -1,14 +1,14 @@
 ---
 name: hono-api
 description: >
-  Create and modify Hono.js API endpoints running on Cloudflare Workers for the Il Buon Caffè e-commerce backend.
+  Create and modify Hono.js API endpoints running on Cloudflare Workers for the Il Buon Caffe e-commerce backend.
   Use this skill whenever the user wants to add a new API route, endpoint, middleware, or modify existing backend logic.
   Triggers on: "new endpoint", "add route", "API for", "backend for", "hono route", "worker endpoint",
   "add middleware", "API validation", "error handling in API", or any request involving the apps/api/ directory.
   Also use when the user asks about request validation, response formats, or Cloudflare Worker bindings (KV, R2, Hyperdrive).
 ---
 
-# Hono API Skill — Il Buon Caffè
+# Hono API Skill — Il Buon Caffe
 
 Build API endpoints in Hono.js on Cloudflare Workers, following project conventions.
 

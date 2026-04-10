@@ -1,7 +1,7 @@
 ---
 name: cloudflare-deploy
 description: >
-  Configure and deploy Il Buon Caffè infrastructure on Cloudflare — Workers, KV, R2, Hyperdrive, cron triggers,
+  Configure and deploy Il Buon Caffe infrastructure on Cloudflare — Workers, KV, R2, Hyperdrive, cron triggers,
   environment variables, secrets, and Wrangler configuration. Use this skill whenever the user works on
   deployment, Wrangler config, environment setup, secrets management, KV namespaces, R2 buckets,
   or Cloudflare-specific infrastructure. Triggers on: "deploy", "wrangler", "cloudflare", "KV", "R2",
@@ -9,7 +9,7 @@ description: >
   "production deploy", "staging", or any infrastructure/DevOps task related to Cloudflare.
 ---
 
-# Cloudflare Deploy Skill — Il Buon Caffè
+# Cloudflare Deploy Skill — Il Buon Caffe
 
 Deploy and configure the Cloudflare Workers infrastructure: Workers, KV, R2, Hyperdrive, cron triggers.
 

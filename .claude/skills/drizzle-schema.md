@@ -1,7 +1,7 @@
 ---
 name: drizzle-schema
 description: >
-  Manage the Drizzle ORM database schema for Il Buon Caffè on Neon PostgreSQL.
+  Manage the Drizzle ORM database schema for Il Buon Caffe on Neon PostgreSQL.
   Use this skill whenever the user wants to add a table, modify columns, create indexes, write migrations,
   add relations, or change the database schema in any way. Triggers on: "add table", "new column", "migration",
   "schema change", "database", "drizzle", "add field", "add index", "foreign key", "relation",
@@ -9,7 +9,7 @@ description: >
   or when creating new features that require database changes.
 ---
 
-# Drizzle Schema Skill — Il Buon Caffè
+# Drizzle Schema Skill — Il Buon Caffe
 
 Manage the PostgreSQL database schema via Drizzle ORM, with Neon serverless Postgres.
 

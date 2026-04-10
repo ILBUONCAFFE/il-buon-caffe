@@ -241,9 +241,6 @@ export default function PolitykaCookiesPage() {
                 </A>
               </li>
               <li>
-                telefon: <A href="tel:+48664937937">+48 664 937 937</A>
-              </li>
-              <li>
                 <strong>Il Buon Caffe Dariusz Praczyk</strong>, NIP 6692036051,
                 ul. Biskupa Czesława Domina 3/6, 75-065 Koszalin
               </li>

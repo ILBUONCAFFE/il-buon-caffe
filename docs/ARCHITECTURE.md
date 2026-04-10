@@ -1,4 +1,4 @@
-# 🏛️ Il Buon Caffè - Architektura Systemu (v2.1)
+# 🏛️ Il Buon Caffe - Architektura Systemu (v2.1)
 
 > **Wersja:** 2.1.0 (RODO-Compliant, Flat Structure, WebAdmin)  
 > **Data:** Lipiec 2025  
@@ -24,7 +24,7 @@
 
 ## 🎯 Przegląd Systemu
 
-**Il Buon Caffè** to platforma e-commerce dla luksusowych delikatesów:
+**Il Buon Caffe** to platforma e-commerce dla luksusowych delikatesów:
 
 | Komponent       | Opis                          | Technologia                   |
 | --------------- | ----------------------------- | ----------------------------- |

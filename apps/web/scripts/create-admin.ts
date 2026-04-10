@@ -34,7 +34,7 @@ function ask(question: string): Promise<string> {
 }
 
 async function main() {
-  console.log('\n🔐 Il Buon Caffè — Tworzenie konta administratora\n');
+  console.log('\n🔐 Il Buon Caffe — Tworzenie konta administratora\n');
 
   const email = await ask('Email: ');
   if (!email || !email.includes('@')) {

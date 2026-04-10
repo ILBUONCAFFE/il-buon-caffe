@@ -1,7 +1,7 @@
 ---
 name: turborepo-conventions
 description: >
-  Manage the Il Buon Caffè Turborepo monorepo — shared packages, dependency graph, turbo.json pipelines,
+  Manage the Il Buon Caffe Turborepo monorepo — shared packages, dependency graph, turbo.json pipelines,
   adding new packages or apps, and workspace configuration. Use this skill whenever the user works on
   monorepo structure, shared packages, build pipelines, workspace dependencies, or Turborepo configuration.
   Triggers on: "turbo", "turborepo", "monorepo", "workspace", "shared package", "new package",
@@ -9,7 +9,7 @@ description: >
   or any structural question about how the repo is organized and how code is shared between apps.
 ---
 
-# Turborepo Conventions Skill — Il Buon Caffè
+# Turborepo Conventions Skill — Il Buon Caffe
 
 Manage the Turborepo monorepo structure, shared packages, build pipelines, and workspace conventions.
 

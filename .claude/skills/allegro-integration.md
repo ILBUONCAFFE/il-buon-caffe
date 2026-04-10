@@ -1,7 +1,7 @@
 ---
 name: allegro-integration
 description: >
-  Handle all Allegro marketplace integration for Il Buon Caffè — OAuth2 flow, token management,
+  Handle all Allegro marketplace integration for Il Buon Caffe — OAuth2 flow, token management,
   product-to-offer mapping, order polling, and sync logic. Use this skill whenever the user works on
   Allegro-related features, API calls, token refresh, cron jobs, or marketplace sync.
   Triggers on: "allegro", "marketplace", "oferta", "sync", "token refresh", "OAuth", "order polling",
@@ -9,7 +9,7 @@ description: >
   or Cloudflare scheduled workers for Allegro. Also use when debugging sync failures or token issues.
 ---
 
-# Allegro Integration Skill — Il Buon Caffè
+# Allegro Integration Skill — Il Buon Caffe
 
 Integrate with Allegro.pl marketplace: OAuth2 authentication, product offer management, and automated order sync.
 

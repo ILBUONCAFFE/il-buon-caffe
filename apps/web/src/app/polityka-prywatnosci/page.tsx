@@ -44,9 +44,6 @@ export default function PolitykaPrywatnosciPage() {
                 </A>
               </li>
               <li>
-                telefon: <A href="tel:+48664937937">+48 664 937 937</A>
-              </li>
-              <li>
                 pisemnie: ul. Biskupa Czesława Domina 3/6, 75-065 Koszalin
               </li>
             </Ul>

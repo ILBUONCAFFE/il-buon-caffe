@@ -53,7 +53,7 @@ export const Location: React.FC = () => {
             Kawiarnia & Sklep
           </span>
           <h2 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-serif text-white leading-[1.05] mb-4">
-            ul. Bpa Cz. Domina 3/6
+            ul. Biskupa Czesława Domina 3/6
           </h2>
           <p className="text-xl md:text-2xl text-white/30 font-serif">
             75-065 Koszalin

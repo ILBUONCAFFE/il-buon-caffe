@@ -1,7 +1,7 @@
 ---
 name: checkout-payments
 description: >
-  Implement checkout flow and Przelewy24 (P24) payment integration for Il Buon Caffè.
+  Implement checkout flow and Przelewy24 (P24) payment integration for Il Buon Caffe.
   Use this skill whenever the user works on checkout, payment processing, order creation, stock reservation,
   payment webhooks, or Przelewy24 configuration. Triggers on: "checkout", "płatność", "payment", "P24",
   "Przelewy24", "BLIK", "koszyk", "zamówienie", "order creation", "stock reservation", "idempotency",
@@ -9,7 +9,7 @@ description: >
   order status transitions or payment error handling.
 ---
 
-# Checkout & Payments Skill — Il Buon Caffè
+# Checkout & Payments Skill — Il Buon Caffe
 
 Implement the checkout flow with Przelewy24 (P24) payments, supporting card, BLIK, and bank transfers.
 

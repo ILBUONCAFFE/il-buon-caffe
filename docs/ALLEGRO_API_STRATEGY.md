@@ -1,4 +1,4 @@
-# Strategia Integracji Allegro REST API — Il Buon Caffè
+# Strategia Integracji Allegro REST API — Il Buon Caffe
 
 > **Wersja:** 1.1 (rewizja)  
 > **Data:** 2026-03-06  
@@ -40,7 +40,7 @@
 
 ### Kontekst
 
-Il Buon Caffè to polski sklep delikatesowy (~50 SKU, ~10-50 zamówień/dzień) działający na:
+Il Buon Caffe to polski sklep delikatesowy (~50 SKU, ~10-50 zamówień/dzień) działający na:
 - **Strona własna** — `ilbuoncaffe.pl` (Next.js na Cloudflare Pages)
 - **Allegro** — kanał sprzedaży nr 2 (marketplace)
 
@@ -221,7 +221,7 @@ Authorization: Bearer {access_token}
 | M27 | `/sale/allegro-prices/eligible-offers` | GET | Admin: eligibility | Które oferty kwalifikują się do programu Allegro Ceny | NISKI |
 | M28 | `/sale/allegro-prices/offers/{offerId}` | PUT/DELETE | Admin: cena Smart | Ustaw/usuń cenę specjalną dla posiadaczy Allegro Smart | ŚREDNI |
 
-### 4.3 Endpointy NIGDY nie wywoływane (nieistotne dla Il Buon Caffè)
+### 4.3 Endpointy NIGDY nie wywoływane (nieistotne dla Il Buon Caffe)
 
 | Endpoint | Powód pominięcia |
 |----------|------------------|
@@ -683,7 +683,7 @@ Cron `0 * * * *` (handler `autoRefreshAllegroToken`) po odświeżeniu tokena wyw
 
 ### 8.5 Zestawy produktów (`/sale/offer-bundles`)
 
-Zestaw (bundle) to oddzielna oferta Allegro grupująca kilka istniejących ofert jako jeden zakup z opcjonalną obniżoną ceną. Dla Il Buon Caffè to naturalny format: **zestawy prezentowe**, **pakiety degustacyjne kawy**, **startery**.
+Zestaw (bundle) to oddzielna oferta Allegro grupująca kilka istniejących ofert jako jeden zakup z opcjonalną obniżoną ceną. Dla Il Buon Caffe to naturalny format: **zestawy prezentowe**, **pakiety degustacyjne kawy**, **startery**.
 
 **Jak działają bundles na Allegro:**
 - Bundle = nowa oferta Allegro złożona z 2+ aktywnych ofert z `allegroOfferId`
@@ -1706,5 +1706,5 @@ async function handleStatsComputation(env: Env) {
 
 ---
 
-> **Ten dokument jest źródłem prawdy dla strategii integracji Allegro w projekcie Il Buon Caffè.**  
+> **Ten dokument jest źródłem prawdy dla strategii integracji Allegro w projekcie Il Buon Caffe.**  
 > Wszelkie zmiany w architekturze synchronizacji powinny być najpierw odzwierciedlone tutaj.

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Coffee, Wine, CakeSlice } from "lucide-react";
 import { CAFE_MENU } from "@/lib/constants";
@@ -86,6 +86,21 @@ const ItemCard = ({
 export const TastingMenu: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleTabChange = (e: Event) => {
+      const customEvent = e as CustomEvent<string>;
+      const tabId = customEvent.detail;
+      if (tabId === 'klasyki') setActiveTab(0);
+      else if (tabId === 'specjaly') setActiveTab(1);
+      else if (tabId === 'desery') setActiveTab(2);
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('changeMenuTab', handleTabChange);
+      return () => window.removeEventListener('changeMenuTab', handleTabChange);
+    }
+  }, []);
 
   const currentMenu = CAFE_MENU[activeTab];
   const variant = TABS[activeTab].variant;

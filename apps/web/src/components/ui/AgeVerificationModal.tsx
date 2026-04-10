@@ -3,7 +3,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { motion, AnimatePresence } from "motion/react";
-import { Wine, ShieldCheck, XCircle } from "lucide-react";
 import { usePathname } from "next/navigation";
 
 export const AgeVerificationModal = () => {
@@ -71,66 +70,126 @@ export const AgeVerificationModal = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-brand-950/90 backdrop-blur-md"
+          transition={{ duration: 0.4 }}
+          className="fixed inset-0 z-[100]"
         >
-          {/* Background decoration */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-brand-900/40 rounded-full blur-3xl" />
-          </div>
-
-          <motion.div
-            initial={{ scale: 0.9, y: 20, opacity: 0 }}
-            animate={{ scale: 1, y: 0, opacity: 1 }}
-            exit={{ scale: 0.9, y: 20, opacity: 0 }}
-            transition={{ type: "spring", duration: 0.6 }}
+          {/* Full-screen container */}
+          <div
             ref={modalRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="age-verification-title"
-            className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden"
+            className="h-full w-full flex flex-col md:flex-row"
           >
-            {/* Border accent */}
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-brand-700 to-transparent" />
-
-            <div className="p-8 md:p-12 text-center">
-              <div className="mb-6 flex justify-center">
-                <div className="w-16 h-16 rounded-full bg-brand-50 flex items-center justify-center text-brand-900">
-                  <Wine size={32} />
-                </div>
+            {/* ── Left panel: the question ── */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="relative flex-1 flex flex-col justify-between bg-brand-950 text-white p-8 md:p-16 lg:p-20 min-h-[60vh] md:min-h-0"
+            >
+              {/* Top: brand name */}
+              <div>
+                <motion.span
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.3 }}
+                  className="block text-[11px] uppercase tracking-[0.35em] text-white/30 font-medium"
+                >
+                  Il Buon Caffe
+                </motion.span>
               </div>
 
-              <h2 id="age-verification-title" className="text-3xl md:text-3xl font-serif text-brand-950 mb-3">
-                Witaj w Il Buon Caffe
-              </h2>
-              
-              <p className="text-brand-600 mb-8 leading-relaxed">
-                Nasza oferta obejmuje alkohole. Zgodnie z prawem, treści te są dostępne wyłącznie dla osób pełnoletnich.
-                <br className="hidden md:block" />
-                <span className="font-semibold block mt-2">Czy masz ukończone 18 lat?</span>
-              </p>
-
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <button
-                  onClick={handleDeny}
-                  className="px-6 py-3 rounded-xl border border-brand-200 text-brand-600 hover:bg-brand-50 hover:text-brand-800 transition-colors font-medium text-sm w-full sm:w-auto"
+              {/* Center: big "18" + question */}
+              <div className="flex-1 flex flex-col justify-center">
+                <motion.div
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.7, delay: 0.2 }}
                 >
-                  Nie mam
-                </button>
+                  <span
+                    className="block font-serif leading-none select-none"
+                    style={{ fontSize: 'clamp(6rem, 18vw, 14rem)' }}
+                    aria-hidden="true"
+                  >
+                    18
+                  </span>
+                </motion.div>
+
+                {/* Thin rule */}
+                <motion.div
+                  initial={{ scaleX: 0 }}
+                  animate={{ scaleX: 1 }}
+                  transition={{ duration: 0.8, delay: 0.5 }}
+                  className="origin-left h-px bg-white/15 my-6 md:my-8 max-w-md"
+                />
+
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.6 }}
+                >
+                  <h2
+                    id="age-verification-title"
+                    className="text-lg md:text-xl font-serif text-white/90 mb-3 max-w-sm"
+                  >
+                    Czy masz ukończone 18 lat?
+                  </h2>
+                  <p className="text-sm text-white/35 max-w-sm leading-relaxed">
+                    Nasza oferta zawiera napoje alkoholowe.
+                    <br />
+                    Kontynuując, potwierdzasz swój wiek.
+                  </p>
+                </motion.div>
+              </div>
+
+              {/* Bottom: the two responses */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.8 }}
+                className="flex items-center gap-6 pt-6"
+              >
                 <button
                   onClick={handleVerify}
                   data-initial-focus
-                  className="px-8 py-3 rounded-xl bg-brand-900 text-white hover:bg-brand-800 transition-all font-medium text-sm shadow-lg hover:shadow-brand-900/20 w-full sm:w-auto flex items-center justify-center gap-2 group"
+                  className="group relative text-sm font-medium uppercase tracking-[0.2em] text-white transition-colors hover:text-brand-300"
                 >
-                  <ShieldCheck size={16} />
-                  <span>Tak, mam 18 lat</span>
+                  Tak, wchodzę
+                  <span className="absolute -bottom-1 left-0 w-full h-px bg-white/50 group-hover:bg-brand-300 transition-colors" />
                 </button>
-              </div>
 
-              <p className="mt-6 text-xs text-brand-400 uppercase tracking-widest">
-                Odpowiedzialna sprzedaż alkoholu
-              </p>
-            </div>
-          </motion.div>
+                <span className="text-white/15 text-xs select-none">/</span>
+
+                <button
+                  onClick={handleDeny}
+                  className="text-sm font-medium uppercase tracking-[0.2em] text-white/30 transition-colors hover:text-white/60"
+                >
+                  Nie
+                </button>
+              </motion.div>
+            </motion.div>
+
+            {/* ── Right panel: image ── */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.8, delay: 0.3 }}
+              className="hidden md:block md:w-[45%] lg:w-[40%] relative overflow-hidden"
+            >
+              <motion.img
+                initial={{ scale: 1.08 }}
+                animate={{ scale: 1 }}
+                transition={{ duration: 1.4, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                src="https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?q=80&w=1200&auto=format&fit=crop"
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+              {/* subtle vignette */}
+              <div className="absolute inset-0 bg-gradient-to-r from-brand-950/40 via-transparent to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-brand-950/30 via-transparent to-brand-950/20" />
+            </motion.div>
+          </div>
         </motion.div>
       )}
     </AnimatePresence>

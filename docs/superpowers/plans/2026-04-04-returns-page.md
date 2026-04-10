@@ -993,7 +993,7 @@ git commit -m "feat(admin): add ReturnsView component"
 ```typescript
 import { ReturnsView } from '@/admin/views/Returns'
 
-export const metadata = { title: 'Zwroty — Il Buon Caffè Admin' }
+export const metadata = { title: 'Zwroty — Il Buon Caffe Admin' }
 
 export default function ReturnsPage() {
   return <ReturnsView />

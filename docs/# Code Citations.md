@@ -16,7 +16,7 @@ Sprawdzę jeszcze cookies, env, i czy hasła nie są gdzieś logowane:
 
 ---
 
-## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffè
+## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffe
 
 ### Ocena ogólna: **7.2 / 10** — solidna baza, ale kilka krytycznych luk
 
@@ -179,7 +179,7 @@ Sprawdzę jeszcze cookies, env, i czy hasła nie są gdzieś logowane:
 
 ---
 
-## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffè
+## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffe
 
 ### Ocena ogólna: **7.2 / 10** — solidna baza, ale kilka krytycznych luk
 
@@ -342,7 +342,7 @@ Sprawdzę jeszcze cookies, env, i czy hasła nie są gdzieś logowane:
 
 ---
 
-## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffè
+## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffe
 
 ### Ocena ogólna: **7.2 / 10** — solidna baza, ale kilka krytycznych luk
 
@@ -505,7 +505,7 @@ Sprawdzę jeszcze cookies, env, i czy hasła nie są gdzieś logowane:
 
 ---
 
-## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffè
+## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffe
 
 ### Ocena ogólna: **7.2 / 10** — solidna baza, ale kilka krytycznych luk
 
@@ -668,7 +668,7 @@ Sprawdzę jeszcze cookies, env, i czy hasła nie są gdzieś logowane:
 
 ---
 
-## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffè
+## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffe
 
 ### Ocena ogólna: **7.2 / 10** — solidna baza, ale kilka krytycznych luk
 
@@ -831,7 +831,7 @@ Sprawdzę jeszcze cookies, env, i czy hasła nie są gdzieś logowane:
 
 ---
 
-## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffè
+## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffe
 
 ### Ocena ogólna: **7.2 / 10** — solidna baza, ale kilka krytycznych luk
 
@@ -994,7 +994,7 @@ Sprawdzę jeszcze cookies, env, i czy hasła nie są gdzieś logowane:
 
 ---
 
-## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffè
+## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffe
 
 ### Ocena ogólna: **7.2 / 10** — solidna baza, ale kilka krytycznych luk
 
@@ -1157,7 +1157,7 @@ Sprawdzę jeszcze cookies, env, i czy hasła nie są gdzieś logowane:
 
 ---
 
-## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffè
+## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffe
 
 ### Ocena ogólna: **7.2 / 10** — solidna baza, ale kilka krytycznych luk
 
@@ -1320,7 +1320,7 @@ Sprawdzę jeszcze cookies, env, i czy hasła nie są gdzieś logowane:
 
 ---
 
-## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffè
+## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffe
 
 ### Ocena ogólna: **7.2 / 10** — solidna baza, ale kilka krytycznych luk
 
@@ -1483,7 +1483,7 @@ Sprawdzę jeszcze cookies, env, i czy hasła nie są gdzieś logowane:
 
 ---
 
-## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffè
+## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffe
 
 ### Ocena ogólna: **7.2 / 10** — solidna baza, ale kilka krytycznych luk
 
@@ -1646,7 +1646,7 @@ Sprawdzę jeszcze cookies, env, i czy hasła nie są gdzieś logowane:
 
 ---
 
-## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffè
+## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffe
 
 ### Ocena ogólna: **7.2 / 10** — solidna baza, ale kilka krytycznych luk
 
@@ -1809,7 +1809,7 @@ Sprawdzę jeszcze cookies, env, i czy hasła nie są gdzieś logowane:
 
 ---
 
-## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffè
+## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffe
 
 ### Ocena ogólna: **7.2 / 10** — solidna baza, ale kilka krytycznych luk
 
@@ -1972,7 +1972,7 @@ Sprawdzę jeszcze cookies, env, i czy hasła nie są gdzieś logowane:
 
 ---
 
-## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffè
+## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffe
 
 ### Ocena ogólna: **7.2 / 10** — solidna baza, ale kilka krytycznych luk
 
@@ -2135,7 +2135,7 @@ Sprawdzę jeszcze cookies, env, i czy hasła nie są gdzieś logowane:
 
 ---
 
-## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffè
+## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffe
 
 ### Ocena ogólna: **7.2 / 10** — solidna baza, ale kilka krytycznych luk
 
@@ -2298,7 +2298,7 @@ Sprawdzę jeszcze cookies, env, i czy hasła nie są gdzieś logowane:
 
 ---
 
-## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffè
+## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffe
 
 ### Ocena ogólna: **7.2 / 10** — solidna baza, ale kilka krytycznych luk
 
@@ -2461,7 +2461,7 @@ Sprawdzę jeszcze cookies, env, i czy hasła nie są gdzieś logowane:
 
 ---
 
-## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffè
+## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffe
 
 ### Ocena ogólna: **7.2 / 10** — solidna baza, ale kilka krytycznych luk
 
@@ -2624,7 +2624,7 @@ Sprawdzę jeszcze cookies, env, i czy hasła nie są gdzieś logowane:
 
 ---
 
-## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffè
+## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffe
 
 ### Ocena ogólna: **7.2 / 10** — solidna baza, ale kilka krytycznych luk
 
@@ -2787,7 +2787,7 @@ Sprawdzę jeszcze cookies, env, i czy hasła nie są gdzieś logowane:
 
 ---
 
-## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffè
+## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffe
 
 ### Ocena ogólna: **7.2 / 10** — solidna baza, ale kilka krytycznych luk
 
@@ -2950,7 +2950,7 @@ Sprawdzę jeszcze cookies, env, i czy hasła nie są gdzieś logowane:
 
 ---
 
-## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffè
+## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffe
 
 ### Ocena ogólna: **7.2 / 10** — solidna baza, ale kilka krytycznych luk
 
@@ -3113,7 +3113,7 @@ Sprawdzę jeszcze cookies, env, i czy hasła nie są gdzieś logowane:
 
 ---
 
-## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffè
+## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffe
 
 ### Ocena ogólna: **7.2 / 10** — solidna baza, ale kilka krytycznych luk
 
@@ -3276,7 +3276,7 @@ Sprawdzę jeszcze cookies, env, i czy hasła nie są gdzieś logowane:
 
 ---
 
-## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffè
+## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffe
 
 ### Ocena ogólna: **7.2 / 10** — solidna baza, ale kilka krytycznych luk
 
@@ -3439,7 +3439,7 @@ Sprawdzę jeszcze cookies, env, i czy hasła nie są gdzieś logowane:
 
 ---
 
-## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffè
+## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffe
 
 ### Ocena ogólna: **7.2 / 10** — solidna baza, ale kilka krytycznych luk
 
@@ -3605,7 +3605,7 @@ Sprawdzę jeszcze cookies, env, i czy hasła nie są gdzieś logowane:
 
 ---
 
-## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffè
+## 🔒 Audyt Bezpieczeństwa Auth — Il Buon Caffe
 
 ### Ocena ogólna: **7.2 / 10** — solidna baza, ale kilka krytycznych luk
 

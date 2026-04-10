@@ -234,7 +234,7 @@ function SettingsPanel({
         <div className="flex items-center justify-between border-b border-brand-100 px-6 py-4">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-500">
-              Il Buon Caffè
+              Il Buon Caffe
             </p>
             <h2 className="mt-0.5 text-base font-semibold text-brand-950">
               Ustawienia prywatności
@@ -419,7 +419,7 @@ export function ConsentBanner() {
             <div className="mb-4">
               <div className="mb-1.5 flex items-center gap-2">
                 <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-500">
-                  Il Buon Caffè
+                  Il Buon Caffe
                 </span>
                 <span className="text-brand-200">·</span>
                 <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-brand-700">

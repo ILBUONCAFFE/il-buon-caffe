@@ -28,7 +28,7 @@ const GeneralTab = () => (
       <h2 className="text-h3 text-[#1A1A1A] mb-1">Informacje o sklepie</h2>
       <p className="text-sm text-[#737373] mb-5">Podstawowe dane Twojej kawiarni widoczne dla klientów.</p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <SettingField icon={Store} label="Nazwa sklepu" value="Il Buon Caffè" hint="Wyświetlana w nagłówku i paragonach" />
+        <SettingField icon={Store} label="Nazwa sklepu" value="Il Buon Caffe" hint="Wyświetlana w nagłówku i paragonach" />
         <SettingField icon={Globe} label="Domena" value="ilbuoncaffe.pl" hint="Główna domena sklepu" readonly />
         <SettingField icon={Mail} label="E-mail kontaktowy" value="kontakt@ilbuoncaffe.pl" hint="Adres do korespondencji z klientami" />
         <SettingField icon={Phone} label="Telefon" value="+48 664 937 937" hint="Numer helpdesk (opcjonalny)" />

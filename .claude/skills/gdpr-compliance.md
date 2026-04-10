@@ -1,7 +1,7 @@
 ---
 name: gdpr-compliance
 description: >
-  Implement GDPR/RODO compliance features for Il Buon Caffè — soft deletes, consent management,
+  Implement GDPR/RODO compliance features for Il Buon Caffe — soft deletes, consent management,
   audit logging, data retention, user data export, and anonymization. Use this skill whenever the user
   works on privacy features, data protection, consent tracking, audit logs, or any RODO-related requirement.
   Triggers on: "GDPR", "RODO", "consent", "zgoda", "audit log", "soft delete", "anonymization",
@@ -9,7 +9,7 @@ description: >
   "right to erasure", "right to be forgotten", or any privacy/compliance-related feature.
 ---
 
-# GDPR/RODO Compliance Skill — Il Buon Caffè
+# GDPR/RODO Compliance Skill — Il Buon Caffe
 
 Implement Polish RODO (GDPR) compliance: consent management, audit logging, soft deletes, data retention, and user rights.
 

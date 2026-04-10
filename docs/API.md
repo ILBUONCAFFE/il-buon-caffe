@@ -1,4 +1,4 @@
-# 📡 Il Buon Caffè — API Reference
+# 📡 Il Buon Caffe — API Reference
 
 > **Base URL:** `https://api.ilbuoncaffe.pl`  
 > **Wersja:** 3.0  
@@ -1542,4 +1542,4 @@ Przyszłe endpointy będą używać rozszerzonego formatu:
 
 > **Ostatnia aktualizacja:** Lipiec 2025  
 > **Wersja dokumentu:** 3.0  
-> **Autor:** Il Buon Caffè Team
+> **Autor:** Il Buon Caffe Team

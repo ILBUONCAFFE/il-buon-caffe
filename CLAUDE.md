@@ -1,4 +1,4 @@
-# Il Buon Caffè
+# Il Buon Caffe
 
 Luxury e-commerce platform for coffee, wine, and Italian delicacies. Turborepo monorepo targeting the Polish market.
 

@@ -23,7 +23,7 @@ export default function NotFound() {
         >
           <Link href="/" className="inline-block group">
             <span className="font-serif text-xl sm:text-2xl tracking-[0.2em] uppercase font-medium group-hover:text-brand-500 transition-colors">
-              Il Buon Caffè
+              Il Buon Caffe
             </span>
           </Link>
         </motion.div>
