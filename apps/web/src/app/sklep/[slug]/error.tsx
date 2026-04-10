@@ -3,11 +3,6 @@
 import React, { useEffect } from "react";
 import Link from "next/link";
 
-/**
- * Product-level Error Boundary — catches errors specific to product page
- * rendering (e.g. SSR failures in WineProductView, data issues).
- * Provides more contextual messaging than the global boundary.
- */
 export default function ProductError({
   error,
   reset,
@@ -23,11 +18,11 @@ export default function ProductError({
     <div className="min-h-screen bg-brand-beige flex flex-col items-center justify-center px-6 text-center gap-6">
       <div className="text-6xl">😕</div>
       <h1 className="text-2xl md:text-3xl font-serif text-brand-900">
-        Nie udało się załadować produktu
+        Nie udało się załadować strony
       </h1>
       <p className="text-brand-700 max-w-md leading-relaxed">
-        Wystąpił problem podczas ładowania strony produktu. Spróbuj ponownie lub
-        przejdź do listy produktów.
+        Wystąpił problem podczas ładowania. Spróbuj ponownie lub przejdź do
+        listy produktów.
       </p>
       <div className="flex flex-col sm:flex-row gap-3">
         <button

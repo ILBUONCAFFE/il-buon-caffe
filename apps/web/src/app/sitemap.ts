@@ -47,7 +47,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       categorySlugs.add(category);
 
       return {
-        url: `${BASE_URL}/sklep/${category}/${product.slug}`,
+        url: `${BASE_URL}/sklep/${product.slug}`,
         lastModified: now,
         changeFrequency: "weekly",
         priority: 0.8,

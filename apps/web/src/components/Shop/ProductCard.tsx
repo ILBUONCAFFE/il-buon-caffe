@@ -12,10 +12,9 @@ export const ProductCard: React.FC<{
   product: Product;
   viewMode: ViewMode;
   onQuickAdd: () => void;
-  categorySlug: string;
   index: number;
   isAdult: boolean;
-}> = memo(({ product, viewMode, onQuickAdd, categorySlug, index, isAdult }) => {
+}> = memo(({ product, viewMode, onQuickAdd, index, isAdult }) => {
   const router = useRouter();
   const [isHovered, setIsHovered] = useState(false);
   // Check if product is restricted
@@ -44,10 +43,7 @@ export const ProductCard: React.FC<{
       .trim()
       .replace(/\s+/g, "-");
 
-  const resolvedCategorySlug =
-    product.category && product.category !== "all" ? product.category : categorySlug || "wszystko";
-
-  const productUrl = `/sklep/${resolvedCategorySlug}/${productSlug}`;
+  const productUrl = `/sklep/${productSlug}`;
 
   const imageUrl =
     product.imageUrl ||

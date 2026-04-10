@@ -42,11 +42,6 @@ const ProductCard = ({
       .trim()
       .replace(/\s+/g, "-");
 
-  const categorySlug =
-    product.category && product.category !== "all"
-      ? product.category
-      : "wszystko";
-
   const imageUrl =
     product.imageUrl ||
     product.image ||
@@ -59,7 +54,7 @@ const ProductCard = ({
     >
       <div className="relative flex-shrink-0 w-[280px] md:w-[340px] group select-none">
         <Link
-          href={`/sklep/${categorySlug}/${productSlug}`}
+          href={`/sklep/${productSlug}`}
           className="block"
         >
           {/* Image */}

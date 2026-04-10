@@ -593,7 +593,6 @@ export const ShopClient = ({ initialData }: ShopClientProps) => {
                       product={product}
                       viewMode={viewMode}
                       onQuickAdd={() => addToCart(product)}
-                      categorySlug={activeCategoryConfig?.slug || "wszystko"}
                       index={idx}
                       isAdult={isAdult}
                     />

@@ -89,8 +89,7 @@ const resolveSearchProductHref = (product: Product) => {
     return `/sklep/${categorySlug}`;
   }
 
-  const productSlug = product.slug;
-  return `/sklep/${categorySlug}/${productSlug}`;
+  return `/sklep/${product.slug}`;
 };
 
 const formatSearchPrice = (price: number) => `${price.toFixed(2).replace(".", ",")} zł`;

@@ -152,6 +152,15 @@ const nextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      {
+        source: '/sklep/:category(kawa|wino|slodycze|spizarnia)/:slug',
+        destination: '/sklep/:slug',
+        permanent: true,
+      },
+    ];
+  },
   async rewrites() {
     // IMPORTANT: Do NOT use a catch-all /api/:path* rewrite.
     // In Next.js 16 / Turbopack, afterFiles rewrites can fire before app/api/*
