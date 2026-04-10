@@ -320,8 +320,11 @@ export const Navbar = () => {
   }, [highlightIndex]);
 
   // Determine navbar appearance based on page and scroll
-  const pathSegments = pathname?.split('/').filter(Boolean).length || 0;
-  const isShopRootOrCategory = pathname?.startsWith("/sklep") && pathSegments <= 2;
+  const pathSegmentsArray = pathname?.split('/').filter(Boolean) || [];
+  const pathSegments = pathSegmentsArray.length;
+  const shopCategories = ['all', 'kawa', 'wino', 'slodycze', 'spizarnia', 'coffee', 'alcohol', 'pantry', 'sweets'];
+  const isShopRootOrCategory = pathSegmentsArray[0] === 'sklep' && 
+    (pathSegments === 1 || (pathSegments === 2 && shopCategories.includes(pathSegmentsArray[1])));
   const isEncyclopedia = pathname?.startsWith("/encyklopedia");
   
   // Include isDarkTheme for pages that set data-theme="wine-dark" or "dark"
@@ -423,7 +426,7 @@ export const Navbar = () => {
                       ? "bg-white/95 backdrop-blur-xl shadow-lg shadow-black/[0.08] border border-black/[0.04] pl-1.5 pr-4 py-1.5"
                       : isDarkHeroPage
                         ? "bg-white/[0.01] backdrop-blur-xl border border-white/[0.12] pl-1.5 pr-4 py-1.5 hover:bg-white/[0.12]"
-                        : "bg-brand-900/[0.04] backdrop-blur-xl border border-brand-900/[0.08] pl-1.5 pr-4 py-1.5 hover:bg-brand-900/[0.06]"
+                        : "bg-white/80 backdrop-blur-xl shadow-sm border border-black/[0.04] pl-1.5 pr-4 py-1.5 hover:bg-white/95"
                   )}
                 >
                   {/* Logo with glow */}
@@ -440,7 +443,7 @@ export const Navbar = () => {
                         ? "bg-brand-700/10" 
                         : isDarkHeroPage 
                           ? "bg-white/10 group-hover:bg-white/20" 
-                          : "bg-brand-700/10 group-hover:bg-brand-700/20"
+                          : "bg-brand-700/5 group-hover:bg-brand-700/10"
                     )} />
                     
                     {/* Logo container without border */}
@@ -521,7 +524,7 @@ export const Navbar = () => {
                       ? "bg-white/95 backdrop-blur-xl shadow-lg shadow-black/[0.08] border border-black/[0.04]" 
                       : (isDarkHeroPage 
                           ? "bg-white/[0.08] backdrop-blur-xl border border-white/[0.12]" 
-                          : "bg-brand-900/[0.04] backdrop-blur-xl border border-brand-900/[0.08]")
+                          : "bg-white/80 backdrop-blur-xl shadow-sm border border-black/[0.04]")
                   )}>
                   {/* Animated background pill */}
                   {highlightIndex !== -1 && pillStyle.width > 0 && (
@@ -530,7 +533,7 @@ export const Navbar = () => {
                         "absolute top-1.5 bottom-1.5 rounded-full",
                         isScrolled 
                           ? "bg-brand-900/10" 
-                          : (isDarkHeroPage ? "bg-white/15" : "bg-white shadow-sm")
+                          : (isDarkHeroPage ? "bg-white/15" : "bg-brand-900/5")
                       )}
                       initial={false}
                       animate={{
@@ -562,10 +565,10 @@ export const Navbar = () => {
                             className={cn(
                               "block px-5 py-2 text-sm font-medium transition-colors duration-200 rounded-full whitespace-nowrap",
                               (isActive || isHovered)
-                                ? (isScrolled ? "text-brand-950" : (isDarkHeroPage ? "text-white" : "text-brand-900"))
+                                ? (isScrolled ? "text-brand-950" : (isDarkHeroPage ? "text-white" : "text-brand-950"))
                                 : (isScrolled 
                                     ? "text-brand-600 hover:text-brand-950" 
-                                    : (isDarkHeroPage ? "text-white/70 hover:text-white" : "text-brand-600 hover:text-brand-900"))
+                                    : (isDarkHeroPage ? "text-white/70 hover:text-white" : "text-brand-700 hover:text-brand-950"))
                             )}
                           >
                             {link.name}
@@ -608,7 +611,7 @@ export const Navbar = () => {
                       ? "bg-white/95 backdrop-blur-xl shadow-lg shadow-black/[0.08] border border-black/[0.04] px-2 py-1.5" 
                       : (isDarkHeroPage 
                           ? "bg-white/[0.08] backdrop-blur-xl border border-white/[0.12] px-2 py-1.5" 
-                          : "bg-brand-900/[0.04] backdrop-blur-xl border border-brand-900/[0.08] px-2 py-1.5")
+                          : "bg-white/80 backdrop-blur-xl shadow-sm border border-black/[0.04] px-2 py-1.5")
                   )}
                 >
               {/* Search */}
