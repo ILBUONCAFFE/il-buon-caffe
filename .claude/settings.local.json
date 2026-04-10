@@ -15,7 +15,10 @@
       "Bash(npx tsc:*)",
       "Bash(python3:*)",
       "Bash(node:*)",
-      "mcp__Neon__run_sql"
+      "mcp__Neon__run_sql",
+      "Bash(rm \"C:/Users/User/Documents/1PROJEKTY/Il Buon Caffe/apps/web/src/app/sklep/[category]/[slug]/page.tsx\" \"C:/Users/User/Documents/1PROJEKTY/Il Buon Caffe/apps/web/src/app/sklep/[category]/[slug]/error.tsx\" \"C:/Users/User/Documents/1PROJEKTY/Il Buon Caffe/apps/web/src/app/sklep/[category]/[slug]/opengraph-image.tsx\" \"C:/Users/User/Documents/1PROJEKTY/Il Buon Caffe/apps/web/src/app/sklep/[category]/page.tsx\")",
+      "Bash(rmdir \"C:/Users/User/Documents/1PROJEKTY/Il Buon Caffe/apps/web/src/app/sklep/[category]/[slug]\")",
+      "Bash(rmdir \"C:/Users/User/Documents/1PROJEKTY/Il Buon Caffe/apps/web/src/app/sklep/[category]\")"
     ]
   }
 }

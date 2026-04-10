@@ -272,6 +272,9 @@ export default function FlipbookViewer({ pdfUrl, catalogName }: FlipbookViewerPr
     else if (currentPage === numPages - 1 && numPages % 2 === 0) shiftX = pageWidth / 2;
   }
 
+  // Page progress for visual indicator
+  const pageProgress = numPages > 0 ? ((currentPage + 1) / numPages) * 100 : 0;
+
   return (
     <div className="flipbook-container">
       {/* Header */}
@@ -304,8 +307,13 @@ export default function FlipbookViewer({ pdfUrl, catalogName }: FlipbookViewerPr
       {/* Error */}
       {error && (
         <div className="flipbook-error">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(163, 127, 91, 0.5)" strokeWidth="1.5">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
           <p>Nie udało się załadować katalogu.</p>
-          <pre style={{ fontSize: 12, opacity: 0.6, maxWidth: 400, overflowWrap: 'break-word', whiteSpace: 'pre-wrap' }}>{error}</pre>
+          <pre style={{ fontSize: 11, opacity: 0.4, maxWidth: 400, overflowWrap: 'break-word', whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>{error}</pre>
           <button onClick={() => window.location.reload()} className="flipbook-retry-btn">Odśwież stronę</button>
         </div>
       )}
@@ -361,11 +369,27 @@ export default function FlipbookViewer({ pdfUrl, catalogName }: FlipbookViewerPr
       {/* Controls */}
       {ready && (
         <div className="flipbook-controls">
+          {/* Page progress bar at top of controls */}
+          <div style={{
+            height: '2px',
+            background: 'rgba(163, 127, 91, 0.06)',
+            position: 'relative',
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              height: '100%',
+              width: `${pageProgress}%`,
+              background: 'linear-gradient(90deg, rgba(163, 127, 91, 0.3), rgba(163, 127, 91, 0.6))',
+              transition: 'width 0.5s cubic-bezier(0.25, 1, 0.5, 1)',
+              borderRadius: '0 2px 2px 0',
+            }} />
+          </div>
+
           <div className="flipbook-controls-inner">
             <div className="flipbook-controls-group">
               {!isMobile && (
                 <button onClick={() => { flipRef.current?.flip(0); }} disabled={zoom > 1} className="flipbook-ctrl-btn" title="Pierwsza strona">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="11 17 6 12 11 7" /><polyline points="18 17 13 12 18 7" /></svg>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="11 17 6 12 11 7" /><polyline points="18 17 13 12 18 7" /></svg>
                 </button>
               )}
               <button onClick={goPrev} disabled={zoom > 1} className="flipbook-ctrl-btn flipbook-ctrl-prev" title="Poprzednia">
@@ -385,13 +409,13 @@ export default function FlipbookViewer({ pdfUrl, catalogName }: FlipbookViewerPr
               </button>
               {!isMobile && (
                 <button onClick={() => { flipRef.current?.flip(numPages - 1); }} disabled={zoom > 1} className="flipbook-ctrl-btn" title="Ostatnia strona">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="13 17 18 12 13 7" /><polyline points="6 17 11 12 6 7" /></svg>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="13 17 18 12 13 7" /><polyline points="6 17 11 12 6 7" /></svg>
                 </button>
               )}
               <div className="flipbook-controls-divider" />
               {!isMobile && (
                 <button onClick={() => setZoom((z) => Math.min(MAX_ZOOM, z * 1.3))} className="flipbook-ctrl-btn" title="Powiększ">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /><line x1="11" y1="8" x2="11" y2="14" /><line x1="8" y1="11" x2="14" y2="11" /></svg>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /><line x1="11" y1="8" x2="11" y2="14" /><line x1="8" y1="11" x2="14" y2="11" /></svg>
                 </button>
               )}
               <button onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }} disabled={zoom <= 1} className="flipbook-ctrl-btn" title="Reset zoom">
@@ -399,7 +423,7 @@ export default function FlipbookViewer({ pdfUrl, catalogName }: FlipbookViewerPr
               </button>
               {!isMobile && (
                 <button onClick={() => setZoom((z) => Math.max(MIN_ZOOM, z / 1.3))} disabled={zoom <= 1} className="flipbook-ctrl-btn" title="Pomniejsz">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /><line x1="8" y1="11" x2="14" y2="11" /></svg>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /><line x1="8" y1="11" x2="14" y2="11" /></svg>
                 </button>
               )}
             </div>
