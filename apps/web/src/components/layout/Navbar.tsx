@@ -328,7 +328,7 @@ export const Navbar = () => {
   const isEncyclopedia = pathname?.startsWith("/encyklopedia");
   
   // Include isDarkTheme for pages that set data-theme="wine-dark" or "dark"
-  const isDarkHeroPage = isDarkTheme || pathname === "/" || pathname === "/kawiarnia" || isShopRootOrCategory || isEncyclopedia || pathname === "/auth";
+  const isDarkHeroPage = isDarkTheme || pathname === "/" || pathname === "/kawiarnia" || pathname === "/o-nas" || isShopRootOrCategory || isEncyclopedia || pathname === "/auth";
   const isDarkText = !isMobileMenuOpen && (isScrolled || !isDarkHeroPage);
   const accountHref = ACCOUNTS_ENABLED ? '/account' : '/auth';
   const accountLabel = ACCOUNTS_ENABLED ? 'Konto' : 'Konto (wkrótce)';

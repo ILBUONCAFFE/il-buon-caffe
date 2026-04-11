@@ -23,7 +23,7 @@ const footerLinks = {
     { label: "Słodycze", href: "/sklep/slodycze" },
   ],
   company: [
-    { label: "O nas", href: "/about" },
+    { label: "O nas", href: "/o-nas" },
     { label: "Kawiarnia", href: "/kawiarnia" },
     { label: "Encyklopedia", href: "/encyklopedia" },
     { label: "Kontakt", href: "/contact" },

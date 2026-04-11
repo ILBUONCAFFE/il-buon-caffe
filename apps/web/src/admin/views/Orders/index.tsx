@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { adminApi, type AdminOrder, type OrdersQueryParams } from '../../lib/adminApiClient'
+import { resolveShipmentStatus } from '../../lib/shipmentStatus'
 import { OrderStatusBadge } from '../../components/OrderStatusBadge'
 import { OrderContextMenu } from '../../components/OrderContextMenu'
 import { OrderDetailModal } from '../../components/OrderDetailModal'
@@ -25,23 +26,6 @@ function formatAmount(value: number | undefined | null, currency = 'PLN'): strin
   if (value == null) return '-'
   const symbol: Record<string, string> = { PLN: 'zl', EUR: 'EUR', CZK: 'CZK', HUF: 'HUF' }
   return `${Number(value).toFixed(2)} ${symbol[currency] ?? currency}`
-}
-
-function formatShipmentDisplayStatus(status: string | null | undefined): string {
-  switch (status) {
-    case 'label_created':
-      return 'Etykieta'
-    case 'in_transit':
-      return 'W drodze'
-    case 'out_for_delivery':
-      return 'W doreczeniu'
-    case 'delivered':
-      return 'Dostarczona'
-    case 'issue':
-      return 'Problem'
-    default:
-      return ''
-  }
 }
 
 const STATUS_TABS = [
@@ -289,6 +273,11 @@ export const OrdersView = () => {
                 orders.map((order) => {
                   const firstItem = order.items?.[0]
                   const extraCount = (order.items?.length ?? 0) - 1
+                  const resolvedShipmentStatus = resolveShipmentStatus({
+                    status: order.status,
+                    shipmentDisplayStatus: order.shipmentDisplayStatus,
+                    allegroFulfillmentStatus: order.allegroFulfillmentStatus,
+                  })
 
                   return (
                     <tr
@@ -342,12 +331,10 @@ export const OrdersView = () => {
                             paymentMethod={order.paymentMethod}
                             paidAt={order.paidAt}
                           />
-                          {order.shipmentDisplayStatus && order.shipmentDisplayStatus !== 'none' && (
-                            <div className="text-[10px] leading-none text-[#737373]">
-                              {formatShipmentDisplayStatus(order.shipmentDisplayStatus)}
-                              {order.shipmentFreshness === 'stale' && ' • stare dane'}
-                            </div>
-                          )}
+                          <div className="text-[10px] leading-none text-[#737373]">
+                            {resolvedShipmentStatus.label}
+                            {order.shipmentFreshness === 'stale' && ' • stare dane'}
+                          </div>
                         </div>
                       </td>
 

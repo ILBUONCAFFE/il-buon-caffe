@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 import { adminApi } from '../lib/adminApiClient'
+import { resolveShipmentStatus } from '../lib/shipmentStatus'
 import { OrderStatusBadge } from './OrderStatusBadge'
 import type { AdminOrder, OrderTrackingSnapshot } from '../types/admin-api'
 
@@ -37,70 +38,60 @@ function formatAmount(value: number | undefined | null, currency = 'PLN'): strin
 }
 
 
-const TRACKING_STEPS = [
-  { key: 'label_created', label: 'Etykieta' },
-  { key: 'in_transit', label: 'W drodze' },
-  { key: 'out_for_delivery', label: 'W doreczeniu' },
-  { key: 'delivered', label: 'Dostarczono' },
+const SHIPMENT_STEPS = [
+  { key: 'accepted', label: 'Przyjete' },
+  { key: 'preparing', label: 'Przygotowanie' },
+  { key: 'shipped', label: 'Wyslane' },
+  { key: 'delivered', label: 'Dostarczone' },
 ] as const
 
-const STEP_INDEX: Record<string, number> = {
-  none: -1,
-  label_created: 0,
-  in_transit: 1,
-  out_for_delivery: 2,
-  delivered: 3,
-  issue: -1,
-  unknown: -1,
-}
-
-function TrackingTimeline({
-  displayStatus,
+function ShipmentTimeline({
+  activeStep,
+  isIssue,
+  isCancelled,
   trackingStatus,
   updatedAt,
-  freshness,
   loading,
 }: {
-  displayStatus: string
+  activeStep: number
+  isIssue: boolean
+  isCancelled: boolean
   trackingStatus: string | null
   updatedAt: string | null
-  freshness: string
   loading: boolean
 }) {
-  const activeIdx = STEP_INDEX[displayStatus] ?? -1
-  const isIssue = displayStatus === 'issue'
-
   return (
     <div className="mt-3 mb-1">
-      {/* Step bar */}
       <div className="flex items-center gap-0">
-        {TRACKING_STEPS.map((step, i) => {
-          const isActive = i <= activeIdx
-          const isCurrent = i === activeIdx
+        {SHIPMENT_STEPS.map((step, i) => {
+          const isActive = !isCancelled && i <= activeStep
+          const isCurrent = !isCancelled && i === activeStep
           return (
             <div key={step.key} className="flex items-center flex-1 last:flex-none">
               <div className="flex flex-col items-center gap-1">
                 <div
                   className={`w-3 h-3 rounded-full border-2 transition-colors ${
-                    isIssue && isCurrent
-                      ? 'border-red-500 bg-red-500'
-                      : isActive
-                        ? 'border-[#1A1A1A] bg-[#1A1A1A]'
-                        : 'border-[#D4D3D0] bg-white'
+                    isCancelled
+                      ? 'border-[#D4D3D0] bg-white'
+                      : isIssue && isCurrent
+                        ? 'border-red-500 bg-red-500'
+                        : isActive
+                          ? 'border-[#1A1A1A] bg-[#1A1A1A]'
+                          : 'border-[#D4D3D0] bg-white'
                   }`}
                 />
                 <span
                   className={`text-[10px] leading-tight text-center whitespace-nowrap ${
-                    isActive ? 'text-[#1A1A1A] font-medium' : 'text-[#A3A3A3]'
+                    isCancelled ? 'text-[#A3A3A3]' : isActive ? 'text-[#1A1A1A] font-medium' : 'text-[#A3A3A3]'
                   }`}
                 >
                   {step.label}
                 </span>
               </div>
-              {i < TRACKING_STEPS.length - 1 && (
+              {i < SHIPMENT_STEPS.length - 1 && (
                 <div
                   className={`flex-1 h-0.5 mx-1 -mt-4 ${
-                    i < activeIdx ? 'bg-[#1A1A1A]' : 'bg-[#E5E4E1]'
+                    !isCancelled && i < activeStep ? 'bg-[#1A1A1A]' : 'bg-[#E5E4E1]'
                   }`}
                 />
               )}
@@ -109,20 +100,23 @@ function TrackingTimeline({
         })}
       </div>
 
-      {/* Status detail */}
       <div className="mt-3 space-y-1">
-        {isIssue && (
+        {isCancelled && (
+          <div className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-md px-2.5 py-1.5">
+            Przesylka anulowana
+          </div>
+        )}
+        {isIssue && !isCancelled && (
           <div className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-md px-2.5 py-1.5">
             Problem: {trackingStatus ?? 'Wystapil problem z przesylka'}
           </div>
         )}
-        {!isIssue && trackingStatus && (
+        {!isIssue && !isCancelled && trackingStatus && (
           <p className="text-xs text-[#666]">{trackingStatus}</p>
         )}
         {updatedAt && (
           <p className="text-[11px] text-[#A3A3A3]">
             Zaktualizowano: {formatDate(updatedAt)}
-            {freshness === 'stale' && !loading && ' — dane moga byc nieaktualne'}
           </p>
         )}
         {loading && (
@@ -216,7 +210,6 @@ export function OrderDetailModal({
 
   const customer = order.customerData
   const address = customer?.shippingAddress
-  const hasTracking = !!order.trackingNumber || !!order.allegroShipmentId || ['shipped', 'delivered'].includes(order.status)
   const canRefresh = order.source === 'allegro' && !!order.externalId
   const canShip = ['paid', 'processing'].includes(order.status)
   const canCancel = ['pending', 'paid', 'processing'].includes(order.status)
@@ -224,7 +217,12 @@ export function OrderDetailModal({
   const effectiveTrackingStatus = tracking?.trackingStatus ?? order.trackingStatus ?? null
   const effectiveTrackingStatusUpdatedAt = tracking?.trackingStatusUpdatedAt ?? order.trackingStatusUpdatedAt ?? null
   const effectiveShipmentDisplayStatus = tracking?.shipmentDisplayStatus ?? order.shipmentDisplayStatus ?? 'unknown'
-  const effectiveShipmentFreshness = tracking?.shipmentFreshness ?? order.shipmentFreshness ?? 'unknown'
+  const resolvedShipmentStatus = resolveShipmentStatus({
+    status: order.status,
+    shipmentDisplayStatus: effectiveShipmentDisplayStatus,
+    allegroFulfillmentStatus: order.allegroFulfillmentStatus,
+  })
+  const shipmentStatusText = effectiveTrackingStatus ?? resolvedShipmentStatus.detail
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -348,41 +346,38 @@ export function OrderDetailModal({
               <InfoRow label="Oplacono" value={formatDate(order.paidAt)} />
 
               <SectionLabel>Przesylka</SectionLabel>
-              {hasTracking ? (
-                <>
-                  {effectiveTrackingNumber && (
-                    <InfoRow label="Numer" value={<span className="font-mono text-xs">{effectiveTrackingNumber}</span>} />
-                  )}
-                  {order.shippingMethod && (
-                    <InfoRow label="Metoda" value={order.shippingMethod} />
-                  )}
+              <>
+                <InfoRow label="Status" value={resolvedShipmentStatus.label} />
+                {effectiveTrackingNumber && (
+                  <InfoRow label="Numer" value={<span className="font-mono text-xs">{effectiveTrackingNumber}</span>} />
+                )}
+                {order.shippingMethod && (
+                  <InfoRow label="Metoda" value={order.shippingMethod} />
+                )}
 
-                  {/* Visual tracking timeline */}
-                  <TrackingTimeline
-                    displayStatus={effectiveShipmentDisplayStatus}
-                    trackingStatus={effectiveTrackingStatus}
-                    updatedAt={effectiveTrackingStatusUpdatedAt}
-                    freshness={effectiveShipmentFreshness}
-                    loading={trackingLoading}
-                  />
+                <ShipmentTimeline
+                  activeStep={resolvedShipmentStatus.step}
+                  isIssue={resolvedShipmentStatus.isIssue}
+                  isCancelled={resolvedShipmentStatus.isCancelled}
+                  trackingStatus={shipmentStatusText}
+                  updatedAt={effectiveTrackingStatusUpdatedAt}
+                  loading={trackingLoading}
+                />
 
-                  {trackingError && (
-                    <p className="text-xs text-red-600 mt-2">{trackingError}</p>
-                  )}
-                  {canRefresh && (
-                    <button
-                      type="button"
-                      onClick={() => void refreshTrackingSnapshot()}
-                      disabled={trackingLoading}
-                      className="mt-3 text-xs font-medium text-[#1A1A1A] hover:text-[#666] disabled:text-[#A3A3A3] disabled:cursor-not-allowed underline underline-offset-2"
-                    >
-                      {trackingLoading ? 'Odswiezanie...' : 'Odswiez status'}
-                    </button>
-                  )}
-                </>
-              ) : (
-                <p className="text-sm text-[#A3A3A3]">Brak przesylki</p>
-              )}
+                {trackingError && (
+                  <p className="text-xs text-red-600 mt-2">{trackingError}</p>
+                )}
+                {canRefresh && (
+                  <button
+                    type="button"
+                    onClick={() => void refreshTrackingSnapshot()}
+                    disabled={trackingLoading}
+                    className="mt-3 text-xs font-medium text-[#1A1A1A] hover:text-[#666] disabled:text-[#A3A3A3] disabled:cursor-not-allowed underline underline-offset-2"
+                  >
+                    {trackingLoading ? 'Odswiezanie...' : 'Odswiez status'}
+                  </button>
+                )}
+              </>
             </div>
           </div>
         </div>
