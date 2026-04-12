@@ -8,6 +8,8 @@ interface ShipmentStage {
 }
 
 const DISPLAY_STATUS_MAP: Record<string, ShipmentStage> = {
+  none: { step: 0, label: 'Brak przesyłki' },
+  unknown: { step: 1, label: 'Status nieznany' },
   label_created: { step: 1, label: 'Etykieta utworzona' },
   in_transit: { step: 2, label: 'W drodze' },
   out_for_delivery: { step: 2, label: 'W doreczeniu' },
