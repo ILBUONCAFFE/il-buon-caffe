@@ -239,8 +239,8 @@ export async function refreshOrderTrackingSnapshot(
 
 // ── One-time backfill ─────────────────────────────────────────────────────
 
-const BACKFILL_PAGE_SIZE = 40
-const BACKFILL_CONCURRENCY = 5
+const BACKFILL_PAGE_SIZE = 10
+const BACKFILL_CONCURRENCY = 3
 
 /**
  * Process one page of the 180-day backfill.
