@@ -2,14 +2,16 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { adminApi, type AdminOrder, type OrdersQueryParams } from '../../lib/adminApiClient'
-import { resolveShipmentStatus } from '../../lib/shipmentStatus'
-import { OrderStatusBadge } from '../../components/OrderStatusBadge'
+
 import { OrderContextMenu } from '../../components/OrderContextMenu'
 import { OrderDetailModal } from '../../components/OrderDetailModal'
 import { ShipmentModal } from '../../components/ShipmentModal'
 import { BulkActionBar } from '../../components/BulkActionBar'
 import { Dropdown } from '../../components/ui/Dropdown'
 import { DateRangePicker } from '../../components/ui/DateRangePicker'
+import { useTrackingPulse, type TrackingStatusChange } from '../../hooks/useTrackingPulse'
+import { TrackingToast, type TrackingToastMessage } from '../../components/ui/TrackingToast'
+import type { TrackingPulseUpdate } from '../../types/admin-api'
 
 const DATE_FORMATTER = new Intl.DateTimeFormat('pl-PL', {
   day: '2-digit',
@@ -59,6 +61,9 @@ export const OrdersView = () => {
   const [contextMenu, setContextMenu] = useState<{ order: AdminOrder; x: number; y: number } | null>(null)
   const [detailOrder, setDetailOrder] = useState<AdminOrder | null>(null)
   const [shipmentOrder, setShipmentOrder] = useState<AdminOrder | null>(null)
+
+  const [toasts, setToasts] = useState<TrackingToastMessage[]>([])
+  const toastCounterRef = useRef(0)
 
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -166,6 +171,49 @@ export const OrdersView = () => {
     }
   }
 
+  const patchOrders = useCallback((updates: TrackingPulseUpdate[]) => {
+    setOrders((prev) =>
+      prev.map((order) => {
+        const update = updates.find((u) => u.id === order.id)
+        if (!update) return order
+        return {
+          ...order,
+          trackingStatus: update.trackingStatus,
+          trackingStatusCode: update.trackingStatusCode,
+          trackingStatusUpdatedAt: update.trackingStatusUpdatedAt,
+          trackingLastEventAt: update.trackingLastEventAt,
+          shipmentDisplayStatus: update.shipmentDisplayStatus,
+          shipmentFreshness: update.shipmentFreshness,
+        }
+      }),
+    )
+  }, [])
+
+  const handleTrackingChanged = useCallback((changes: TrackingStatusChange[]) => {
+    const codeToLabel = (code: string): string => {
+      if (/OUT_FOR_DELIVERY|COURIER/i.test(code)) return 'W doręczeniu'
+      if (/EXCEPTION|RETURN|FAILED/i.test(code)) return 'Problem z przesyłką'
+      if (/IN_TRANSIT|TRANSIT|SENT/i.test(code)) return 'W drodze'
+      if (/LABEL_CREATED|CREATED|REGISTERED/i.test(code)) return 'Etykieta'
+      if (/DELIVERED|PICKED_UP/i.test(code)) return 'Dostarczona'
+      return code
+    }
+
+    const message =
+      changes.length === 1
+        ? `Zamówienie ${changes[0].orderNumber} — ${codeToLabel(changes[0].prevCode)} → ${codeToLabel(changes[0].nextCode)}`
+        : `Zaktualizowano status ${changes.length} przesyłek`
+
+    const id = `toast-${++toastCounterRef.current}`
+    setToasts((prev) => [...prev.slice(-2), { id, message, type: 'info', duration: 4000 }])
+  }, [])
+
+  useTrackingPulse({
+    orders,
+    onOrdersUpdated: patchOrders,
+    onStatusChanged: handleTrackingChanged,
+  })
+
   const selectedOrders = orders.filter((order) => selectedIds.has(order.id))
   const totalPages = Math.ceil(total / LIMIT)
 
@@ -250,7 +298,6 @@ export const OrdersView = () => {
                 <th className="text-left px-4 py-3 font-medium">Klient</th>
                 <th className="text-left px-4 py-3 font-medium">Produkty</th>
                 <th className="text-right px-4 py-3 font-medium">Kwota</th>
-                <th className="text-left px-4 py-3 font-medium">Status</th>
                 <th className="w-[48px] px-4 py-3" />
               </tr>
             </thead>
@@ -258,14 +305,14 @@ export const OrdersView = () => {
               {loading ? (
                 Array.from({ length: 8 }).map((_, i) => (
                   <tr key={i} className="border-b border-[#F0EFEC] last:border-0">
-                    <td colSpan={7} className="px-4 py-4">
+                    <td colSpan={6} className="px-4 py-4">
                       <div className="h-4 bg-[#F5F4F1] rounded animate-pulse" />
                     </td>
                   </tr>
                 ))
               ) : orders.length === 0 ? (
                 <tr className="border-b border-[#F0EFEC] last:border-0">
-                  <td colSpan={7} className="text-center py-12 text-[#A3A3A3]">
+                  <td colSpan={6} className="text-center py-12 text-[#A3A3A3]">
                     Brak zamowien
                   </td>
                 </tr>
@@ -273,11 +320,6 @@ export const OrdersView = () => {
                 orders.map((order) => {
                   const firstItem = order.items?.[0]
                   const extraCount = (order.items?.length ?? 0) - 1
-                  const resolvedShipmentStatus = resolveShipmentStatus({
-                    status: order.status,
-                    shipmentDisplayStatus: order.shipmentDisplayStatus,
-                    allegroFulfillmentStatus: order.allegroFulfillmentStatus,
-                  })
 
                   return (
                     <tr
@@ -320,22 +362,6 @@ export const OrdersView = () => {
 
                       <td className="px-4 py-3 text-right align-middle">
                         <span className="font-semibold text-[#1A1A1A]">{formatAmount(order.total, order.currency)}</span>
-                      </td>
-
-                      <td className="px-4 py-3 align-middle">
-                        <div className="space-y-1">
-                          <OrderStatusBadge
-                            status={order.status}
-                            source={order.source}
-                            allegroFulfillmentStatus={order.allegroFulfillmentStatus}
-                            paymentMethod={order.paymentMethod}
-                            paidAt={order.paidAt}
-                          />
-                          <div className="text-[10px] leading-none text-[#737373]">
-                            {resolvedShipmentStatus.label}
-                            {order.shipmentFreshness === 'stale' && ' • stare dane'}
-                          </div>
-                        </div>
                       </td>
 
                       <td className="px-4 py-3 text-center align-middle" onClick={(e) => e.stopPropagation()}>
@@ -424,6 +450,11 @@ export const OrdersView = () => {
         onChangeStatus={handleBulkStatusChange}
         onDownloadLabels={handleBulkDownloadLabels}
         onClearSelection={() => setSelectedIds(new Set())}
+      />
+
+      <TrackingToast
+        messages={toasts}
+        onDismiss={(id) => setToasts((prev) => prev.filter((t) => t.id !== id))}
       />
     </div>
   )
