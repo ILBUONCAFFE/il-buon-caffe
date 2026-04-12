@@ -4,7 +4,7 @@ import {
   orders, orderItems, products, users, stockChanges,
 } from '@repo/db/schema'
 import { logAdminAction } from '../../lib/audit'
-import { eq, and, desc, sql, gte, lte } from 'drizzle-orm'
+import { eq, and, desc, sql, gte, lte, inArray } from 'drizzle-orm'
 import { requireAdminOrProxy } from '../../middleware/auth'
 import { auditLogMiddleware } from '../../middleware/auditLog'
 import { getActiveAllegroToken } from '../../lib/allegro-tokens'
@@ -179,6 +179,74 @@ function buildTrackingSnapshot(order: {
 
 // All admin order routes require admin role or internal proxy secret
 adminOrdersRouter.use('*', requireAdminOrProxy())
+
+// ============================================
+// GET /admin/orders/tracking-pulse  🛡️
+// Lightweight delta endpoint for frontend adaptive polling.
+// Returns only changed tracking fields for shipped/delivered orders since `since`.
+// LIMIT 51 trick: if 51 rows → hasMore:true (return 50, signal more).
+// nextSince is always server-side time — never trust client clock.
+// ============================================
+adminOrdersRouter.get('/tracking-pulse', async (c) => {
+  try {
+    const db = createDb(c.env.DATABASE_URL)
+    const sinceParam = c.req.query('since')
+
+    let sinceDate: Date
+    if (sinceParam) {
+      sinceDate = new Date(sinceParam)
+      if (Number.isNaN(sinceDate.getTime())) {
+        return c.json({ error: { code: 'INVALID_SINCE', message: 'Nieprawidłowy parametr since' } }, 400)
+      }
+    } else {
+      // First poll — default to last 5 min so any recent cron run is included
+      sinceDate = new Date(Date.now() - 5 * 60 * 1000)
+    }
+
+    // Capture server time BEFORE the query — used as nextSince in response.
+    // Client must use this value in the next poll to avoid clock drift.
+    const serverNow = new Date().toISOString()
+
+    const rows = await db
+      .select({
+        id: orders.id,
+        status: orders.status,
+        trackingNumber: orders.trackingNumber,
+        trackingStatus: orders.trackingStatus,
+        trackingStatusCode: orders.trackingStatusCode,
+        trackingStatusUpdatedAt: orders.trackingStatusUpdatedAt,
+        trackingLastEventAt: orders.trackingLastEventAt,
+      })
+      .from(orders)
+      .where(
+        and(
+          sql`${orders.updatedAt} > ${sinceDate}`,
+          inArray(orders.status, ['shipped', 'delivered']),
+        ),
+      )
+      .orderBy(sql`${orders.updatedAt} ASC`)
+      .limit(51)
+
+    const hasMore = rows.length === 51
+    const slice = hasMore ? rows.slice(0, 50) : rows
+
+    const data = slice.map(o =>
+      buildTrackingSnapshot({
+        id: o.id,
+        status: o.status,
+        trackingNumber: o.trackingNumber ?? null,
+        trackingStatus: o.trackingStatus ?? null,
+        trackingStatusCode: o.trackingStatusCode ?? null,
+        trackingStatusUpdatedAt: o.trackingStatusUpdatedAt ?? null,
+        trackingLastEventAt: o.trackingLastEventAt ?? null,
+      }),
+    )
+
+    return c.json({ success: true, data, nextSince: serverNow, hasMore })
+  } catch (err) {
+    return serverError(c, 'GET /admin/orders/tracking-pulse', err)
+  }
+})
 
 // ============================================
 // GET /admin/orders  🛡️
