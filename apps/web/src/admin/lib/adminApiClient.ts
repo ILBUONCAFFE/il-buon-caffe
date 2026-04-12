@@ -10,6 +10,7 @@ import type {
   CreateShipmentPayload,
   ShipmentCreatedResponse,
   OrderTrackingRefreshResponse,
+  TrackingPulseResponse,
   ActivityFeedResponse,
   NotificationsResponse,
   AllegroStatusResponse,
@@ -122,6 +123,11 @@ export const adminApi = {
     request<OrderTrackingRefreshResponse>(`/api/admin/orders/${id}/tracking/refresh`, {
       method: 'POST',
     }),
+
+  getTrackingPulse: (since?: string) => {
+    const qs = since ? `?since=${encodeURIComponent(since)}` : ''
+    return request<TrackingPulseResponse>(`/api/admin/orders/tracking-pulse${qs}`)
+  },
 
   // ── Shipment management ────────────────────────────────────────────────
   getDeliveryServices: () =>

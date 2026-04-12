@@ -372,6 +372,23 @@ export interface OrderTrackingRefreshResponse {
   data: OrderTrackingSnapshot
 }
 
+export interface TrackingPulseUpdate {
+  id: number
+  trackingStatus: string | null
+  trackingStatusCode: string | null
+  trackingStatusUpdatedAt: string | null
+  trackingLastEventAt: string | null
+  shipmentDisplayStatus: ShipmentDisplayStatus
+  shipmentFreshness: ShipmentFreshness
+}
+
+export interface TrackingPulseResponse {
+  success: boolean
+  data: TrackingPulseUpdate[]
+  nextSince: string
+  hasMore: boolean
+}
+
 // ── Allegro OAuth ─────────────────────────────────────────────────────────────
 export type AllegroEnvironment = 'sandbox' | 'production'
 
