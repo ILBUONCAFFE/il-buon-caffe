@@ -140,9 +140,9 @@ app.onError((err, c) => {
 })
 
 const POLAND_TIME_ZONE = 'Europe/Warsaw'
-const NIGHT_THINNING_START_HOUR = 0
-const NIGHT_THINNING_END_HOUR = 6
-const NIGHT_SYNC_INTERVAL_MINUTES = 15
+const NIGHT_THINNING_START_HOUR = 22
+const NIGHT_THINNING_END_HOUR = 7
+const NIGHT_SYNC_INTERVAL_MINUTES = 60
 const QUALITY_PREWARM_WINDOW_START_HOUR = 1
 const QUALITY_PREWARM_WINDOW_END_HOUR = 5
 
@@ -161,7 +161,8 @@ function getPolandClock(date = new Date()): { hour: number; minute: number } {
 }
 
 function isPolandNightHour(hour: number): boolean {
-  return hour >= NIGHT_THINNING_START_HOUR && hour < NIGHT_THINNING_END_HOUR
+  // Range crosses midnight (22:00–07:00), so OR instead of AND
+  return hour >= NIGHT_THINNING_START_HOUR || hour < NIGHT_THINNING_END_HOUR
 }
 
 function isQualityPrewarmWindowHour(hour: number): boolean {
@@ -325,12 +326,12 @@ export default {
     setHttpMode(true, env.DATABASE_URL)
 
     // "0 * * * *"   — hourly token refresh + daily retention cleanup (+ quality prewarm in PL-night window)
-    // "*/3 * * * *" — every 3 min Allegro order polling; in Poland night (00:00-05:59) thinned to every 15 min
+    // "*/10 * * * *" — every 10 min Allegro order polling; in Poland night (22:00-06:59) thinned to every 60 min
     // "0 3 * * *"   — daily at 04:00 CET / 05:00 CEST (03:00 UTC) — backfill exchange rates (total_pln)
-    if (event.cron === '*/3 * * * *') {
+    if (event.cron === '*/10 * * * *') {
       const { hour, minute } = getPolandClock()
       if (isPolandNightHour(hour) && minute % NIGHT_SYNC_INTERVAL_MINUTES !== 0) {
-        console.log(`[Cron] Poland night thinning (${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}) — skip 3-min cycle`)
+        console.log(`[Cron] Poland night thinning (${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}) — skip 10-min cycle`)
         return
       }
 
