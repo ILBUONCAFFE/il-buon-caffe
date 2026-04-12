@@ -92,7 +92,19 @@ export async function refreshOrderTrackingSnapshot(
   const firstShipment = shipData.shipments?.[0]
   const carrierId = firstShipment?.carrierId?.trim() ?? ''
   const waybill = (firstShipment?.waybill ?? firstShipment?.trackingNumber ?? '').trim().slice(0, 100) || null
-  if (!waybill) return
+
+  if (!waybill) {
+    // No waybill yet — mark as checked so this order doesn't flood batch slots on every cron run.
+    // Use 30-min cooldown (same as IN_TRANSIT) so we keep polling until the carrier assigns one.
+    const now = new Date()
+    await db.update(orders)
+      .set({ trackingStatusUpdatedAt: now, updatedAt: now })
+      .where(and(
+        eq(orders.id, orderId),
+        sql`${orders.trackingStatusUpdatedAt} IS NULL OR ${orders.trackingStatusUpdatedAt} < NOW() - INTERVAL '25 minutes'`,
+      ))
+    return
+  }
 
   const now = new Date()
 
@@ -227,8 +239,8 @@ export async function refreshOrderTrackingSnapshot(
 
 // ── Cron batch refresh ────────────────────────────────────────────────────
 
-const BATCH_SIZE = 15
-const CONCURRENCY = 3
+const BATCH_SIZE = 30
+const CONCURRENCY = 5
 const HARD_CUTOFF_DAYS = 30
 
 // KV key: '0' = no active tracked orders (skip DB), absent/other = check DB.
