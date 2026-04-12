@@ -68,6 +68,17 @@ export function resolveShipmentStatus({
   shipmentDisplayStatus,
   allegroFulfillmentStatus,
 }: ResolveShipmentStatusInput): ResolvedShipmentStatus {
+  // Cancelled/refunded always wins — stale tracking fields must not override
+  if (status === 'cancelled' || status === 'refunded') {
+    return {
+      step: 0,
+      label: ORDER_STATUS_MAP[status]?.label ?? 'Anulowane',
+      detail: allegroFulfillmentStatus ? `Allegro: ${allegroFulfillmentStatus}` : null,
+      isIssue: false,
+      isCancelled: true,
+    }
+  }
+
   const normalizedDisplayStatus = normalizeStatus(shipmentDisplayStatus)
   const normalizedFulfillmentStatus = normalizeFulfillmentStatus(allegroFulfillmentStatus)
 

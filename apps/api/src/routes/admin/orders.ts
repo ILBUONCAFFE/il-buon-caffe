@@ -51,6 +51,9 @@ function mapShipmentDisplayStatus(input: {
   const code = normalizeTrackingCode(input.trackingStatusCode)
   const statusText = (input.trackingStatus ?? '').toLowerCase()
 
+  // Cancelled/refunded orders have no active shipment regardless of stale tracking data
+  if (status === 'cancelled' || status === 'refunded') return 'none'
+
   if (!input.trackingNumber) {
     const code = normalizeTrackingCode(input.trackingStatusCode)
     if (!code) return 'none'
