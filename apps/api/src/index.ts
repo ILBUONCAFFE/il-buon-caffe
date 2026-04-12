@@ -335,6 +335,15 @@ export default {
         return
       }
 
+      // Guard: skip all sync if Allegro is known-disconnected (saves KV reads + potential DB fallbacks)
+      if (env.ALLEGRO_KV) {
+        const allegroStatus = await env.ALLEGRO_KV.get<{ connected: boolean }>(KV_KEYS.STATUS, 'json')
+        if (allegroStatus?.connected === false) {
+          console.log('[Cron] Allegro disconnected (KV status) — skip sync')
+          return
+        }
+      }
+
       ctx.waitUntil(syncAllegroOrders(env))
       ctx.waitUntil(runTrackingStatusSync(env))
       ctx.waitUntil(reconcileStaleProcessing(env))
