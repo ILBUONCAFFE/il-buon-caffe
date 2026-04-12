@@ -1,0 +1,128 @@
+flowchart TD
+    classDef kupujacy  fill:#dbeafe,stroke:#3b82f6,color:#1e3a5f,rx:8
+    classDef allegro   fill:#fef3c7,stroke:#f59e0b,color:#7c4d00,rx:8
+    classDef backend   fill:#d1fae5,stroke:#10b981,color:#064e3b,rx:8
+    classDef db        fill:#f3f4f6,stroke:#6b7280,color:#111827,rx:8
+    classDef kurier    fill:#fee2e2,stroke:#ef4444,color:#7f1d1d,rx:8
+    classDef decision  fill:#f0f9ff,stroke:#0ea5e9,color:#0c4a6e
+    classDef phase     fill:#1e293b,color:#f8fafc,stroke:none,font-weight:bold
+
+    START([Kupujący składa zamówienie]):::kupujacy
+
+    %% ─────────────────────────────────────────
+    subgraph F1["FAZA 1 — Zakup i oczekiwanie na płatność"]
+        direction TB
+        F1_BUY["Kup teraz + wybór dostawy\n― Allegro Checkout UI"]:::allegro
+        F1_CF["checkout-form utworzony\nstatus: BOUGHT"]:::allegro
+        F1_ADDR{Uzupełnia adres\nlub fakturę?}:::decision
+        F1_FILLED["status: FILLED_IN"]:::allegro
+        F1_PAY{Płatność\nzaksięgowana?}:::decision
+        F1_RFP["status: READY_FOR_PROCESSING"]:::allegro
+
+        F1_BUY --> F1_CF --> F1_ADDR
+        F1_ADDR -->|Tak| F1_FILLED --> F1_PAY
+        F1_ADDR -->|Nie| F1_PAY
+        F1_PAY -->|Tak / COD| F1_RFP
+        F1_PAY -->|Oczekuje| F1_PAY
+    end
+
+    %% ─────────────────────────────────────────
+    subgraph F2["FAZA 2 — Ingest eventów i idempotencja"]
+        direction TB
+        F2_CRON["CRON Event Poller\nGET /order/events?from=cursor"]:::backend
+        F2_NEW{Nowy eventId?}:::decision
+        F2_SKIP["Pomiń duplikat"]:::db
+        F2_INSERT["INSERT event_inbox\nUPSERT orders + order_items\nUPDATE allegro_state.cursor"]:::db
+        F2_STATUS{Status\nzamówienia}:::decision
+        F2_PENDING["order_state = pending_payment"]:::db
+        F2_DELIVERY["update delivery_data"]:::db
+        F2_PAID["finance_state = PAID\nlub COD_PENDING"]:::db
+
+        F2_CRON --> F2_NEW
+        F2_NEW -->|Tak| F2_INSERT --> F2_STATUS
+        F2_NEW -->|Duplikat| F2_SKIP
+        F2_STATUS -->|BOUGHT| F2_PENDING
+        F2_STATUS -->|FILLED_IN| F2_DELIVERY
+        F2_STATUS -->|READY_FOR_PROCESSING| F2_PAID
+    end
+
+    %% ─────────────────────────────────────────
+    subgraph F3["FAZA 3 — Fulfillment lifecycle"]
+        direction LR
+        F3_NEW["PUT fulfillment\nNEW"]:::backend
+        F3_PROC["PUT fulfillment\nPROCESSING"]:::backend
+        F3_RFS["PUT fulfillment\nREADY_FOR_SHIPMENT"]:::backend
+
+        F3_NEW --> F3_PROC --> F3_RFS
+    end
+
+    %% ─────────────────────────────────────────
+    subgraph F4["FAZA 4 — Generowanie etykiety i tracking number"]
+        direction TB
+        F4_MODE{Sposób wysyłki}:::decision
+        F4_AWZ["POST shipments/create-commands\n↳ Poll commandId → SUCCESS\n↳ GET waybill + label PDF/ZPL"]:::allegro
+        F4_AWZ_ERR["alert operatora\nshipment_failed + retry_at"]:::kurier
+        F4_CUR["POST /shipments → kurier\n↳ trackingNumber + labelUrl"]:::kurier
+        F4_SENT["UPSERT shipments + labels\nPUT fulfillment SENT\nhistory: READY_FOR_SHIPMENT → SENT"]:::db
+
+        F4_MODE -->|Wysyłam z Allegro| F4_AWZ
+        F4_AWZ -->|SUCCESS| F4_SENT
+        F4_AWZ -->|FAILURE| F4_AWZ_ERR
+        F4_MODE -->|Bezpośrednio z kurierem| F4_CUR --> F4_SENT
+    end
+
+    %% ─────────────────────────────────────────
+    subgraph F5["FAZA 5 — Tracking fizyczny i zwrot statusu do Allegro"]
+        direction TB
+        F5_SRC{Źródło\ntrackingu}:::decision
+        F5_WH["Webhook kuriera\nINSERT shipment_events\n— dedupe carrier_event_id"]:::kurier
+        F5_POLL["Polling kuriera fallback\nco 5–15 min\nUPSERT tracking snapshot"]:::backend
+        F5_ATR["Cross-check Allegro\nco 15–30 min\nreconcile missing events"]:::allegro
+        F5_EVENT{Status eventu}:::decision
+        F5_PICKUP["PUT fulfillment SENT\nhistory += SENT (idempotent)"]:::backend
+        F5_DELIVERED["PUT fulfillment PICKED_UP\ndelivered_at zapisany"]:::backend
+
+        F5_SRC -->|Webhook| F5_WH
+        F5_SRC -->|Polling| F5_POLL
+        F5_SRC -->|Allegro tracking| F5_ATR
+        F5_WH & F5_POLL & F5_ATR --> F5_EVENT
+        F5_EVENT -->|Pierwszy scan pickup| F5_PICKUP
+        F5_EVENT -->|Potwierdzony odbiór| F5_DELIVERED
+    end
+
+    %% ─────────────────────────────────────────
+    subgraph F6["FAZA 6 — Anulacja w trakcie pakowania (edge case)"]
+        direction TB
+        F6_REQ["Kupujący anuluje\nACF → BUYER_CANCELLED / AUTO_CANCELLED\ncancellation_requested = true"]:::kupujacy
+        F6_CHK{Kurier już\nodebrał?}:::decision
+        F6_VOID["Cancel shipment / void label\nPUT fulfillment CANCELLED\nstock release → closed_cancelled"]:::backend
+        F6_RTO["exception_case otwarty\n— RTO / zwrot\ntask manualny dla operatora"]:::kurier
+
+        F6_REQ --> F6_CHK
+        F6_CHK -->|Nie| F6_VOID
+        F6_CHK -->|Tak| F6_RTO
+    end
+
+    %% ─────────────────────────────────────────
+    subgraph F7["FAZA 7 — Rozliczenie finansowe"]
+        direction LR
+        F7_FETCH["Worker Settlement\nGET billing entries + payment ops\n— fees, payouts, adjustments"]:::backend
+        F7_DB["INSERT marketplace_settlements\nUPDATE orders.settlement_status"]:::db
+
+        F7_FETCH --> F7_DB
+    end
+
+    END([Koniec cyklu\nPICKED_UP + settlement matched]):::kupujacy
+
+    %% ─── Główny przepływ ───────────────────────
+    START          --> F1_BUY
+    F1_RFP         --> F2_CRON
+    F2_PAID        --> F3_NEW
+    F3_RFS         --> F4_MODE
+    F4_SENT        --> F5_SRC
+    F5_DELIVERED   --> F7_FETCH
+    F7_DB          --> END
+
+    %% ─── Edge case anulacji (przerwa w głównym flows) ─
+    F3_PROC -.->|anulacja zgłoszona| F6_REQ
+    F6_VOID -.-> END

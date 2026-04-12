@@ -205,6 +205,10 @@ export async function handleReadyForProcessing(
     ])
   }
 
+  if (readyStatus === 'paid') {
+    await kv.delete('orders:paid_sweep:has_paid_orders').catch(() => {})
+  }
+
   if (!existing) {
     // Missed BOUGHT/FILLED_IN — create directly as paid
     const totalAmount    = form.summary.totalToPay.amount

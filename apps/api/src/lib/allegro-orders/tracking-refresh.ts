@@ -286,6 +286,7 @@ export async function runTrackingBackfillPage(
 const BATCH_SIZE = 12   // 12 orders × 3 fetches = 36 subreqs, + 1 DB select = 37 < 50 (Workers Free limit)
 const CONCURRENCY = 3
 const HARD_CUTOFF_DAYS = 30
+const TRACKING_IDLE_TTL_SECONDS = 24 * 60 * 60
 
 // KV key: '0' = no active tracked orders (skip DB), absent/other = check DB.
 // Cleared by processEvent when an order becomes shipped so tracking kicks in immediately.
@@ -389,7 +390,7 @@ export async function runTrackingStatusSync(env: Env): Promise<void> {
 
   if (candidates.length === 0) {
     // No active orders — set flag so next runs skip DB entirely
-    await env.ALLEGRO_KV.put(TRACKING_ACTIVE_KV_KEY, '0', { expirationTtl: 60 * 60 }).catch(() => {})
+    await env.ALLEGRO_KV.put(TRACKING_ACTIVE_KV_KEY, '0', { expirationTtl: TRACKING_IDLE_TTL_SECONDS }).catch(() => {})
     return
   }
 

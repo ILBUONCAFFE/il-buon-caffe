@@ -245,11 +245,13 @@ export async function bulkReconcileProcessingOrders(
 
 const CRON_BATCH_SIZE = 5
 const STALE_THRESHOLD_MS = 60 * 60 * 1000  // 1 hour
-const PROCESSING_IDLE_TTL_SECONDS = 60 * 60
+const PROCESSING_IDLE_TTL_SECONDS = 24 * 60 * 60
 const PAID_SWEEP_LAST_RUN_KV_KEY = 'orders:paid_sweep:last_run_at'
 const PAID_SWEEP_CURSOR_KV_KEY = 'orders:paid_sweep:cursor'
+const PAID_SWEEP_ACTIVE_KV_KEY = 'orders:paid_sweep:has_paid_orders'
 const PAID_SWEEP_INTERVAL_MS = 60 * 60 * 1000
 const PAID_SWEEP_BATCH_SIZE = 3
+const PAID_SWEEP_IDLE_TTL_SECONDS = 24 * 60 * 60
 
 type PaidSweepCursor = { createdAt: Date; id: number }
 
@@ -394,6 +396,9 @@ export async function reconcileStaleProcessing(env: Env): Promise<void> {
  * Traversal is cursor-based (oldest -> newest), wraps to oldest after reaching the end.
  */
 export async function reconcileHourlyPaidOrders(env: Env): Promise<void> {
+  const activeFlag = await env.ALLEGRO_KV.get(PAID_SWEEP_ACTIVE_KV_KEY)
+  if (activeFlag === '0') return
+
   const nowMs = Date.now()
 
   const [lastRunRaw, cursorRaw] = await Promise.all([
@@ -450,9 +455,12 @@ export async function reconcileHourlyPaidOrders(env: Env): Promise<void> {
     await Promise.all([
       env.ALLEGRO_KV.put(PAID_SWEEP_LAST_RUN_KV_KEY, String(nowMs)).catch(() => {}),
       env.ALLEGRO_KV.delete(PAID_SWEEP_CURSOR_KV_KEY).catch(() => {}),
+      env.ALLEGRO_KV.put(PAID_SWEEP_ACTIVE_KV_KEY, '0', { expirationTtl: PAID_SWEEP_IDLE_TTL_SECONDS }).catch(() => {}),
     ])
     return
   }
+
+  await env.ALLEGRO_KV.delete(PAID_SWEEP_ACTIVE_KV_KEY).catch(() => {})
 
   const token = await getActiveAllegroToken(env)
   if (!token) {
