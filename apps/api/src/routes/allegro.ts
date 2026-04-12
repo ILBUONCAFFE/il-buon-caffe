@@ -56,6 +56,10 @@ type AllegroEnv = Env & {
 
 const OAUTH_STATE_TTL_SECONDS = 10 * 60
 const OAUTH_STATE_TTL_MS = OAUTH_STATE_TTL_SECONDS * 1000
+const QUALITY_PREWARM_LAST_RUN_PL_DATE_KEY = 'allegro:quality:prewarm:last_run_pl_date'
+const QUALITY_PREWARM_LOCK_KEY = 'allegro:quality:prewarm:lock'
+const QUALITY_PREWARM_LOCK_TTL_SECONDS = 20 * 60
+const QUALITY_PREWARM_LAST_RUN_TTL_SECONDS = 3 * 24 * 60 * 60
 
 type OauthStateRecord = {
   environment: AllegroEnvironment
@@ -78,6 +82,15 @@ function parseOauthStateRecord(raw: string | null): OauthStateRecord | null {
 function isFreshState(createdAt: number): boolean {
   const age = Date.now() - createdAt
   return age >= 0 && age <= OAUTH_STATE_TTL_MS
+}
+
+function getPolandDateStamp(date = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Warsaw',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date)
 }
 
 async function encrypt(text: string, key?: string): Promise<string> {
@@ -901,24 +914,53 @@ export async function preWarmAllegroQualityCache(env: Env): Promise<void> {
   const kv = env.ALLEGRO_KV
   if (!kv) return
 
-  const encKey = (env as AllegroEnv).ALLEGRO_TOKEN_ENCRYPTION_KEY
-  const rawKvToken = await kv.get(KV_KEYS.ACCESS_TOKEN)
-  if (!rawKvToken) return
-  let accessToken: string
-  try {
-    accessToken = await decrypt(rawKvToken, encKey)
-  } catch {
-    return // key missing or token corrupt — skip pre-warm, next sync will restore
+  const plDate = getPolandDateStamp()
+  const [lastRunPlDate, prewarmLock, rawKvToken] = await Promise.all([
+    kv.get(QUALITY_PREWARM_LAST_RUN_PL_DATE_KEY),
+    kv.get(QUALITY_PREWARM_LOCK_KEY),
+    kv.get(KV_KEYS.ACCESS_TOKEN),
+  ])
+
+  if (lastRunPlDate === plDate) {
+    console.log('[Allegro Quality] Prewarm already completed for current PL day — skipping')
+    return
   }
-  const environment = ((await kv.get(KV_KEYS.ENVIRONMENT)) ?? 'sandbox') as AllegroEnvironment
+
+  if (prewarmLock) {
+    console.log('[Allegro Quality] Prewarm lock active — skipping concurrent run')
+    return
+  }
+
+  if (!rawKvToken) return
+
+  await kv.put(QUALITY_PREWARM_LOCK_KEY, String(Date.now()), {
+    expirationTtl: QUALITY_PREWARM_LOCK_TTL_SECONDS,
+  })
+
+  const encKey = (env as AllegroEnv).ALLEGRO_TOKEN_ENCRYPTION_KEY
 
   try {
+    let accessToken: string
+    try {
+      accessToken = await decrypt(rawKvToken, encKey)
+    } catch {
+      return // key missing or token corrupt — skip pre-warm, next sync will restore
+    }
+
+    const environment = ((await kv.get(KV_KEYS.ENVIRONMENT)) ?? 'sandbox') as AllegroEnvironment
     const db = createDb(env.DATABASE_URL)
     const data = await fetchAllegroQualityData(accessToken, environment, db)
-    await kv.put(KV_KEYS.QUALITY_CACHE, JSON.stringify(data), { expirationTtl: 86400 })
+    await Promise.all([
+      kv.put(KV_KEYS.QUALITY_CACHE, JSON.stringify(data), { expirationTtl: 86400 }),
+      kv.put(QUALITY_PREWARM_LAST_RUN_PL_DATE_KEY, plDate, {
+        expirationTtl: QUALITY_PREWARM_LAST_RUN_TTL_SECONDS,
+      }),
+    ])
     console.log('[Allegro Quality] Cache pre-warmed at', data.fetchedAt)
   } catch (err) {
     console.error('[Allegro Quality] Pre-warm failed:', err instanceof Error ? err.message : String(err))
+  } finally {
+    await kv.delete(QUALITY_PREWARM_LOCK_KEY).catch(() => {})
   }
 }
 
