@@ -283,8 +283,8 @@ export async function runTrackingBackfillPage(
 
 // ── Cron batch refresh ────────────────────────────────────────────────────
 
-const BATCH_SIZE = 30
-const CONCURRENCY = 5
+const BATCH_SIZE = 12   // 12 orders × 3 fetches = 36 subreqs, + 1 DB select = 37 < 50 (Workers Free limit)
+const CONCURRENCY = 3
 const HARD_CUTOFF_DAYS = 30
 
 // KV key: '0' = no active tracked orders (skip DB), absent/other = check DB.
