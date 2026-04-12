@@ -1,95 +1,133 @@
 "use client";
 
-import React, { useRef } from "react";
-import { motion, useScroll, useTransform, MotionValue } from "motion/react";
+import React from "react";
+import { motion } from "motion/react";
 
-const STATEMENTS = [
-  "Każdy produkt próbujemy sami, zanim trafi na półkę.",
-  "Znamy ludzi, od których kupujemy.",
-  "Wypieki robimy od zera, każdego ranka.",
-  "Nie sprzedajemy rzeczy, które sami byśmy nie kupili.",
-  "Włosi robią u nas zakupy. To mówi więcej niż certyfikat.",
-];
+const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
-const RevealLine = ({
-  text,
-  index,
-  total,
-  progress,
-}: {
-  text: string;
-  index: number;
-  total: number;
-  progress: MotionValue<number>;
-}) => {
-  // Each line gets a staggered slice of the total progress
-  const gap = 0.08;
-  const sliceWidth = (1 - gap * (total - 1)) / total;
-  const start = index * (sliceWidth + gap);
-  const mid = start + sliceWidth * 0.7;
-
-  const opacity = useTransform(progress, [start, mid], [0.04, 1]);
-  const y = useTransform(progress, [start, mid], [16, 0]);
-  const blurVal = useTransform(progress, [start, mid], [4, 0]);
-  const filterStr = useTransform(blurVal, (v) => `blur(${v}px)`);
-
-  return (
-    <motion.p
-      style={{ opacity, y, filter: filterStr }}
-      className="text-xl sm:text-2xl md:text-3xl font-serif text-white leading-[1.45] tracking-tight"
-    >
-      {text}
-    </motion.p>
-  );
-};
+const RULES = [
+  {
+    num: "I",
+    text: "Każdy produkt próbujemy sami, zanim trafi na półkę.",
+  },
+  {
+    num: "II",
+    text: "Znamy ludzi, od których kupujemy — małe zakłady, rodzinne winiarnie, rzemieślnicze piekarnie.",
+  },
+  {
+    num: "III",
+    text: "Wypieki robimy od zera, każdego ranka. Bez gotowych mieszanek.",
+  },
+  {
+    num: "IV",
+    text: "Nie sprzedajemy rzeczy, których sami byśmy nie kupili.",
+  },
+  {
+    num: "V",
+    text: "Włosi robią u nas zakupy. To mówi więcej niż jakikolwiek certyfikat.",
+  },
+] as const;
 
 export const AboutValues: React.FC = () => {
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start start", "end end"],
-  });
-
-  const progress = useTransform(scrollYProgress, [0.05, 0.85], [0, 1]);
-
   return (
-    <section
-      ref={containerRef}
-      className="relative"
-      style={{ height: "250vh" }}
-    >
-      {/* Smooth gradient — inline with many stops to prevent banding */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background: `linear-gradient(
-            to bottom,
-            #f3eee8 0%,
-            #e6dcd3 8%,
-            #c4a882 16%,
-            #8a6446 26%,
-            #4a3525 38%,
-            #2a1f17 50%,
-            #1c1917 65%,
-            #1c1917 100%
-          )`,
-        }}
-      />
+    <section className="relative bg-brand-beige overflow-hidden">
+      {/* Top border from team section */}
+      <div className="h-px bg-brand-200" />
 
-      {/* Sticky container — pinned in viewport while user scrolls */}
-      <div className="sticky top-0 h-screen flex items-center justify-center">
-        <div className="relative z-10 max-w-2xl mx-auto px-6 lg:px-12 space-y-5 md:space-y-7">
-          {STATEMENTS.map((text, i) => (
-            <RevealLine
-              key={i}
-              text={text}
-              index={i}
-              total={STATEMENTS.length}
-              progress={progress}
-            />
+      <div className="container mx-auto px-6 lg:px-12 max-w-3xl py-28 md:py-40">
+        {/* Notice header — styled like a framed sign */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8, ease: EASE }}
+          className="text-center mb-14 md:mb-16"
+        >
+          <p className="text-[10px] uppercase tracking-[0.4em] text-brand-400 font-semibold mb-5">
+            Il Buon Caffe
+          </p>
+          <h2 className="font-serif text-3xl md:text-4xl text-brand-900 tracking-tight">
+            Zasady domu
+          </h2>
+        </motion.div>
+
+        {/* Top double rule */}
+        <motion.div
+          initial={{ scaleX: 0 }}
+          whileInView={{ scaleX: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 1.2, ease: EASE }}
+          className="origin-left mb-1"
+        >
+          <div className="h-px bg-brand-800" />
+        </motion.div>
+        <motion.div
+          initial={{ scaleX: 0 }}
+          whileInView={{ scaleX: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 1.2, delay: 0.06, ease: EASE }}
+          className="origin-left mb-12 md:mb-14 mt-[3px]"
+        >
+          <div className="h-px bg-brand-800/30" />
+        </motion.div>
+
+        {/* Rules list */}
+        <div className="space-y-0">
+          {RULES.map((rule, i) => (
+            <motion.div
+              key={rule.num}
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7, delay: i * 0.07, ease: EASE }}
+              className="group"
+            >
+              {/* Rule row */}
+              <div className="flex items-baseline gap-6 md:gap-8 py-5 md:py-6 border-b border-brand-200 last:border-none">
+                {/* Roman numeral */}
+                <span className="font-serif text-brand-300 text-sm w-6 flex-shrink-0 text-right select-none">
+                  {rule.num}.
+                </span>
+
+                {/* Rule text */}
+                <p className="font-serif text-brand-800 text-lg md:text-xl leading-[1.55]">
+                  {rule.text}
+                </p>
+              </div>
+            </motion.div>
           ))}
         </div>
+
+        {/* Bottom double rule */}
+        <motion.div
+          initial={{ scaleX: 0 }}
+          whileInView={{ scaleX: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 1.2, ease: EASE }}
+          className="origin-left mt-1"
+        >
+          <div className="h-px bg-brand-800/30" />
+        </motion.div>
+        <motion.div
+          initial={{ scaleX: 0 }}
+          whileInView={{ scaleX: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 1.2, delay: 0.06, ease: EASE }}
+          className="origin-left mt-[3px]"
+        >
+          <div className="h-px bg-brand-800" />
+        </motion.div>
+
+        {/* Footer of the notice */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7, delay: 0.4 }}
+          className="text-center text-[10px] uppercase tracking-[0.3em] text-brand-400 font-medium mt-10"
+        >
+          Koszalin&nbsp;&nbsp;·&nbsp;&nbsp;2003&nbsp;&nbsp;·&nbsp;&nbsp;il buon caffe
+        </motion.p>
       </div>
     </section>
   );

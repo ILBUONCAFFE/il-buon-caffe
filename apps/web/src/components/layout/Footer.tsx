@@ -26,7 +26,6 @@ const footerLinks = {
     { label: "O nas", href: "/o-nas" },
     { label: "Kawiarnia", href: "/kawiarnia" },
     { label: "Encyklopedia", href: "/encyklopedia" },
-    { label: "Kontakt", href: "/contact" },
   ],
   legal: [
     { label: "Regulamin", href: "/regulamin" },

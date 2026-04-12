@@ -1,94 +1,84 @@
 "use client";
 
-import React, { useRef } from "react";
-import { motion, useScroll, useTransform } from "motion/react";
+import React from "react";
+import { motion } from "motion/react";
 
 const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
+// Redesigned as an honest, personal "founders / family" section.
+// No role badges, no org-chart language — just direct prose.
 export const AboutTeam: React.FC = () => {
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start end", "center center"],
-  });
-
-  const dividerWidth = useTransform(scrollYProgress, [0.2, 0.6], ["0%", "100%"]);
-
   return (
-    <section ref={containerRef} className="relative bg-brand-beige py-28 md:py-40">
-      {/* Top transition from dark */}
-      <div
-        className="absolute top-0 left-0 right-0 h-32 -translate-y-full"
-        style={{
-          background: "linear-gradient(to bottom, #1c1917, #f3eee8)",
-        }}
-      />
-
+    <section className="relative bg-brand-beige py-28 md:py-40 overflow-hidden">
       <div className="container mx-auto px-6 lg:px-12 max-w-4xl">
-        {/* Section intro */}
+        {/* Label */}
         <motion.p
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, ease: EASE }}
-          className="text-xs uppercase tracking-[0.25em] text-brand-400 mb-16 md:mb-24"
+          className="text-[10px] uppercase tracking-[0.3em] text-brand-400 font-semibold mb-16 md:mb-20"
         >
-          Firma rodzinna od 2003
+          Firma rodzinna
         </motion.p>
 
-        {/* First person — coffee & deli */}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
+        {/* First paragraph */}
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.8, ease: EASE }}
-          className="mb-14 md:mb-20"
+          transition={{ duration: 0.9, ease: EASE }}
+          className="text-2xl md:text-3xl font-serif text-brand-900 leading-[1.5] mb-8"
         >
-          <h3 className="text-2xl md:text-3xl font-serif text-brand-900 leading-tight mb-5">
-            Kawa i delikatesy
-          </h3>
-          <p className="text-base md:text-lg leading-[1.8] text-brand-500 max-w-xl">
-            Parzy kawę od 2003 roku. Dobiera ziarna, testuje palenia, wybiera wina
-            i oliwy na półki. Jeśli coś tu jest — to dlatego, że sam to próbował
-            i uznał, że warto.
-          </p>
-        </motion.div>
+          Prowadzimy Il Buon Caffe razem od ponad dwudziestu lat. Nie franczyzę,
+          nie sieć — jedno konkretne miejsce w Koszalinie.
+        </motion.p>
 
-        {/* Animated divider */}
-        <div className="relative h-px bg-brand-200 mb-14 md:mb-20">
-          <motion.div
-            style={{ width: dividerWidth }}
-            className="absolute inset-y-0 left-0 bg-brand-400/60"
-          />
-        </div>
-
-        {/* Second person — bakery */}
+        {/* Divider */}
         <motion.div
-          initial={{ opacity: 0, y: 24 }}
+          initial={{ scaleX: 0 }}
+          whileInView={{ scaleX: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 1.2, ease: EASE }}
+          className="h-px bg-brand-200 mb-8 origin-left"
+        />
+
+        {/* Second paragraph */}
+        <motion.p
+          initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.8, delay: 0.08, ease: EASE }}
+          transition={{ duration: 0.9, delay: 0.08, ease: EASE }}
+          className="text-base md:text-lg leading-[1.85] text-brand-500 max-w-xl mb-6"
         >
-          <h3 className="text-2xl md:text-3xl font-serif text-brand-900 leading-tight mb-5">
-            Piekarnia i wypieki
-          </h3>
-          <p className="text-base md:text-lg leading-[1.8] text-brand-500 max-w-xl">
-            Chleby, bułki, ciasta, ciastka — wszystko robione ręcznie, od zera,
-            każdego ranka. Bez mieszanek, bez skrótów. Ludzie wracają po jej
-            sernik, bo smakuje jak domowy. Bo taki jest.
-          </p>
-        </motion.div>
+          Jedno z nas parzy kawę. Drugie piecze chleb. Razem decydujemy, co
+          trafia na półkę — i żadne z nas nie odpowiada przed nikim poza
+          gośćmi, którzy tu przychodzą.
+        </motion.p>
 
-        {/* Closing line */}
+        {/* Third paragraph */}
+        <motion.p
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.9, delay: 0.15, ease: EASE }}
+          className="text-base md:text-lg leading-[1.85] text-brand-500 max-w-xl"
+        >
+          Przez wszystkie te lata nie wzięliśmy ani złotówki od inwestorów.
+          Nie musieliśmy tłumaczyć nikomu, jakie mamy wyniki kwartalne.
+          Zamiast tego — codziennie rano wstajemy wcześnie, żeby chleb był
+          gotowy przed otwarciem.
+        </motion.p>
+
+        {/* Closing statement — typographic */}
         <motion.p
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.15, ease: EASE }}
-          className="mt-20 md:mt-28 text-sm text-brand-300"
+          transition={{ duration: 0.7, delay: 0.25, ease: EASE }}
+          className="mt-16 md:mt-24 text-[11px] uppercase tracking-[0.25em] text-brand-300 font-medium"
         >
-          Bez inwestorów. Bez franczyzy. Bez kompromisów.
+          Bez inwestorów.&nbsp;&nbsp;Bez franczyzy.&nbsp;&nbsp;Bez kompromisów.
         </motion.p>
       </div>
     </section>

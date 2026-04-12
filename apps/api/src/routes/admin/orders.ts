@@ -10,6 +10,7 @@ import { auditLogMiddleware } from '../../middleware/auditLog'
 import { getActiveAllegroToken } from '../../lib/allegro-tokens'
 import { allegroHeaders } from '../../lib/allegro-orders/helpers'
 import { refreshOrderTrackingSnapshot } from '../../lib/allegro-orders/tracking-refresh'
+import { bulkReconcileProcessingOrders } from '../../lib/allegro-orders/bulk-reconcile'
 import type { Env } from '../../index'
 import { checkContentLength, parsePagination, getClientIp, serverError } from '../../lib/request'
 
@@ -542,6 +543,46 @@ adminOrdersRouter.post('/:id/tracking/refresh', async (c) => {
 })
 
 // ============================================
+// POST /admin/orders/reconcile-processing  🛡️
+// Jednorazowy bulk reconcile dla zamówień processing
+// ============================================
+adminOrdersRouter.post('/reconcile-processing', async (c) => {
+  try {
+    const adminUser = c.get('user')
+    const body = await c.req.json<{
+      dryRun?: boolean
+      includeStatuses?: string[]
+      maxOrders?: number
+    }>().catch(() => ({} as { dryRun?: boolean, includeStatuses?: string[], maxOrders?: number }))
+
+    const result = await bulkReconcileProcessingOrders(c.env, {
+      dryRun: body.dryRun ?? false,
+      includeStatuses: body.includeStatuses,
+      maxOrders: body.maxOrders,
+    })
+
+    const db = createDb(c.env.DATABASE_URL)
+    await logAdminAction(db, {
+      adminSub: adminUser.sub,
+      action: 'admin_action',
+      ipAddress: getClientIp(c),
+      details: {
+        event: 'reconcile_orders',
+        total: result.total,
+        updated: result.updated,
+      },
+    })
+
+    return c.json({
+      success: true,
+      data: result,
+    })
+  } catch (err) {
+    return serverError(c, 'POST /admin/orders/reconcile-processing', err)
+  }
+})
+
+// ============================================
 // PATCH /admin/orders/:id/status  🛡️
 // Zmiana statusu zamówienia
 // ============================================
@@ -645,6 +686,14 @@ adminOrdersRouter.patch('/:id/status', async (c) => {
     }
 
     await db.update(orders).set(setCols as any).where(eq(orders.id, orderId))
+
+    // Trigger processing watchdog if order becomes processing
+    if (body.status === 'processing') {
+      await Promise.all([
+        c.env.ALLEGRO_KV.delete('orders:has_processing').catch(() => {}),
+        c.env.ALLEGRO_KV.delete('orders:processing:next_due_at').catch(() => {}),
+      ])
+    }
 
     // Audit
     await logAdminAction(db, {

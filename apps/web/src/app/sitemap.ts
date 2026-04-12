@@ -12,6 +12,7 @@ const STATIC_ROUTES: Array<{
   { path: "/sklep", changeFrequency: "daily", priority: 0.9 },
   { path: "/kawiarnia", changeFrequency: "weekly", priority: 0.9 },
   { path: "/encyklopedia", changeFrequency: "weekly", priority: 0.5 },
+  { path: "/o-nas", changeFrequency: "monthly", priority: 0.6 },
 ];
 
 const DEFAULT_CATEGORY_SLUGS = ["kawa", "wino", "slodycze", "spizarnia"];

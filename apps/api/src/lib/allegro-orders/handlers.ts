@@ -197,6 +197,14 @@ export async function handleReadyForProcessing(
 
   let orderId: number
 
+  // Trigger processing watchdog if order becomes processing
+  if (readyStatus === 'processing') {
+    await Promise.all([
+      kv.delete('orders:has_processing').catch(() => {}),
+      kv.delete('orders:processing:next_due_at').catch(() => {}),
+    ])
+  }
+
   if (!existing) {
     // Missed BOUGHT/FILLED_IN — create directly as paid
     const totalAmount    = form.summary.totalToPay.amount
