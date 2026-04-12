@@ -11,6 +11,7 @@ import { Dropdown } from '../../components/ui/Dropdown'
 import { DateRangePicker } from '../../components/ui/DateRangePicker'
 import { useTrackingPulse, type TrackingStatusChange } from '../../hooks/useTrackingPulse'
 import { TrackingToast, type TrackingToastMessage } from '../../components/ui/TrackingToast'
+import { resolveShipmentStatus } from '../../lib/shipmentStatus'
 import type { TrackingPulseUpdate } from '../../types/admin-api'
 
 const DATE_FORMATTER = new Intl.DateTimeFormat('pl-PL', {
@@ -28,6 +29,15 @@ function formatAmount(value: number | undefined | null, currency = 'PLN'): strin
   if (value == null) return '-'
   const symbol: Record<string, string> = { PLN: 'zl', EUR: 'EUR', CZK: 'CZK', HUF: 'HUF' }
   return `${Number(value).toFixed(2)} ${symbol[currency] ?? currency}`
+}
+
+function getShipmentBadgeClass(step: number, isIssue: boolean, isCancelled: boolean): string {
+  if (isCancelled) return 'bg-red-50 text-red-700 border-red-200'
+  if (isIssue) return 'bg-amber-50 text-amber-700 border-amber-200'
+  if (step >= 3) return 'bg-emerald-50 text-emerald-700 border-emerald-200'
+  if (step === 2) return 'bg-sky-50 text-sky-700 border-sky-200'
+  if (step === 1) return 'bg-indigo-50 text-indigo-700 border-indigo-200'
+  return 'bg-[#F5F4F1] text-[#666] border-[#E5E4E1]'
 }
 
 const STATUS_TABS = [
@@ -297,6 +307,7 @@ export const OrdersView = () => {
                 <th className="text-left px-4 py-3 font-medium">Zamowienie</th>
                 <th className="text-left px-4 py-3 font-medium">Klient</th>
                 <th className="text-left px-4 py-3 font-medium">Produkty</th>
+                <th className="text-left px-4 py-3 font-medium">Przesylka</th>
                 <th className="text-right px-4 py-3 font-medium">Kwota</th>
                 <th className="w-[48px] px-4 py-3" />
               </tr>
@@ -305,14 +316,14 @@ export const OrdersView = () => {
               {loading ? (
                 Array.from({ length: 8 }).map((_, i) => (
                   <tr key={i} className="border-b border-[#F0EFEC] last:border-0">
-                    <td colSpan={6} className="px-4 py-4">
+                    <td colSpan={7} className="px-4 py-4">
                       <div className="h-4 bg-[#F5F4F1] rounded animate-pulse" />
                     </td>
                   </tr>
                 ))
               ) : orders.length === 0 ? (
                 <tr className="border-b border-[#F0EFEC] last:border-0">
-                  <td colSpan={6} className="text-center py-12 text-[#A3A3A3]">
+                  <td colSpan={7} className="text-center py-12 text-[#A3A3A3]">
                     Brak zamowien
                   </td>
                 </tr>
@@ -320,6 +331,19 @@ export const OrdersView = () => {
                 orders.map((order) => {
                   const firstItem = order.items?.[0]
                   const extraCount = (order.items?.length ?? 0) - 1
+                  const shipment = resolveShipmentStatus({
+                    status: order.status,
+                    shipmentDisplayStatus: order.shipmentDisplayStatus,
+                    allegroFulfillmentStatus: order.allegroFulfillmentStatus,
+                  })
+                  const shipmentBadgeClass = getShipmentBadgeClass(
+                    shipment.step,
+                    shipment.isIssue,
+                    shipment.isCancelled,
+                  )
+                  const showStaleHint =
+                    ['shipped', 'delivered'].includes(order.status) &&
+                    order.shipmentFreshness === 'stale'
 
                   return (
                     <tr
@@ -358,6 +382,19 @@ export const OrdersView = () => {
                       <td className="px-4 py-3 align-middle">
                         <span className="text-[#1A1A1A] truncate block max-w-[250px]">{firstItem?.productName ?? '-'}</span>
                         {extraCount > 0 && <span className="text-[11px] font-medium text-[#A3A3A3] mt-0.5 inline-block bg-[#F5F4F1] px-2 py-0.5 rounded-full">+{extraCount} wiecej</span>}
+                      </td>
+
+                      <td className="px-4 py-3 align-middle">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-medium ${shipmentBadgeClass}`}>
+                            {shipment.label}
+                          </span>
+                          {showStaleHint && (
+                            <span className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">
+                              nieaktualne
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       <td className="px-4 py-3 text-right align-middle">
