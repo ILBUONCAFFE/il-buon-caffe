@@ -8,6 +8,7 @@ import { getClientIp, serverError } from '../../lib/request'
 import { logAdminAction } from '../../lib/audit'
 import { allegroHeaders, sleep } from '../../lib/allegro-orders/helpers'
 import { getActiveAllegroToken } from '../../lib/allegro-tokens'
+import { runTrackingBackfillPage } from '../../lib/allegro-orders/tracking-refresh'
 
 export const adminShipmentsRouter = new Hono<{ Bindings: Env }>()
 
@@ -21,6 +22,38 @@ function asNumber(value: unknown): number {
   }
   return 0
 }
+
+// POST /admin/tracking/backfill
+// Triggers a self-chaining backfill of all Allegro orders from the last 180 days.
+// Each invocation processes one page (100 orders) then fires the next page in the background.
+// A single call to page=0 launches the entire cascade — no further user interaction needed.
+adminShipmentsRouter.post('/tracking/backfill', async (c) => {
+  const page = parseInt(c.req.query('page') ?? '0', 10) || 0
+  const db = createDb(c.env.DATABASE_URL)
+
+  const result = await runTrackingBackfillPage(db, c.env, page)
+
+  if (result.hasMore) {
+    const nextUrl = new URL(c.req.url)
+    nextUrl.searchParams.set('page', String(page + 1))
+    const secret = c.env.INTERNAL_API_SECRET
+    c.executionCtx.waitUntil(
+      fetch(nextUrl.toString(), {
+        method: 'POST',
+        headers: secret ? { 'X-Admin-Internal-Secret': secret } : {},
+      }).catch(() => {}),
+    )
+  }
+
+  return c.json({
+    data: {
+      page,
+      processed: result.processed,
+      hasMore: result.hasMore,
+      nextPage: result.hasMore ? page + 1 : null,
+    },
+  })
+})
 
 // GET /admin/shipment/delivery-services
 adminShipmentsRouter.get('/shipment/delivery-services', async (c) => {

@@ -237,6 +237,50 @@ export async function refreshOrderTrackingSnapshot(
   }
 }
 
+// ── One-time backfill ─────────────────────────────────────────────────────
+
+const BACKFILL_PAGE_SIZE = 100
+const BACKFILL_CONCURRENCY = 5
+
+/**
+ * Process one page of the 180-day backfill.
+ * No cooldown filter — every order with externalId and trackingNumber is eligible.
+ * Returns { processed, hasMore } so the caller can chain to the next page.
+ */
+export async function runTrackingBackfillPage(
+  db: ReturnType<typeof createDb>,
+  env: Env,
+  page: number,
+): Promise<{ processed: number; hasMore: boolean }> {
+  const cutoff = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000)
+
+  const rows = await db
+    .select({ id: orders.id, externalId: orders.externalId })
+    .from(orders)
+    .where(
+      and(
+        eq(orders.source, 'allegro'),
+        isNotNull(orders.externalId),
+        sql`COALESCE(${orders.shippedAt}, ${orders.createdAt}) > ${cutoff}`,
+      ),
+    )
+    .orderBy(orders.id)
+    .limit(BACKFILL_PAGE_SIZE)
+    .offset(page * BACKFILL_PAGE_SIZE)
+
+  const candidates = rows.filter((r): r is { id: number; externalId: string } => r.externalId !== null)
+
+  for (let i = 0; i < candidates.length; i += BACKFILL_CONCURRENCY) {
+    await Promise.allSettled(
+      candidates.slice(i, i + BACKFILL_CONCURRENCY).map((order) =>
+        refreshOrderTrackingSnapshot(db, env, order.id, order.externalId),
+      ),
+    )
+  }
+
+  return { processed: candidates.length, hasMore: candidates.length === BACKFILL_PAGE_SIZE }
+}
+
 // ── Cron batch refresh ────────────────────────────────────────────────────
 
 const BATCH_SIZE = 30
