@@ -33,18 +33,6 @@ adminShipmentsRouter.post('/tracking/backfill', async (c) => {
 
   const result = await runTrackingBackfillPage(db, c.env, page)
 
-  if (result.hasMore) {
-    const nextUrl = new URL(c.req.url)
-    nextUrl.searchParams.set('page', String(page + 1))
-    const secret = c.env.INTERNAL_API_SECRET
-    c.executionCtx.waitUntil(
-      fetch(nextUrl.toString(), {
-        method: 'POST',
-        headers: secret ? { 'X-Admin-Internal-Secret': secret } : {},
-      }).catch(() => {}),
-    )
-  }
-
   return c.json({
     data: {
       page,
