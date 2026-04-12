@@ -24,6 +24,16 @@ function toDateOrNull(value: Date | string | null | undefined): Date | null {
   return d
 }
 
+function shouldAutoMarkDelivered(code: string | null): boolean {
+  if (!code) return false
+  return (
+    code.includes('DELIVERED') ||
+    code.includes('PICKED_UP') ||
+    code.includes('PICKUP') ||
+    code.includes('RECEIVED')
+  )
+}
+
 function formatDbError(err: unknown): string {
   if (!(err instanceof Error)) return String(err)
 
@@ -178,6 +188,7 @@ export async function refreshOrderTrackingSnapshot(
   const latestDescription = latest?.description == null ? null : String(latest.description).slice(0, 255)
   const latestOccurredRaw = latest?.occurredAt ?? latest?.time ?? latest?.date ?? null
   const latestOccurredAt = latestOccurredRaw == null ? null : toDateOrNull(String(latestOccurredRaw))
+  const shouldMarkDelivered = shouldAutoMarkDelivered(latestCode)
 
   await db.update(orders)
     .set({
@@ -198,6 +209,20 @@ export async function refreshOrderTrackingSnapshot(
         OR ${orders.trackingStatusUpdatedAt} IS NULL
       )`,
     ))
+
+  if (shouldMarkDelivered) {
+    // Carrier-level delivery confirmation is authoritative for the final transition.
+    await db.update(orders)
+      .set({
+        status: 'delivered',
+        deliveredAt: sql`COALESCE(${orders.deliveredAt}, ${now})`,
+        updatedAt: now,
+      })
+      .where(and(
+        eq(orders.id, orderId),
+        eq(orders.status, 'shipped'),
+      ))
+  }
 }
 
 // ── Cron batch refresh ────────────────────────────────────────────────────
