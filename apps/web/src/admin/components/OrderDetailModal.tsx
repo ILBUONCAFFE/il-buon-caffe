@@ -181,6 +181,8 @@ export function OrderDetailModal({
             const fresh = await adminApi.getOrder(order.id)
             if (fresh?.data) {
               setTracking({
+                id: fresh.data.id,
+                status: fresh.data.status,
                 trackingStatus: fresh.data.trackingStatus ?? null,
                 trackingStatusCode: fresh.data.trackingStatusCode ?? null,
                 trackingStatusUpdatedAt: fresh.data.trackingStatusUpdatedAt ?? null,
