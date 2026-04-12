@@ -246,6 +246,30 @@ export async function bulkReconcileProcessingOrders(
 const CRON_BATCH_SIZE = 5
 const STALE_THRESHOLD_MS = 60 * 60 * 1000  // 1 hour
 const PROCESSING_IDLE_TTL_SECONDS = 60 * 60
+const PAID_SWEEP_LAST_RUN_KV_KEY = 'orders:paid_sweep:last_run_at'
+const PAID_SWEEP_CURSOR_KV_KEY = 'orders:paid_sweep:cursor'
+const PAID_SWEEP_INTERVAL_MS = 60 * 60 * 1000
+const PAID_SWEEP_BATCH_SIZE = 3
+
+type PaidSweepCursor = { createdAt: Date; id: number }
+
+function parsePaidSweepCursor(raw: string | null): PaidSweepCursor | null {
+  if (!raw) return null
+
+  try {
+    const parsed = JSON.parse(raw) as { createdAt?: string; id?: number }
+    if (typeof parsed.createdAt !== 'string' || typeof parsed.id !== 'number') return null
+    const createdAt = new Date(parsed.createdAt)
+    if (Number.isNaN(createdAt.getTime())) return null
+    return { createdAt, id: parsed.id }
+  } catch {
+    return null
+  }
+}
+
+function serializePaidSweepCursor(cursor: PaidSweepCursor): string {
+  return JSON.stringify({ createdAt: cursor.createdAt.toISOString(), id: cursor.id })
+}
 
 /**
  * Cron guard: periodically check processing orders against Allegro.
@@ -362,5 +386,110 @@ export async function reconcileStaleProcessing(env: Env): Promise<void> {
 
   if (reconciled > 0) {
     console.log(`[ReconcileProcessing] Zrekoncylowano ${reconciled}/${candidates.length} zamówień processing`)
+  }
+}
+
+/**
+ * Hourly paid sweep: reconcile a small batch of the oldest paid Allegro orders.
+ * Traversal is cursor-based (oldest -> newest), wraps to oldest after reaching the end.
+ */
+export async function reconcileHourlyPaidOrders(env: Env): Promise<void> {
+  const nowMs = Date.now()
+
+  const [lastRunRaw, cursorRaw] = await Promise.all([
+    env.ALLEGRO_KV.get(PAID_SWEEP_LAST_RUN_KV_KEY),
+    env.ALLEGRO_KV.get(PAID_SWEEP_CURSOR_KV_KEY),
+  ])
+
+  const lastRunMs = Number(lastRunRaw)
+  if (Number.isFinite(lastRunMs) && nowMs - lastRunMs < PAID_SWEEP_INTERVAL_MS) {
+    return
+  }
+
+  const cursor = parsePaidSweepCursor(cursorRaw)
+  const db = createDb(env.DATABASE_URL)
+
+  const loadCandidates = async (afterCursor: PaidSweepCursor | null) => {
+    const base = [
+      eq(orders.status, 'paid'),
+      eq(orders.source, 'allegro'),
+      isNotNull(orders.externalId),
+    ]
+
+    const where = afterCursor
+      ? and(
+          ...base,
+          sql`(
+            ${orders.createdAt} > ${afterCursor.createdAt}
+            OR (${orders.createdAt} = ${afterCursor.createdAt} AND ${orders.id} > ${afterCursor.id})
+          )`,
+        )
+      : and(...base)
+
+    return db
+      .select({
+        id: orders.id,
+        orderNumber: orders.orderNumber,
+        externalId: orders.externalId,
+        createdAt: orders.createdAt,
+      })
+      .from(orders)
+      .where(where)
+      .orderBy(sql`${orders.createdAt} ASC, ${orders.id} ASC`)
+      .limit(PAID_SWEEP_BATCH_SIZE)
+  }
+
+  let candidates = await loadCandidates(cursor)
+
+  // Reached end of stream — wrap to oldest paid orders.
+  if (candidates.length === 0 && cursor) {
+    candidates = await loadCandidates(null)
+  }
+
+  if (candidates.length === 0) {
+    await Promise.all([
+      env.ALLEGRO_KV.put(PAID_SWEEP_LAST_RUN_KV_KEY, String(nowMs)).catch(() => {}),
+      env.ALLEGRO_KV.delete(PAID_SWEEP_CURSOR_KV_KEY).catch(() => {}),
+    ])
+    return
+  }
+
+  const token = await getActiveAllegroToken(env)
+  if (!token) {
+    console.warn('[PaidSweep] Brak tokenu Allegro — pomijam hourly sweep paid')
+    await env.ALLEGRO_KV.put(PAID_SWEEP_LAST_RUN_KV_KEY, String(nowMs)).catch(() => {})
+    return
+  }
+
+  let reconciled = 0
+
+  for (const order of candidates) {
+    if (!order.externalId) continue
+
+    try {
+      await sleep(100)
+
+      const form = await fetchCheckoutForm(token.apiBase, token.accessToken, order.externalId)
+      if (!form) continue
+
+      await reconcileOrder(db, form, env.ALLEGRO_KV)
+      reconciled++
+    } catch (err) {
+      console.warn(`[PaidSweep] Błąd dla zamówienia ${order.orderNumber}:`, err instanceof Error ? err.message : String(err))
+    }
+  }
+
+  const last = candidates[candidates.length - 1]
+
+  await Promise.all([
+    env.ALLEGRO_KV.put(PAID_SWEEP_LAST_RUN_KV_KEY, String(nowMs)).catch(() => {}),
+    env.ALLEGRO_KV.put(
+      PAID_SWEEP_CURSOR_KV_KEY,
+      serializePaidSweepCursor({ createdAt: last.createdAt, id: last.id }),
+    ).catch(() => {}),
+  ])
+
+  if (reconciled > 0) {
+    console.log(`[PaidSweep] Zrekoncylowano ${reconciled}/${candidates.length} zamówień paid`)
   }
 }

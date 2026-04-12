@@ -18,7 +18,7 @@ import { eq, desc, lt, sql } from 'drizzle-orm'
 import { refreshAllegroToken, getAllegroOAuthConfig, KV_KEYS, type AllegroEnvironment } from './lib/allegro'
 import { runTrackingStatusSync } from './lib/allegro-orders/tracking-refresh'
 import { syncAllegroOrders } from './lib/allegro-orders'
-import { reconcileStaleProcessing } from './lib/allegro-orders/bulk-reconcile'
+import { reconcileStaleProcessing, reconcileHourlyPaidOrders } from './lib/allegro-orders/bulk-reconcile'
 import { preWarmAllegroQualityCache } from './routes/allegro'
 import { backfillExchangeRates } from './lib/allegro-orders/backfill-rates'
 import { encryptText, decryptText } from './lib/crypto'
@@ -296,13 +296,14 @@ export default {
     setHttpMode(true, env.DATABASE_URL)
 
     // "0 * * * *"   — hourly token refresh + daily retention cleanup
-    // "*/5 * * * *" — every 5 min Allegro order polling (was every 1 min — reduced for CU savings)
+    // "*/5 * * * *" — every 5 min Allegro order polling (+ processing watchdog, paid hourly sweep via KV gate)
     // "0 5 * * *"   — daily at 06:00 CET (05:00 UTC) — pre-warm Allegro sales quality cache
     // "0 3 * * *"   — daily at 04:00 CET (03:00 UTC) — backfill exchange rates (total_pln)
     if (event.cron === '*/5 * * * *') {
       ctx.waitUntil(syncAllegroOrders(env))
       ctx.waitUntil(runTrackingStatusSync(env))
       ctx.waitUntil(reconcileStaleProcessing(env))
+      ctx.waitUntil(reconcileHourlyPaidOrders(env))
     } else if (event.cron === '0 5 * * *') {
       // Daily at 06:00 CET (05:00 UTC) — pre-warm Allegro sales quality cache
       ctx.waitUntil(preWarmAllegroQualityCache(env))
