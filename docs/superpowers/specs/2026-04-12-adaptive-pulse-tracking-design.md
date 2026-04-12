@@ -69,7 +69,7 @@ Interwał obliczany client-side z załadowanych danych — zero dodatkowych requ
 ### `GET /admin/orders/tracking-pulse`
 
 **Query params:**
-- `since` — ISO timestamp, np. `2026-04-12T10:00:00.000Z`
+- `since` — ISO timestamp **dostarczony przez serwer** (nie `Date.now()` klienta — patrz niżej)
 
 **Auth:** adminMiddleware (ten sam co reszta)
 
@@ -80,9 +80,11 @@ SELECT id, tracking_status, tracking_status_code, tracking_status_updated_at,
 FROM orders
 WHERE updated_at > :since
   AND status IN ('shipped', 'delivered')
-ORDER BY tracking_status_updated_at DESC
-LIMIT 50
+ORDER BY updated_at ASC
+LIMIT 51
 ```
+
+`LIMIT 51` zamiast 50 — jeśli zwróci 51 wierszy, wiemy że jest `hasMore: true` (zwracamy tylko 50, odrzucamy ostatni jako marker).
 
 Trafia w istniejący partial index `idx_orders_tracking_refresh`. Brak Allegro API call. Brak KV write.
 
@@ -99,11 +101,15 @@ Trafia w istniejący partial index `idx_orders_tracking_refresh`. Brak Allegro A
       "shipmentDisplayStatus": "in_transit",
       "shipmentFreshness": "fresh"
     }
-  ]
+  ],
+  "nextSince": "2026-04-12T10:05:01.000Z",
+  "hasMore": false
 }
 ```
 
-Pusta tablica `data: []` gdy brak zmian → ~30 bajtów, ~1ms Neon.
+- `nextSince` — **czas serwera** w momencie wykonania zapytania (`new Date().toISOString()`). Klient zawsze używa tej wartości w kolejnym poll, nigdy lokalnego `Date.now()`. Eliminuje clock drift.
+- `hasMore: true` — gdy zmian jest więcej niż 50. Klient natychmiast odpytuje ponownie z `nextSince` z poprzedniej odpowiedzi (bez czekania na timer).
+- Pusta tablica `data: []` gdy brak zmian → ~50 bajtów, ~1ms Neon.
 
 ---
 
@@ -124,20 +130,26 @@ interface TrackingPulseOptions {
 
 1. `computeAdaptiveInterval(orders)` — skanuje orders w statusie shipped/delivered, bierze najwyższy priorytet (najkrótszy interwał), zwraca ms lub `null` (brak pollingu)
 2. `scheduleNextPoll(interval)` — `setTimeout` z dynamicznym interwałem
-3. `executePoll()`:
-   - Wywołuje `GET /tracking-pulse?since={lastPollAt}`
-   - Jeśli pusta odpowiedź → tylko aktualizuje `lastPollAt`, reschedules
+3. `executePoll(wakeFromHidden = false)`:
+   - Wywołuje `GET /tracking-pulse?since={serverSince}` — zawsze timestamp serwera, nie Date.now()
+   - Jeśli `hasMore: true` → natychmiast wywołuje kolejny poll (cursor przez `nextSince`), bez timera
+   - Jeśli pusta odpowiedź → zapisuje `nextSince`, reschedules
    - Jeśli zmiany → wywołuje `onOrdersUpdated(changes)`
-   - Porównuje `trackingStatusCode` przed/po → jeśli zmiana → `onStatusChanged`
-   - Reschedules z przeliczonym interwałem
+   - Porównuje `trackingStatusCode` przed/po → jeśli zmiana i `!wakeFromHidden` → `onStatusChanged` (toast)
+   - Jeśli zmiana i `wakeFromHidden` → tylko patch UI, bez toastu (admin nie potrzebuje powiadomienia o zmianach z przeszłości)
+   - Zapisuje `nextSince` z odpowiedzi, reschedules z przeliczonym interwałem
 4. `visibilitychange`:
    - `hidden` → clearTimeout, zatrzymuje polling
-   - `visible` → natychmiastowy poll (mogło coś zmienić się gdy tab był nieaktywny), restart timera
+   - `visible` → natychmiastowy `executePoll(wakeFromHidden: true)`, restart timera
 
-**Zarządzanie `lastPollAt`:**
-- Inicjalizowane: `Date.now()` przy mount
-- Na focus po pauzie: cofnięte o 2× aktualny interwał (żeby odświeżyć to co mogło się zmienić podczas pauzy)
+**Zarządzanie `serverSince`:**
+- Inicjalizowane: `null` → przy pierwszym poll serwer zwraca `nextSince`, zapisywany jako `serverSince`
+- Przy pierwszym wywołaniu (brak `serverSince`): backend używa `NOW() - 5 min` jako domyślne `since` (obsługiwane server-side gdy brak parametru)
+- Na focus po pauzie: używa zapamiętanego `serverSince` — serwer zwróci wszystko co się zmieniło od ostatniego poll, niezależnie jak długo tab był nieaktywny
 - Nie persystowane między sesjami (odświeżenie strony = nowy snapshot)
+
+**Zakres hooka (scope):**
+Hook aktualizuje wyłącznie zamówienia aktualnie załadowane w pamięci klienta (aktualna strona listy). Nie jest globalnym systemem powiadomień — jeśli admin przefiltruje widok do statusu "Nowe", polling zatrzymuje się (brak shipped/delivered w pamięci). To jest zamierzone zachowanie: tracking pulse służy do odświeżania widocznych danych, nie do monitowania całej bazy.
 
 ---
 
@@ -152,7 +164,9 @@ interface TrackingPulseOptions {
 4. Po zwrocie: aktualizacja danych modalu, zmiana tekstu na "Zaktualizowano [relative time]"
 5. Jeśli status zmienił się vs poprzedni snapshot → toast "Status przesyłki: W drodze → Doręczono"
 
-**Manual refresh button:** zawsze widoczny (nie tylko gdy stale). Pokazuje spinner gdy w trakcie. Disabled gdy KV lock aktywny (odpowiedź 429 → przycisk wyszarza się z tooltipem "Odświeżono przed chwilą").
+**Manual refresh button:** zawsze widoczny (nie tylko gdy stale). Pokazuje spinner gdy w trakcie. Disabled gdy KV lock aktywny (odpowiedź 409 Conflict → przycisk wyszarza się z tooltipem "Odświeżono przed chwilą").
+
+**Race condition modal vs cron:** rozwiązana przez istniejący KV lock `allegro:tracking:refresh:order:{id}` (TTL 180s). Gdy cron lub inny request już odświeża to zamówienie, endpoint zwraca `409 Conflict` z body `{ "refreshInProgress": true }`. Frontend interpretuje 409 jako "już się odświeża w tle" — wyświetla "Sprawdzam status..." i po 10s odpytuje `GET /admin/orders/:id` o nowy snapshot zamiast ponownie triggerować refresh.
 
 ---
 
@@ -164,7 +178,7 @@ interface TrackingPulseOptions {
 - Zmiana statusu via pulse: `"Zamówienie #1234 — Paczka w drodze → W doręczeniu"` (4 s, auto-dismiss)
 - Zmiana statusu via modal SWR: `"Status zaktualizowany: Etykieta → W drodze"` (3 s)
 - Błąd odświeżania: `"Nie udało się odświeżyć statusu"` (czerwony, 5 s)
-- Wiele zmian naraz (pulse zwróci np. 3 zamówienia): `"Zaktualizowano status 3 przesyłek"` (zbiorczy, 4 s)
+- Wiele zmian naraz (pulse zwróci >1 zamówienie): `"Zaktualizowano status 3 przesyłek"` (zbiorczy, 4 s) — próg: `data.length > 1`
 
 Toasty stackują się (max 3 widoczne jednocześnie), najnowszy na górze.
 
