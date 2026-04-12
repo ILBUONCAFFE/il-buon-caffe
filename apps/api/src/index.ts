@@ -143,7 +143,7 @@ app.onError((err, c) => {
 // Runs every hour — refreshes Allegro access token when it has less than 2h left
 async function autoRefreshAllegroToken(env: Env): Promise<void> {
   try {
-    // ★ KV-first: if a valid token exists in KV, the per-minute cron already
+    // ★ KV-first: if a valid token exists in KV, the order-sync cron already
     //   restored it, so skip DB entirely. This avoids ~24 DB wake-ups/day.
     if (env.ALLEGRO_KV) {
       const kvToken = await env.ALLEGRO_KV.get(KV_KEYS.ACCESS_TOKEN)
@@ -296,10 +296,10 @@ export default {
     setHttpMode(true, env.DATABASE_URL)
 
     // "0 * * * *"   — hourly token refresh + daily retention cleanup
-    // "*/5 * * * *" — every 5 min Allegro order polling (+ processing watchdog, paid hourly sweep via KV gate)
+    // "*/3 * * * *" — every 3 min Allegro order polling (+ processing watchdog, paid hourly sweep via KV gate)
     // "0 5 * * *"   — daily at 06:00 CET (05:00 UTC) — pre-warm Allegro sales quality cache
     // "0 3 * * *"   — daily at 04:00 CET (03:00 UTC) — backfill exchange rates (total_pln)
-    if (event.cron === '*/5 * * * *') {
+    if (event.cron === '*/3 * * * *') {
       ctx.waitUntil(syncAllegroOrders(env))
       ctx.waitUntil(runTrackingStatusSync(env))
       ctx.waitUntil(reconcileStaleProcessing(env))

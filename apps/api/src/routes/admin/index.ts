@@ -96,10 +96,10 @@ adminRouter.get('/dashboard', requireAdminOrProxy(), async (c) => {
         .from(orders)
         .where(gte(orders.createdAt, today)),
 
-      // Pending orders
+      // Orders ready for fulfilment/packing
       db.select({ count: sql<number>`COUNT(*)` })
         .from(orders)
-        .where(eq(orders.status, 'pending')),
+        .where(sql`${orders.status} IN ('paid', 'processing')`),
 
       // Processing orders
       db.select({ count: sql<number>`COUNT(*)` })

@@ -84,8 +84,8 @@ export function StatusIndicators() {
     label: 'Zamówienia',
     dotClass: pending > 0 ? 'bg-[#D97706]' : 'bg-[#059669]',
     tooltip: pending > 0
-      ? `${pending} ${pending === 1 ? 'zamówienie oczekujące' : pending < 5 ? 'zamówienia oczekujące' : 'zamówień oczekujących'}`
-      : 'Brak oczekujących zamówień',
+      ? `${pending} ${pending === 1 ? 'zamówienie do realizacji' : pending < 5 ? 'zamówienia do realizacji' : 'zamówień do realizacji'}`
+      : 'Brak zamówień do realizacji',
   })
 
   return (

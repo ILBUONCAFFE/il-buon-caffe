@@ -88,7 +88,7 @@ export function useOrders(params: OrdersQueryParams = {}) {
         setLoading(false)
       })
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params.page, params.limit, params.status, params.source, params.from, params.to])
+  }, [params.page, params.limit, params.status, params.queue, params.source, params.from, params.to])
 
   useEffect(() => { fetch() }, [fetch])
 

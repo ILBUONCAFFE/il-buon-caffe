@@ -102,6 +102,7 @@ export const adminApi = {
     const qs = new URLSearchParams()
     if (params?.page)   qs.set('page',   String(params.page))
     if (params?.limit)  qs.set('limit',  String(params.limit))
+    if (params?.queue)  qs.set('queue',  params.queue)
     if (params?.status && params.status !== 'all') qs.set('status', params.status)
     if (params?.source) qs.set('source', params.source)
     if (params?.from)   qs.set('from',   params.from)

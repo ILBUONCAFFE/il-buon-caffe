@@ -145,6 +145,7 @@ export interface OrdersQueryParams {
   page?: number
   limit?: number
   status?: string
+  queue?: 'fulfillment' | 'awaiting_payment' | ''
   source?: OrderSource | ''
   from?: string
   to?: string

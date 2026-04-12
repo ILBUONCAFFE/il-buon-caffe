@@ -261,6 +261,7 @@ adminOrdersRouter.get('/', auditLogMiddleware('view_order'), async (c) => {
     const db               = createDb(c.env.DATABASE_URL)
     const { page, limit } = parsePagination(c)
     const source   = c.req.query('source')   || ''
+    const queue    = c.req.query('queue')    || ''
     const status   = c.req.query('status')   || ''
     const from     = c.req.query('from')     || ''
     const to       = c.req.query('to')       || ''
@@ -270,8 +271,19 @@ adminOrdersRouter.get('/', auditLogMiddleware('view_order'), async (c) => {
 
     const validSources  = ['shop', 'allegro']
     const validStatuses = ['pending', 'paid', 'processing', 'shipped', 'delivered', 'cancelled']
+    const validQueues   = ['fulfillment', 'awaiting_payment']
 
     if (source  && validSources.includes(source))   conditions.push(eq(orders.source,  source  as any))
+    if (queue && validQueues.includes(queue)) {
+      if (queue === 'fulfillment') {
+        // Ready to pack/fulfil: paid or processing orders only.
+        conditions.push(inArray(orders.status, ['paid', 'processing']))
+      } else if (queue === 'awaiting_payment') {
+        // Allegro BOUGHT/FILLED_IN are persisted as pending until READY_FOR_PROCESSING arrives.
+        conditions.push(eq(orders.source, 'allegro'))
+        conditions.push(eq(orders.status, 'pending'))
+      }
+    }
     if (status  && validStatuses.includes(status))  conditions.push(eq(orders.status,  status  as any))
     if (from)   conditions.push(gte(orders.createdAt, new Date(from)))
     if (to)     conditions.push(lte(orders.createdAt, new Date(to)))

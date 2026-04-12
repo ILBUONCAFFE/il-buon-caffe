@@ -602,7 +602,7 @@ allegroRouter.get('/me', requireAdminOrProxy(), async (c) => {
 })
 
 // ── POST /sync/force ──────────────────────────────────────────────────────────
-// Manually trigger Allegro order sync (same logic as per-minute cron)
+// Manually trigger Allegro order sync (same logic as 3-minute cron)
 allegroRouter.post('/sync/force', requireAdminOrProxy(), async (c) => {
   try {
     const resetCursor = c.req.query('reset') === 'true'

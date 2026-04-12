@@ -42,6 +42,8 @@ function getShipmentBadgeClass(step: number, isIssue: boolean, isCancelled: bool
 
 const STATUS_TABS = [
   { key: 'all', label: 'Wszystkie' },
+  { key: 'fulfillment', label: 'Do realizacji/pakowania' },
+  { key: 'awaiting_payment', label: 'Oczekujace na wplate' },
   { key: 'pending', label: 'Oczekujace' },
   { key: 'paid', label: 'Oplacone' },
   { key: 'processing', label: 'W realizacji' },
@@ -51,6 +53,7 @@ const STATUS_TABS = [
 ]
 
 const LIMIT = 50
+const ALLEGRO_QUEUE_REFRESH_MS = 3 * 60 * 1000
 
 export const OrdersView = () => {
   const [orders, setOrders] = useState<AdminOrder[]>([])
@@ -83,7 +86,11 @@ export const OrdersView = () => {
 
     try {
       const params: OrdersQueryParams = { page, limit: LIMIT }
-      if (statusFilter !== 'all') params.status = statusFilter
+      if (statusFilter === 'fulfillment' || statusFilter === 'awaiting_payment') {
+        params.queue = statusFilter
+      } else if (statusFilter !== 'all') {
+        params.status = statusFilter
+      }
       if (sourceFilter) params.source = sourceFilter as 'shop' | 'allegro'
       if (search) params.search = search
       if (dateFrom) params.from = dateFrom
@@ -102,6 +109,17 @@ export const OrdersView = () => {
   useEffect(() => {
     fetchOrders()
   }, [fetchOrders])
+
+  useEffect(() => {
+    const shouldAutoRefresh = statusFilter === 'fulfillment' || statusFilter === 'awaiting_payment'
+    if (!shouldAutoRefresh) return
+
+    const timer = setInterval(() => {
+      void fetchOrders()
+    }, ALLEGRO_QUEUE_REFRESH_MS)
+
+    return () => clearInterval(timer)
+  }, [fetchOrders, statusFilter])
 
   useEffect(() => {
     return () => {

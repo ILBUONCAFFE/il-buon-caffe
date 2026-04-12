@@ -273,7 +273,7 @@ function serializePaidSweepCursor(cursor: PaidSweepCursor): string {
 
 /**
  * Cron guard: periodically check processing orders against Allegro.
- * Called from the 'every 5 minutes' cron trigger — runs in background via waitUntil.
+ * Called from the 'every 3 minutes' cron trigger — runs in background via waitUntil.
  *
  * Uses KV idle guard to avoid waking Neon when there are no processing orders.
  */
