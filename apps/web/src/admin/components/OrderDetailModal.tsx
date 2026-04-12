@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 import { adminApi } from '../lib/adminApiClient'
 import { resolveShipmentStatus } from '../lib/shipmentStatus'
@@ -120,7 +120,7 @@ function ShipmentTimeline({
           </p>
         )}
         {loading && (
-          <p className="text-[11px] text-[#A3A3A3] animate-pulse">Pobieranie statusu...</p>
+          <p className="text-[11px] text-[#A3A3A3] animate-pulse">Sprawdzam status przesylki...</p>
         )}
       </div>
     </div>
@@ -154,6 +154,7 @@ export function OrderDetailModal({
   const [tracking, setTracking] = useState<OrderTrackingSnapshot | null>(null)
   const [trackingLoading, setTrackingLoading] = useState(false)
   const [trackingError, setTrackingError] = useState<string | null>(null)
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const refreshTrackingSnapshot = useCallback(async (showError = true) => {
     if (!order) return
@@ -161,15 +162,47 @@ export function OrderDetailModal({
 
     setTrackingLoading(true)
     setTrackingError(null)
+
+    let scheduleRetry = false
     try {
       const res = await adminApi.refreshOrderTracking(order.id)
       setTracking(res.data)
-    } catch {
-      if (showError) {
+    } catch (err) {
+      const isAlreadyRefreshing =
+        err instanceof Error &&
+        (err.message.includes('409') ||
+         err.message.toLowerCase().includes('already') ||
+         err.message.toLowerCase().includes('refreshinprogress'))
+
+      if (isAlreadyRefreshing) {
+        scheduleRetry = true
+        retryTimerRef.current = setTimeout(async () => {
+          try {
+            const fresh = await adminApi.getOrder(order.id)
+            if (fresh?.data) {
+              setTracking({
+                trackingStatus: fresh.data.trackingStatus ?? null,
+                trackingStatusCode: fresh.data.trackingStatusCode ?? null,
+                trackingStatusUpdatedAt: fresh.data.trackingStatusUpdatedAt ?? null,
+                trackingLastEventAt: fresh.data.trackingLastEventAt ?? null,
+                trackingNumber: fresh.data.trackingNumber ?? null,
+                shipmentDisplayStatus: fresh.data.shipmentDisplayStatus ?? 'unknown',
+                shipmentFreshness: fresh.data.shipmentFreshness ?? 'unknown',
+              })
+            }
+          } catch {
+            // Ignore retry errors silently
+          } finally {
+            setTrackingLoading(false)
+          }
+        }, 10_000)
+      } else if (showError) {
         setTrackingError('Nie udalo sie odswiezyc statusu przesylki')
       }
     } finally {
-      setTrackingLoading(false)
+      if (!scheduleRetry) {
+        setTrackingLoading(false)
+      }
     }
   }, [order])
 
@@ -203,6 +236,7 @@ export function OrderDetailModal({
     return () => {
       document.removeEventListener('keydown', handleEscape)
       document.body.style.overflow = ''
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current)
     }
   }, [isOpen, onClose])
 
