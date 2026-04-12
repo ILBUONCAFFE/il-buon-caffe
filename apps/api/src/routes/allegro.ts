@@ -426,12 +426,20 @@ allegroRouter.post('/disconnect', requireAdminOrProxy(), async (c) => {
       .set({ isActive: false, updatedAt: new Date() })
       .where(eq(allegroCredentials.isActive, true))
 
-    // Clear KV tokens and status
+    // Clear KV tokens and mark disconnected status (prevents unnecessary DB polling in cron)
+    const disconnectedStatus: AllegroConnectionStatus = {
+      connected: false,
+      environment: null,
+      expiresAt: null,
+      tokenValid: false,
+    }
+
     await Promise.all([
       env.ALLEGRO_KV.delete(KV_KEYS.ACCESS_TOKEN),
       env.ALLEGRO_KV.delete(KV_KEYS.REFRESH_TOKEN),
       env.ALLEGRO_KV.delete(KV_KEYS.ENVIRONMENT),
-      env.ALLEGRO_KV.delete(KV_KEYS.STATUS),
+      env.ALLEGRO_KV.delete('allegro:token_expires_at'),
+      env.ALLEGRO_KV.put(KV_KEYS.STATUS, JSON.stringify(disconnectedStatus), { expirationTtl: 12 * 60 * 60 }),
     ])
 
     return c.json({ success: true, message: 'Rozłączono z Allegro' })

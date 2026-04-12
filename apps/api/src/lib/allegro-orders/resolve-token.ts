@@ -8,7 +8,7 @@
 import { createDb } from '@repo/db/client'
 import { allegroCredentials } from '@repo/db/schema'
 import { eq, desc } from 'drizzle-orm'
-import { KV_KEYS, getAllegroOAuthConfig, refreshAllegroToken, type AllegroEnvironment } from '../allegro'
+import { KV_KEYS, getAllegroOAuthConfig, refreshAllegroToken, AllegroInvalidGrantError, type AllegroConnectionStatus, type AllegroEnvironment } from '../allegro'
 import { decryptText, encryptText } from '../crypto'
 import type { Env } from '../../index'
 
@@ -20,11 +20,39 @@ const TOKEN_RESOLVE_BACKOFF_KV_KEY = 'allegro:token:resolve_backoff_until'
 const TOKEN_RESOLVE_BACKOFF_DB_MISS_MS = 10 * 60 * 1000
 const TOKEN_RESOLVE_BACKOFF_CONFIG_MS = 60 * 60 * 1000
 const TOKEN_RESOLVE_BACKOFF_ERROR_MS = 15 * 60 * 1000
+const TOKEN_RESOLVE_DISCONNECTED_STATUS_TTL_SECONDS = 12 * 60 * 60
+const TOKEN_RESOLVE_CONNECTED_STATUS_TTL_SECONDS = 15 * 60
 
 async function setResolveBackoff(kv: KVNamespace, delayMs: number): Promise<void> {
   const backoffUntil = Date.now() + delayMs
   const ttl = Math.max(Math.ceil(delayMs / 1000), 60)
   await kv.put(TOKEN_RESOLVE_BACKOFF_KV_KEY, String(backoffUntil), { expirationTtl: ttl }).catch(() => {})
+}
+
+async function setDisconnectedStatus(kv: KVNamespace): Promise<void> {
+  const status: AllegroConnectionStatus = {
+    connected: false,
+    environment: null,
+    expiresAt: null,
+    tokenValid: false,
+  }
+
+  await kv.put(KV_KEYS.STATUS, JSON.stringify(status), {
+    expirationTtl: TOKEN_RESOLVE_DISCONNECTED_STATUS_TTL_SECONDS,
+  }).catch(() => {})
+}
+
+async function setConnectedStatus(kv: KVNamespace, environment: AllegroEnvironment, expiresAt: Date): Promise<void> {
+  const status: AllegroConnectionStatus = {
+    connected: true,
+    environment,
+    expiresAt: expiresAt.toISOString(),
+    tokenValid: true,
+  }
+
+  await kv.put(KV_KEYS.STATUS, JSON.stringify(status), {
+    expirationTtl: TOKEN_RESOLVE_CONNECTED_STATUS_TTL_SECONDS,
+  }).catch(() => {})
 }
 
 /**
@@ -43,6 +71,11 @@ export async function resolveAccessToken(
   const backoffUntilRaw = await kv.get(TOKEN_RESOLVE_BACKOFF_KV_KEY)
   const backoffUntilMs = Number(backoffUntilRaw)
   if (Number.isFinite(backoffUntilMs) && backoffUntilMs > Date.now()) {
+    return null
+  }
+
+  const cachedStatus = await kv.get<AllegroConnectionStatus>(KV_KEYS.STATUS, 'json').catch(() => null)
+  if (cachedStatus?.connected === false) {
     return null
   }
 
@@ -66,7 +99,76 @@ export async function resolveAccessToken(
     }
   }
 
+  // If access token is missing from KV, try refresh token from KV before touching DB.
+  const [rawKvRefreshToken, kvEnvironmentRaw] = await Promise.all([
+    kv.get(KV_KEYS.REFRESH_TOKEN),
+    kv.get(KV_KEYS.ENVIRONMENT),
+  ])
+
+  const kvEnvironment = (kvEnvironmentRaw ?? env.ALLEGRO_ENVIRONMENT ?? 'sandbox') as AllegroEnvironment
+
+  if (rawKvRefreshToken) {
+    try {
+      const refreshToken = await decryptText(rawKvRefreshToken, encKey)
+      const oauthConfig = getAllegroOAuthConfig(env, kvEnvironment)
+
+      const tokens = await refreshAllegroToken({
+        refreshToken,
+        clientId: oauthConfig.clientId,
+        clientSecret: oauthConfig.clientSecret,
+        environment: kvEnvironment,
+      })
+
+      const accessToken = tokens.access_token
+      const expiresAt = new Date(Date.now() + tokens.expires_in * 1000)
+      const ttl = Math.max(Math.floor((expiresAt.getTime() - Date.now()) / 1000), 60)
+      const encAccess = await encryptText(tokens.access_token, encKey)
+      const encRefresh = await encryptText(tokens.refresh_token, encKey)
+
+      await Promise.all([
+        kv.put(KV_KEYS.ACCESS_TOKEN, encAccess, { expirationTtl: ttl }),
+        kv.put(KV_KEYS.REFRESH_TOKEN, encRefresh),
+        kv.put(KV_KEYS.ENVIRONMENT, kvEnvironment),
+        kv.put('allegro:token_expires_at', expiresAt.toISOString()),
+        setConnectedStatus(kv, kvEnvironment, expiresAt),
+      ]).catch(() => {})
+
+      // Best-effort DB backup update (rare path — only when token refresh is needed).
+      const scope = tokens.scope ?? null
+      const tokenType = tokens.token_type ?? 'Bearer'
+      await db.update(allegroCredentials)
+        .set({ isActive: false })
+        .where(eq(allegroCredentials.isActive, true))
+      await db.insert(allegroCredentials).values({
+        accessToken: encAccess,
+        refreshToken: encRefresh,
+        expiresAt,
+        tokenType,
+        scope,
+        isActive: true,
+        environment: kvEnvironment,
+        updatedAt: new Date(),
+      })
+
+      await kv.delete(TOKEN_RESOLVE_BACKOFF_KV_KEY).catch(() => {})
+      return accessToken
+    } catch (err) {
+      if (err instanceof AllegroInvalidGrantError) {
+        await Promise.all([
+          kv.delete(KV_KEYS.ACCESS_TOKEN),
+          kv.delete(KV_KEYS.REFRESH_TOKEN),
+          kv.delete('allegro:token_expires_at'),
+          setDisconnectedStatus(kv),
+        ]).catch(() => {})
+        await setResolveBackoff(kv, TOKEN_RESOLVE_BACKOFF_ERROR_MS)
+        throw err
+      }
+      // Continue with DB fallback as a recovery path.
+    }
+  }
+
   // KV TTL may have expired — restore from DB
+  let dbReadFailed = false
   let credRows: (typeof allegroCredentials.$inferSelect)[] = []
   try {
     credRows = await db
@@ -75,11 +177,16 @@ export async function resolveAccessToken(
       .where(eq(allegroCredentials.isActive, true))
       .orderBy(desc(allegroCredentials.updatedAt))
       .limit(1)
-  } catch { /* DB unavailable */ }
+  } catch {
+    dbReadFailed = true
+  }
 
   const cred = credRows[0]
   if (!cred) {
-    await setResolveBackoff(kv, TOKEN_RESOLVE_BACKOFF_DB_MISS_MS)
+    await setResolveBackoff(kv, dbReadFailed ? TOKEN_RESOLVE_BACKOFF_ERROR_MS : TOKEN_RESOLVE_BACKOFF_DB_MISS_MS)
+    if (!dbReadFailed) {
+      await setDisconnectedStatus(kv)
+    }
     return null
   }
 
@@ -134,7 +241,9 @@ export async function resolveAccessToken(
     await Promise.all([
       kv.put(KV_KEYS.ACCESS_TOKEN,  encAccess, { expirationTtl: ttl }),
       kv.put(KV_KEYS.REFRESH_TOKEN, encRefresh),
+      kv.put(KV_KEYS.ENVIRONMENT, allegroEnvCred),
       kv.put('allegro:token_expires_at', expiresAt.toISOString()),
+      setConnectedStatus(kv, allegroEnvCred, expiresAt),
     ]).catch(() => {})
   } else {
     // Token still valid in DB — restore to KV
@@ -147,7 +256,12 @@ export async function resolveAccessToken(
     }
     const encAccess = await encryptText(accessToken, encKey)
     const ttl = Math.max(Math.floor((cred.expiresAt.getTime() - Date.now()) / 1000), 60)
-    await kv.put(KV_KEYS.ACCESS_TOKEN, encAccess, { expirationTtl: ttl }).catch(() => {})
+    await Promise.all([
+      kv.put(KV_KEYS.ACCESS_TOKEN, encAccess, { expirationTtl: ttl }),
+      kv.put(KV_KEYS.ENVIRONMENT, allegroEnvCred),
+      kv.put('allegro:token_expires_at', cred.expiresAt.toISOString()),
+      setConnectedStatus(kv, allegroEnvCred, cred.expiresAt),
+    ]).catch(() => {})
   }
 
   await kv.delete(TOKEN_RESOLVE_BACKOFF_KV_KEY).catch(() => {})
