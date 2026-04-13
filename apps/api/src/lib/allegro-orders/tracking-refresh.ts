@@ -53,6 +53,60 @@ function formatDbError(err: unknown): string {
   return err.message
 }
 
+interface TrackingSnapshotState {
+  trackingNumber: string | null
+  trackingStatus: string | null
+  trackingStatusCode: string | null
+}
+
+interface RefreshOrderTrackingOptions {
+  tokenOverride?: ActiveAllegroToken
+  previousSnapshot?: TrackingSnapshotState
+}
+
+interface RefreshOrderTrackingOutcome {
+  before: TrackingSnapshotState
+  after: TrackingSnapshotState
+  changed: boolean
+}
+
+interface TrackingRefreshCandidate {
+  id: number
+  externalId: string
+  trackingNumber: string | null
+  trackingStatus: string | null
+  trackingStatusCode: string | null
+}
+
+function normalizeSnapshotState(value?: Partial<TrackingSnapshotState> | null): TrackingSnapshotState {
+  return {
+    trackingNumber: value?.trackingNumber ?? null,
+    trackingStatus: value?.trackingStatus ?? null,
+    trackingStatusCode: value?.trackingStatusCode ?? null,
+  }
+}
+
+function buildRefreshOutcome(
+  before: TrackingSnapshotState,
+  after: TrackingSnapshotState,
+): RefreshOrderTrackingOutcome {
+  return {
+    before,
+    after,
+    changed: before.trackingNumber !== after.trackingNumber
+      || before.trackingStatus !== after.trackingStatus
+      || before.trackingStatusCode !== after.trackingStatusCode,
+  }
+}
+
+function displayStatusCode(value: string | null): string {
+  return value ?? 'UNKNOWN'
+}
+
+function displayStatusText(value: string | null): string {
+  return value ?? 'brak'
+}
+
 // ── Tracking snapshot refresh ─────────────────────────────────────────────
 
 /**
@@ -69,10 +123,11 @@ export async function refreshOrderTrackingSnapshot(
   env: Env,
   orderId: number,
   checkoutFormId: string,
-  tokenOverride?: ActiveAllegroToken,
-): Promise<void> {
-  const token = tokenOverride ?? await getActiveAllegroToken(env)
-  if (!token) return
+  options?: RefreshOrderTrackingOptions,
+): Promise<RefreshOrderTrackingOutcome | null> {
+  const before = normalizeSnapshotState(options?.previousSnapshot)
+  const token = options?.tokenOverride ?? await getActiveAllegroToken(env)
+  if (!token) return null
 
   const headers = {
     ...allegroHeaders(token.accessToken),
@@ -84,7 +139,7 @@ export async function refreshOrderTrackingSnapshot(
     headers,
   })
 
-  if (!shipResp.ok) return
+  if (!shipResp.ok) return null
 
   const shipData = await shipResp.json() as {
     shipments?: Array<{ carrierId?: string; waybill?: string; trackingNumber?: string }>
@@ -104,30 +159,36 @@ export async function refreshOrderTrackingSnapshot(
         eq(orders.id, orderId),
         sql`${orders.trackingStatusUpdatedAt} IS NULL OR ${orders.trackingStatusUpdatedAt} < NOW() - INTERVAL '25 minutes'`,
       ))
-    return
+    return buildRefreshOutcome(before, before)
   }
 
   const now = new Date()
 
   if (!carrierId) {
+    const after = {
+      trackingNumber: waybill,
+      trackingStatus: 'Etykieta wygenerowana',
+      trackingStatusCode: 'LABEL_CREATED',
+    }
+
     await db.update(orders)
       .set({
-        trackingNumber: waybill,
-        trackingStatus: 'Etykieta wygenerowana',
-        trackingStatusCode: 'LABEL_CREATED',
+        trackingNumber: after.trackingNumber,
+        trackingStatus: after.trackingStatus,
+        trackingStatusCode: after.trackingStatusCode,
         trackingStatusUpdatedAt: now,
         updatedAt: now,
       })
       .where(and(
         eq(orders.id, orderId),
         sql`(
-          ${orders.trackingNumber} IS DISTINCT FROM ${waybill}
-          OR ${orders.trackingStatus} IS DISTINCT FROM ${'Etykieta wygenerowana'}
-          OR ${orders.trackingStatusCode} IS DISTINCT FROM ${'LABEL_CREATED'}
+          ${orders.trackingNumber} IS DISTINCT FROM ${after.trackingNumber}
+          OR ${orders.trackingStatus} IS DISTINCT FROM ${after.trackingStatus}
+          OR ${orders.trackingStatusCode} IS DISTINCT FROM ${after.trackingStatusCode}
           OR ${orders.trackingStatusUpdatedAt} IS NULL
         )`,
       ))
-    return
+    return buildRefreshOutcome(before, after)
   }
 
   const trackResp = await fetch(
@@ -136,22 +197,28 @@ export async function refreshOrderTrackingSnapshot(
   )
 
   if (!trackResp.ok) {
+    const after = {
+      trackingNumber: waybill,
+      trackingStatus: before.trackingStatus,
+      trackingStatusCode: 'LABEL_CREATED',
+    }
+
     await db.update(orders)
       .set({
-        trackingNumber: waybill,
-        trackingStatusCode: 'LABEL_CREATED',
+        trackingNumber: after.trackingNumber,
+        trackingStatusCode: after.trackingStatusCode,
         trackingStatusUpdatedAt: now,
         updatedAt: now,
       })
       .where(and(
         eq(orders.id, orderId),
         sql`(
-          ${orders.trackingNumber} IS DISTINCT FROM ${waybill}
-          OR ${orders.trackingStatusCode} IS DISTINCT FROM ${'LABEL_CREATED'}
+          ${orders.trackingNumber} IS DISTINCT FROM ${after.trackingNumber}
+          OR ${orders.trackingStatusCode} IS DISTINCT FROM ${after.trackingStatusCode}
           OR ${orders.trackingStatusUpdatedAt} IS NULL
         )`,
       ))
-    return
+    return buildRefreshOutcome(before, after)
   }
 
   const trackData = await trackResp.json() as Record<string, unknown>
@@ -202,12 +269,17 @@ export async function refreshOrderTrackingSnapshot(
   const latestOccurredRaw = latest?.occurredAt ?? latest?.time ?? latest?.date ?? null
   const latestOccurredAt = latestOccurredRaw == null ? null : toDateOrNull(String(latestOccurredRaw))
   const shouldMarkDelivered = shouldAutoMarkDelivered(latestCode)
+  const after = {
+    trackingNumber: waybill,
+    trackingStatus: latestDescription,
+    trackingStatusCode: latestCode,
+  }
 
   await db.update(orders)
     .set({
-      trackingNumber: waybill,
-      trackingStatus: latestDescription,
-      trackingStatusCode: latestCode,
+      trackingNumber: after.trackingNumber,
+      trackingStatus: after.trackingStatus,
+      trackingStatusCode: after.trackingStatusCode,
       trackingStatusUpdatedAt: now,
       trackingLastEventAt: latestOccurredAt,
       updatedAt: now,
@@ -215,9 +287,9 @@ export async function refreshOrderTrackingSnapshot(
     .where(and(
       eq(orders.id, orderId),
       sql`(
-        ${orders.trackingNumber} IS DISTINCT FROM ${waybill}
-        OR ${orders.trackingStatus} IS DISTINCT FROM ${latestDescription}
-        OR ${orders.trackingStatusCode} IS DISTINCT FROM ${latestCode}
+        ${orders.trackingNumber} IS DISTINCT FROM ${after.trackingNumber}
+        OR ${orders.trackingStatus} IS DISTINCT FROM ${after.trackingStatus}
+        OR ${orders.trackingStatusCode} IS DISTINCT FROM ${after.trackingStatusCode}
         OR ${orders.trackingLastEventAt} IS DISTINCT FROM ${latestOccurredAt}
         OR ${orders.trackingStatusUpdatedAt} IS NULL
       )`,
@@ -236,6 +308,8 @@ export async function refreshOrderTrackingSnapshot(
         eq(orders.status, 'shipped'),
       ))
   }
+
+  return buildRefreshOutcome(before, after)
 }
 
 // ── One-time backfill ─────────────────────────────────────────────────────
@@ -278,7 +352,9 @@ export async function runTrackingBackfillPage(
   for (let i = 0; i < candidates.length; i += BACKFILL_CONCURRENCY) {
     await Promise.allSettled(
       candidates.slice(i, i + BACKFILL_CONCURRENCY).map((order) =>
-        refreshOrderTrackingSnapshot(db, env, order.id, order.externalId, token),
+        refreshOrderTrackingSnapshot(db, env, order.id, order.externalId, {
+          tokenOverride: token,
+        }),
       ),
     )
   }
@@ -313,11 +389,17 @@ export const TRACKING_ACTIVE_KV_KEY = 'allegro:tracking:has_active_orders'
  */
 export async function selectTrackingRefreshCandidates(
   db: ReturnType<typeof createDb>,
-): Promise<Array<{ id: number; externalId: string }>> {
+): Promise<TrackingRefreshCandidate[]> {
   const cutoffDate = new Date(Date.now() - HARD_CUTOFF_DAYS * 24 * 60 * 60 * 1000)
 
   const rows = await db
-    .select({ id: orders.id, externalId: orders.externalId })
+    .select({
+      id: orders.id,
+      externalId: orders.externalId,
+      trackingNumber: orders.trackingNumber,
+      trackingStatus: orders.trackingStatus,
+      trackingStatusCode: orders.trackingStatusCode,
+    })
     .from(orders)
     .where(
       and(
@@ -367,7 +449,7 @@ export async function selectTrackingRefreshCandidates(
     )
     .limit(BATCH_SIZE)
 
-  return rows.filter((r): r is { id: number; externalId: string } => r.externalId !== null)
+  return rows.filter((r): r is TrackingRefreshCandidate => r.externalId !== null)
 }
 
 /**
@@ -385,7 +467,7 @@ export async function runTrackingStatusSync(env: Env): Promise<void> {
 
   const db = createDb(env.DATABASE_URL)
 
-  let candidates: Array<{ id: number; externalId: string }>
+  let candidates: TrackingRefreshCandidate[]
   try {
     candidates = await selectTrackingRefreshCandidates(db)
   } catch (err) {
@@ -407,6 +489,13 @@ export async function runTrackingStatusSync(env: Env): Promise<void> {
 
   let refreshed = 0
   let subrequestLimitHit = false
+  const refreshTransitions: Array<{
+    orderId: number
+    checkoutFormId: string
+    before: TrackingSnapshotState
+    after: TrackingSnapshotState
+    changed: boolean
+  }> = []
 
   for (let i = 0; i < candidates.length; i += CONCURRENCY) {
     const slice = candidates.slice(i, i + CONCURRENCY)
@@ -419,8 +508,24 @@ export async function runTrackingStatusSync(env: Env): Promise<void> {
 
         await env.ALLEGRO_KV.put(lockKey, String(Date.now()), { expirationTtl: 180 })
         try {
-          await refreshOrderTrackingSnapshot(db, env, order.id, order.externalId, token)
-          refreshed++
+          const outcome = await refreshOrderTrackingSnapshot(db, env, order.id, order.externalId, {
+            tokenOverride: token,
+            previousSnapshot: {
+              trackingNumber: order.trackingNumber,
+              trackingStatus: order.trackingStatus,
+              trackingStatusCode: order.trackingStatusCode,
+            },
+          })
+          if (outcome) {
+            refreshed++
+            refreshTransitions.push({
+              orderId: order.id,
+              checkoutFormId: order.externalId,
+              before: outcome.before,
+              after: outcome.after,
+              changed: outcome.changed,
+            })
+          }
         } finally {
           await env.ALLEGRO_KV.delete(lockKey).catch(() => {})
         }
@@ -445,6 +550,14 @@ export async function runTrackingStatusSync(env: Env): Promise<void> {
 
   if (subrequestLimitHit) {
     console.warn('[TrackingSync] Osiągnięto limit subrequestów — dokończę pozostałe zamówienia w kolejnym cyklu crona')
+  }
+
+  for (const transition of refreshTransitions) {
+    const trackingNo = transition.after.trackingNumber ?? transition.before.trackingNumber ?? 'brak'
+    const suffix = transition.changed ? '' : ' [bez zmian]'
+    console.log(
+      `[TrackingSync] Przesyłka #${transition.orderId} (${transition.checkoutFormId}, waybill: ${trackingNo}) ${displayStatusCode(transition.before.trackingStatusCode)} (${displayStatusText(transition.before.trackingStatus)}) -> ${displayStatusCode(transition.after.trackingStatusCode)} (${displayStatusText(transition.after.trackingStatus)})${suffix}`,
+    )
   }
 
   if (refreshed > 0) {
