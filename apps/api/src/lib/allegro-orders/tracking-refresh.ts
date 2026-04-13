@@ -225,14 +225,15 @@ export async function refreshOrderTrackingSnapshot(
     .filter((shipment): shipment is ShipmentCandidate => shipment.waybill.length > 0)
 
   if (shipmentCandidates.length === 0) {
-    // No waybill yet — mark as checked so this order doesn't flood batch slots on every cron run.
-    // Use 30-min cooldown (same as IN_TRANSIT) so we keep polling until the carrier assigns one.
+    // No waybill yet — write timestamp only on the first check (IS NULL).
+    // Subsequent cooldown is handled entirely by the selector's CASE interval,
+    // so writing repeatedly would just wake Neon without changing anything.
     const now = new Date()
     await db.update(orders)
       .set({ trackingStatusUpdatedAt: now, updatedAt: now })
       .where(and(
         eq(orders.id, orderId),
-        sql`${orders.trackingStatusUpdatedAt} IS NULL OR ${orders.trackingStatusUpdatedAt} < NOW() - INTERVAL '25 minutes'`,
+        sql`${orders.trackingStatusUpdatedAt} IS NULL`,
       ))
     return buildRefreshOutcome(before, before)
   }
@@ -331,6 +332,8 @@ export async function refreshOrderTrackingSnapshot(
 
   if (shouldMarkDelivered) {
     // Carrier-level delivery confirmation is authoritative for the final transition.
+    // Allow processing → delivered for orders that were never manually marked shipped
+    // (e.g. Allegro fulfillment went SENT → DELIVERED without an intermediate admin action).
     await db.update(orders)
       .set({
         status: 'delivered',
@@ -339,7 +342,7 @@ export async function refreshOrderTrackingSnapshot(
       })
       .where(and(
         eq(orders.id, orderId),
-        eq(orders.status, 'shipped'),
+        inArray(orders.status, ['shipped', 'processing']),
       ))
   }
 
