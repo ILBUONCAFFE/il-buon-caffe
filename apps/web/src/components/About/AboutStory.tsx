@@ -5,6 +5,7 @@ import { motion, useScroll, useTransform } from "motion/react";
 import Image from "next/image";
 
 const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
+const R2_MEDIA_BASE = process.env.NEXT_PUBLIC_R2_MEDIA_URL || "https://media.ilbuoncaffe.pl";
 
 const CHAPTERS = [
   {
@@ -19,12 +20,12 @@ const CHAPTERS = [
   },
   {
     year: "2010",
-    title: "Doszła\npiekarnia",
+    title: "Doszły\nwypieki",
     body: [
-      "Do kawy doszły wypieki. Chleby na zakwasie, rogale maślane, ciasta — wszystko robione ręcznie, każdego ranka, od zera. Bez gotowych mieszanek.",
-      "Goście zaczęli przychodzić po kawę i wychodzić z torbą wypieków. Włosi mieszkający w Koszalinie mówili, że smakuje jak u nich.",
+      "Do dobrej kawy dołączyły domowe wypieki. Katarzyna zaczęła ręcznie wypiekać rzemieślnicze chleby, i to jej praca każdego ranka nadawała rytm kawiarni.",
+      "Dziś już u nas nie pieczemy bochenków, ale domowa tradycja przetrwała — teraz to Darek przygotowuje swój autorski, domowy sernik, którego pieczenia uczyła go właśnie Katarzyna.",
     ],
-    image: "/assets/about-bakery.png",
+    image: `${R2_MEDIA_BASE}/about-us/wypieki.jpg`,
     imageAlt: "Rzemieślnicze wypieki Il Buon Caffe",
   },
   {

@@ -51,9 +51,11 @@ export const AboutTeam: React.FC = () => {
           transition={{ duration: 0.9, delay: 0.08, ease: EASE }}
           className="text-base md:text-lg leading-[1.85] text-brand-500 max-w-xl mb-6"
         >
-          Jedno z nas parzy kawę. Drugie piecze chleb. Razem decydujemy, co
-          trafia na półkę — i żadne z nas nie odpowiada przed nikim poza
-          gośćmi, którzy tu przychodzą.
+          Przez wiele lat to Katarzyna świtem ranka wypiekała nasze rzemieślnicze chleby. 
+          Dzisiaj już tego nie robimy, ale jej pasja została z nami — 
+          teraz to Darek przygotowuje swój autorski sernik, którego pieczenia 
+          nauczył się od żony. Razem decydujemy, co trafia na półkę i nie 
+          odpowiadamy przed nikim poza gośćmi, którzy tu przychodzą.
         </motion.p>
 
         {/* Third paragraph */}
@@ -66,8 +68,8 @@ export const AboutTeam: React.FC = () => {
         >
           Przez wszystkie te lata nie wzięliśmy ani złotówki od inwestorów.
           Nie musieliśmy tłumaczyć nikomu, jakie mamy wyniki kwartalne.
-          Zamiast tego — codziennie rano wstajemy wcześnie, żeby chleb był
-          gotowy przed otwarciem.
+          Zamiast tego — codziennie rano po prostu otwieramy drzwi naszego 
+          miejsca, dbając, by wszystko smakowało tak, jak we Włoszech.
         </motion.p>
 
         {/* Closing statement — typographic */}
