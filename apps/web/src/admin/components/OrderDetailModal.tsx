@@ -254,7 +254,7 @@ export function OrderDetailModal({
   const effectiveTrackingStatusUpdatedAt = tracking?.trackingStatusUpdatedAt ?? order.trackingStatusUpdatedAt ?? null
   const effectiveShipmentDisplayStatus = tracking?.shipmentDisplayStatus ?? order.shipmentDisplayStatus ?? 'unknown'
   const resolvedShipmentStatus = resolveShipmentStatus({
-    status: order.status,
+    status: tracking?.status ?? order.status,
     shipmentDisplayStatus: effectiveShipmentDisplayStatus,
     allegroFulfillmentStatus: order.allegroFulfillmentStatus,
   })

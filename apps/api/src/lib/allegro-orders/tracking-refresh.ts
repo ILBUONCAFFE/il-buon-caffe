@@ -441,7 +441,7 @@ export async function selectTrackingRefreshCandidates(
         or(
           inArray(orders.status, ['shipped', 'delivered']),
           and(
-            eq(orders.status, 'processing'),
+            inArray(orders.status, ['processing', 'paid', 'pending']),
             inArray(orders.allegroFulfillmentStatus, ['SENT', 'PICKED_UP']),
           ),
         ),
