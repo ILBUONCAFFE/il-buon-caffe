@@ -143,6 +143,9 @@ const POLAND_TIME_ZONE = 'Europe/Warsaw'
 const NIGHT_THINNING_START_HOUR = 22
 const NIGHT_THINNING_END_HOUR = 7
 const NIGHT_SYNC_INTERVAL_MINUTES = 60
+const ORDER_SYNC_CRON = '*/10 * * * *'
+const TRACKING_SYNC_CRON = '5,15,25,35,45,55 * * * *'
+const TRACKING_SYNC_NIGHT_MINUTE = 5
 const QUALITY_PREWARM_WINDOW_START_HOUR = 1
 const QUALITY_PREWARM_WINDOW_END_HOUR = 5
 
@@ -326,9 +329,10 @@ export default {
     setHttpMode(true, env.DATABASE_URL)
 
     // "0 * * * *"   — hourly token refresh + daily retention cleanup (+ quality prewarm in PL-night window)
-    // "*/10 * * * *" — every 10 min Allegro order polling; in Poland night (22:00-06:59) thinned to every 60 min
+    // "*/10 * * * *" — every 10 min Allegro order polling + reconcile; in Poland night (22:00-06:59) thinned to every 60 min
+    // "5,15,25,35,45,55 * * * *" — every 10 min (offset +5) tracking refresh; separate invocation to keep subrequest budget isolated
     // "0 3 * * *"   — daily at 04:00 CET / 05:00 CEST (03:00 UTC) — backfill exchange rates (total_pln)
-    if (event.cron === '*/10 * * * *') {
+    if (event.cron === ORDER_SYNC_CRON) {
       const { hour, minute } = getPolandClock()
       if (isPolandNightHour(hour) && minute % NIGHT_SYNC_INTERVAL_MINUTES !== 0) {
         console.log(`[Cron] Poland night thinning (${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}) — skip 10-min cycle`)
@@ -345,9 +349,24 @@ export default {
       }
 
       ctx.waitUntil(syncAllegroOrders(env))
-      ctx.waitUntil(runTrackingStatusSync(env))
       ctx.waitUntil(reconcileStaleProcessing(env))
       ctx.waitUntil(reconcileHourlyPaidOrders(env))
+    } else if (event.cron === TRACKING_SYNC_CRON) {
+      const { hour, minute } = getPolandClock()
+      if (isPolandNightHour(hour) && minute !== TRACKING_SYNC_NIGHT_MINUTE) {
+        console.log(`[Cron] Poland night thinning (${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}) — skip tracking cycle`)
+        return
+      }
+
+      if (env.ALLEGRO_KV) {
+        const allegroStatus = await env.ALLEGRO_KV.get<{ connected: boolean }>(KV_KEYS.STATUS, 'json')
+        if (allegroStatus?.connected === false) {
+          console.log('[Cron] Allegro disconnected (KV status) — skip tracking sync')
+          return
+        }
+      }
+
+      ctx.waitUntil(runTrackingStatusSync(env))
     } else if (event.cron === '0 3 * * *') {
       // Daily at 04:00 CET (03:00 UTC) — backfill exchange rates for foreign currency orders
       ctx.waitUntil(backfillExchangeRates(env))

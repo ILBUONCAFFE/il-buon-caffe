@@ -5,7 +5,7 @@
 import { createDb } from '@repo/db/client'
 import { orders } from '@repo/db/schema'
 import { and, eq, inArray, isNotNull, sql } from 'drizzle-orm'
-import { getActiveAllegroToken } from '../allegro-tokens'
+import { getActiveAllegroToken, type ActiveAllegroToken } from '../allegro-tokens'
 import { allegroHeaders } from './helpers'
 import type { Env } from '../../index'
 
@@ -69,8 +69,9 @@ export async function refreshOrderTrackingSnapshot(
   env: Env,
   orderId: number,
   checkoutFormId: string,
+  tokenOverride?: ActiveAllegroToken,
 ): Promise<void> {
-  const token = await getActiveAllegroToken(env)
+  const token = tokenOverride ?? await getActiveAllegroToken(env)
   if (!token) return
 
   const headers = {
@@ -269,11 +270,15 @@ export async function runTrackingBackfillPage(
     .offset(page * BACKFILL_PAGE_SIZE)
 
   const candidates = rows.filter((r): r is { id: number; externalId: string } => r.externalId !== null)
+  const token = await getActiveAllegroToken(env)
+  if (!token) {
+    return { processed: 0, hasMore: candidates.length === BACKFILL_PAGE_SIZE }
+  }
 
   for (let i = 0; i < candidates.length; i += BACKFILL_CONCURRENCY) {
     await Promise.allSettled(
       candidates.slice(i, i + BACKFILL_CONCURRENCY).map((order) =>
-        refreshOrderTrackingSnapshot(db, env, order.id, order.externalId),
+        refreshOrderTrackingSnapshot(db, env, order.id, order.externalId, token),
       ),
     )
   }
@@ -283,8 +288,8 @@ export async function runTrackingBackfillPage(
 
 // ── Cron batch refresh ────────────────────────────────────────────────────
 
-const BATCH_SIZE = 12   // 12 orders × 3 fetches = 36 subreqs, + 1 DB select = 37 < 50 (Workers Free limit)
-const CONCURRENCY = 3
+const BATCH_SIZE = 5
+const CONCURRENCY = 2
 const HARD_CUTOFF_DAYS = 30
 const TRACKING_IDLE_TTL_SECONDS = 24 * 60 * 60
 
@@ -401,6 +406,7 @@ export async function runTrackingStatusSync(env: Env): Promise<void> {
   }
 
   let refreshed = 0
+  let subrequestLimitHit = false
 
   for (let i = 0; i < candidates.length; i += CONCURRENCY) {
     const slice = candidates.slice(i, i + CONCURRENCY)
@@ -413,7 +419,7 @@ export async function runTrackingStatusSync(env: Env): Promise<void> {
 
         await env.ALLEGRO_KV.put(lockKey, String(Date.now()), { expirationTtl: 180 })
         try {
-          await refreshOrderTrackingSnapshot(db, env, order.id, order.externalId)
+          await refreshOrderTrackingSnapshot(db, env, order.id, order.externalId, token)
           refreshed++
         } finally {
           await env.ALLEGRO_KV.delete(lockKey).catch(() => {})
@@ -421,11 +427,24 @@ export async function runTrackingStatusSync(env: Env): Promise<void> {
       }),
     )
 
+    let shouldStopBatch = false
     for (const result of results) {
       if (result.status === 'rejected') {
-        console.warn('[TrackingSync] Błąd odświeżania trackingu:', formatDbError(result.reason))
+        const message = formatDbError(result.reason)
+        if (message.toLowerCase().includes('too many subrequests')) {
+          subrequestLimitHit = true
+          shouldStopBatch = true
+          continue
+        }
+        console.warn('[TrackingSync] Błąd odświeżania trackingu:', message)
       }
     }
+
+    if (shouldStopBatch) break
+  }
+
+  if (subrequestLimitHit) {
+    console.warn('[TrackingSync] Osiągnięto limit subrequestów — dokończę pozostałe zamówienia w kolejnym cyklu crona')
   }
 
   if (refreshed > 0) {
