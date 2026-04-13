@@ -369,12 +369,14 @@ export default {
       ctx.waitUntil(reconcileHourlyPaidOrders(env))
     } else if (isTrackingSyncCronExpression(cronExpr)) {
       const { hour, minute } = getPolandClock()
-      console.log(`[TrackingSync Cron] Tick expression=${cronExpr}, PL time=${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`)
 
+      // Night thinning: only the :05 tick runs during Poland night (22–07).
+      // Check before logging so the 5 skipped invocations per hour leave no log noise.
       if (isPolandNightHour(hour) && minute !== TRACKING_SYNC_NIGHT_MINUTE) {
-        console.log(`[Cron] Poland night thinning (${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}) — skip tracking cycle`)
         return
       }
+
+      console.log(`[TrackingSync Cron] Tick expression=${cronExpr}, PL time=${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`)
 
       if (env.ALLEGRO_KV) {
         const allegroStatus = await env.ALLEGRO_KV.get<{ connected: boolean }>(KV_KEYS.STATUS, 'json')

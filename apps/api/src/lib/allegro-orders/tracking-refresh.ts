@@ -359,11 +359,23 @@ const BACKFILL_CONCURRENCY = 3
  * No cooldown filter — every order with externalId and trackingNumber is eligible.
  * Returns { processed, hasMore } so the caller can chain to the next page.
  */
+const BACKFILL_LOCK_KEY = 'allegro:tracking:backfill:lock'
+const BACKFILL_LOCK_TTL = 5 * 60 // 5 minutes
+
 export async function runTrackingBackfillPage(
   db: ReturnType<typeof createDb>,
   env: Env,
   page: number,
 ): Promise<{ processed: number; hasMore: boolean }> {
+  // Prevent concurrent backfill calls from duplicating Allegro subrequests.
+  const existing = await env.ALLEGRO_KV.get(BACKFILL_LOCK_KEY)
+  if (existing) {
+    console.log('[TrackingBackfill] Lock held — skipping concurrent call')
+    return { processed: 0, hasMore: false }
+  }
+  await env.ALLEGRO_KV.put(BACKFILL_LOCK_KEY, '1', { expirationTtl: BACKFILL_LOCK_TTL })
+
+  try {
   const cutoff = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000)
 
   const rows = await db
@@ -396,7 +408,10 @@ export async function runTrackingBackfillPage(
     )
   }
 
-  return { processed: candidates.length, hasMore: candidates.length === BACKFILL_PAGE_SIZE }
+    return { processed: candidates.length, hasMore: candidates.length === BACKFILL_PAGE_SIZE }
+  } finally {
+    await env.ALLEGRO_KV.delete(BACKFILL_LOCK_KEY)
+  }
 }
 
 // ── Cron batch refresh ────────────────────────────────────────────────────

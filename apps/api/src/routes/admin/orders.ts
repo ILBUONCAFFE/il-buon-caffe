@@ -78,6 +78,13 @@ function mapShipmentDisplayStatus(input: {
       code.includes('CREATED') ||
       code.includes('REGISTERED')
     ) return 'label_created'
+    if (
+      code.includes('EXCEPTION') ||
+      code.includes('FAILED') ||
+      code.includes('RETURN') ||
+      code.includes('UNDELIVERED') ||
+      code.includes('REFUSED')
+    ) return 'issue'
     return 'none'
   }
 
