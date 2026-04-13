@@ -4,7 +4,7 @@
 
 import { createDb } from '@repo/db/client'
 import { orders } from '@repo/db/schema'
-import { and, eq, inArray, isNotNull, sql } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull, or, sql } from 'drizzle-orm'
 import { getActiveAllegroToken, type ActiveAllegroToken } from '../allegro-tokens'
 import { allegroHeaders } from './helpers'
 import type { Env } from '../../index'
@@ -438,9 +438,17 @@ export async function selectTrackingRefreshCandidates(
     .where(
       and(
         eq(orders.source, 'allegro'),
-        inArray(orders.status, ['shipped', 'delivered']),
+        or(
+          inArray(orders.status, ['shipped', 'delivered']),
+          and(
+            eq(orders.status, 'processing'),
+            inArray(orders.allegroFulfillmentStatus, ['SENT', 'PICKED_UP']),
+          ),
+        ),
         isNotNull(orders.externalId),
-        sql`COALESCE(${orders.shippedAt}, ${orders.createdAt}) > ${cutoffDate}`,
+        // Use updatedAt fallback so recently changed legacy orders (missing shippedAt)
+        // are still eligible for tracking refresh.
+        sql`COALESCE(${orders.shippedAt}, ${orders.updatedAt}, ${orders.createdAt}) > ${cutoffDate}`,
         sql`(
           ${orders.trackingStatusUpdatedAt} IS NULL
           OR ${orders.trackingStatusUpdatedAt} < NOW() - (
