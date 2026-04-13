@@ -531,9 +531,11 @@ export async function reconcileOrder(
       ...(trackingSnapshotCode && {
         trackingStatusCode: trackingSnapshotCode,
         trackingStatus: trackingSnapshotLabel,
-        // trackingStatusUpdatedAt is intentionally omitted when isSent without a waybill,
-        // so getShipmentFreshness returns 'stale'/'unknown' and the cron fetches the waybill immediately.
-        // For cancelled orders the field is also left as-is (no tracking to refresh).
+        // Reset trackingStatusUpdatedAt to null when isSent so the cron picks it up immediately
+        // on the next run (via IS NULL branch in selectTrackingRefreshCandidates), even if the
+        // field was already set by a previous backfill or TrackingSync run.
+        // For cancelled orders, stamp the current time (no further tracking expected).
+        ...(isSent      && { trackingStatusUpdatedAt: null }),
         ...(isCancelled && { trackingStatusUpdatedAt: new Date() }),
       }),
       ...(newLocalStatus === 'cancelled' && { status: 'cancelled' as const }),
