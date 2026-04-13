@@ -52,17 +52,15 @@ export const ProductCard: React.FC<{
 
   // Custom restricted overlay component
   const RestrictedOverlay = () => (
-    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-brand-50/60 backdrop-blur-sm rounded-2xl border border-brand-200/50 p-4 text-center transition-all duration-300 group-hover:bg-brand-50/40">
-      <div className="w-12 h-12 rounded-full bg-brand-900 text-white flex items-center justify-center mb-3 shadow-lg">
-        <span className="font-serif font-bold text-lg">18+</span>
-      </div>
-      <p className="text-xs font-bold text-brand-900 uppercase tracking-wider mb-2">
-        Treść dostępna dla pełnoletnich
+    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-brand-900 p-4">
+      <span className="font-serif font-bold text-3xl text-white mb-2">18+</span>
+      <p className="text-[10px] font-bold text-brand-100 uppercase tracking-[0.1em] mb-3">
+        Dla pełnoletnich
       </p>
       <button
-        className="text-[10px] underline text-brand-600 hover:text-brand-900 transition-colors"
+        className="text-[10px] uppercase font-bold tracking-wider underline text-white hover:text-brand-200 transition-colors"
       >
-        Potwierdź wiek
+        Otwórz
       </button>
     </div>
   );
@@ -73,7 +71,7 @@ export const ProductCard: React.FC<{
         onClick={isRestricted ? handleRestrictedClick : () => router.push(productUrl)}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className="group relative flex gap-6 p-5 bg-white rounded-2xl hover:shadow-xl transition-all duration-500 cursor-pointer border border-brand-100 hover:border-brand-200 overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-700"
+        className="group relative flex gap-6 p-5 bg-white transition-colors cursor-pointer border-b border-brand-100 hover:border-brand-200 overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-700"
         role="button"
         tabIndex={0}
         onKeyDown={(e) => {
@@ -87,13 +85,13 @@ export const ProductCard: React.FC<{
         {isRestricted && <RestrictedOverlay />}
 
         <div
-          className={`w-36 h-36 rounded-xl flex-shrink-0 bg-gradient-to-b from-brand-50 to-brand-100/50 relative transition-all duration-300 group-hover:shadow-lg ${isRestricted ? 'blur-sm opacity-50' : ''}`}
+          className={`w-36 h-36 flex-shrink-0 bg-brand-50/50 relative transition-colors group-hover:bg-brand-50 ${isRestricted ? 'opacity-20' : ''}`}
         >
           <Image
             src={imageUrl}
             alt={product.name}
             fill
-            className="object-contain p-2 transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:scale-[1.05]"
+            className="object-contain p-3 transition-transform duration-300"
             sizes="144px"
           />
           {product.isNew && !isRestricted && (
@@ -142,7 +140,7 @@ export const ProductCard: React.FC<{
       onClick={isRestricted ? handleRestrictedClick : () => router.push(productUrl)}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="group relative cursor-pointer flex flex-col h-full overflow-hidden rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-700"
+      className="group relative cursor-pointer flex flex-col h-full overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-700"
       role="button"
       tabIndex={0}
       onKeyDown={(e) => {
@@ -155,33 +153,28 @@ export const ProductCard: React.FC<{
     >
        {/* Height constraint wrapper to ensure overlay fits */}
        {isRestricted && (
-          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-brand-50/60 backdrop-blur-md border border-brand-200/50 p-4 text-center transition-all duration-300 group-hover:bg-brand-50/40">
-            <div className="w-16 h-16 rounded-full bg-brand-900 text-white flex items-center justify-center mb-4 shadow-xl">
-              <span className="font-serif font-bold text-xl">18+</span>
-            </div>
-            <p className="text-sm font-bold text-brand-900 uppercase tracking-wider mb-2">
+          <div className="absolute z-20 w-full aspect-[3/4] top-0 flex flex-col items-center justify-center bg-brand-900 border border-brand-900 p-4 text-center">
+            <span className="font-serif font-bold text-4xl text-white mb-2">18+</span>
+            <p className="text-[11px] font-bold text-brand-100 uppercase tracking-[0.1em] mb-4">
               Tylko dla dorosłych
             </p>
-            <span className="text-xs text-brand-600 underline">
-              Kliknij, aby potwierdzić wiek
+            <span className="text-[10px] uppercase font-bold tracking-wider underline text-white">
+              Kliknij
             </span>
           </div>
         )}
 
       <div
-        className={`relative aspect-[3/4] rounded-2xl mb-5 bg-gradient-to-b from-brand-50 to-brand-100/50 transition-all duration-500 group-hover:-translate-y-2 group-hover:shadow-xl overflow-hidden ${isRestricted ? 'blur-sm opacity-40' : ''}`}
+        className={`relative aspect-[3/4] mb-5 bg-brand-50/50 transition-colors group-hover:bg-brand-50 overflow-hidden ${isRestricted ? 'opacity-20' : ''}`}
       >
         {/* Image */}
         <Image
           src={imageUrl}
           alt={product.name}
           fill
-          className="object-contain p-3 transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:scale-[1.05]"
+          className="object-contain p-3 transition-transform duration-300"
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
         />
-
-        {/* Subtle overlay on hover */}
-        <div className="absolute inset-0 rounded-2xl bg-brand-900/0 group-hover:bg-brand-900/5 transition-colors duration-700 pointer-events-none" />
 
         {!isRestricted && (
           <>

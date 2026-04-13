@@ -134,10 +134,9 @@ export const FilterContent: React.FC<FilterContentProps> = ({
           >
             <span
               className={
-                selectedCategory === cat.id ? "text-brand-300" : "text-brand-400"
+                selectedCategory === cat.id ? "text-brand-300 font-bold" : "text-brand-400"
               }
             >
-              {cat.icon}
             </span>
             {cat.name}
             {selectedCategory === cat.id && (

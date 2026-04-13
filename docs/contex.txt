@@ -1,0 +1,254 @@
+                                                                                                                                                                                                        
+  ---                                                                                                                                                                                                    
+  1. Znaleziska krytyczne i wysokiego ryzyka                                                                                                                                                             
+                                                                                                                                                                                                         
+  ---                                                                                                                                                                                                    
+  [HIGH] CF-1: DB write na każde zamówienie bez listu przewozowego — Neon nigdy nie śpi                                                                                                                  
+
+  Symptom: Każde zamówienie w statusie shipped/processing+SENT, któremu Allegro jeszcze nie przypisało listu przewozowego, generuje zapis do DB co ~25 minut.
+
+  Wpływ biznesowy: Neon pozostaje aktywny przez całą dobę bez realnego ruchu, generując koszty compute i rachitując ideę KV idle guard.
+
+  Przyczyna źródłowa: tracking-refresh.ts:227-238 — gdy Allegro zwróci 0 przesyłek dla zamówienia, funkcja wykonuje bezwarunkowy db.update(orders).set({ trackingStatusUpdatedAt: now }). Cooldown 25
+  minut zapobiega zbyt częstym zapisom, ale nie zeruje aktywności — zamówienie jest zawsze kandydatem do odświeżania dopóki nie pojawi się list przewozowy.
+
+  // tracking-refresh.ts:227-238
+  if (shipmentCandidates.length === 0) {
+    await db.update(orders)
+      .set({ trackingStatusUpdatedAt: now, updatedAt: now })
+      .where(and(
+        eq(orders.id, orderId),
+        sql`${orders.trackingStatusUpdatedAt} IS NULL OR ...`
+      ))
+    return buildRefreshOutcome(before, before)
+  }
+
+  Reprodukcja: Opłać zamówienie Allegro. Zanim kurier przypisze numer śledzenia (minuty–godziny), każdy cron trackingowy uderza w Allegro /shipments, nie dostaje nic, i zapisuje timestamp do DB. Neon
+  nie śpi.
+
+  ---
+  [HIGH] CF-4: Przejście processing → delivered nigdy nie zachodzi automatycznie
+
+  Symptom: Jeśli admin nie oznaczy zamówienia jako shipped przed tym jak kurier dostarczy paczkę, zamówienie zostaje w processing na zawsze — mimo że tracking potwierdza dostarczenie.
+
+  Wpływ biznesowy: Admin widzi zamówienie jako otwarte (processing), klient może składać reklamacje "gdzie jest paczka", wysyłane są niepotrzebne powiadomienia.
+
+  Przyczyna źródłowa: tracking-refresh.ts:332-344 — filtr eq(orders.status, 'shipped') blokuje przejście dla zamówień, które nigdy nie przeszły przez status shipped:
+
+  // tracking-refresh.ts:332-344
+  await db.update(orders)
+    .set({ status: 'delivered', deliveredAt: ... })
+    .where(and(
+      eq(orders.id, orderId),
+      eq(orders.status, 'shipped'),   // ← blokuje processing → delivered
+    ))
+
+  Reprodukcja: Zamówienie z Allegro → status processing → kurier dostarcza bez przejścia przez shipped w adminie → tracking zwraca DELIVERED → status nie zmienia się.
+
+  ---
+  [HIGH] CF-NO-CANDIDATES: Zamówienia paid+SENT są wykluczone z kandydatów do trackingu
+
+  Symptom: System raportuje "brak kandydatów" mimo istnienia nowych przesyłek. To jest znany bug.
+
+  Przyczyna źródłowa: selectTrackingRefreshCandidates (tracking-refresh.ts) uwzględnia tylko:
+  - status IN ('shipped', 'delivered')
+  - status = 'processing' AND allegroFulfillmentStatus IN ('SENT', 'PICKED_UP')
+
+  Wyklucza: status = 'paid' z allegroFulfillmentStatus = 'SENT' — co zdarza się gdy event BOUGHT jest procesowany PO evencie fulfillmentu (race condition), albo gdy reconcileOrder nie zdążył przejść
+  statusu z paid do processing przed wywołaniem trackingu.
+
+  // Pole where w selectTrackingRefreshCandidates — brakuje:
+  // status='paid' AND allegroFulfillmentStatus IN ('SENT','PICKED_UP')
+  // status='pending' AND allegroFulfillmentStatus IN ('SENT','PICKED_UP')
+
+  Weryfikacja: Uruchom na bazie:
+  SELECT id, status, allegro_fulfillment_status
+  FROM orders
+  WHERE source='allegro'
+    AND allegro_fulfillment_status IN ('SENT','PICKED_UP')
+    AND status NOT IN ('shipped','delivered','processing');
+
+  Jeśli wynik > 0 — bug jest aktywny.
+
+  ---
+  [MEDIUM] AVC-4: OrderDetailModal wyświetla timeline oparty o stary status z listy, nie o odświeżony tracking
+
+  Symptom: Po auto-odświeżeniu trackingu w modalu, timeline zamówienia nadal renderuje stary stan.
+
+  Przyczyna źródłowa: OrderDetailModal.tsx:256-260 — resolveShipmentStatus zawsze czyta order.status (z payload listy, nie z odpowiedzi tracking refresh):
+
+  // OrderDetailModal.tsx:256-260
+  const resolvedShipmentStatus = resolveShipmentStatus({
+    status: order.status,              // ← zawsze stary, z momentu ładowania listy
+    shipmentDisplayStatus: effectiveShipmentDisplayStatus,
+    allegroFulfillmentStatus: order.allegroFulfillmentStatus,
+  })
+
+  Obiekt tracking (linia 154) zawiera status, ale nigdy nie jest użyty w resolveShipmentStatus. Modal wyświetla poprawny shipmentDisplayStatus z refreshu, ale błędny krok w timeline.
+
+  ---
+  2. Luki logiczne i nonsensowne reguły biznesowe
+
+  ---
+  LG-1: Zamówienia delivered są odświeżane przez 30 dni po dostarczeniu
+
+  Kandydaci do trackingu z HARD_CUTOFF_DAYS = 30 uwzględniają dostarczone zamówienia co 12 godzin przez miesiąc. Dla typowego wolumenu (kilkadziesiąt zamówień/miesiąc) to ~2 zapytania/dobę na
+  zamówienie × 30 dni × N zamówień. Celowe czy przeoczenie — powinno być udokumentowane.
+
+  LG-2: runTrackingBackfillPage nie ma cooldownu
+
+  Wywołana wielokrotnie z adminu odpytuje Allegro carrier API za wszystkie 180 dni zamówień bez żadnego deduplication. Brak blokady KV — równoległe wywołania zduplikują subrequesty.
+
+  LG-3: Podwójne odpytanie /shipments — sync.ts i tracking-refresh.ts
+
+  syncMissingTrackingNumbers w sync.ts i refreshOrderTrackingSnapshot w tracking-refresh.ts niezależnie uderzają w GET /order/checkout-forms/{id}/shipments dla tych samych zamówień. Brak konfliktu
+  danych (piszą różne kolumny), ale podwójny koszt subrequestów dla zamówień czekających na numer śledzenia.
+
+  LG-4: reconcileOrder czyta waybill z ciała checkout-form, nie z /shipments
+
+  handlers.ts:491 — form.delivery?.shipmentSummary?.waybill jest obecne w odpowiedzi Allegro tylko gdy zamówienie ma dane dostawy. Jeśli nieobecne — trackingNumber pozostaje null i jest backfillowany
+  przez osobny job. Jeśli ten job nie działa (KV idle guard = '0') — zamówienie może nie mieć numeru śledzenia przez wiele godzin.
+
+  ---
+  3. Konflikty API vs UI
+
+  ┌───────┬───────────────────────────────────────────────────────────────────────────────┬──────────────────────────────────────────────────────────────────────┬─────────────────────────┐
+  │   #   │                                 Backend mówi                                  │                          Frontend pokazuje                           │         Status          │
+  ├───────┼───────────────────────────────────────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────┼─────────────────────────┤
+  │ AVC-1 │ shipmentFreshness: 'unknown' dla processing                                   │ Modal nie triggeruje auto-refresh (prawidłowy guard na order.status) │ Spójne, ale redundantne │
+  ├───────┼───────────────────────────────────────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────┼─────────────────────────┤
+  │ AVC-2 │ shipmentDisplayStatus: 'label_created' (default gdy brak kodu)                │ shipmentStatus.ts → step 1, "Etykieta utworzona"                     │ SPÓJNE                  │
+  ├───────┼───────────────────────────────────────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────┼─────────────────────────┤
+  │ AVC-3 │ shipmentDisplayStatus: 'unknown' (nieznany kod)                               │ 'Status nieznany', step 1                                            │ SPÓJNE                  │
+  ├───────┼───────────────────────────────────────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────┼─────────────────────────┤
+  │ AVC-4 │ Tracking refresh zwraca nowy status                                           │ Timeline nadal używa order.status z listy                            │ KONFLIKT                │
+  ├───────┼───────────────────────────────────────────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────┼─────────────────────────┤
+  │ AVC-5 │ status='paid', trackingStatusCode='EXCEPTION' → shipmentDisplayStatus: 'none' │ Brak wskaźnika problemu                                              │ BRAK WYŚWIETLENIA       │
+  └───────┴───────────────────────────────────────────────────────────────────────────────┴──────────────────────────────────────────────────────────────────────┴─────────────────────────┘
+
+  ---
+  4. Macierz statusów
+
+  ┌───────────────────────┬───────────────────────────────────┬─────────────────────────────────┬───────────────────────────────────────────────────────────────────────┬──────────────────────────┐
+  │  Status DB (wejście)  │     allegroFulfillmentStatus      │        Oczekiwany output        │                          Rzeczywisty output                           │         Werdykt          │
+  ├───────────────────────┼───────────────────────────────────┼─────────────────────────────────┼───────────────────────────────────────────────────────────────────────┼──────────────────────────┤
+  │ shipped               │ SENT,                             │ Timeline step 2, zielony        │ Step 2, poprawny badge                                                │ ✅ POPRAWNE              │
+  │                       │ trackingStatusCode=IN_TRANSIT     │                                 │                                                                       │                          │
+  ├───────────────────────┼───────────────────────────────────┼─────────────────────────────────┼───────────────────────────────────────────────────────────────────────┼──────────────────────────┤
+  │ shipped               │ —, trackingStatusCode=DELIVERED   │ delivered, step 3               │ delivered, step 3                                                     │ ✅ POPRAWNE              │
+  ├───────────────────────┼───────────────────────────────────┼─────────────────────────────────┼───────────────────────────────────────────────────────────────────────┼──────────────────────────┤
+  │ processing            │ SENT                              │ in_transit (via displayStatus)  │ Poprawny badge, step 2                                                │ ✅ POPRAWNE              │
+  ├───────────────────────┼───────────────────────────────────┼─────────────────────────────────┼───────────────────────────────────────────────────────────────────────┼──────────────────────────┤
+  │ processing            │ SENT,                             │ DB auto-przejście → delivered   │ DB zostaje processing; UI: badge przesyłki delivered, badge           │ ❌ SPLIT — mylące        │
+  │                       │ trackingStatusCode=DELIVERED      │                                 │ zamówienia processing                                                 │                          │
+  ├───────────────────────┼───────────────────────────────────┼─────────────────────────────────┼───────────────────────────────────────────────────────────────────────┼──────────────────────────┤
+  │ paid                  │ SENT                              │ Kandydat do trackingu           │ Wykluczone z kandydatów                                               │ ❌ BUG (no-candidates)   │
+  ├───────────────────────┼───────────────────────────────────┼─────────────────────────────────┼───────────────────────────────────────────────────────────────────────┼──────────────────────────┤
+  │ paid                  │ —, trackingStatusCode=EXCEPTION   │ Wskaźnik issue                  │ shipmentDisplayStatus: 'none'                                         │ ❌ BRAK WYŚWIETLENIA     │
+  ├───────────────────────┼───────────────────────────────────┼─────────────────────────────────┼───────────────────────────────────────────────────────────────────────┼──────────────────────────┤
+  │ shipped, brak listu   │ SENT                              │ Tracking odświeżany, cooldown   │ Poprawny cykl, ale DB write co 25 min                                 │ ⚠️ FUNKCJONALNE /        │
+  │                       │                                   │ 30 min                          │                                                                       │ KOSZTOWNE                │
+  ├───────────────────────┼───────────────────────────────────┼─────────────────────────────────┼───────────────────────────────────────────────────────────────────────┼──────────────────────────┤
+  │ delivered (ręczny     │ —                                 │ Step 3                          │ Step 3                                                                │ ✅ POPRAWNE              │
+  │ admin)                │                                   │                                 │                                                                       │                          │
+  ├───────────────────────┼───────────────────────────────────┼─────────────────────────────────┼───────────────────────────────────────────────────────────────────────┼──────────────────────────┤
+  │ cancelled             │ cokolwiek                         │ Brak shipment display           │ Brak                                                                  │ ✅ POPRAWNE              │
+  └───────────────────────┴───────────────────────────────────┴─────────────────────────────────┴───────────────────────────────────────────────────────────────────────┴──────────────────────────┘
+
+  ---
+  5. Plan naprawczy
+
+  P0 — Natychmiast
+
+  P0-A: Rozszerzyć kandydatów trackingu o paid+SENT i pending+SENT
+
+  Plik: tracking-refresh.ts — sekcja selectTrackingRefreshCandidates (WHERE clause).
+
+  Zmiana:
+  // Dodać do istniejącego OR:
+  and(
+    inArray(orders.status, ['paid', 'pending']),
+    inArray(orders.allegroFulfillmentStatus, ['SENT', 'PICKED_UP']),
+  ),
+
+  Ryzyko regresji: niskie — rozszerza, nie zawęża. Test: zamówienie w paid+SENT musi pojawić się w logach cron jako kandydat.
+
+  P0-B: Naprawić AVC-4 w OrderDetailModal
+
+  Plik: OrderDetailModal.tsx:256-260
+
+  Zmiana: po udanym fetch trackingu, użyć tracking.status zamiast order.status w resolveShipmentStatus:
+  const resolvedShipmentStatus = resolveShipmentStatus({
+    status: tracking?.status ?? order.status,   // ← tracking.status jeśli dostępny
+    ...
+  })
+
+  Ryzyko regresji: niskie — fallback na order.status gdy tracking nie jest załadowany.
+
+  ---
+  P1 — W tym tygodniu
+
+  P1-A: CF-4 — Zezwolić na przejście processing → delivered
+
+  Plik: tracking-refresh.ts:332-344
+
+  Zmiana: rozszerzyć WHERE o processing:
+  .where(and(
+    eq(orders.id, orderId),
+    inArray(orders.status, ['shipped', 'processing']),  // ← dodane 'processing'
+  ))
+
+  Ryzyko regresji: umiarkowane — test: zamówienie w processing z DELIVERED kodem trackingu powinno przejść do delivered.
+
+  P1-B: CF-1 — Pominąć DB write gdy brak przesyłek i brak wcześniejszego kodu
+
+  Plik: tracking-refresh.ts:227-238
+
+  Zamiast pisać timestamp gdy nie ma listu, ustawić KV flag order:{id}:no_shipment z TTL = 60 minut i zwrócić early. Czyści się automatycznie gdy Allegro przypisze list.
+
+  Ryzyko regresji: niskie dla logiki, wymaga testu KV.
+
+  ---
+  P2 — Przy okazji
+
+  P2-A: Naprawić CF-3 — night thinning bez zbędnych Worker invocations
+
+  Zmienić TRACKING_SYNC_CRON z '5,15,25,35,45,55 * * * *' na '5 * * * *' w nocy (nocna konfiguracja) albo sprawdzać czas przed rejestracją harmonogramu. Alternatywnie — zaakceptować 5 no-op
+  invocations/godzinę jako akceptowalne.
+
+  P2-B: LG-2 — Dodać KV lock do runTrackingBackfillPage
+
+  Klucz tracking:backfill:lock z TTL = 5 minut, analogicznie do innych backfillów w projekcie.
+
+  P2-C: Ostrzeżenie gdy trackingStatusCode=EXCEPTION na zamówieniu paid
+
+  Dodać paid do ścieżek w mapShipmentDisplayStatus które mogą zwracać issue.
+
+  ---
+  6. Brakujące testy
+
+  1. paid+SENT → musi być kandydatem do trackingu (obecnie wykluczone)
+  2. processing+DELIVERED → auto-przejście do delivered (CF-4 blokuje)
+  3. Multi-package: shipment A=EXCEPTION, shipment B=DELIVERED → system nie powinien cicho pomijać wyjątku
+  4. Modal: po auto-refresh trackingu timeline używa nowego status, nie starego z listy (AVC-4)
+  5. Zamówienie bez listu przewozowego: cron nie powinien generować DB write przy każdym ticku
+  6. subrequestLimitHit guard: zmiana wiadomości błędu CF nie powinna wyciszyć ochrony
+  7. Backfill: równoległe wywołania runTrackingBackfillPage nie duplikują subrequestów
+  8. HARD_CUTOFF_DAYS: zamówienie shipped 31 dni temu nie pojawia się jako kandydat
+
+  ---
+  Podsumowanie residualnych ryzyk (brak krytycznych błędów danych — dane są spójne)
+
+  ┌───────────────────────────────────────────────────┬────────────────────────────────────────────────────────────────┬─────────────────┐
+  │                      Ryzyko                       │                       Prawdopodobieństwo                       │   Dotkliwość    │
+  ├───────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────┼─────────────────┤
+  │ Zamówienie paid+SENT nigdy nie dostaje trackingu  │ Średnie (race condition przy rejestracji)                      │ Wysoka          │
+  ├───────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────┼─────────────────┤
+  │ processing → delivered nie zachodzi automatycznie │ Wysokie (standardowy flow Allegro)                             │ Wysoka          │
+  ├───────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────┼─────────────────┤
+  │ Neon nie śpi przez zamówienia bez listu           │ Pewne (każda nowa sprzedaż)                                    │ Średnia (koszt) │
+  ├───────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────┼─────────────────┤
+  │ Timeline w modalu staje na starym statusie        │ Nskie (wymaga jednoczesnego zmiany statusu i otwartego modalu) │ Niska           │
+  ├───────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────┼─────────────────┤
+  │ Brak wskaźnika issue dla paid+EXCEPTION           │ Nskie (edge case)                                              │ Niska           │
+  └───────────────────────────────────────────────────┴────────────────────────────────────────────────────────────────┴─────────────────┘

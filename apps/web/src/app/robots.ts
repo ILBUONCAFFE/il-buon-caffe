@@ -3,32 +3,34 @@ import type { MetadataRoute } from "next";
 const BASE_URL = "https://ilbuoncaffe.pl";
 
 export default function robots(): MetadataRoute.Robots {
+  const commonDisallow = ["/admin", "/account", "/auth", "/checkout", "/order", "/api/"];
+
   return {
     rules: [
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/admin", "/account", "/auth", "/checkout", "/order", "/api/"],
+        disallow: commonDisallow,
       },
       {
-        userAgent: "GPTBot",
+        userAgent: [
+          "GPTBot",
+          "Google-Extended",
+          "ChatGPT-User",
+          "PerplexityBot",
+          "ClaudeBot",
+          "Anthropic-ai",
+          "Applebot-Extended",
+          "Bytespider",
+          "Diffbot",
+          "FacebookBot",
+          "ImagesiftBot",
+          "OAI-SearchBot",
+          "Omgilibot",
+          "Omgili",
+        ],
         allow: "/",
-        disallow: ["/admin", "/account", "/auth", "/checkout", "/order", "/api/"],
-      },
-      {
-        userAgent: "Google-Extended",
-        allow: "/",
-        disallow: ["/admin", "/account", "/auth", "/checkout", "/order", "/api/"],
-      },
-      {
-        userAgent: "ChatGPT-User",
-        allow: "/",
-        disallow: ["/admin", "/account", "/auth", "/checkout", "/order", "/api/"],
-      },
-      {
-        userAgent: "PerplexityBot",
-        allow: "/",
-        disallow: ["/admin", "/account", "/auth", "/checkout", "/order", "/api/"],
+        disallow: commonDisallow,
       },
     ],
     sitemap: `${BASE_URL}/sitemap.xml`,

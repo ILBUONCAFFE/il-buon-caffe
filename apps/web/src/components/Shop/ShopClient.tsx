@@ -246,7 +246,7 @@ export const ShopClient = ({ initialData }: ShopClientProps) => {
                 priority
               />
             </div>
-            <div className="absolute inset-0 bg-gradient-to-b from-brand-950/50 via-brand-950/80 to-brand-950 z-[1]" />
+            <div className="absolute inset-0 bg-brand-950/80 z-[1]" />
           </>
         )}
         {selectedCategory === "kawa" && (
@@ -261,24 +261,24 @@ export const ShopClient = ({ initialData }: ShopClientProps) => {
                 priority
               />
             </div>
-            <div className="absolute inset-0 bg-gradient-to-b from-brand-950/50 via-brand-950/80 to-brand-950 z-[1]" />
+            <div className="absolute inset-0 bg-brand-950/80 z-[1]" />
           </>
         )}
 
         <div className="container mx-auto px-6 lg:px-12 relative z-10">
           <div className="mb-10">
-            <span className="block text-[11px] uppercase tracking-[0.3em] text-white/25 font-medium mb-6 animate-fade-in-up">
+            <span className="block text-[11px] uppercase tracking-[0.3em] text-white/25 font-medium mb-6">
               Sklep
             </span>
 
             <h1
               key={selectedCategory}
-              className="text-5xl md:text-6xl lg:text-7xl font-serif mb-5 leading-[0.95] animate-fade-in-up"
+              className="text-5xl md:text-6xl lg:text-7xl font-serif mb-5 leading-[0.95]"
             >
               {activeCategoryConfig?.name || "Sklep"}
             </h1>
 
-            <p className="text-white/35 max-w-lg text-base leading-relaxed animate-fade-in-up delay-100">
+            <p className="text-white/35 max-w-lg text-base leading-relaxed">
               {selectedCategory === "wino"
                 ? "Wyselekcjonowane wina z Włoch i Hiszpanii. Od małych, rodzinnych winiarzy."
                 : selectedCategory === "kawa"
@@ -292,7 +292,7 @@ export const ShopClient = ({ initialData }: ShopClientProps) => {
           </div>
 
           {/* Divider */}
-          <div className="origin-left h-px bg-white/10 mb-8 animate-scale-x-left" />
+          <div className="h-px bg-white/10 mb-8" />
 
           {/* Category Pills */}
           <div className="flex flex-wrap gap-2">
@@ -302,16 +302,14 @@ export const ShopClient = ({ initialData }: ShopClientProps) => {
                 onClick={() => handleCategorySelect(cat.slug)}
                 aria-pressed={selectedCategory === cat.id}
                 className={`
-                  flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 border animate-fade-in-up
+                  px-5 py-2.5 rounded-full text-sm font-medium transition-colors border
                   ${
                     selectedCategory === cat.id
                       ? "bg-white text-brand-900 border-white"
-                      : "bg-white/[0.04] text-white/50 border-white/[0.06] hover:bg-white/[0.08] hover:border-white/15 hover:text-white/80"
+                      : "bg-transparent text-white/50 border-white/20 hover:text-white"
                   }
                 `}
-                style={{ animationDelay: `${200 + i * 40}ms` }}
               >
-                <span aria-hidden="true" className="opacity-60">{cat.icon}</span>
                 {cat.name}
               </button>
             ))}
@@ -326,7 +324,7 @@ export const ShopClient = ({ initialData }: ShopClientProps) => {
           {isMobileFiltersOpen && (
             <>
               <div
-                className="fixed inset-0 bg-black/50 z-40 lg:hidden animate-fade-in"
+                className="fixed inset-0 bg-black/50 z-40 lg:hidden"
                 onClick={() => setIsMobileFiltersOpen(false)}
               />
               <aside
@@ -334,7 +332,7 @@ export const ShopClient = ({ initialData }: ShopClientProps) => {
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="mobile-filters-title"
-                className="fixed inset-y-0 left-0 w-80 bg-white z-50 p-6 overflow-y-auto lg:hidden animate-[slide-in-left_0.3s_ease-out]"
+                className="fixed inset-y-0 left-0 w-80 bg-white z-50 p-6 overflow-y-auto lg:hidden"
               >
                 <div className="flex justify-between items-center mb-8">
                   <h2 id="mobile-filters-title" className="font-serif text-2xl text-brand-900">
@@ -530,7 +528,7 @@ export const ShopClient = ({ initialData }: ShopClientProps) => {
                 <div
                   role="status"
                   aria-label="Ładowanie produktów"
-                  className={`animate-fade-in ${
+                  className={`${
                     viewMode === "grid"
                       ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
                       : "flex flex-col gap-4"
@@ -560,7 +558,7 @@ export const ShopClient = ({ initialData }: ShopClientProps) => {
                   ))}
                 </div>
               ) : filteredProducts.length === 0 ? (
-                <div className="py-20 text-center bg-white rounded-2xl border border-brand-100 animate-fade-in-up">
+                <div className="py-20 text-center bg-white rounded-2xl border border-brand-100">
                   <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-brand-100 flex items-center justify-center">
                     <Search size={32} className="text-brand-400" />
                   </div>
@@ -581,7 +579,7 @@ export const ShopClient = ({ initialData }: ShopClientProps) => {
                 </div>
               ) : (
                 <div
-                  className={`animate-fade-in ${
+                  className={`${
                     viewMode === "grid"
                       ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-14"
                       : "flex flex-col gap-4"
