@@ -542,8 +542,10 @@ export async function reconcileOrder(
     })
     .where(eq(orders.externalId, form.id))
 
-  // When order becomes shipped → clear KV idle flag so tracking sync starts immediately
-  if (newLocalStatus === 'shipped' && kv) {
+  // Clear KV idle flag whenever the order has an active shipment (SENT/PICKED_UP),
+  // not only on first transition to shipped — handles orders already in shipped/processing
+  // state where the flag was set to '0' before the shipment was assigned.
+  if (isSent && kv) {
     await kv.delete(TRACKING_ACTIVE_KV_KEY).catch(() => {})
   }
 

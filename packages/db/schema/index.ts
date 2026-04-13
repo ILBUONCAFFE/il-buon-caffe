@@ -434,6 +434,16 @@ export const orders = pgTable('orders', {
   trackingStatusUpdatedAt: timestamp('tracking_status_updated_at', { withTimezone: true }),
   trackingLastEventAt: timestamp('tracking_last_event_at', { withTimezone: true }),
   allegroShipmentId: varchar('allegro_shipment_id', { length: 36 }),
+  // Snapshot of all Allegro shipments (multi-parcel / duplicate label support).
+  // Array of { waybill, carrierId, statusCode, statusLabel, occurredAt, isSelected }.
+  allegroShipmentsSnapshot: jsonb('allegro_shipments_snapshot').$type<{
+    waybill: string
+    carrierId: string
+    statusCode: string
+    statusLabel: string | null
+    occurredAt: string | null
+    isSelected: boolean
+  }[]>(),
   shippedAt: timestamp('shipped_at', { withTimezone: true }),
   deliveredAt: timestamp('delivered_at', { withTimezone: true }),
 

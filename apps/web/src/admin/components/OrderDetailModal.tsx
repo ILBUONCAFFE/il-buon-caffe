@@ -5,7 +5,7 @@ import { X } from 'lucide-react'
 import { adminApi } from '../lib/adminApiClient'
 import { resolveShipmentStatus } from '../lib/shipmentStatus'
 import { OrderStatusBadge } from './OrderStatusBadge'
-import type { AdminOrder, OrderTrackingSnapshot } from '../types/admin-api'
+import type { AdminOrder, AllegroShipmentEntry, OrderTrackingSnapshot } from '../types/admin-api'
 
 interface OrderDetailModalProps {
   order: AdminOrder | null
@@ -399,6 +399,40 @@ export function OrderDetailModal({
                   updatedAt={effectiveTrackingStatusUpdatedAt}
                   loading={trackingLoading}
                 />
+
+                {/* Multi-shipment list — shown when order has >1 parcel or duplicate labels */}
+                {(() => {
+                  const allShipments: AllegroShipmentEntry[] | null | undefined =
+                    (tracking?.allShipments ?? order.allShipments)
+                  if (!allShipments || allShipments.length <= 1) return null
+                  return (
+                    <div className="mt-3 space-y-1.5">
+                      <p className="text-[10px] font-semibold text-[#A3A3A3] uppercase tracking-wider">
+                        Wszystkie przesylki ({allShipments.length})
+                      </p>
+                      {allShipments.map((s) => (
+                        <div
+                          key={s.waybill}
+                          className={`flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg text-xs ${
+                            s.isSelected
+                              ? 'bg-[#1A1A1A]/5 border border-[#1A1A1A]/10'
+                              : 'bg-[#F7F6F3] border border-transparent'
+                          }`}
+                        >
+                          <span className="font-mono text-[11px] text-[#1A1A1A] truncate">{s.waybill}</span>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span className="text-[10px] text-[#666]">{s.statusLabel ?? s.statusCode}</span>
+                            {s.isSelected && (
+                              <span className="text-[9px] font-semibold bg-[#1A1A1A] text-white px-1.5 py-0.5 rounded-full uppercase tracking-wide">
+                                aktywna
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                })()}
 
                 {trackingError && (
                   <p className="text-xs text-red-600 mt-2">{trackingError}</p>

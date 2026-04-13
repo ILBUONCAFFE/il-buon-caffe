@@ -166,6 +166,7 @@ function buildTrackingSnapshot(order: {
   trackingStatusCode: string | null
   trackingStatusUpdatedAt: Date | string | null
   trackingLastEventAt: Date | string | null
+  allegroShipmentsSnapshot?: { waybill: string; carrierId: string; statusCode: string; statusLabel: string | null; occurredAt: string | null; isSelected: boolean }[] | null
 }) {
   const trackingStatusCode = normalizeTrackingCode(order.trackingStatusCode)
   const shipmentDisplayStatus = mapShipmentDisplayStatus({
@@ -185,6 +186,7 @@ function buildTrackingSnapshot(order: {
     trackingLastEventAt: toIsoOrNull(order.trackingLastEventAt),
     shipmentDisplayStatus,
     shipmentFreshness: getShipmentFreshness(order.status, order.trackingStatusUpdatedAt),
+    allShipments: order.allegroShipmentsSnapshot ?? null,
   }
 }
 
@@ -480,6 +482,7 @@ adminOrdersRouter.post('/:id/tracking/refresh', async (c) => {
       trackingStatusCode: orders.trackingStatusCode,
       trackingStatusUpdatedAt: orders.trackingStatusUpdatedAt,
       trackingLastEventAt: orders.trackingLastEventAt,
+      allegroShipmentsSnapshot: orders.allegroShipmentsSnapshot,
     }).from(orders).where(eq(orders.id, orderId)).limit(1)
 
     if (!order) return c.json({ error: 'Zamówienie nie znalezione' }, 404)
@@ -541,6 +544,7 @@ adminOrdersRouter.post('/:id/tracking/refresh', async (c) => {
       trackingStatusCode: orders.trackingStatusCode,
       trackingStatusUpdatedAt: orders.trackingStatusUpdatedAt,
       trackingLastEventAt: orders.trackingLastEventAt,
+      allegroShipmentsSnapshot: orders.allegroShipmentsSnapshot,
     }).from(orders).where(eq(orders.id, orderId)).limit(1)
 
     const freshSnapshot = updated ? buildTrackingSnapshot({

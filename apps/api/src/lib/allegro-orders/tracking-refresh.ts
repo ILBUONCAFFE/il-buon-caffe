@@ -84,6 +84,7 @@ interface ShipmentCandidate {
 }
 
 interface ShipmentTrackingSnapshot {
+  carrierId: string
   waybill: string
   latestCode: string
   latestDescription: string | null
@@ -243,6 +244,7 @@ export async function refreshOrderTrackingSnapshot(
   const readShipmentSnapshot = async (shipment: ShipmentCandidate): Promise<ShipmentTrackingSnapshot> => {
     if (!shipment.carrierId) {
       return {
+        carrierId: '',
         waybill: shipment.waybill,
         latestCode: 'LABEL_CREATED',
         latestDescription: 'Etykieta wygenerowana',
@@ -257,6 +259,7 @@ export async function refreshOrderTrackingSnapshot(
 
     if (!trackResp.ok) {
       return {
+        carrierId: shipment.carrierId,
         waybill: shipment.waybill,
         latestCode: 'LABEL_CREATED',
         latestDescription: before.trackingStatus,
@@ -267,6 +270,7 @@ export async function refreshOrderTrackingSnapshot(
     const trackData = await trackResp.json() as Record<string, unknown>
     const latest = extractLatestCarrierTrackingStatus(trackData, shipment.waybill)
     return {
+      carrierId: shipment.carrierId,
       waybill: shipment.waybill,
       latestCode: latest.latestCode,
       latestDescription: latest.latestDescription,
@@ -276,9 +280,11 @@ export async function refreshOrderTrackingSnapshot(
 
   let selectedSnapshot: ShipmentTrackingSnapshot | null = null
   let shouldMarkDelivered = false
+  const allSnapshots: ShipmentTrackingSnapshot[] = []
 
   for (const shipment of shipmentCandidates) {
     const snapshot = await readShipmentSnapshot(shipment)
+    allSnapshots.push(snapshot)
 
     if (
       selectedSnapshot == null
@@ -292,11 +298,18 @@ export async function refreshOrderTrackingSnapshot(
     }
 
     if (shouldAutoMarkDelivered(snapshot.latestCode)) {
-      // If one shipment is delivered, ignore remaining shipments for this order.
+      // Delivered snapshot wins — mark it as selected but continue to collect remaining
+      // shipments for display in the admin panel (multi-parcel / duplicate label support).
       selectedSnapshot = snapshot
       shouldMarkDelivered = true
-      break
     }
+  }
+
+  if (allSnapshots.length > 1) {
+    const summary = allSnapshots.map((s) =>
+      `${s.waybill}(${s.latestCode})${s === selectedSnapshot ? ' ← selected' : ''}`
+    ).join(', ')
+    console.log(`[TrackingRefresh] order=${orderId} multi-shipment: ${summary}`)
   }
 
   if (!selectedSnapshot) {
@@ -310,6 +323,15 @@ export async function refreshOrderTrackingSnapshot(
     trackingStatusCode: selectedSnapshot.latestCode,
   }
 
+  const allShipmentsForDb = allSnapshots.map((s) => ({
+    waybill: s.waybill,
+    carrierId: s.carrierId,
+    statusCode: s.latestCode,
+    statusLabel: s.latestDescription,
+    occurredAt: s.latestOccurredAt?.toISOString() ?? null,
+    isSelected: s === selectedSnapshot,
+  }))
+
   await db.update(orders)
     .set({
       trackingNumber: after.trackingNumber,
@@ -317,6 +339,7 @@ export async function refreshOrderTrackingSnapshot(
       trackingStatusCode: after.trackingStatusCode,
       trackingStatusUpdatedAt: now,
       trackingLastEventAt: latestOccurredAt,
+      allegroShipmentsSnapshot: allShipmentsForDb,
       updatedAt: now,
     })
     .where(and(

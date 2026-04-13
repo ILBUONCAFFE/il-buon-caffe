@@ -106,6 +106,15 @@ export interface CustomerData {
   allegroLogin?: string
 }
 
+export interface AllegroShipmentEntry {
+  waybill: string
+  carrierId: string
+  statusCode: string
+  statusLabel: string | null
+  occurredAt: string | null
+  isSelected: boolean
+}
+
 export interface AdminOrder {
   id: number
   orderNumber: string
@@ -132,6 +141,7 @@ export interface AdminOrder {
   allegroFulfillmentStatus?: string | null
   shipmentDisplayStatus?: ShipmentDisplayStatus
   shipmentFreshness?: ShipmentFreshness
+  allShipments?: AllegroShipmentEntry[] | null
   notes?: string
   internalNotes?: string
   paidAt?: string | null
@@ -364,6 +374,7 @@ export interface OrderTrackingSnapshot {
   trackingLastEventAt: string | null
   shipmentDisplayStatus: ShipmentDisplayStatus
   shipmentFreshness: ShipmentFreshness
+  allShipments?: AllegroShipmentEntry[] | null
 }
 
 export interface OrderTrackingRefreshResponse {
