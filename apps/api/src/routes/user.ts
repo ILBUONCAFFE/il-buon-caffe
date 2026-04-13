@@ -5,20 +5,15 @@ import {
 } from '@repo/db/schema'
 import { eq, and, desc, sql } from 'drizzle-orm'
 import { requireAuth } from '../middleware/auth'
-import { rateLimit } from '../middleware/rateLimit'
+import { userExportRateLimiter } from '../middleware/rateLimit'
 import type { Env } from '../index'
 import { sanitize } from '../lib/sanitize'
 import { checkContentLength, getClientIp, serverError } from '../lib/request'
 
 const MAX_BODY = 10_000
 
-// Rate limit — 5 export requests per hour per user
-const exportRateLimiter = rateLimit({
-  limit: 5,
-  windowMs: 60 * 60 * 1000,
-  blockDurationMs: 60 * 60 * 1000,
-  keyGenerator: (c) => `user-export:${c.get('user')?.sub ?? c.req.header('CF-Connecting-IP') ?? 'unknown'}`,
-})
+// Rate limit — 5 export requests per hour per user (native Workers RL)
+const exportRateLimiter = userExportRateLimiter
 
 const VALID_CONSENT_TYPES = ['marketing', 'analytics'] as const
 type UpdatableConsent = typeof VALID_CONSENT_TYPES[number]

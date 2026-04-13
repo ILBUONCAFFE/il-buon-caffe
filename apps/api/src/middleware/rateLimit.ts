@@ -22,6 +22,11 @@ export const loginRateLimiter         = makeRateLimiter('RL_LOGIN',          (c)
 export const registerRateLimiter      = makeRateLimiter('RL_REGISTER',       (c) => `register:${getClientIp(c)}`)
 export const passwordResetRateLimiter = makeRateLimiter('RL_PASSWORD_RESET', (c) => `reset:ip:${getClientIp(c)}`)
 export const healthRateLimiter        = makeRateLimiter('RL_HEALTH',         (c) => getClientIp(c))
+export const userExportRateLimiter    = makeRateLimiter('RL_USER_EXPORT',     (c) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const sub = (c as any).get('user')?.sub as string | undefined
+  return `export:${sub ?? getClientIp(c)}`
+})
 
 /**
  * Programmatically apply rate limiting for an arbitrary key.

@@ -71,6 +71,7 @@ export interface Env {
   RL_REGISTER?:       { limit(opts: { key: string }): Promise<{ success: boolean }> }
   RL_PASSWORD_RESET?: { limit(opts: { key: string }): Promise<{ success: boolean }> }
   RL_HEALTH?:         { limit(opts: { key: string }): Promise<{ success: boolean }> }
+  RL_USER_EXPORT?:    { limit(opts: { key: string }): Promise<{ success: boolean }> }
 }
 
 // ── App ───────────────────────────────────────────────────────────────────
