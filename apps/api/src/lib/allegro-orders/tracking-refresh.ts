@@ -78,6 +78,18 @@ interface TrackingRefreshCandidate {
   trackingStatusCode: string | null
 }
 
+interface ShipmentCandidate {
+  carrierId: string
+  waybill: string
+}
+
+interface ShipmentTrackingSnapshot {
+  waybill: string
+  latestCode: string
+  latestDescription: string | null
+  latestOccurredAt: Date | null
+}
+
 function normalizeSnapshotState(value?: Partial<TrackingSnapshotState> | null): TrackingSnapshotState {
   return {
     trackingNumber: value?.trackingNumber ?? null,
@@ -105,6 +117,63 @@ function displayStatusCode(value: string | null): string {
 
 function displayStatusText(value: string | null): string {
   return value ?? 'brak'
+}
+
+function extractLatestCarrierTrackingStatus(
+  trackData: Record<string, unknown>,
+  waybill: string,
+): Omit<ShipmentTrackingSnapshot, 'waybill'> {
+  const buckets: Array<Record<string, unknown>> = []
+  for (const key of ['shipments', 'packages', 'items', 'waybills', 'tracking']) {
+    if (!Array.isArray(trackData[key])) continue
+    for (const item of trackData[key] as unknown[]) {
+      if (item != null && typeof item === 'object') {
+        buckets.push(item as Record<string, unknown>)
+      }
+    }
+  }
+
+  const normWaybill = waybill.toUpperCase()
+  const pick = buckets.find((entry) => {
+    const value = String(entry.waybill ?? entry.number ?? entry.id ?? '').toUpperCase()
+    return value === normWaybill
+  }) ?? buckets[0]
+
+  const trackingDetails = pick?.trackingDetails
+  const trackingDetailsStatuses =
+    trackingDetails != null
+    && typeof trackingDetails === 'object'
+    && Array.isArray((trackingDetails as { statuses?: unknown[] }).statuses)
+      ? (trackingDetails as { statuses: unknown[] }).statuses
+      : null
+
+  const rawStatuses = trackingDetailsStatuses != null
+    ? trackingDetailsStatuses
+    : Array.isArray(pick?.statuses)
+      ? pick.statuses
+      : Array.isArray(pick?.events)
+        ? pick.events
+        : Array.isArray(pick?.history)
+          ? pick.history
+          : []
+
+  const sorted = rawStatuses.slice().sort((a: any, b: any) => {
+    const left = new Date(b?.occurredAt ?? b?.time ?? b?.date ?? 0).getTime()
+    const right = new Date(a?.occurredAt ?? a?.time ?? a?.date ?? 0).getTime()
+    return left - right
+  })
+
+  const latest = sorted[0] as Record<string, unknown> | undefined
+  const latestCode = normalizeTrackingCode(String(latest?.code ?? latest?.status ?? '')) ?? 'UNKNOWN'
+  const latestDescription = latest?.description == null ? null : String(latest.description).slice(0, 255)
+  const latestOccurredRaw = latest?.occurredAt ?? latest?.time ?? latest?.date ?? null
+  const latestOccurredAt = latestOccurredRaw == null ? null : toDateOrNull(String(latestOccurredRaw))
+
+  return {
+    latestCode,
+    latestDescription,
+    latestOccurredAt,
+  }
 }
 
 // ── Tracking snapshot refresh ─────────────────────────────────────────────
@@ -145,11 +214,17 @@ export async function refreshOrderTrackingSnapshot(
     shipments?: Array<{ carrierId?: string; waybill?: string; trackingNumber?: string }>
   }
 
-  const firstShipment = shipData.shipments?.[0]
-  const carrierId = firstShipment?.carrierId?.trim() ?? ''
-  const waybill = (firstShipment?.waybill ?? firstShipment?.trackingNumber ?? '').trim().slice(0, 100) || null
+  const shipmentCandidates = (shipData.shipments ?? [])
+    .map((shipment) => {
+      const rawWaybill = (shipment.waybill ?? shipment.trackingNumber ?? '').trim().slice(0, 100)
+      return {
+        carrierId: shipment.carrierId?.trim() ?? '',
+        waybill: rawWaybill,
+      }
+    })
+    .filter((shipment): shipment is ShipmentCandidate => shipment.waybill.length > 0)
 
-  if (!waybill) {
+  if (shipmentCandidates.length === 0) {
     // No waybill yet — mark as checked so this order doesn't flood batch slots on every cron run.
     // Use 30-min cooldown (same as IN_TRANSIT) so we keep polling until the carrier assigns one.
     const now = new Date()
@@ -164,115 +239,74 @@ export async function refreshOrderTrackingSnapshot(
 
   const now = new Date()
 
-  if (!carrierId) {
-    const after = {
-      trackingNumber: waybill,
-      trackingStatus: 'Etykieta wygenerowana',
-      trackingStatusCode: 'LABEL_CREATED',
-    }
-
-    await db.update(orders)
-      .set({
-        trackingNumber: after.trackingNumber,
-        trackingStatus: after.trackingStatus,
-        trackingStatusCode: after.trackingStatusCode,
-        trackingStatusUpdatedAt: now,
-        updatedAt: now,
-      })
-      .where(and(
-        eq(orders.id, orderId),
-        sql`(
-          ${orders.trackingNumber} IS DISTINCT FROM ${after.trackingNumber}
-          OR ${orders.trackingStatus} IS DISTINCT FROM ${after.trackingStatus}
-          OR ${orders.trackingStatusCode} IS DISTINCT FROM ${after.trackingStatusCode}
-          OR ${orders.trackingStatusUpdatedAt} IS NULL
-        )`,
-      ))
-    return buildRefreshOutcome(before, after)
-  }
-
-  const trackResp = await fetch(
-    `${token.apiBase}/order/carriers/${encodeURIComponent(carrierId)}/tracking?waybill=${encodeURIComponent(waybill)}`,
-    { signal: AbortSignal.timeout(10_000), headers },
-  )
-
-  if (!trackResp.ok) {
-    const after = {
-      trackingNumber: waybill,
-      trackingStatus: before.trackingStatus,
-      trackingStatusCode: 'LABEL_CREATED',
-    }
-
-    await db.update(orders)
-      .set({
-        trackingNumber: after.trackingNumber,
-        trackingStatusCode: after.trackingStatusCode,
-        trackingStatusUpdatedAt: now,
-        updatedAt: now,
-      })
-      .where(and(
-        eq(orders.id, orderId),
-        sql`(
-          ${orders.trackingNumber} IS DISTINCT FROM ${after.trackingNumber}
-          OR ${orders.trackingStatusCode} IS DISTINCT FROM ${after.trackingStatusCode}
-          OR ${orders.trackingStatusUpdatedAt} IS NULL
-        )`,
-      ))
-    return buildRefreshOutcome(before, after)
-  }
-
-  const trackData = await trackResp.json() as Record<string, unknown>
-
-  const buckets: Array<Record<string, unknown>> = []
-  for (const key of ['shipments', 'packages', 'items', 'waybills', 'tracking']) {
-    if (!Array.isArray(trackData[key])) continue
-    for (const item of trackData[key] as unknown[]) {
-      if (item != null && typeof item === 'object') {
-        buckets.push(item as Record<string, unknown>)
+  const readShipmentSnapshot = async (shipment: ShipmentCandidate): Promise<ShipmentTrackingSnapshot> => {
+    if (!shipment.carrierId) {
+      return {
+        waybill: shipment.waybill,
+        latestCode: 'LABEL_CREATED',
+        latestDescription: 'Etykieta wygenerowana',
+        latestOccurredAt: null,
       }
     }
+
+    const trackResp = await fetch(
+      `${token.apiBase}/order/carriers/${encodeURIComponent(shipment.carrierId)}/tracking?waybill=${encodeURIComponent(shipment.waybill)}`,
+      { signal: AbortSignal.timeout(10_000), headers },
+    )
+
+    if (!trackResp.ok) {
+      return {
+        waybill: shipment.waybill,
+        latestCode: 'LABEL_CREATED',
+        latestDescription: before.trackingStatus,
+        latestOccurredAt: null,
+      }
+    }
+
+    const trackData = await trackResp.json() as Record<string, unknown>
+    const latest = extractLatestCarrierTrackingStatus(trackData, shipment.waybill)
+    return {
+      waybill: shipment.waybill,
+      latestCode: latest.latestCode,
+      latestDescription: latest.latestDescription,
+      latestOccurredAt: latest.latestOccurredAt,
+    }
   }
 
-  const normWaybill = waybill.toUpperCase()
-  const pick = buckets.find((entry) => {
-    const value = String(entry.waybill ?? entry.number ?? entry.id ?? '').toUpperCase()
-    return value === normWaybill
-  }) ?? buckets[0]
+  let selectedSnapshot: ShipmentTrackingSnapshot | null = null
+  let shouldMarkDelivered = false
 
-  const trackingDetails = pick?.trackingDetails
-  const trackingDetailsStatuses =
-    trackingDetails != null &&
-    typeof trackingDetails === 'object' &&
-    Array.isArray((trackingDetails as { statuses?: unknown[] }).statuses)
-      ? (trackingDetails as { statuses: unknown[] }).statuses
-      : null
+  for (const shipment of shipmentCandidates) {
+    const snapshot = await readShipmentSnapshot(shipment)
 
-  const rawStatuses = trackingDetailsStatuses != null
-    ? trackingDetailsStatuses
-    : Array.isArray(pick?.statuses)
-      ? pick.statuses
-      : Array.isArray(pick?.events)
-        ? pick.events
-        : Array.isArray(pick?.history)
-          ? pick.history
-          : []
+    if (
+      selectedSnapshot == null
+      || (
+        !shouldAutoMarkDelivered(selectedSnapshot.latestCode)
+        && snapshot.latestOccurredAt != null
+        && (selectedSnapshot.latestOccurredAt == null || snapshot.latestOccurredAt.getTime() > selectedSnapshot.latestOccurredAt.getTime())
+      )
+    ) {
+      selectedSnapshot = snapshot
+    }
 
-  const sorted = rawStatuses.slice().sort((a: any, b: any) => {
-    const left = new Date(b?.occurredAt ?? b?.time ?? b?.date ?? 0).getTime()
-    const right = new Date(a?.occurredAt ?? a?.time ?? a?.date ?? 0).getTime()
-    return left - right
-  })
+    if (shouldAutoMarkDelivered(snapshot.latestCode)) {
+      // If one shipment is delivered, ignore remaining shipments for this order.
+      selectedSnapshot = snapshot
+      shouldMarkDelivered = true
+      break
+    }
+  }
 
-  const latest = sorted[0] as Record<string, unknown> | undefined
-  const latestCode = normalizeTrackingCode(String(latest?.code ?? latest?.status ?? '')) ?? 'UNKNOWN'
-  const latestDescription = latest?.description == null ? null : String(latest.description).slice(0, 255)
-  const latestOccurredRaw = latest?.occurredAt ?? latest?.time ?? latest?.date ?? null
-  const latestOccurredAt = latestOccurredRaw == null ? null : toDateOrNull(String(latestOccurredRaw))
-  const shouldMarkDelivered = shouldAutoMarkDelivered(latestCode)
+  if (!selectedSnapshot) {
+    return buildRefreshOutcome(before, before)
+  }
+
+  const latestOccurredAt = selectedSnapshot.latestOccurredAt
   const after = {
-    trackingNumber: waybill,
-    trackingStatus: latestDescription,
-    trackingStatusCode: latestCode,
+    trackingNumber: selectedSnapshot.waybill,
+    trackingStatus: selectedSnapshot.latestDescription,
+    trackingStatusCode: selectedSnapshot.latestCode,
   }
 
   await db.update(orders)
