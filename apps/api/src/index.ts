@@ -172,6 +172,20 @@ function isQualityPrewarmWindowHour(hour: number): boolean {
   return hour >= QUALITY_PREWARM_WINDOW_START_HOUR && hour < QUALITY_PREWARM_WINDOW_END_HOUR
 }
 
+function normalizeCronExpression(value: string): string {
+  return value.trim().replace(/\s+/g, ' ')
+}
+
+function isOrderSyncCronExpression(value: string): boolean {
+  const expr = normalizeCronExpression(value)
+  return expr === ORDER_SYNC_CRON || expr === '0/10 * * * *'
+}
+
+function isTrackingSyncCronExpression(value: string): boolean {
+  const expr = normalizeCronExpression(value)
+  return expr === TRACKING_SYNC_CRON || expr === '5/10 * * * *'
+}
+
 // ── Scheduled handler (Cron Trigger) ────────────────────────────────────────
 // Runs every hour — refreshes Allegro access token when it has less than 2h left
 async function autoRefreshAllegroToken(env: Env): Promise<void> {
@@ -332,7 +346,9 @@ export default {
     // "*/10 * * * *" — every 10 min Allegro order polling + reconcile; in Poland night (22:00-06:59) thinned to every 60 min
     // "5,15,25,35,45,55 * * * *" — every 10 min (offset +5) tracking refresh; separate invocation to keep subrequest budget isolated
     // "0 3 * * *"   — daily at 04:00 CET / 05:00 CEST (03:00 UTC) — backfill exchange rates (total_pln)
-    if (event.cron === ORDER_SYNC_CRON) {
+    const cronExpr = normalizeCronExpression(event.cron)
+
+    if (isOrderSyncCronExpression(cronExpr)) {
       const { hour, minute } = getPolandClock()
       if (isPolandNightHour(hour) && minute % NIGHT_SYNC_INTERVAL_MINUTES !== 0) {
         console.log(`[Cron] Poland night thinning (${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}) — skip 10-min cycle`)
@@ -351,8 +367,10 @@ export default {
       ctx.waitUntil(syncAllegroOrders(env))
       ctx.waitUntil(reconcileStaleProcessing(env))
       ctx.waitUntil(reconcileHourlyPaidOrders(env))
-    } else if (event.cron === TRACKING_SYNC_CRON) {
+    } else if (isTrackingSyncCronExpression(cronExpr)) {
       const { hour, minute } = getPolandClock()
+      console.log(`[TrackingSync Cron] Tick expression=${cronExpr}, PL time=${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`)
+
       if (isPolandNightHour(hour) && minute !== TRACKING_SYNC_NIGHT_MINUTE) {
         console.log(`[Cron] Poland night thinning (${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}) — skip tracking cycle`)
         return
@@ -366,11 +384,12 @@ export default {
         }
       }
 
+      console.log('[TrackingSync Cron] Kolejkuję runTrackingStatusSync')
       ctx.waitUntil(runTrackingStatusSync(env))
-    } else if (event.cron === '0 3 * * *') {
+    } else if (cronExpr === '0 3 * * *') {
       // Daily at 04:00 CET (03:00 UTC) — backfill exchange rates for foreign currency orders
       ctx.waitUntil(backfillExchangeRates(env))
-    } else if (event.cron === '0 * * * *') {
+    } else if (cronExpr === '0 * * * *') {
       // Hourly: token refresh + data retention (once/day)
       ctx.waitUntil(autoRefreshAllegroToken(env))
       ctx.waitUntil(dataRetentionCleanup(env))
@@ -381,7 +400,7 @@ export default {
         ctx.waitUntil(preWarmAllegroQualityCache(env))
       }
     } else {
-      console.log(`[Cron] Unsupported expression received: ${event.cron}`)
+      console.log(`[Cron] Unsupported expression received: ${cronExpr}`)
     }
   },
 }

@@ -460,10 +460,15 @@ export async function selectTrackingRefreshCandidates(
  * so cron and user-triggered refreshes never race on the same order.
  */
 export async function runTrackingStatusSync(env: Env): Promise<void> {
+  console.log('[TrackingSync] Start runTrackingStatusSync')
+
   // KV guard: skip DB entirely when no active tracked orders exist.
   // This prevents waking Neon on every 5-min cron run during idle periods.
   const activeFlag = await env.ALLEGRO_KV.get(TRACKING_ACTIVE_KV_KEY)
-  if (activeFlag === '0') return
+  if (activeFlag === '0') {
+    console.log('[TrackingSync] Skip — active flag is 0 (brak aktywnych przesyłek do odświeżenia)')
+    return
+  }
 
   const db = createDb(env.DATABASE_URL)
 
@@ -478,8 +483,11 @@ export async function runTrackingStatusSync(env: Env): Promise<void> {
   if (candidates.length === 0) {
     // No active orders — set flag so next runs skip DB entirely
     await env.ALLEGRO_KV.put(TRACKING_ACTIVE_KV_KEY, '0', { expirationTtl: TRACKING_IDLE_TTL_SECONDS }).catch(() => {})
+    console.log('[TrackingSync] Brak kandydatów — ustawiam active flag=0 i kończę run')
     return
   }
+
+  console.log(`[TrackingSync] Znaleziono kandydatów do odświeżenia: ${candidates.length}`)
 
   const token = await getActiveAllegroToken(env)
   if (!token) {
@@ -558,6 +566,10 @@ export async function runTrackingStatusSync(env: Env): Promise<void> {
     console.log(
       `[TrackingSync] Przesyłka #${transition.orderId} (${transition.checkoutFormId}, waybill: ${trackingNo}) ${displayStatusCode(transition.before.trackingStatusCode)} (${displayStatusText(transition.before.trackingStatus)}) -> ${displayStatusCode(transition.after.trackingStatusCode)} (${displayStatusText(transition.after.trackingStatus)})${suffix}`,
     )
+  }
+
+  if (refreshed === 0) {
+    console.log(`[TrackingSync] Run zakończony bez odświeżeń (kandydaci: ${candidates.length})`)
   }
 
   if (refreshed > 0) {
