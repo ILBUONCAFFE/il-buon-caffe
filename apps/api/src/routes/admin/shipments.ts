@@ -265,10 +265,12 @@ adminShipmentsRouter.get('/orders/:id/label', async (c) => {
   try {
     const db = createDb(c.env.DATABASE_URL)
     const orderId = parseInt(c.req.param('id') ?? '', 10)
+    const mode = c.req.query('mode')
 
     const [order] = await db.select({
       orderNumber: orders.orderNumber,
       allegroShipmentId: orders.allegroShipmentId,
+      externalId: orders.externalId,
     }).from(orders).where(eq(orders.id, orderId)).limit(1)
 
     if (!order) {
@@ -283,6 +285,20 @@ adminShipmentsRouter.get('/orders/:id/label', async (c) => {
       return c.json({ error: { code: 'ALLEGRO_NOT_CONNECTED', message: 'Allegro nie jest podlaczone' } }, 401)
     }
 
+    let shipmentIds: string[] = [order.allegroShipmentId]
+
+    if (mode === 'all' && order.externalId) {
+      const listResp = await fetch(
+        `${token.apiBase}/shipment-management/shipments?checkoutFormId=${order.externalId}`,
+        { headers: allegroHeaders(token.accessToken), signal: AbortSignal.timeout(10_000) }
+      )
+      if (listResp.ok) {
+        const listData = await listResp.json() as { shipments?: Array<{ id?: string }> }
+        const ids = (listData.shipments ?? []).map(s => s.id).filter((id): id is string => Boolean(id))
+        if (ids.length > 0) shipmentIds = ids
+      }
+    }
+
     const labelResp = await fetch(`${token.apiBase}/shipment-management/label`, {
       method: 'POST',
       headers: {
@@ -290,7 +306,7 @@ adminShipmentsRouter.get('/orders/:id/label', async (c) => {
         Accept: 'application/octet-stream',
       },
       body: JSON.stringify({
-        shipmentIds: [order.allegroShipmentId],
+        shipmentIds,
         pageSize: 'A4',
       }),
       signal: AbortSignal.timeout(15_000),

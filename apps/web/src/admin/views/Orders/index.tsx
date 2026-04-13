@@ -6,6 +6,7 @@ import { adminApi, type AdminOrder, type OrdersQueryParams } from '../../lib/adm
 import { OrderContextMenu } from '../../components/OrderContextMenu'
 import { OrderDetailModal } from '../../components/OrderDetailModal'
 import { ShipmentModal } from '../../components/ShipmentModal'
+import { ShipmentLabelPickerModal } from '../../components/ShipmentLabelPickerModal'
 import { BulkActionBar } from '../../components/BulkActionBar'
 import { Dropdown } from '../../components/ui/Dropdown'
 import { DateRangePicker } from '../../components/ui/DateRangePicker'
@@ -74,6 +75,7 @@ export const OrdersView = () => {
   const [contextMenu, setContextMenu] = useState<{ order: AdminOrder; x: number; y: number } | null>(null)
   const [detailOrder, setDetailOrder] = useState<AdminOrder | null>(null)
   const [shipmentOrder, setShipmentOrder] = useState<AdminOrder | null>(null)
+  const [labelPickerOrder, setLabelPickerOrder] = useState<AdminOrder | null>(null)
 
   const [toasts, setToasts] = useState<TrackingToastMessage[]>([])
   const toastCounterRef = useRef(0)
@@ -175,6 +177,10 @@ export const OrdersView = () => {
   }
 
   const handleDownloadLabel = async (order: AdminOrder) => {
+    if (order.allShipments && order.allShipments.length > 1) {
+      setLabelPickerOrder(order)
+      return
+    }
     try {
       const blob = await adminApi.getShipmentLabel(order.id)
       const url = URL.createObjectURL(blob)
@@ -497,6 +503,14 @@ export const OrdersView = () => {
             setShipmentOrder(null)
             fetchOrders()
           }}
+        />
+      )}
+
+      {labelPickerOrder && (
+        <ShipmentLabelPickerModal
+          order={labelPickerOrder}
+          isOpen={!!labelPickerOrder}
+          onClose={() => setLabelPickerOrder(null)}
         />
       )}
 

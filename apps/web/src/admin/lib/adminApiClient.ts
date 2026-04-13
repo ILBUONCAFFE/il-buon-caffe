@@ -140,8 +140,9 @@ export const adminApi = {
       body: JSON.stringify(payload),
     }),
 
-  getShipmentLabel: async (orderId: number): Promise<Blob> => {
-    const res = await fetch(`/api/admin/orders/${orderId}/label`, {
+  getShipmentLabel: async (orderId: number, mode?: 'all'): Promise<Blob> => {
+    const url = `/api/admin/orders/${orderId}/label${mode === 'all' ? '?mode=all' : ''}`
+    const res = await fetch(url, {
       credentials: 'include',
     })
 

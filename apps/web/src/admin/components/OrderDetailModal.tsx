@@ -5,6 +5,7 @@ import { X } from 'lucide-react'
 import { adminApi } from '../lib/adminApiClient'
 import { resolveShipmentStatus } from '../lib/shipmentStatus'
 import { OrderStatusBadge } from './OrderStatusBadge'
+import { ShipmentLabelPickerModal } from './ShipmentLabelPickerModal'
 import type { AdminOrder, AllegroShipmentEntry, OrderTrackingSnapshot } from '../types/admin-api'
 
 interface OrderDetailModalProps {
@@ -155,6 +156,11 @@ export function OrderDetailModal({
   const [trackingLoading, setTrackingLoading] = useState(false)
   const [trackingError, setTrackingError] = useState<string | null>(null)
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [labelPickerOpen, setLabelPickerOpen] = useState(false)
+
+  useEffect(() => {
+    if (!isOpen) setLabelPickerOpen(false)
+  }, [isOpen])
 
   const refreshTrackingSnapshot = useCallback(async (showError = true) => {
     if (!order) return
@@ -261,6 +267,7 @@ export function OrderDetailModal({
   const shipmentStatusText = effectiveTrackingStatus ?? resolvedShipmentStatus.detail
 
   return (
+    <>
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
         className="absolute inset-0 bg-[#1A1A1A]/30 backdrop-blur-[2px] animate-in fade-in duration-150"
@@ -463,9 +470,15 @@ export function OrderDetailModal({
 
           <div className="flex gap-3">
             {order.allegroShipmentId && onDownloadLabel ? (
-              <button className="btn-primary text-sm" onClick={() => onDownloadLabel(order)}>
-                Pobierz etykiete PDF
-              </button>
+              (order.allShipments?.length ?? 0) > 1 ? (
+                <button className="btn-primary text-sm" onClick={() => setLabelPickerOpen(true)}>
+                  Pobierz etykiety PDF ({order.allShipments!.length})
+                </button>
+              ) : (
+                <button className="btn-primary text-sm" onClick={() => onDownloadLabel(order)}>
+                  Pobierz etykiete PDF
+                </button>
+              )
             ) : canShip && onCreateShipment ? (
               <button className="btn-primary text-sm" onClick={() => onCreateShipment(order)}>
                 Nadaj przesylke
@@ -475,5 +488,13 @@ export function OrderDetailModal({
         </div>
       </div>
     </div>
+      {labelPickerOpen && (
+        <ShipmentLabelPickerModal
+          order={order}
+          isOpen={labelPickerOpen}
+          onClose={() => setLabelPickerOpen(false)}
+        />
+      )}
+    </>
   )
 }
