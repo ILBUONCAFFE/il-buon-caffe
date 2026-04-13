@@ -605,11 +605,7 @@ authRouter.post('/forgot-password', passwordResetRateLimiter, async (c) => {
     }
 
     // Dual rate-limit: per-email prevents enumeration from rotating IPs
-    const emailRateLimit = await checkRateLimitByKey(
-      c,
-      `reset:email:${email}`,
-      { limit: 3, windowMs: 60 * 60 * 1000, blockDurationMs: 60 * 60 * 1000 }
-    )
+    const emailRateLimit = await checkRateLimitByKey(c, `reset:email:${email}`)
     if (emailRateLimit) return emailRateLimit
 
     const db = c.get('db')

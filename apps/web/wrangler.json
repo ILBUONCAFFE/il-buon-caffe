@@ -2,6 +2,7 @@
 	"name": "il-buon-caffe-web",
 	"compatibility_date": "2025-09-01",
 	"compatibility_flags": ["nodejs_compat"],
+	"limits": { "cpu_ms": 30000 },
 	"main": ".open-next/worker.js",
 	"assets": {
 		"directory": ".open-next/assets",

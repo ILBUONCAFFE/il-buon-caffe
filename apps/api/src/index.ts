@@ -33,7 +33,6 @@ export interface Env {
   JWT_ACCESS_SECRET: string
   JWT_REFRESH_SECRET: string
   NODE_ENV?: string
-  AUTH_RATE_LIMIT?: KVNamespace
   IMAGES_BUCKET: R2Bucket
   MEDIA_BUCKET: R2Bucket
   CATALOGS_BUCKET: R2Bucket
@@ -64,6 +63,14 @@ export interface Env {
   ALLEGRO_ENVIRONMENT: 'sandbox' | 'production'
   ALLEGRO_TOKEN_ENCRYPTION_KEY?: string   // 32-byte hex — AES-256-GCM
   ALLEGRO_KV: KVNamespace
+
+  // Native Workers Rate Limiting API bindings (Paid plan)
+  RL_API?:            { limit(opts: { key: string }): Promise<{ success: boolean }> }
+  RL_ADMIN?:          { limit(opts: { key: string }): Promise<{ success: boolean }> }
+  RL_LOGIN?:          { limit(opts: { key: string }): Promise<{ success: boolean }> }
+  RL_REGISTER?:       { limit(opts: { key: string }): Promise<{ success: boolean }> }
+  RL_PASSWORD_RESET?: { limit(opts: { key: string }): Promise<{ success: boolean }> }
+  RL_HEALTH?:         { limit(opts: { key: string }): Promise<{ success: boolean }> }
 }
 
 // ── App ───────────────────────────────────────────────────────────────────
