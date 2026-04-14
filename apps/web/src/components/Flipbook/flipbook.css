@@ -1,9 +1,9 @@
 /* ═══════════════════════════════════════════════════════════
-   FLIPBOOK CATALOG — Premium Wine Cellar Aesthetic
-   Redesigned: elegant dark theme with warm Italian accents
+   FLIPBOOK CATALOG — Editorial Dark
+   Il Buon Caffè · Tenuta Carretta
    ═══════════════════════════════════════════════════════════ */
 
-/* ── Layout ────────────────────────────────────────────── */
+/* ── Layout ─────────────────────────────────────────────── */
 .catalog-layout {
   min-height: 100dvh;
   background: #0c0a09;
@@ -16,7 +16,7 @@
   flex-direction: column;
 }
 
-/* ── Container ─────────────────────────────────────────── */
+/* ── Container ──────────────────────────────────────────── */
 .flipbook-container {
   display: flex;
   flex-direction: column;
@@ -26,34 +26,12 @@
   font-family: var(--font-lato), system-ui, sans-serif;
   user-select: none;
   -webkit-user-select: none;
-  position: relative;
 }
 
-/* Subtle decorative background texture */
-.flipbook-container::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background:
-    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(163, 127, 91, 0.06) 0%, transparent 70%),
-    radial-gradient(ellipse 60% 50% at 20% 100%, rgba(120, 80, 40, 0.04) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 50% at 80% 100%, rgba(163, 127, 91, 0.03) 0%, transparent 60%);
-  pointer-events: none;
-  z-index: 0;
-}
-
-.flipbook-container > * {
-  position: relative;
-  z-index: 1;
-}
-
-/* ── Header ────────────────────────────────────────────── */
+/* ── Header (desktop only) ──────────────────────────────── */
 .flipbook-header {
   flex-shrink: 0;
-  border-bottom: 1px solid rgba(163, 127, 91, 0.12);
-  background: rgba(12, 10, 9, 0.85);
-  backdrop-filter: blur(24px) saturate(1.2);
-  -webkit-backdrop-filter: blur(24px) saturate(1.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 .flipbook-header-inner {
@@ -62,7 +40,8 @@
   justify-content: space-between;
   max-width: 1400px;
   margin: 0 auto;
-  padding: 14px 32px;
+  padding: 0 32px;
+  height: 44px;
 }
 
 .flipbook-header-spacer {
@@ -70,103 +49,29 @@
   width: 120px;
 }
 
-.flipbook-brand {
-  flex-shrink: 0;
-}
-
-.flipbook-logo {
-  font-family: var(--font-playfair), serif;
-  font-size: 16px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  color: #a37f5b;
-}
-
 .flipbook-title {
-  font-family: var(--font-playfair), serif;
-  font-size: 17px;
+  font-family: var(--font-lato), sans-serif;
+  font-size: 11px;
   font-weight: 500;
-  letter-spacing: 0.04em;
-  color: rgba(231, 229, 228, 0.9);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(231, 229, 228, 0.28);
   text-align: center;
   flex: 1;
-  margin: 0 20px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  position: relative;
+  margin: 0;
 }
 
-/* Decorative line under the title */
-.flipbook-title::after {
-  content: '';
-  position: absolute;
-  bottom: -10px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 40px;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(163, 127, 91, 0.5), transparent);
-}
-
-/* ── Back link in header ──────────────────────────────── */
-.flipbook-back-link {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  font-weight: 400;
-  color: rgba(163, 127, 91, 0.7);
-  text-decoration: none;
-  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
-  letter-spacing: 0.02em;
-}
-
-.flipbook-back-link:hover {
-  color: rgba(163, 127, 91, 1);
-}
-
-.flipbook-back-link svg {
-  transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
-}
-
-.flipbook-back-link:hover svg {
-  transform: translateX(-3px);
-}
-
-/* ── Stage (flipbook area) ─────────────────────────────── */
+/* ── Stage ──────────────────────────────────────────────── */
 .flipbook-stage {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
-  padding: 24px 72px;
+  padding: 32px 80px;
   overflow: hidden;
-  background:
-    radial-gradient(ellipse 100% 80% at 50% 50%, rgba(20, 17, 15, 1) 0%, rgba(12, 10, 9, 1) 100%);
-}
-
-/* Subtle vignette effect around the stage */
-.flipbook-stage::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse at center, transparent 40%, rgba(12, 10, 9, 0.6) 100%);
-  pointer-events: none;
-  z-index: 1;
-}
-
-/* Decorative corner accents */
-.flipbook-stage::after {
-  content: '';
-  position: absolute;
-  inset: 20px;
-  border: 1px solid rgba(163, 127, 91, 0.04);
-  border-radius: 16px;
-  pointer-events: none;
-  z-index: 1;
+  /* GPU-composited layer — prevents repaints during pinch/pan */
+  contain: layout paint;
 }
 
 .flipbook {
@@ -176,51 +81,47 @@
 }
 
 .flipbook.visible {
-  filter: drop-shadow(0 8px 32px rgba(0, 0, 0, 0.5))
-          drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+  filter:
+    drop-shadow(0 20px 80px rgba(0, 0, 0, 0.8))
+    drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
 }
 
-/* Page styling */
+/* Page elements */
 .flipbook-page {
   background: #fff;
   overflow: hidden;
 }
 
-.flipbook-page img {
+.flipbook-page img,
+.pf-page img {
   pointer-events: none;
   -webkit-user-drag: none;
   background: #fff;
+  display: block;
 }
 
-/* turn.js / page-flip wrapper overrides */
-.flipbook .turn-page-wrapper {
-  background: #fff;
-}
-
+.flipbook .turn-page-wrapper,
 .flipbook .turn-page {
   background: #fff;
 }
 
-/* ── Navigation Arrows ─────────────────────────────────── */
+/* ── Navigation Arrows ──────────────────────────────────── */
 .flipbook-nav-arrow {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
   z-index: 100;
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
-  border: 1px solid rgba(163, 127, 91, 0.15);
-  background: rgba(12, 10, 9, 0.7);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  color: rgba(231, 229, 228, 0.6);
+  width: 48px;
+  height: 48px;
+  border: none;
+  background: none;
+  color: rgba(231, 229, 228, 0.18);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.35s cubic-bezier(0.25, 1, 0.5, 1);
   opacity: 0;
+  transition: color 0.25s ease, opacity 0.25s ease;
 }
 
 .flipbook-stage:hover .flipbook-nav-arrow {
@@ -228,15 +129,11 @@
 }
 
 .flipbook-nav-arrow:hover {
-  background: rgba(163, 127, 91, 0.15);
-  border-color: rgba(163, 127, 91, 0.35);
-  color: #e7e5e4;
-  transform: translateY(-50%) scale(1.06);
-  box-shadow: 0 4px 24px rgba(163, 127, 91, 0.1);
+  color: rgba(231, 229, 228, 0.85);
 }
 
 .flipbook-nav-arrow:active {
-  transform: translateY(-50%) scale(0.96);
+  transform: translateY(-50%) scale(0.88);
 }
 
 .flipbook-nav-arrow:disabled {
@@ -244,61 +141,70 @@
   pointer-events: none;
 }
 
-.flipbook-nav-prev {
-  left: 16px;
-}
+.flipbook-nav-prev { left: 20px; }
+.flipbook-nav-next { right: 20px; }
 
-.flipbook-nav-next {
-  right: 16px;
-}
-
-/* ── Bottom Controls ───────────────────────────────────── */
+/* ── Controls ───────────────────────────────────────────── */
 .flipbook-controls {
   flex-shrink: 0;
-  border-top: 1px solid rgba(163, 127, 91, 0.1);
-  background: rgba(12, 10, 9, 0.88);
-  backdrop-filter: blur(24px) saturate(1.2);
-  -webkit-backdrop-filter: blur(24px) saturate(1.2);
-  /* iOS safe area: prevents controls from hiding behind home bar / Dynamic Island */
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
   padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* 1px progress line across full width */
+.flipbook-controls-progress {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.04);
+  position: relative;
+  overflow: hidden;
+}
+
+.flipbook-controls-progress-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: linear-gradient(90deg, rgba(163, 127, 91, 0.35), rgba(163, 127, 91, 0.6));
+  border-radius: 0 1px 1px 0;
+  transition: width 0.5s cubic-bezier(0.25, 1, 0.5, 1);
 }
 
 .flipbook-controls-inner {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 0;
   max-width: 1400px;
   margin: 0 auto;
-  padding: 12px 32px;
+  padding: 10px 24px;
 }
 
 .flipbook-controls-group {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 2px;
 }
 
 .flipbook-controls-divider {
   width: 1px;
-  height: 22px;
-  background: linear-gradient(180deg, transparent, rgba(163, 127, 91, 0.2), transparent);
-  margin: 0 10px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  margin: 0 12px;
 }
 
 /* Control buttons */
 .flipbook-ctrl-btn {
-  width: 38px;
-  height: 38px;
-  border-radius: 11px;
-  border: 1px solid rgba(163, 127, 91, 0.1);
-  background: rgba(163, 127, 91, 0.04);
-  color: rgba(231, 229, 228, 0.5);
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: none;
+  color: rgba(231, 229, 228, 0.28);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1);
+  border-radius: 6px;
+  transition: color 0.2s ease, transform 0.15s ease;
   font-size: 12px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -306,59 +212,62 @@
 }
 
 .flipbook-ctrl-btn:hover {
-  background: rgba(163, 127, 91, 0.12);
-  border-color: rgba(163, 127, 91, 0.25);
-  color: #e7e5e4;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 12px rgba(163, 127, 91, 0.08);
+  color: rgba(231, 229, 228, 0.9);
 }
 
 .flipbook-ctrl-btn:active {
-  transform: scale(0.93) translateY(0);
+  transform: scale(0.88);
 }
 
 .flipbook-ctrl-btn:disabled {
-  opacity: 0.25;
+  opacity: 0.15;
   cursor: not-allowed;
+  pointer-events: none;
 }
 
-.flipbook-ctrl-btn:disabled:hover {
-  background: rgba(163, 127, 91, 0.04);
-  border-color: rgba(163, 127, 91, 0.1);
+/* Prev / Next — more prominent */
+.flipbook-ctrl-btn.flipbook-ctrl-prev,
+.flipbook-ctrl-btn.flipbook-ctrl-next {
   color: rgba(231, 229, 228, 0.5);
-  transform: none;
-  box-shadow: none;
+  width: 44px;
+  height: 44px;
+}
+
+.flipbook-ctrl-btn.flipbook-ctrl-prev:hover,
+.flipbook-ctrl-btn.flipbook-ctrl-next:hover {
+  color: rgba(231, 229, 228, 1);
 }
 
 /* Page indicator */
 .flipbook-page-info {
   display: flex;
   align-items: baseline;
-  gap: 5px;
-  padding: 0 16px;
+  gap: 4px;
+  padding: 0 20px;
   font-variant-numeric: tabular-nums;
 }
 
 .flipbook-page-current {
-  font-size: 20px;
-  font-weight: 700;
-  color: #e7e5e4;
   font-family: var(--font-playfair), serif;
+  font-size: 22px;
+  font-weight: 400;
+  color: rgba(231, 229, 228, 0.9);
+  line-height: 1;
 }
 
 .flipbook-page-sep {
-  font-size: 14px;
-  color: rgba(163, 127, 91, 0.35);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.1);
   margin: 0 2px;
 }
 
 .flipbook-page-total {
-  font-size: 14px;
-  color: rgba(231, 229, 228, 0.35);
+  font-size: 12px;
+  color: rgba(231, 229, 228, 0.18);
   font-weight: 400;
 }
 
-/* ── Loading State ─────────────────────────────────────── */
+/* ── Loading State ──────────────────────────────────────── */
 .flipbook-loading {
   position: absolute;
   inset: 0;
@@ -373,93 +282,59 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 28px;
-  max-width: 320px;
 }
 
+/* Spinning arc icon */
 .flipbook-loading-icon {
-  color: #a37f5b;
-  animation: flipbook-pulse 2.5s ease-in-out infinite;
-  position: relative;
+  color: rgba(163, 127, 91, 0.55);
+  margin-bottom: 40px;
 }
 
-/* Decorative ring around loading icon */
-.flipbook-loading-icon::before {
-  content: '';
-  position: absolute;
-  inset: -12px;
-  border-radius: 50%;
-  border: 1px solid rgba(163, 127, 91, 0.15);
-  animation: flipbook-ring-rotate 8s linear infinite;
+/* The arc element inside the SVG — rotates continuously */
+.flipbook-spinner-arc {
+  transform-origin: 28px 28px;
+  animation: flipbook-spin 1.5s linear infinite;
 }
 
-.flipbook-loading-icon::after {
-  content: '';
-  position: absolute;
-  inset: -12px;
-  border-radius: 50%;
-  border: 1px dashed rgba(163, 127, 91, 0.08);
-  animation: flipbook-ring-rotate 12s linear infinite reverse;
+@keyframes flipbook-spin {
+  from { transform: rotate(-90deg); }
+  to   { transform: rotate(270deg); }
 }
 
-@keyframes flipbook-ring-rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-@keyframes flipbook-pulse {
-  0%, 100% { opacity: 0.4; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.08); }
-}
-
-.flipbook-loading-text {
-  font-size: 16px;
-  font-weight: 500;
-  color: rgba(231, 229, 228, 0.65);
+/* Large percentage number — editorial, like a wine vintage year */
+.flipbook-loading-number {
   font-family: var(--font-playfair), serif;
-  letter-spacing: 0.04em;
-}
-
-.flipbook-progress-bar {
-  width: 220px;
-  height: 2px;
-  border-radius: 100px;
-  background: rgba(163, 127, 91, 0.08);
-  overflow: hidden;
-  position: relative;
-}
-
-.flipbook-progress-fill {
-  height: 100%;
-  border-radius: 100px;
-  background: linear-gradient(90deg, #8b6d4a, #a37f5b, #c9a87c);
-  transition: width 0.4s cubic-bezier(0.25, 1, 0.5, 1);
-  position: relative;
-}
-
-/* Shimmer on progress bar */
-.flipbook-progress-fill::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.3) 50%, transparent 100%);
-  animation: flipbook-shimmer 1.8s ease-in-out infinite;
-}
-
-@keyframes flipbook-shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(200%); }
-}
-
-.flipbook-progress-label {
-  font-size: 11px;
-  color: rgba(163, 127, 91, 0.45);
-  font-weight: 500;
-  letter-spacing: 0.08em;
+  font-size: clamp(72px, 18vw, 116px);
+  font-weight: 400;
+  line-height: 1;
+  color: rgba(231, 229, 228, 0.07);
+  letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
+  min-width: 3ch;
+  text-align: right;
+  margin-bottom: 28px;
+  transition: color 0.8s ease;
 }
 
-/* ── Error State ───────────────────────────────────────── */
+/* Thin 1px progress bar */
+.flipbook-loading-bar {
+  width: min(200px, 48vw);
+  height: 1px;
+  background: rgba(255, 255, 255, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.flipbook-loading-bar-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: rgba(163, 127, 91, 0.5);
+  transition: width 0.4s ease;
+}
+
+/* ── Error State ─────────────────────────────────────────── */
 .flipbook-error {
   position: absolute;
   inset: 0;
@@ -469,132 +344,55 @@
   justify-content: center;
   gap: 20px;
   z-index: 200;
-  color: rgba(231, 229, 228, 0.5);
+  color: rgba(231, 229, 228, 0.4);
 }
 
 .flipbook-error p {
-  font-size: 16px;
+  font-size: 15px;
   text-align: center;
-  max-width: 320px;
-  line-height: 1.6;
+  max-width: 300px;
+  line-height: 1.7;
   font-family: var(--font-playfair), serif;
 }
 
 .flipbook-retry-btn {
-  padding: 12px 28px;
-  border-radius: 12px;
-  border: 1px solid rgba(163, 127, 91, 0.3);
-  background: rgba(163, 127, 91, 0.08);
-  color: #c9a87c;
-  font-size: 14px;
+  padding: 9px 28px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  background: none;
+  color: rgba(231, 229, 228, 0.4);
+  font-size: 11px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
-  letter-spacing: 0.02em;
+  transition: all 0.2s ease;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .flipbook-retry-btn:hover {
-  background: rgba(163, 127, 91, 0.18);
-  border-color: rgba(163, 127, 91, 0.5);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 20px rgba(163, 127, 91, 0.12);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: rgba(231, 229, 228, 0.85);
 }
 
-.flipbook-retry-btn:active {
-  transform: translateY(0) scale(0.97);
-}
-
-/* ── Touch Hint ────────────────────────────────────────── */
-.flipbook-touch-hint {
-  position: fixed;
-  bottom: 80px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 22px;
-  border-radius: 100px;
-  background: rgba(163, 127, 91, 0.1);
-  border: 1px solid rgba(163, 127, 91, 0.15);
-  color: rgba(231, 229, 228, 0.5);
-  font-size: 13px;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  animation: flipbook-hint-fade 4s ease-in-out forwards;
-  z-index: 50;
-  pointer-events: none;
-}
-
-@keyframes flipbook-hint-fade {
-  0% { opacity: 0; transform: translateX(-50%) translateY(10px); }
-  15% { opacity: 1; transform: translateX(-50%) translateY(0); }
-  75% { opacity: 1; }
-  100% { opacity: 0; }
-}
-
-/* ── Mobile hint ───────────────────────────────────────── */
+/* ── Mobile swipe hint ───────────────────────────────────── */
 .flipbook-mobile-hint {
-  font-size: 11px;
-  color: rgba(163, 127, 91, 0.35);
-  text-align: center;
-  padding: 2px 16px 8px;
-  letter-spacing: 0.03em;
-}
-
-/* ── Keyboard shortcut hints (desktop) ─────────────────── */
-.flipbook-shortcuts {
-  position: absolute;
-  bottom: 8px;
-  right: 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 11px;
-  color: rgba(163, 127, 91, 0.2);
-  pointer-events: none;
-  z-index: 5;
-}
-
-.flipbook-shortcuts kbd {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 5px;
-  border-radius: 4px;
-  border: 1px solid rgba(163, 127, 91, 0.12);
-  background: rgba(163, 127, 91, 0.04);
-  font-family: var(--font-lato), system-ui, sans-serif;
   font-size: 10px;
-  line-height: 1;
+  color: rgba(255, 255, 255, 0.13);
+  text-align: center;
+  padding: 0 16px 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
-/* ── Responsive ────────────────────────────────────────── */
+/* ── Keyboard hints — hidden (desktop only, not critical) ── */
+.flipbook-shortcuts {
+  display: none;
+}
+
+/* ── Mobile ──────────────────────────────────────────────── */
 @media (max-width: 768px) {
+  /* No header on mobile — full-screen book experience */
   .flipbook-header {
-    position: relative;
-    z-index: 10;
-  }
-
-  .flipbook-header-inner {
-    padding: 10px 16px;
-    min-height: 44px;
-  }
-
-  .flipbook-header-spacer {
-    display: none;
-  }
-
-  .flipbook-title {
-    font-size: 14px;
-    text-align: center;
-    margin: 0;
-    flex: 1;
-  }
-
-  .flipbook-title::after {
     display: none;
   }
 
@@ -602,37 +400,30 @@
     padding: 4px;
     flex: 1;
     overflow: hidden;
+    /* On mobile, touch-action is managed dynamically by the component
+       via the style prop (pan-x pan-y when zoom=1, none when zoomed).
+       This base rule allows natural scrolling to be controlled by JS. */
+    -webkit-overflow-scrolling: touch;
   }
 
-  .flipbook-stage::after {
-    display: none;
-  }
-
+  /* Side arrows hidden on mobile, use bottom bar */
   .flipbook-nav-arrow {
     display: none;
   }
 
-  .flipbook-controls {
-    flex-shrink: 0;
-    padding: 0;
-  }
-
   .flipbook-controls-inner {
     padding: 8px 12px;
-    gap: 6px;
   }
 
   .flipbook-ctrl-btn {
     width: 42px;
     height: 42px;
-    border-radius: 12px;
   }
 
   .flipbook-ctrl-btn.flipbook-ctrl-prev,
   .flipbook-ctrl-btn.flipbook-ctrl-next {
     width: 50px;
     height: 50px;
-    border-radius: 14px;
   }
 
   .flipbook-page-info {
@@ -640,42 +431,25 @@
   }
 
   .flipbook-page-current {
-    font-size: 18px;
-  }
-
-  .flipbook-controls-divider {
-    margin: 0 4px;
-  }
-
-  .flipbook-loading-inner {
-    padding: 0 24px;
-  }
-
-  .flipbook-shortcuts {
-    display: none;
-  }
-
-  .flipbook-back-link {
-    font-size: 12px;
+    font-size: 20px;
   }
 }
 
-/* ── Large screens ─────────────────────────────────────── */
+/* ── Large screens ───────────────────────────────────────── */
 @media (min-width: 1600px) {
   .flipbook-stage {
-    padding: 32px 100px;
+    padding: 40px 120px;
   }
 }
 
-/* ── Touch tablets: nav arrows always visible (no :hover on touch) ─── */
+/* ── Touch tablets: nav arrows always visible (no :hover) ── */
 @media (pointer: coarse) and (min-width: 769px) {
   .flipbook-stage .flipbook-nav-arrow {
-    opacity: 0.65;
+    opacity: 0.5;
   }
 
   .flipbook-stage .flipbook-nav-arrow:active {
     opacity: 1;
-    background: rgba(163, 127, 91, 0.18);
-    border-color: rgba(163, 127, 91, 0.4);
+    color: rgba(231, 229, 228, 0.9);
   }
 }
