@@ -490,6 +490,14 @@ export async function selectTrackingRefreshCandidates(
         // Only shippedAt/createdAt — never updatedAt (reconcile/admin bumps updatedAt on old
         // orders, causing stale November orders to appear eligible forever).
         sql`COALESCE(${orders.shippedAt}, ${orders.createdAt}) > ${cutoffDate}`,
+        // Skip orders that are fully delivered — tracking is final, no point polling Allegro.
+        sql`NOT (
+          ${orders.status} = 'delivered'
+          AND (
+            ${orders.trackingStatusCode} ILIKE '%DELIVERED%'
+            OR ${orders.trackingStatusCode} ILIKE '%PICKED_UP%'
+          )
+        )`,
         sql`(
           ${orders.trackingStatusUpdatedAt} IS NULL
           OR ${orders.trackingStatusUpdatedAt} < NOW() - (
