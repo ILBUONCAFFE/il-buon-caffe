@@ -412,9 +412,17 @@ export async function reconcileHourlyPaidOrders(env: Env): Promise<void> {
   }
 
   const cursor = parsePaidSweepCursor(cursorRaw)
-  const db = createDb(env.DATABASE_URL)
+
+  // ── DB is opened lazily — only after confirming there are candidates to process.
+  // This prevents waking Neon on runs where all paid orders are already reconciled.
+  let _db: ReturnType<typeof createDb> | null = null
+  function getDb() {
+    if (!_db) _db = createDb(env.DATABASE_URL)
+    return _db
+  }
 
   const loadCandidates = async (afterCursor: PaidSweepCursor | null) => {
+    const db = getDb()
     const base = [
       eq(orders.status, 'paid'),
       eq(orders.source, 'allegro'),
@@ -480,7 +488,7 @@ export async function reconcileHourlyPaidOrders(env: Env): Promise<void> {
       const form = await fetchCheckoutForm(token.apiBase, token.accessToken, order.externalId)
       if (!form) continue
 
-      await reconcileOrder(db, form, env.ALLEGRO_KV)
+      await reconcileOrder(getDb(), form, env.ALLEGRO_KV)
       reconciled++
     } catch (err) {
       console.warn(`[PaidSweep] Błąd dla zamówienia ${order.orderNumber}:`, err instanceof Error ? err.message : String(err))
