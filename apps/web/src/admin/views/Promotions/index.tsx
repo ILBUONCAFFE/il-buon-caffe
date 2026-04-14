@@ -13,13 +13,13 @@ export const PromotionsView = () => {
   const [actionTarget, setActionTarget] = useState('entire_order')
   return (
     <div className="animate-in fade-in duration-300">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
         <div>
-          <h2 className="text-h2 text-[#1A1A1A]">Kreator Promocji</h2>
+          <h2 className="text-xl sm:text-2xl font-semibold text-[#1A1A1A]">Kreator Promocji</h2>
           <p className="text-sm text-[#737373] mt-1">Twórz zaawansowane reguły rabatowe w prosty sposób.</p>
         </div>
-        <button className="btn-accent">
-          <Plus size={16} />Nowa reguła
+        <button className="btn-accent text-sm w-full sm:w-auto justify-center">
+          <Plus size={16} /> <span className="hidden sm:inline">Nowa reguła</span>
         </button>
       </div>
 
@@ -75,7 +75,7 @@ export const PromotionsView = () => {
                 <div className="flex-1 bg-white rounded-xl border border-[#E5E4E1] p-4 shadow-sm">
                   <h4 className="text-sm font-semibold text-[#1A1A1A] mb-3 uppercase tracking-wider">Warunki (JEŚLI)</h4>
                   <div className="space-y-3">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <Dropdown
                         label="Wybierz"
                         value={cond1Target}
@@ -100,12 +100,12 @@ export const PromotionsView = () => {
                         <input type="text" defaultValue="200" className="admin-input w-24 !pr-10" />
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[#737373]">PLN</span>
                       </div>
-                      <button className="p-2 text-[#A3A3A3] hover:text-[#DC2626] transition-all duration-300 hover:scale-110 active:scale-95"><X size={16} /></button>
+                      <button className="p-2 text-[#A3A3A3] hover:text-[#DC2626] transition-all duration-300 hover:scale-110 active:scale-95 ml-auto sm:ml-0"><X size={16} /></button>
                     </div>
                     <div className="flex items-center gap-3 pl-2">
                       <span className="text-xs font-bold text-[#0066CC] uppercase bg-[#EFF6FF] px-2 py-1 rounded">ORAZ</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <Dropdown
                         label="Wybierz"
                         value={cond2Target}
@@ -126,7 +126,7 @@ export const PromotionsView = () => {
                         ]}
                       />
                       <input type="text" defaultValue="VIP" className="admin-input w-32" />
-                      <button className="p-2 text-[#A3A3A3] hover:text-[#DC2626] transition-all duration-300 hover:scale-110 active:scale-95"><X size={16} /></button>
+                      <button className="p-2 text-[#A3A3A3] hover:text-[#DC2626] transition-all duration-300 hover:scale-110 active:scale-95 ml-auto sm:ml-0"><X size={16} /></button>
                     </div>
                     <button className="mt-2 flex items-center gap-2 text-sm font-medium text-[#0066CC] transition-all duration-300 hover:scale-[1.02] active:scale-95">
                       <PlusCircle size={16} /> Dodaj warunek
@@ -145,7 +145,7 @@ export const PromotionsView = () => {
                 <div className="flex-1 bg-white rounded-xl border border-[#E5E4E1] p-4 shadow-sm">
                   <h4 className="text-sm font-semibold text-[#1A1A1A] mb-3 uppercase tracking-wider">Akcja (TO)</h4>
                   <div className="space-y-3">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <Dropdown
                         label="Akcja"
                         value={actionType}
@@ -157,7 +157,7 @@ export const PromotionsView = () => {
                           { value: 'free_product', label: 'Darmowy produkt' },
                         ]}
                       />
-                      <span className="text-sm text-[#737373]">na</span>
+                      <span className="text-sm text-[#737373] w-full sm:w-auto mt-1 sm:mt-0">na</span>
                       <Dropdown
                         label="Cel"
                         value={actionTarget}

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { adminApi, type AdminCategory, type AdminProduct, type AdminProductsQueryParams } from '../../lib/adminApiClient'
+import { MoreVertical, ChevronLeft, ChevronRight as ChevronRightIcon } from 'lucide-react'
 
 const PAGE_LIMIT = 50
 
@@ -103,28 +104,28 @@ export const ProductsView = () => {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold text-[#1A1A1A]">Produkty</h1>
-          <p className="text-sm text-[#737373] mt-1">Zarzadzanie katalogiem, stanem i aktywnoscia SKU.</p>
+          <h1 className="text-xl md:text-2xl font-semibold text-[#1A1A1A]">Produkty</h1>
+          <p className="text-sm text-[#737373] mt-1">Zarządzanie katalogiem, stanem i aktywnością SKU.</p>
         </div>
 
-        <button className="btn-primary text-sm" onClick={() => router.push('/admin/products/new')}>
+        <button className="btn-primary text-sm w-full sm:w-auto" onClick={() => router.push('/admin/products/new')}>
           Nowy produkt
         </button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-3">
         <input
           type="text"
           placeholder="Szukaj po nazwie produktu"
-          className="admin-input min-w-[260px] flex-1"
+          className="admin-input flex-1 min-w-0 sm:min-w-[260px]"
           value={searchInput}
           onChange={(e) => handleSearch(e.target.value)}
         />
 
         <select
-          className="admin-input min-w-[170px]"
+          className="admin-input min-w-0 sm:min-w-[170px]"
           value={activeFilter}
           onChange={(e) => {
             setActiveFilter(e.target.value as 'all' | 'true' | 'false')
@@ -137,7 +138,7 @@ export const ProductsView = () => {
         </select>
 
         <select
-          className="admin-input min-w-[200px]"
+          className="admin-input min-w-0 sm:min-w-[200px]"
           value={categoryFilter}
           onChange={(e) => {
             setCategoryFilter(e.target.value)
@@ -159,7 +160,8 @@ export const ProductsView = () => {
         </div>
       ) : null}
 
-      <div className="bg-white rounded-xl border border-[#E5E4E1] overflow-hidden shadow-sm">
+      {/* Desktop table */}
+      <div className="hidden md:block bg-white rounded-xl border border-[#E5E4E1] overflow-hidden shadow-sm">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-[#FAFAF9] text-[#A3A3A3] text-[11px] uppercase tracking-wider border-b border-[#E5E4E1]">
@@ -167,7 +169,7 @@ export const ProductsView = () => {
               <th className="text-left px-4 py-3 font-medium">Nazwa</th>
               <th className="text-left px-4 py-3 font-medium">Kategoria</th>
               <th className="text-right px-4 py-3 font-medium">Cena</th>
-              <th className="text-right px-4 py-3 font-medium">Dostepne</th>
+              <th className="text-right px-4 py-3 font-medium">Dostępne</th>
               <th className="text-left px-4 py-3 font-medium">Status</th>
               <th className="text-right px-4 py-3 font-medium">Akcje</th>
             </tr>
@@ -185,7 +187,7 @@ export const ProductsView = () => {
             ) : products.length === 0 ? (
               <tr>
                 <td colSpan={7} className="px-4 py-12 text-center text-[#A3A3A3]">
-                  Brak produktow dla wybranych filtrow
+                  Brak produktów dla wybranych filtrów
                 </td>
               </tr>
             ) : (
@@ -236,26 +238,75 @@ export const ProductsView = () => {
         </table>
       </div>
 
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-[#737373]">Lacznie: {total}</p>
+      {/* Mobile cards */}
+      <div className="md:hidden space-y-3">
+        {loading ? (
+          Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="bg-white rounded-xl border border-[#E5E4E1] p-4 animate-pulse space-y-3">
+              <div className="flex justify-between"><div className="h-4 bg-[#F5F4F1] rounded w-32" /><div className="h-4 bg-[#F5F4F1] rounded w-16" /></div>
+              <div className="h-3 bg-[#F5F4F1] rounded w-full" />
+              <div className="h-8 bg-[#F5F4F1] rounded w-full" />
+            </div>
+          ))
+        ) : products.length === 0 ? (
+          <div className="bg-white rounded-xl border border-[#E5E4E1] py-16 text-center text-[#A3A3A3]">Brak produktów</div>
+        ) : (
+          products.map((product) => (
+            <div key={product.sku} className="bg-white rounded-xl border border-[#E5E4E1] p-4 cursor-pointer active:scale-[0.99] transition-all" onClick={() => router.push(`/admin/products/${encodeURIComponent(product.sku)}`)}>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="font-medium text-sm text-[#1A1A1A]">{product.name}</div>
+                  <div className="text-xs text-[#A3A3A3] mt-0.5">{product.category?.name || '-'} · <span className="font-mono">{product.sku}</span></div>
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="font-semibold text-sm text-[#1A1A1A]">{formatPrice(product.price)}</div>
+                  <div className="text-xs text-[#A3A3A3] mt-0.5">Dost: {product.available}</div>
+                </div>
+              </div>
+              <div className="border-t border-[#F0EFEC] my-3" />
+              <div className="flex items-center justify-between gap-2" onClick={(e) => e.stopPropagation()}>
+                <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${product.isActive ? 'bg-[#ECFDF5] text-[#047857]' : 'bg-[#FEE2E2] text-[#B91C1C]'}`}>
+                  {product.isActive ? 'Aktywny' : 'Nieaktywny'}
+                </span>
+                
+                <div className="flex gap-2">
+                  {product.isActive && (
+                    <button className="btn-secondary text-xs" disabled={busySku === product.sku} onClick={() => void handleDeactivate(product.sku)}>
+                      {busySku === product.sku ? '...' : 'Dezaktywuj'}
+                    </button>
+                  )}
+                  <button className="btn-secondary text-xs" onClick={() => router.push(`/admin/products/${encodeURIComponent(product.sku)}`)}>
+                    Edytuj
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className="flex items-center justify-between pt-2">
+        <p className="text-sm text-[#737373]">Lącznie: {total}</p>
 
         <div className="flex items-center gap-2">
           <button
-            className="btn-secondary text-sm disabled:opacity-40"
+            className="flex items-center gap-1 btn-secondary text-sm disabled:opacity-40"
             disabled={page <= 1 || loading}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
           >
-            Poprzednia
+            <ChevronLeft size={16} />
+            <span className="hidden sm:inline">Poprzednia</span>
           </button>
           <span className="text-sm text-[#737373] min-w-[110px] text-center">
             Strona {page} / {totalPages}
           </span>
           <button
-            className="btn-secondary text-sm disabled:opacity-40"
+            className="flex items-center gap-1 btn-secondary text-sm disabled:opacity-40"
             disabled={page >= totalPages || loading}
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
           >
-            Nastepna
+            <span className="hidden sm:inline">Następna</span>
+            <ChevronRightIcon size={16} />
           </button>
         </div>
       </div>

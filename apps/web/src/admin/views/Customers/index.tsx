@@ -28,19 +28,19 @@ export const CustomersView = () => {
 
   return (
     <div className="animate-in fade-in duration-300">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8">
         <div>
-          <h2 className="text-h2 text-[#1A1A1A]">Klienci (Profil 360°)</h2>
-          <p className="text-sm text-[#737373] mt-1">Zarządzaj bazą klientów i analizuj ich historię zakupową.</p>
+          <h2 className="text-xl sm:text-2xl font-semibold text-[#1A1A1A]">Klienci (Profil 360°)</h2>
+          <p className="text-sm text-[#737373] mt-1">Zarządzaj bazą klientów i analizuj ich historię.</p>
         </div>
-        <button className="btn-accent">
-          <UserPlus size={16} />Dodaj klienta
+        <button className="btn-accent text-sm w-full sm:w-auto mt-4 sm:mt-0 justify-center">
+          <UserPlus size={16} /> <span className="hidden sm:inline">Dodaj klienta</span>
         </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Customer List */}
-        <div className="lg:col-span-1 bg-white rounded-2xl border border-[#E5E4E1] shadow-sm overflow-hidden flex flex-col h-[calc(100vh-200px)]">
+        <div className="lg:col-span-1 bg-white rounded-2xl border border-[#E5E4E1] shadow-sm overflow-hidden flex flex-col h-[50vh] lg:h-[calc(100vh-200px)]">
           <div className="p-4 border-b border-[#E5E4E1]">
             <div className="relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A3A3A3]" />
@@ -75,20 +75,20 @@ export const CustomersView = () => {
         </div>
 
         {/* Customer 360 Profile */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-[#E5E4E1] shadow-sm flex flex-col h-[calc(100vh-200px)] overflow-hidden">
+        <div className="lg:col-span-2 bg-white rounded-2xl border border-[#E5E4E1] shadow-sm flex flex-col h-auto lg:h-[calc(100vh-200px)] overflow-hidden">
           {selectedCustomer ? (
             <div className="flex-1 overflow-y-auto">
               <div className="p-6 border-b border-[#E5E4E1] bg-[#FAF9F7] flex items-start gap-6">
-                <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#0066CC] to-[#0088FF] flex items-center justify-center text-white text-2xl font-bold shadow-sm">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 rounded-full bg-gradient-to-br from-[#0066CC] to-[#0088FF] flex items-center justify-center text-white text-xl sm:text-2xl font-bold shadow-sm">
                   {selectedCustomer.name.split(' ').map(n => n[0]).join('')}
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-start">
-                    <div>
-                      <h2 className="text-2xl font-bold text-[#1A1A1A] mb-1">{selectedCustomer.name}</h2>
-                      <div className="flex items-center gap-4 text-sm text-[#525252]">
-                        <span className="flex items-center gap-1"><Mail size={14} className="text-[#A3A3A3]" /> {selectedCustomer.email}</span>
-                        <span className="flex items-center gap-1"><Phone size={14} className="text-[#A3A3A3]" /> {selectedCustomer.phone}</span>
+                    <div className="min-w-0">
+                      <h2 className="text-xl sm:text-2xl font-bold text-[#1A1A1A] mb-1 truncate">{selectedCustomer.name}</h2>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-[#525252]">
+                        <span className="flex items-center gap-1 truncate"><Mail size={14} className="text-[#A3A3A3] shrink-0" /> <span className="truncate">{selectedCustomer.email}</span></span>
+                        <span className="flex items-center gap-1 shrink-0"><Phone size={14} className="text-[#A3A3A3] shrink-0" /> {selectedCustomer.phone}</span>
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -96,7 +96,7 @@ export const CustomersView = () => {
                       <button className="btn-icon" title="Edytuj profil"><Edit size={16} /></button>
                     </div>
                   </div>
-                  <div className="grid grid-cols-3 gap-4 mt-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mt-6">
                     <div className="bg-white p-3 rounded-xl border border-[#E5E4E1] shadow-sm">
                       <p className="text-xs text-[#737373] uppercase tracking-wider font-semibold mb-1">Wartość życiowa (LTV)</p>
                       <p className="text-xl font-mono font-bold text-[#1A1A1A]">{selectedCustomer.ltv.toLocaleString()} PLN</p>
