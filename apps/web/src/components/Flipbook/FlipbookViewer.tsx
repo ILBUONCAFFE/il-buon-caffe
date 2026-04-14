@@ -36,6 +36,14 @@ export default function FlipbookViewer({ pdfUrl, catalogName }: FlipbookViewerPr
   });
   const activePointers = useRef<Map<number, { x: number; y: number }>>(new Map());
 
+  // Stable refs for capture-phase listener (avoids stale closures)
+  const zoomRef = useRef(1);
+  const pointerCountRef = useRef(0);
+  // Show blocking overlay immediately on pinch start (before zoom > 1)
+  const [isPinching, setIsPinching] = useState(false);
+  // Track mobile/desktop at init time for orientation-change reload
+  const initMobileRef = useRef<boolean | null>(null);
+
   useEffect(() => {
     if (!bookRef.current) return;
     const mountEl = bookRef.current;
@@ -57,6 +65,7 @@ export default function FlipbookViewer({ pdfUrl, catalogName }: FlipbookViewerPr
         const vh = window.innerHeight;
         const mobile = vw < 768;
         setIsMobile(mobile);
+        initMobileRef.current = mobile;
 
         const firstPage = await doc.getPage(1);
         const baseVp = firstPage.getViewport({ scale: 1 });
@@ -82,8 +91,8 @@ export default function FlipbookViewer({ pdfUrl, catalogName }: FlipbookViewerPr
             dispH = dispW / aspect;
           }
         }
-        dispW = Math.floor(dispW);
-        dispH = Math.floor(dispH);
+        dispW = Math.max(Math.floor(dispW), 200);
+        dispH = Math.floor(dispW / aspect);
         setPageWidth(dispW);
 
         const dpr = Math.max(window.devicePixelRatio || 1, 2);
@@ -203,16 +212,56 @@ export default function FlipbookViewer({ pdfUrl, catalogName }: FlipbookViewerPr
     return () => window.removeEventListener('wheel', handler);
   }, []);
 
+  // Keep zoomRef in sync so capture-phase listener can read it without stale closures
+  useEffect(() => { zoomRef.current = zoom; }, [zoom]);
+
+  // Reload page when orientation crosses the mobile↔desktop threshold
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    const handleResize = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        if (initMobileRef.current === null) return; // loading not complete yet
+        const isNowMobile = window.innerWidth < 768;
+        if (initMobileRef.current !== isNowMobile) window.location.reload();
+      }, 300);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => { window.removeEventListener('resize', handleResize); clearTimeout(timer); };
+  }, []);
+
+  // Block page-flip's own event listeners during pinch or while zoomed in.
+  // Registered in capture phase so we intercept before page-flip's bubble listeners.
+  useEffect(() => {
+    const el = bookRef.current;
+    if (!el || !ready) return;
+    const shouldBlock = () => pointerCountRef.current > 1 || zoomRef.current > 1;
+    const onDown = (e: PointerEvent) => { pointerCountRef.current++; if (shouldBlock()) e.stopImmediatePropagation(); };
+    const onMove = (e: PointerEvent) => { if (shouldBlock()) e.stopImmediatePropagation(); };
+    const onUp = () => { pointerCountRef.current = Math.max(0, pointerCountRef.current - 1); };
+    el.addEventListener('pointerdown', onDown, { capture: true });
+    el.addEventListener('pointermove', onMove, { capture: true });
+    el.addEventListener('pointerup', onUp, { capture: true });
+    el.addEventListener('pointercancel', onUp, { capture: true });
+    return () => {
+      el.removeEventListener('pointerdown', onDown, { capture: true });
+      el.removeEventListener('pointermove', onMove, { capture: true });
+      el.removeEventListener('pointerup', onUp, { capture: true });
+      el.removeEventListener('pointercancel', onUp, { capture: true });
+    };
+  }, [ready]);
+
   // ── Pointer events: pan (1 pointer) + pinch (2 pointers) ──────────────────
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
 
     if (activePointers.current.size === 2) {
-      // Start pinch
+      // Start pinch — show overlay immediately so page-flip can't receive further events
       pinchRef.current.active = true;
       panRef.current.active = false;
       setDragging(false);
+      setIsPinching(true);
       const pts = [...activePointers.current.values()];
       const dx = pts[1].x - pts[0].x;
       const dy = pts[1].y - pts[0].y;
@@ -258,6 +307,7 @@ export default function FlipbookViewer({ pdfUrl, catalogName }: FlipbookViewerPr
     if (activePointers.current.size === 0) {
       panRef.current.active = false;
       setDragging(false);
+      setIsPinching(false);
     }
   }, []);
 
@@ -347,15 +397,16 @@ export default function FlipbookViewer({ pdfUrl, catalogName }: FlipbookViewerPr
             }}
           />
         </div>
-        {/* Overlay blocks page-flip touch events when zoomed in */}
-        {zoom > 1 && (
+        {/* Overlay blocks page-flip touch events when zoomed in or during pinch.
+            Appears immediately on second-finger-down, before zoom state updates. */}
+        {(zoom > 1 || isPinching) && (
           <div
             style={{
               position: 'absolute',
               inset: 0,
               zIndex: 200,
               touchAction: 'none',
-              cursor: dragging ? 'grabbing' : 'grab',
+              cursor: isPinching ? 'default' : (dragging ? 'grabbing' : 'grab'),
             }}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}

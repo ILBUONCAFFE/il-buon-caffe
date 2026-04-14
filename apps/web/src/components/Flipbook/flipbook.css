@@ -259,6 +259,8 @@
   background: rgba(12, 10, 9, 0.88);
   backdrop-filter: blur(24px) saturate(1.2);
   -webkit-backdrop-filter: blur(24px) saturate(1.2);
+  /* iOS safe area: prevents controls from hiding behind home bar / Dynamic Island */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .flipbook-controls-inner {
@@ -662,5 +664,18 @@
 @media (min-width: 1600px) {
   .flipbook-stage {
     padding: 32px 100px;
+  }
+}
+
+/* ── Touch tablets: nav arrows always visible (no :hover on touch) ─── */
+@media (pointer: coarse) and (min-width: 769px) {
+  .flipbook-stage .flipbook-nav-arrow {
+    opacity: 0.65;
+  }
+
+  .flipbook-stage .flipbook-nav-arrow:active {
+    opacity: 1;
+    background: rgba(163, 127, 91, 0.18);
+    border-color: rgba(163, 127, 91, 0.4);
   }
 }
