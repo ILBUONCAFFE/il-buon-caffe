@@ -124,9 +124,20 @@ export default function FlipbookViewer({ pdfUrl, catalogName }: FlipbookViewerPr
           cropped.height = cropH;
           cropped.getContext('2d', { alpha: false })!.drawImage(full, -CROP * dpr, -CROP * dpr);
 
-          cropped.style.cssText = `position:absolute;top:0;left:0;width:${dispW}px;height:${dispH}px;`;
-          cropped.style.pointerEvents = 'none';
-          cropped.setAttribute('draggable', 'false');
+          // Convert canvas → <img> (JPEG dataURL) before handing to page-flip.
+          // page-flip snapshots page content via drawImage() for its flip animation;
+          // canvas→canvas drawImage on iOS Safari returns transparent output, causing
+          // the "see-through page" bug during swipe.  An <img> element is always read
+          // correctly, regardless of platform or browser quirks.
+          const img = document.createElement('img');
+          img.src = cropped.toDataURL('image/jpeg', 0.92);
+          img.style.cssText = `position:absolute;top:0;left:0;width:${dispW}px;height:${dispH}px;`;
+          img.style.pointerEvents = 'none';
+          img.setAttribute('draggable', 'false');
+
+          // Release intermediate canvas memory (GC hint)
+          cropped.width = 0; cropped.height = 0;
+          full.width = 0; full.height = 0;
 
           const textDiv = document.createElement('div');
           textDiv.className = 'textLayer';
@@ -137,7 +148,7 @@ export default function FlipbookViewer({ pdfUrl, catalogName }: FlipbookViewerPr
           wrapper.className = 'pf-page';
           wrapper.style.cssText = `position:relative;width:${dispW}px;height:${dispH}px;overflow:hidden;background:#fff;`;
           wrapper.setAttribute('draggable', 'false');
-          wrapper.appendChild(cropped);
+          wrapper.appendChild(img);
           wrapper.appendChild(textDiv);
           mountEl.appendChild(wrapper);
 
