@@ -487,9 +487,9 @@ export async function selectTrackingRefreshCandidates(
           ),
         ),
         isNotNull(orders.externalId),
-        // Use updatedAt fallback so recently changed legacy orders (missing shippedAt)
-        // are still eligible for tracking refresh.
-        sql`COALESCE(${orders.shippedAt}, ${orders.updatedAt}, ${orders.createdAt}) > ${cutoffDate}`,
+        // Only shippedAt/createdAt — never updatedAt (reconcile/admin bumps updatedAt on old
+        // orders, causing stale November orders to appear eligible forever).
+        sql`COALESCE(${orders.shippedAt}, ${orders.createdAt}) > ${cutoffDate}`,
         sql`(
           ${orders.trackingStatusUpdatedAt} IS NULL
           OR ${orders.trackingStatusUpdatedAt} < NOW() - (
