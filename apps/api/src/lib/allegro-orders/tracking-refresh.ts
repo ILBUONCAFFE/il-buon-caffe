@@ -365,7 +365,9 @@ export async function refreshOrderTrackingSnapshot(
       })
       .where(and(
         eq(orders.id, orderId),
-        inArray(orders.status, ['shipped', 'processing']),
+        // Include 'paid': merchants sometimes add tracking without updating Allegro fulfillmentStatus,
+        // so the order never transitions through 'shipped'. Carrier delivery is authoritative.
+        inArray(orders.status, ['shipped', 'processing', 'paid']),
       ))
   }
 
@@ -483,7 +485,16 @@ export async function selectTrackingRefreshCandidates(
           inArray(orders.status, ['shipped', 'delivered']),
           and(
             inArray(orders.status, ['processing', 'paid', 'pending']),
-            inArray(orders.allegroFulfillmentStatus, ['SENT', 'PICKED_UP']),
+            or(
+              // Standard flow: Allegro confirmed shipment
+              inArray(orders.allegroFulfillmentStatus, ['SENT', 'PICKED_UP']),
+              // Non-standard flow: merchant added tracking number directly (without updating Allegro
+              // fulfillmentStatus). Poll the carrier API so we can detect delivery and auto-close.
+              and(
+                isNotNull(orders.trackingNumber),
+                sql`${orders.allegroFulfillmentStatus} IN ('NEW', 'PROCESSING') OR ${orders.allegroFulfillmentStatus} IS NULL`,
+              ),
+            ),
           ),
         ),
         isNotNull(orders.externalId),
