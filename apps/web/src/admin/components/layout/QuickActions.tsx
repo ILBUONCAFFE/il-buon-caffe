@@ -112,7 +112,7 @@ export function QuickActions({ pathname }: QuickActionsProps) {
       transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
       className="overflow-hidden"
     >
-      <div className="px-8 py-2.5 border-t border-[#F5F4F1] flex items-center gap-2 bg-[#FAFAF9]/50">
+      <div className="px-4 py-2 md:px-8 md:py-2.5 border-t border-[#F5F4F1] flex items-center gap-2 bg-[#FAFAF9]/50 overflow-x-auto scrollbar-hide">
         {actions}
       </div>
     </motion.div>

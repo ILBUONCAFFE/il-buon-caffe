@@ -6,7 +6,7 @@ import Image from 'next/image'
 import {
   LayoutDashboard, ShoppingCart, ClipboardList, RotateCcw, AlertTriangle,
   Package, Archive, Link, Users, DollarSign, BarChart3, Truck, Tag, Gift,
-  Globe, LineChart, Edit, Settings, ChevronRight, Activity
+  Globe, LineChart, Edit, Settings, ChevronRight, Activity, X
 } from 'lucide-react'
 
 const navItems = [
@@ -50,9 +50,11 @@ const navItems = [
 type SidebarProps = {
   expandedMenus: string[]
   setExpandedMenus: (v: string[]) => void
+  isOpen?: boolean
+  onClose?: () => void
 }
 
-export const Sidebar = ({ expandedMenus, setExpandedMenus }: SidebarProps) => {
+export const Sidebar = ({ expandedMenus, setExpandedMenus, isOpen = false, onClose }: SidebarProps) => {
   const router = useRouter()
   const pathname = usePathname()
   const activePath = pathname
@@ -85,10 +87,22 @@ export const Sidebar = ({ expandedMenus, setExpandedMenus }: SidebarProps) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activePath])
 
+  const handleNavigate = (path: string) => {
+    router.push(path)
+    onClose?.()
+  }
+
   return (
-    <aside className="fixed left-0 top-0 h-screen w-72 bg-white border-r border-[#E5E4E1] flex flex-col z-50">
-      <div className="p-6 border-b border-[#E5E4E1]">
-        <div className="flex items-center justify-center -ml-2">
+    <aside
+      className={`
+        fixed left-0 top-0 h-screen w-72 bg-white border-r border-[#E5E4E1] flex flex-col z-50
+        transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
+        lg:translate-x-0
+        ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}
+    >
+      <div className="p-6 border-b border-[#E5E4E1] flex items-center justify-between">
+        <div className="flex items-center justify-center flex-1 -ml-2">
           <Image
             src="/assets/logo.png"
             alt="Il Buon Caffe Logo"
@@ -98,6 +112,14 @@ export const Sidebar = ({ expandedMenus, setExpandedMenus }: SidebarProps) => {
             priority
           />
         </div>
+        {/* Close button — visible only on mobile */}
+        <button
+          onClick={onClose}
+          className="lg:hidden p-2 rounded-lg text-[#A3A3A3] hover:bg-[#F5F4F1] hover:text-[#1A1A1A] transition-colors duration-150"
+          aria-label="Zamknij menu"
+        >
+          <X size={20} />
+        </button>
       </div>
       <nav className="flex-1 overflow-y-auto p-4 relative">
         <div className="space-y-1">
@@ -114,7 +136,7 @@ export const Sidebar = ({ expandedMenus, setExpandedMenus }: SidebarProps) => {
                     if (hasChildren) {
                       toggleMenu(item.id)
                     } else if ('path' in item && item.path) {
-                      router.push(item.path)
+                      handleNavigate(item.path)
                     }
                   }}
                   className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
@@ -151,7 +173,7 @@ export const Sidebar = ({ expandedMenus, setExpandedMenus }: SidebarProps) => {
                           return (
                             <button
                               key={child.id}
-                              onClick={() => child.path && router.push(child.path)}
+                              onClick={() => child.path && handleNavigate(child.path)}
                               className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-colors ${
                                 childActive
                                   ? 'bg-[#EEF4FF] text-[#0066CC] font-medium'

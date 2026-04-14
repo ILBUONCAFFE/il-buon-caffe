@@ -7,6 +7,7 @@ import { ReturnContextMenu } from '../../components/ReturnContextMenu'
 import { ReturnDetailModal } from '../../components/ReturnDetailModal'
 import { DateRangePicker } from '../../components/ui/DateRangePicker'
 import type { AdminReturn, ReturnStatus, ReturnsQueryParams } from '../../types/admin-api'
+import { MoreVertical, ChevronLeft, ChevronRight as ChevronRightIcon } from 'lucide-react'
 
 const DATE_FORMATTER = new Intl.DateTimeFormat('pl-PL', {
   day: '2-digit',
@@ -135,11 +136,11 @@ export const ReturnsView = () => {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
-        <h1 className="text-2xl font-semibold text-[#1A1A1A]">Zwroty</h1>
+        <h1 className="text-xl md:text-2xl font-semibold text-[#1A1A1A]">Zwroty</h1>
         <span className="text-sm text-[#A3A3A3] tabular-nums">{total}</span>
       </div>
 
-      <div className="flex items-center gap-1 border-b border-[#F0EFEC] overflow-x-auto">
+      <div className="flex items-center gap-1 border-b border-[#F0EFEC] overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
         {STATUS_TABS.map(({ key, label }) => (
           <button
             key={key}
@@ -155,11 +156,11 @@ export const ReturnsView = () => {
         ))}
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-3">
         <input
           type="text"
-          placeholder="Szukaj: nr zwrotu, zamowienie, email..."
-          className="admin-input flex-1 min-w-[260px]"
+          placeholder="Szukaj: nr zwrotu, zamówienie, email..."
+          className="admin-input flex-1 min-w-0 sm:min-w-[260px]"
           value={searchInput}
           onChange={(e) => handleSearch(e.target.value)}
         />
@@ -177,143 +178,148 @@ export const ReturnsView = () => {
       {error ? (
         <div className="text-center py-12">
           <p className="text-red-600 mb-3">{error}</p>
-          <button className="btn-primary text-sm" onClick={fetchReturns}>Ponow</button>
+          <button className="btn-primary text-sm" onClick={fetchReturns}>Ponów</button>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-[#E5E4E1] overflow-hidden shadow-sm">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-[#FAFAF9] text-[#A3A3A3] text-[11px] uppercase tracking-wider border-b border-[#E5E4E1]">
-                <th className="w-[48px] px-4 py-3 text-left">
-                  <input
-                    type="checkbox"
-                    checked={returns.length > 0 && selectedIds.size === returns.length}
-                    onChange={handleSelectAll}
-                    className="rounded border-[#D4D3D0] focus:ring-1 focus:ring-[#1A1A1A]"
-                  />
-                </th>
-                <th className="text-left px-4 py-3 font-medium">Zwrot</th>
-                <th className="text-left px-4 py-3 font-medium">Zamowienie</th>
-                <th className="text-left px-4 py-3 font-medium">Klient</th>
-                <th className="text-left px-4 py-3 font-medium">Powod</th>
-                <th className="text-right px-4 py-3 font-medium">Kwota</th>
-                <th className="text-left px-4 py-3 font-medium">Status</th>
-                <th className="w-[48px] px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                Array.from({ length: 8 }).map((_, i) => (
-                  <tr key={i} className="border-b border-[#F0EFEC] last:border-0">
-                    <td colSpan={8} className="px-4 py-4">
-                      <div className="h-4 bg-[#F5F4F1] rounded animate-pulse" />
-                    </td>
-                  </tr>
-                ))
-              ) : returns.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="text-center py-12 text-[#A3A3A3]">
-                    Brak zwrotow
-                  </td>
+        <>
+          {/* Desktop table */}
+          <div className="hidden md:block bg-white rounded-xl border border-[#E5E4E1] overflow-hidden shadow-sm">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-[#FAFAF9] text-[#A3A3A3] text-[11px] uppercase tracking-wider border-b border-[#E5E4E1]">
+                  <th className="w-[48px] px-4 py-3 text-left">
+                    <input type="checkbox" checked={returns.length > 0 && selectedIds.size === returns.length} onChange={handleSelectAll} className="rounded border-[#D4D3D0] focus:ring-1 focus:ring-[#1A1A1A]" />
+                  </th>
+                  <th className="text-left px-4 py-3 font-medium">Zwrot</th>
+                  <th className="text-left px-4 py-3 font-medium">Zamówienie</th>
+                  <th className="text-left px-4 py-3 font-medium">Klient</th>
+                  <th className="text-left px-4 py-3 font-medium">Powód</th>
+                  <th className="text-right px-4 py-3 font-medium">Kwota</th>
+                  <th className="text-left px-4 py-3 font-medium">Status</th>
+                  <th className="w-[48px] px-4 py-3" />
                 </tr>
-              ) : (
-                returns.map((ret) => {
-                  const firstItem = ret.items?.[0]
-                  const extraCount = (ret.items?.length ?? 0) - 1
-
-                  return (
-                    <tr
-                      key={ret.id}
-                      className="border-b border-[#F0EFEC] last:border-0 hover:bg-[#FAFAF9] cursor-pointer group"
-                      onClick={() => setDetailReturn(ret)}
-                      onContextMenu={(e) => handleContextMenu(e, ret)}
-                    >
-                      <td className="px-4 py-3 align-middle" onClick={(e) => e.stopPropagation()}>
-                        <input
-                          type="checkbox"
-                          checked={selectedIds.has(ret.id)}
-                          onChange={() => handleToggleSelect(ret.id)}
-                          className="rounded border-[#D4D3D0] focus:ring-1 focus:ring-[#1A1A1A] opacity-0 group-hover:opacity-100 checked:opacity-100"
-                        />
-                      </td>
-
-                      <td className="px-4 py-3 align-middle">
-                        <span className="font-semibold text-[#1A1A1A]">{ret.returnNumber}</span>
-                        <div className="text-xs text-[#A3A3A3] mt-1">{formatDateShort(ret.createdAt)}</div>
-                      </td>
-
-                      <td className="px-4 py-3 align-middle">
-                        <span className="text-[#1A1A1A]">{ret.orderNumber}</span>
-                      </td>
-
-                      <td className="px-4 py-3 align-middle">
-                        <div className="text-[#1A1A1A] font-medium">{ret.customerData?.name ?? '-'}</div>
-                        <div className="text-xs text-[#A3A3A3] mt-0.5 truncate max-w-[180px]">{ret.customerData?.email ?? ''}</div>
-                      </td>
-
-                      <td className="px-4 py-3 align-middle">
-                        <span className="text-[#1A1A1A]">{REASON_LABELS[ret.reason] ?? ret.reason}</span>
-                        {firstItem && (
-                          <div className="text-xs text-[#A3A3A3] mt-0.5 truncate max-w-[200px]">
-                            {firstItem.productName}
-                            {extraCount > 0 && (
-                              <span className="ml-1 text-[10px] font-medium bg-[#F5F4F1] px-1.5 py-0.5 rounded-full">+{extraCount}</span>
-                            )}
-                          </div>
-                        )}
-                      </td>
-
-                      <td className="px-4 py-3 text-right align-middle">
-                        <span className="font-semibold text-[#1A1A1A]">
-                          {formatAmount(ret.totalRefundAmount, ret.currency)}
-                        </span>
-                      </td>
-
-                      <td className="px-4 py-3 align-middle">
-                        <ReturnStatusBadge status={ret.status} />
-                      </td>
-
-                      <td className="px-4 py-3 text-center align-middle" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          className="p-1.5 rounded-lg text-[#A3A3A3] hover:text-[#1A1A1A] hover:bg-[#E5E4E1] opacity-0 group-hover:opacity-100"
-                          onClick={(e) => {
-                            const rect = e.currentTarget.getBoundingClientRect()
-                            setContextMenu({ ret, x: rect.left, y: rect.bottom + 4 })
-                          }}
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="12" cy="12" r="1"/>
-                            <circle cx="12" cy="5" r="1"/>
-                            <circle cx="12" cy="19" r="1"/>
-                          </svg>
-                        </button>
-                      </td>
+              </thead>
+              <tbody>
+                {loading ? (
+                  Array.from({ length: 8 }).map((_, i) => (
+                    <tr key={i} className="border-b border-[#F0EFEC] last:border-0">
+                      <td colSpan={8} className="px-4 py-4"><div className="h-4 bg-[#F5F4F1] rounded animate-pulse" /></td>
                     </tr>
-                  )
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                  ))
+                ) : returns.length === 0 ? (
+                  <tr><td colSpan={8} className="text-center py-12 text-[#A3A3A3]">Brak zwrotów</td></tr>
+                ) : (
+                  returns.map((ret) => {
+                    const firstItem = ret.items?.[0]
+                    const extraCount = (ret.items?.length ?? 0) - 1
+                    return (
+                      <tr key={ret.id} className="border-b border-[#F0EFEC] last:border-0 hover:bg-[#FAFAF9] cursor-pointer group" onClick={() => setDetailReturn(ret)} onContextMenu={(e) => handleContextMenu(e, ret)}>
+                        <td className="px-4 py-3 align-middle" onClick={(e) => e.stopPropagation()}>
+                          <input type="checkbox" checked={selectedIds.has(ret.id)} onChange={() => handleToggleSelect(ret.id)} className="rounded border-[#D4D3D0] focus:ring-1 focus:ring-[#1A1A1A] opacity-0 group-hover:opacity-100 checked:opacity-100" />
+                        </td>
+                        <td className="px-4 py-3 align-middle">
+                          <span className="font-semibold text-[#1A1A1A]">{ret.returnNumber}</span>
+                          <div className="text-xs text-[#A3A3A3] mt-1">{formatDateShort(ret.createdAt)}</div>
+                        </td>
+                        <td className="px-4 py-3 align-middle"><span className="text-[#1A1A1A]">{ret.orderNumber}</span></td>
+                        <td className="px-4 py-3 align-middle">
+                          <div className="text-[#1A1A1A] font-medium">{ret.customerData?.name ?? '-'}</div>
+                          <div className="text-xs text-[#A3A3A3] mt-0.5 truncate max-w-[180px]">{ret.customerData?.email ?? ''}</div>
+                        </td>
+                        <td className="px-4 py-3 align-middle">
+                          <span className="text-[#1A1A1A]">{REASON_LABELS[ret.reason] ?? ret.reason}</span>
+                          {firstItem && (
+                            <div className="text-xs text-[#A3A3A3] mt-0.5 truncate max-w-[200px]">
+                              {firstItem.productName}
+                              {extraCount > 0 && <span className="ml-1 text-[10px] font-medium bg-[#F5F4F1] px-1.5 py-0.5 rounded-full">+{extraCount}</span>}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-right align-middle"><span className="font-semibold text-[#1A1A1A]">{formatAmount(ret.totalRefundAmount, ret.currency)}</span></td>
+                        <td className="px-4 py-3 align-middle"><ReturnStatusBadge status={ret.status} /></td>
+                        <td className="px-4 py-3 text-center align-middle" onClick={(e) => e.stopPropagation()}>
+                          <button className="p-1.5 rounded-lg text-[#A3A3A3] hover:text-[#1A1A1A] hover:bg-[#E5E4E1] opacity-0 group-hover:opacity-100" onClick={(e) => { const rect = e.currentTarget.getBoundingClientRect(); setContextMenu({ ret, x: rect.left, y: rect.bottom + 4 }) }}>
+                            <MoreVertical size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile cards */}
+          <div className="md:hidden space-y-3">
+            {loading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-xl border border-[#E5E4E1] p-4 animate-pulse space-y-3">
+                  <div className="flex justify-between"><div className="h-4 bg-[#F5F4F1] rounded w-32" /><div className="h-4 bg-[#F5F4F1] rounded w-20" /></div>
+                  <div className="h-3 bg-[#F5F4F1] rounded w-full" />
+                  <div className="h-3 bg-[#F5F4F1] rounded w-3/4" />
+                </div>
+              ))
+            ) : returns.length === 0 ? (
+              <div className="bg-white rounded-xl border border-[#E5E4E1] py-16 text-center text-[#A3A3A3]">Brak zwrotów</div>
+            ) : (
+              returns.map((ret) => {
+                const firstItem = ret.items?.[0]
+                const extraCount = (ret.items?.length ?? 0) - 1
+                return (
+                  <div key={ret.id} className="bg-white rounded-xl border border-[#E5E4E1] p-4 cursor-pointer active:scale-[0.99] transition-all" onClick={() => setDetailReturn(ret)}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3">
+                        <div className="mt-0.5" onClick={(e) => { e.stopPropagation(); handleToggleSelect(ret.id) }}>
+                          <input type="checkbox" checked={selectedIds.has(ret.id)} onChange={() => handleToggleSelect(ret.id)} onClick={(e) => e.stopPropagation()} className="rounded border-[#D4D3D0] w-4 h-4" />
+                        </div>
+                        <div>
+                          <span className="font-semibold text-sm text-[#1A1A1A]">{ret.returnNumber}</span>
+                          <div className="text-xs text-[#A3A3A3] mt-0.5">zm. {ret.orderNumber} · {formatDateShort(ret.createdAt)}</div>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <div className="text-right">
+                          <div className="font-semibold text-sm text-[#1A1A1A]">{formatAmount(ret.totalRefundAmount, ret.currency)}</div>
+                        </div>
+                        <button className="p-1.5 rounded-lg text-[#A3A3A3] hover:bg-[#E5E4E1] transition-colors" onClick={(e) => { e.stopPropagation(); handleContextMenu(e, ret) }}>
+                          <MoreVertical size={16} />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="border-t border-[#F0EFEC] my-3" />
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-[#1A1A1A] truncate">{ret.customerData?.name ?? '-'}</div>
+                        <div className="text-xs text-[#A3A3A3] truncate">{REASON_LABELS[ret.reason] ?? ret.reason}</div>
+                      </div>
+                      <ReturnStatusBadge status={ret.status} />
+                    </div>
+                    {firstItem && (
+                      <div className="mt-2 flex items-center gap-2">
+                        <span className="text-xs text-[#525252] truncate">{firstItem.productName}</span>
+                        {extraCount > 0 && <span className="text-[11px] font-medium text-[#A3A3A3] bg-[#F5F4F1] px-2 py-0.5 rounded-full flex-shrink-0">+{extraCount}</span>}
+                      </div>
+                    )}
+                  </div>
+                )
+              })
+            )}
+          </div>
+        </>
       )}
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between pt-2">
           <span className="text-sm text-[#A3A3A3]">Strona {page} z {totalPages}</span>
           <div className="flex gap-2">
-            <button
-              disabled={page <= 1}
-              className="btn-secondary text-sm disabled:opacity-40"
-              onClick={() => setPage((prev) => prev - 1)}
-            >
-              Poprzednia
+            <button disabled={page <= 1} className="flex items-center gap-1 btn-secondary text-sm disabled:opacity-40" onClick={() => setPage((prev) => prev - 1)}>
+              <ChevronLeft size={16} />
+              <span className="hidden sm:inline">Poprzednia</span>
             </button>
-            <button
-              disabled={page >= totalPages}
-              className="btn-secondary text-sm disabled:opacity-40"
-              onClick={() => setPage((prev) => prev + 1)}
-            >
-              Nastepna
+            <button disabled={page >= totalPages} className="flex items-center gap-1 btn-secondary text-sm disabled:opacity-40" onClick={() => setPage((prev) => prev + 1)}>
+              <span className="hidden sm:inline">Następna</span>
+              <ChevronRightIcon size={16} />
             </button>
           </div>
         </div>

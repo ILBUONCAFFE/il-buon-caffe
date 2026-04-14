@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Bell, ChevronDown } from 'lucide-react'
+import { Bell, ChevronDown, Menu } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { AnimatePresence } from 'framer-motion'
 import { Breadcrumb } from './Breadcrumb'
@@ -15,9 +15,10 @@ import { useNotifications } from '../../hooks/useDashboard'
 
 type HeaderProps = {
   onOpenCommandPalette: () => void
+  onOpenSidebar: () => void
 }
 
-export const Header = ({ onOpenCommandPalette }: HeaderProps) => {
+export const Header = ({ onOpenCommandPalette, onOpenSidebar }: HeaderProps) => {
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
@@ -50,20 +51,34 @@ export const Header = ({ onOpenCommandPalette }: HeaderProps) => {
       style={isScrolled ? { boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.03)' } : undefined}
     >
       {/* Row 1: Navigation & Controls */}
-      <div className="flex items-center justify-between px-8 py-4">
-        {/* Left: Breadcrumb */}
-        <Breadcrumb />
+      <div className="flex items-center justify-between px-4 py-3 md:px-8 md:py-4">
+        {/* Left: Hamburger (mobile) + Breadcrumb */}
+        <div className="flex items-center gap-3">
+          {/* Hamburger — only on mobile */}
+          <button
+            onClick={onOpenSidebar}
+            aria-label="Otwórz menu"
+            className="lg:hidden p-2 rounded-xl bg-[#F5F4F1] border border-transparent hover:bg-white hover:border-[#E5E4E1] hover:shadow-sm transition-all duration-200"
+          >
+            <Menu size={20} className="text-[#525252]" />
+          </button>
+          <Breadcrumb />
+        </div>
 
         {/* Right: Controls */}
         <div className="flex items-center gap-2">
-          <StatusIndicators />
+          {/* Status indicators — hidden on mobile */}
+          <div className="hidden md:flex items-center">
+            <StatusIndicators />
+          </div>
 
-          {/* Separator */}
-          <div className="w-px h-6 bg-[#E5E4E1] mx-1" />
+          {/* Separator — hidden on mobile */}
+          <div className="hidden md:block w-px h-6 bg-[#E5E4E1] mx-1" />
 
+          {/* Search button — icon-only on mobile, full on desktop */}
           <SearchButton onOpen={onOpenCommandPalette} />
 
-          {/* Notifications bell + dropdown */}
+          {/* Notifications bell */}
           <div className="relative" ref={notificationsRef}>
             <button
               onClick={() => { setNotificationsOpen(!notificationsOpen); setUserMenuOpen(false) }}
@@ -81,22 +96,23 @@ export const Header = ({ onOpenCommandPalette }: HeaderProps) => {
             <NotificationsPanel isOpen={notificationsOpen} onClose={() => setNotificationsOpen(false)} />
           </div>
 
-          {/* User avatar + dropdown */}
+          {/* User avatar — simplified on mobile */}
           <div className="relative" ref={userMenuRef}>
             <button
               onClick={() => { setUserMenuOpen(!userMenuOpen); setNotificationsOpen(false) }}
               aria-label="Menu profilu"
               aria-expanded={userMenuOpen}
-              className="flex items-center gap-3 p-1.5 pr-4 rounded-xl bg-[#F5F4F1] border border-transparent hover:bg-white hover:border-[#E5E4E1] hover:shadow-sm hover:-translate-y-[0.5px] active:translate-y-0 active:shadow-none transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] focus-visible:ring-2 focus-visible:ring-[#0066CC]/20 focus-visible:outline-none"
+              className="flex items-center gap-2 md:gap-3 p-1.5 md:pr-4 rounded-xl bg-[#F5F4F1] border border-transparent hover:bg-white hover:border-[#E5E4E1] hover:shadow-sm hover:-translate-y-[0.5px] active:translate-y-0 active:shadow-none transition-all duration-200 ease-[cubic-bezier(0.25,1,0.5,1)] focus-visible:ring-2 focus-visible:ring-[#0066CC]/20 focus-visible:outline-none"
             >
               <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#0066CC] to-[#004499] flex items-center justify-center text-white font-semibold text-sm shadow-inner">
                 A
               </div>
-              <div className="flex flex-col items-start">
+              {/* Text + chevron — hidden on mobile */}
+              <div className="hidden md:flex flex-col items-start">
                 <span className="text-sm font-medium text-[#1A1A1A]">Admin</span>
                 <span className="text-[11px] text-[#A3A3A3]">Administrator</span>
               </div>
-              <ChevronDown size={12} className={`text-[#A3A3A3] transition-transform duration-200 ${userMenuOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown size={12} className={`hidden md:block text-[#A3A3A3] transition-transform duration-200 ${userMenuOpen ? 'rotate-180' : ''}`} />
             </button>
             <UserMenu isOpen={userMenuOpen} onClose={() => setUserMenuOpen(false)} />
           </div>

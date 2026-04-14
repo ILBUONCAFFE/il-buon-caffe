@@ -374,64 +374,105 @@
   color: rgba(231, 229, 228, 0.85);
 }
 
-/* ── Mobile swipe hint ───────────────────────────────────── */
-.flipbook-mobile-hint {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.13);
-  text-align: center;
-  padding: 0 16px 10px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
 /* ── Keyboard hints — hidden (desktop only, not critical) ── */
 .flipbook-shortcuts {
   display: none;
 }
 
-/* ── Mobile ──────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════
+   MOBILE — Static Page Viewer (no gestures, button-only nav)
+   ═══════════════════════════════════════════════════════════ */
+
+/* Stage: centers the page image, fills available space */
+.flipbook-mobile-stage {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  background: #0c0a09;
+  padding: 4px;
+}
+
+/* The rendered page image */
+.flipbook-mobile-page-img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: none;
+  border-radius: 2px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.6);
+}
+
+/* Invisible tap zones on left/right side of the page image */
+.flipbook-mobile-tap {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 35%;
+  z-index: 10;
+  background: none;
+  border: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+
+.flipbook-mobile-tap:active {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.flipbook-mobile-tap:disabled {
+  pointer-events: none;
+}
+
+.flipbook-mobile-tap-left {
+  left: 0;
+}
+
+.flipbook-mobile-tap-right {
+  right: 0;
+}
+
+/* ── Mobile overrides ────────────────────────────────────── */
 @media (max-width: 768px) {
-  /* No header on mobile — full-screen book experience */
+  /* No header on mobile */
   .flipbook-header {
     display: none;
   }
 
-  .flipbook-stage {
-    padding: 4px;
-    flex: 1;
-    overflow: hidden;
-    /* On mobile, touch-action is managed dynamically by the component
-       via the style prop (pan-x pan-y when zoom=1, none when zoomed).
-       This base rule allows natural scrolling to be controlled by JS. */
-    -webkit-overflow-scrolling: touch;
-  }
-
-  /* Side arrows hidden on mobile, use bottom bar */
+  /* Side arrows hidden on mobile */
   .flipbook-nav-arrow {
     display: none;
   }
 
   .flipbook-controls-inner {
-    padding: 8px 12px;
+    padding: 8px 16px;
   }
 
   .flipbook-ctrl-btn {
-    width: 42px;
-    height: 42px;
+    width: 48px;
+    height: 48px;
   }
 
   .flipbook-ctrl-btn.flipbook-ctrl-prev,
   .flipbook-ctrl-btn.flipbook-ctrl-next {
-    width: 50px;
-    height: 50px;
+    width: 56px;
+    height: 56px;
   }
 
   .flipbook-page-info {
-    padding: 0 10px;
+    padding: 0 16px;
   }
 
   .flipbook-page-current {
-    font-size: 20px;
+    font-size: 22px;
   }
 }
 

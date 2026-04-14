@@ -274,7 +274,7 @@ export function OrderDetailModal({
         onClick={onClose}
       />
 
-      <div className="relative w-full max-w-5xl max-h-[90vh] flex flex-col bg-white rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.12)] border border-[#E5E4E1] animate-in slide-in-from-bottom-3 fade-in duration-200">
+      <div className="relative w-full max-w-5xl max-h-[90dvh] h-[90dvh] md:h-auto flex flex-col bg-white rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.12)] border border-[#E5E4E1] animate-in slide-in-from-bottom-3 fade-in duration-200">
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#F0EFEC] shrink-0">
           <div className="flex items-center gap-3 flex-wrap">
             <h2 className="text-lg font-semibold text-[#1A1A1A] tabular-nums">{order.orderNumber}</h2>
@@ -307,8 +307,8 @@ export function OrderDetailModal({
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          <div className="grid grid-cols-5 gap-8 px-6 py-5">
-            <div className="col-span-2 space-y-1">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-6 md:gap-8 px-4 md:px-6 py-4 md:py-5">
+            <div className="col-span-1 md:col-span-2 space-y-1">
               <SectionLabel>Klient</SectionLabel>
               <InfoRow label="Imie" value={customer?.name ?? '-'} />
               <InfoRow label="Email" value={customer?.email ?? '-'} />
@@ -346,7 +346,7 @@ export function OrderDetailModal({
               )}
             </div>
 
-            <div className="col-span-3 space-y-1">
+            <div className="col-span-1 md:col-span-3 space-y-1">
               <SectionLabel>Produkty</SectionLabel>
               <table className="w-full text-sm">
                 <thead>
@@ -459,7 +459,7 @@ export function OrderDetailModal({
           </div>
         </div>
 
-        <div className="flex items-center justify-between px-6 py-4 border-t border-[#F0EFEC] shrink-0">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 px-4 md:px-6 py-4 border-t border-[#F0EFEC] shrink-0">
           <div>
             {canCancel && (
               <button className="text-sm text-red-600 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors">
