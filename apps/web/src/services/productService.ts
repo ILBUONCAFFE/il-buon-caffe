@@ -18,9 +18,39 @@ function logDbError(label: string, error: unknown) {
   if (process.env.DATABASE_URL) console.error(label, error);
 }
 
+function normalizeUnsplashImageUrl(rawUrl: string): string {
+  try {
+    const parsed = new URL(rawUrl);
+    const hostname = parsed.hostname.toLowerCase();
+    const isUnsplash = hostname === 'images.unsplash.com' || hostname === 'plus.unsplash.com';
+
+    if (!isUnsplash) {
+      return rawUrl;
+    }
+
+    const widthParam = Number(parsed.searchParams.get('w') || '0');
+    if (!Number.isFinite(widthParam) || widthParam < 1600) {
+      parsed.searchParams.set('w', '1600');
+    }
+
+    const qualityParam = Number(parsed.searchParams.get('q') || '0');
+    if (!Number.isFinite(qualityParam) || qualityParam < 90) {
+      parsed.searchParams.set('q', '90');
+    }
+
+    if (!parsed.searchParams.has('auto')) {
+      parsed.searchParams.set('auto', 'format');
+    }
+
+    return parsed.toString();
+  } catch {
+    return rawUrl;
+  }
+}
+
 function normalizeProductImageUrl(imageUrl?: string | null): string | undefined {
   if (!imageUrl) return undefined;
-  if (/^https?:\/\//i.test(imageUrl)) return imageUrl;
+  if (/^https?:\/\//i.test(imageUrl)) return normalizeUnsplashImageUrl(imageUrl);
 
   if (imageUrl.startsWith('/api/uploads/')) {
     const apiOrigin = (

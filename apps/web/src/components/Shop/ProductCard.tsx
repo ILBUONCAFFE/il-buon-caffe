@@ -103,7 +103,7 @@ export const ProductCard: React.FC<{
           )}
         </div>
 
-        <div className={`flex-1 flex flex-col justify-center min-w-0 py-1 ${isRestricted ? 'blur-[2px] opacity-50' : ''}`}>
+        <div className={`flex-1 flex flex-col justify-center min-w-0 py-1 ${isRestricted ? 'opacity-55' : ''}`}>
           <p className="text-xs uppercase tracking-[0.12em] text-brand-500 mb-1.5 font-semibold">
             {product.origin?.split(",")[0] || product.category}
           </p>
@@ -211,7 +211,7 @@ export const ProductCard: React.FC<{
         )}
       </div>
 
-      <div className={`flex flex-col flex-1 gap-2 px-1 ${isRestricted ? 'blur-[1px] opacity-40' : ''}`}>
+      <div className={`flex flex-col flex-1 gap-2 px-1 ${isRestricted ? 'opacity-45' : ''}`}>
         <p className="text-xs uppercase tracking-[0.12em] text-brand-500 font-semibold">
           {product.origin?.split(",")[0] || product.category}
         </p>
