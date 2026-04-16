@@ -124,7 +124,7 @@ function displayStatusText(value: string | null): string {
 function extractLatestCarrierTrackingStatus(
   trackData: Record<string, unknown>,
   waybill: string,
-): Omit<ShipmentTrackingSnapshot, 'waybill'> {
+): Omit<ShipmentTrackingSnapshot, 'waybill' | 'carrierId'> {
   const buckets: Array<Record<string, unknown>> = []
   for (const key of ['shipments', 'packages', 'items', 'waybills', 'tracking']) {
     if (!Array.isArray(trackData[key])) continue
