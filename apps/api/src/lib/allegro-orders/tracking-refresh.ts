@@ -8,6 +8,7 @@ import { and, eq, inArray, isNotNull, or, sql } from 'drizzle-orm'
 import { getActiveAllegroToken, type ActiveAllegroToken } from '../allegro-tokens'
 import { allegroHeaders } from './helpers'
 import type { Env } from '../../index'
+import { TrackingQueueManager } from './tracking-queue'
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -444,38 +445,35 @@ export async function runTrackingBackfillPage(
 const BATCH_SIZE = 5
 const CONCURRENCY = 2
 const HARD_CUTOFF_DAYS = 30
-const TRACKING_IDLE_TTL_SECONDS = 24 * 60 * 60
 
-// KV key: '0' = no active tracked orders (skip DB), absent/other = check DB.
-// Cleared by processEvent when an order becomes shipped so tracking kicks in immediately.
-export const TRACKING_ACTIVE_KV_KEY = 'allegro:tracking:has_active_orders'
+export interface QueueBootstrapRow {
+  id: number
+  externalId: string
+  trackingStatusCode: string | null
+  trackingStatusUpdatedAt: Date | null
+}
 
 /**
- * Select orders whose tracking snapshot is stale and needs refreshing.
+ * Pobiera wszystkie zamówienia kwalifikujące się do trackingu z DB.
+ * Używana TYLKO do bootstrapu/rebuildu kolejki KV — nie jest wywoływana na każdym runie crona.
  *
- * Cooldown per status (based on trackingStatusCode pattern):
- *   out_for_delivery / courier  →  5 min   (delivery imminent)
- *   exception / return / failed → 20 min   (issue resolution)
- *   in_transit / sent           → 30 min   (active transit)
- *   label_created / registered  → 90 min   (pre-pickup)
- *   delivered / picked_up       → 12 h     (post-delivery final check)
- *   unknown / null              → 60 min   (fallback)
- *
- * Hard cutoff: orders shipped > 30 days ago are excluded entirely.
- * Priority: out_for_delivery > issue > in_transit > label_created > rest.
+ * Różni się od starego selectTrackingRefreshCandidates:
+ *   - brak filtru cooldown (trackingStatusUpdatedAt < NOW() - INTERVAL)
+ *   - brak LIMIT (pobieramy wszystkie)
+ *   - brak ORDER BY priorytetu (kolejka KV sama sortuje)
+ *   - dodaje trackingStatusUpdatedAt do SELECT (do obliczenia początkowego nextCheckAt)
  */
-export async function selectTrackingRefreshCandidates(
+export async function buildQueueFromDb(
   db: ReturnType<typeof createDb>,
-): Promise<TrackingRefreshCandidate[]> {
+): Promise<QueueBootstrapRow[]> {
   const cutoffDate = new Date(Date.now() - HARD_CUTOFF_DAYS * 24 * 60 * 60 * 1000)
 
   const rows = await db
     .select({
       id: orders.id,
       externalId: orders.externalId,
-      trackingNumber: orders.trackingNumber,
-      trackingStatus: orders.trackingStatus,
       trackingStatusCode: orders.trackingStatusCode,
+      trackingStatusUpdatedAt: orders.trackingStatusUpdatedAt,
     })
     .from(orders)
     .where(
@@ -486,10 +484,7 @@ export async function selectTrackingRefreshCandidates(
           and(
             inArray(orders.status, ['processing', 'paid', 'pending']),
             or(
-              // Standard flow: Allegro confirmed shipment
               inArray(orders.allegroFulfillmentStatus, ['SENT', 'PICKED_UP']),
-              // Non-standard flow: merchant added tracking number directly (without updating Allegro
-              // fulfillmentStatus). Poll the carrier API so we can detect delivery and auto-close.
               and(
                 isNotNull(orders.trackingNumber),
                 sql`${orders.allegroFulfillmentStatus} IN ('NEW', 'PROCESSING') OR ${orders.allegroFulfillmentStatus} IS NULL`,
@@ -498,10 +493,7 @@ export async function selectTrackingRefreshCandidates(
           ),
         ),
         isNotNull(orders.externalId),
-        // Only shippedAt/createdAt — never updatedAt (reconcile/admin bumps updatedAt on old
-        // orders, causing stale November orders to appear eligible forever).
         sql`COALESCE(${orders.shippedAt}, ${orders.createdAt}) > ${cutoffDate}`,
-        // Skip orders that are fully delivered — tracking is final, no point polling Allegro.
         sql`NOT (
           ${orders.status} = 'delivered'
           AND (
@@ -509,172 +501,145 @@ export async function selectTrackingRefreshCandidates(
             OR ${orders.trackingStatusCode} ILIKE '%PICKED_UP%'
           )
         )`,
-        sql`(
-          ${orders.trackingStatusUpdatedAt} IS NULL
-          OR ${orders.trackingStatusUpdatedAt} < NOW() - (
-            CASE
-              WHEN ${orders.trackingStatusCode} ILIKE '%PICKED_UP%'
-                OR ${orders.trackingStatusCode} ILIKE '%DELIVERED%'         THEN INTERVAL '12 hours'
-              WHEN ${orders.trackingStatusCode} ILIKE '%OUT_FOR_DELIVERY%'
-                OR ${orders.trackingStatusCode} ILIKE '%COURIER%'           THEN INTERVAL '5 minutes'
-              WHEN ${orders.trackingStatusCode} ILIKE '%EXCEPTION%'
-                OR ${orders.trackingStatusCode} ILIKE '%RETURN%'
-                OR ${orders.trackingStatusCode} ILIKE '%FAILED%'            THEN INTERVAL '20 minutes'
-              WHEN ${orders.trackingStatusCode} ILIKE '%IN_TRANSIT%'
-                OR ${orders.trackingStatusCode} ILIKE '%TRANSIT%'
-                OR ${orders.trackingStatusCode} ILIKE '%SENT%'              THEN INTERVAL '30 minutes'
-              WHEN ${orders.trackingStatusCode} ILIKE '%LABEL_CREATED%'
-                OR ${orders.trackingStatusCode} ILIKE '%CREATED%'
-                OR ${orders.trackingStatusCode} ILIKE '%REGISTERED%'        THEN INTERVAL '90 minutes'
-              ELSE INTERVAL '60 minutes'
-            END
-          )
-        )`,
       ),
     )
-    .orderBy(
-      sql`CASE
-        WHEN ${orders.trackingStatusCode} ILIKE '%OUT_FOR_DELIVERY%'
-          OR ${orders.trackingStatusCode} ILIKE '%COURIER%'             THEN 1
-        WHEN ${orders.trackingStatusCode} ILIKE '%EXCEPTION%'
-          OR ${orders.trackingStatusCode} ILIKE '%RETURN%'
-          OR ${orders.trackingStatusCode} ILIKE '%FAILED%'              THEN 2
-        WHEN ${orders.trackingStatusCode} ILIKE '%IN_TRANSIT%'
-          OR ${orders.trackingStatusCode} ILIKE '%TRANSIT%'
-          OR ${orders.trackingStatusCode} ILIKE '%SENT%'                THEN 3
-        WHEN ${orders.trackingStatusCode} ILIKE '%LABEL_CREATED%'
-          OR ${orders.trackingStatusCode} ILIKE '%CREATED%'
-          OR ${orders.trackingStatusCode} ILIKE '%REGISTERED%'          THEN 4
-        ELSE 5
-      END,
-      ${orders.trackingStatusUpdatedAt} ASC NULLS FIRST`,
-    )
-    .limit(BATCH_SIZE)
+    .orderBy(orders.id)
 
-  return rows.filter((r): r is TrackingRefreshCandidate => r.externalId !== null)
+  return rows.filter((r): r is QueueBootstrapRow => r.externalId !== null)
 }
 
 /**
  * Run one batch of tracking status refreshes.
  * Called from the cron handler via ctx.waitUntil — runs in background.
  *
- * Reuses the same KV lock as the manual /tracking/refresh endpoint,
- * so cron and user-triggered refreshes never race on the same order.
+ * Scheduling is now KV-driven (TrackingQueueManager), not DB-polled.
+ * After every check (regardless of status change), reschedule() resets nextCheckAt —
+ * this eliminates the root bug where unchanged-status orders looped forever.
  */
 export async function runTrackingStatusSync(env: Env): Promise<void> {
   console.log('[TrackingSync] Start runTrackingStatusSync')
 
-  // KV guard: skip DB entirely when no active tracked orders exist.
-  // This prevents waking Neon on every 5-min cron run during idle periods.
-  const activeFlag = await env.ALLEGRO_KV.get(TRACKING_ACTIVE_KV_KEY)
-  if (activeFlag === '0') {
-    console.log('[TrackingSync] Skip — active flag is 0 (brak aktywnych przesyłek do odświeżenia)')
-    return
-  }
-
-  const db = createDb(env.DATABASE_URL)
-
-  let candidates: TrackingRefreshCandidate[]
+  // Wczytaj kolejkę KV (drainuje pending entries, aplikuje tombstones)
+  let queue: TrackingQueueManager
   try {
-    candidates = await selectTrackingRefreshCandidates(db)
+    queue = await TrackingQueueManager.load(env.ALLEGRO_KV)
   } catch (err) {
-    console.error('[TrackingSync] Błąd pobierania kandydatów:', formatDbError(err))
+    console.error('[TrackingSync] Błąd wczytywania kolejki KV:', formatDbError(err))
     return
   }
 
-  if (candidates.length === 0) {
-    // No active orders — set flag so next runs skip DB entirely
-    await env.ALLEGRO_KV.put(TRACKING_ACTIVE_KV_KEY, '0', { expirationTtl: TRACKING_IDLE_TTL_SECONDS }).catch(() => {})
-    console.log('[TrackingSync] Brak kandydatów — ustawiam active flag=0 i kończę run')
+  // Bootstrap: przebuduj z DB jeśli pierwszy run lub >25h od ostatniego rebuildu
+  if (queue.needsRebuild) {
+    console.log('[TrackingSync] Przebuduję kolejkę z DB...')
+    try {
+      const dbForRebuild = createDb(env.DATABASE_URL)
+      const rows = await buildQueueFromDb(dbForRebuild)
+      for (const row of rows) {
+        queue.enqueue(
+          row.id,
+          row.externalId,
+          row.trackingStatusCode,
+          row.trackingStatusUpdatedAt?.getTime(), // uszanuj istniejący cooldown przy rebuildu
+        )
+      }
+      queue.markRebuilt()
+      console.log(`[TrackingSync] Kolejka przebudowana: ${rows.length} zamówień`)
+    } catch (err) {
+      console.error('[TrackingSync] Błąd rebuildu kolejki z DB:', formatDbError(err))
+      // Kontynuuj z tym co jest w kolejce — nie przerywaj całkowicie
+    }
+  }
+
+  // Przytnij stale entries (starsze niż HARD_CUTOFF_DAYS + 2 dni buforu)
+  queue.pruneStale(HARD_CUTOFF_DAYS + 2)
+
+  const due = queue.getDue(BATCH_SIZE)
+
+  if (due.length === 0) {
+    console.log(`[TrackingSync] Brak kandydatów do odświeżenia (${queue.summary()})`)
+    await queue.save(env.ALLEGRO_KV).catch((err) => {
+      console.error('[TrackingSync] Błąd zapisu kolejki (empty run):', formatDbError(err))
+    })
     return
   }
 
-  console.log(`[TrackingSync] Znaleziono kandydatów do odświeżenia: ${candidates.length}`)
+  console.log(`[TrackingSync] Due: ${due.length} z kolejki (${queue.summary()})`)
 
   const token = await getActiveAllegroToken(env)
   if (!token) {
     console.warn('[TrackingSync] Brak tokenu Allegro — pomijam odświeżanie trackingu')
+    await queue.save(env.ALLEGRO_KV).catch(() => {})
     return
   }
 
+  const db = createDb(env.DATABASE_URL)
   let refreshed = 0
   let subrequestLimitHit = false
-  const refreshTransitions: Array<{
-    orderId: number
-    checkoutFormId: string
-    before: TrackingSnapshotState
-    after: TrackingSnapshotState
-    changed: boolean
-  }> = []
 
-  for (let i = 0; i < candidates.length; i += CONCURRENCY) {
-    const slice = candidates.slice(i, i + CONCURRENCY)
+  for (let i = 0; i < due.length; i += CONCURRENCY) {
+    const slice = due.slice(i, i + CONCURRENCY)
 
     const results = await Promise.allSettled(
-      slice.map(async (order) => {
-        const lockKey = `allegro:tracking:refresh:order:${order.id}`
-        const locked = await env.ALLEGRO_KV.get(lockKey)
-        if (locked) return
+      slice.map(async (entry) => {
+        const outcome = await refreshOrderTrackingSnapshot(db, env, entry.id, entry.eid, {
+          tokenOverride: token,
+          previousSnapshot: {
+            trackingNumber: null,
+            trackingStatus: null,
+            trackingStatusCode: entry.s,
+          },
+        })
 
-        await env.ALLEGRO_KV.put(lockKey, String(Date.now()), { expirationTtl: 180 })
-        try {
-          const outcome = await refreshOrderTrackingSnapshot(db, env, order.id, order.externalId, {
-            tokenOverride: token,
-            previousSnapshot: {
-              trackingNumber: order.trackingNumber,
-              trackingStatus: order.trackingStatus,
-              trackingStatusCode: order.trackingStatusCode,
-            },
-          })
-          if (outcome) {
-            refreshed++
-            refreshTransitions.push({
-              orderId: order.id,
-              checkoutFormId: order.externalId,
-              before: outcome.before,
-              after: outcome.after,
-              changed: outcome.changed,
-            })
-          }
-        } finally {
-          await env.ALLEGRO_KV.delete(lockKey).catch(() => {})
+        if (!outcome) {
+          // Błąd API (np. HTTP 5xx od kuriera) — zachowaj status, normalny cooldown
+          queue.reschedule(entry.id, entry.s)
+          return
         }
+
+        const newCode = outcome.after.trackingStatusCode
+        const isDelivered = shouldAutoMarkDelivered(newCode)
+
+        if (isDelivered) {
+          queue.remove(entry.id)
+        } else {
+          // SERCE FIXA: reschedule zawsze, niezależnie od zmiany statusu
+          queue.reschedule(entry.id, newCode)
+        }
+
+        refreshed++
+
+        const waybill = outcome.after.trackingNumber ?? outcome.before.trackingNumber ?? entry.eid
+        const suffix = outcome.changed ? '' : ' [bez zmian]'
+        const deliveredSuffix = isDelivered ? ' → usunięto z kolejki' : ''
+        console.log(
+          `[TrackingSync] #${entry.id} (${waybill}) ${displayStatusCode(outcome.before.trackingStatusCode)} → ${displayStatusCode(newCode)}${suffix}${deliveredSuffix}`,
+        )
       }),
     )
 
-    let shouldStopBatch = false
+    let shouldStop = false
     for (const result of results) {
       if (result.status === 'rejected') {
         const message = formatDbError(result.reason)
         if (message.toLowerCase().includes('too many subrequests')) {
           subrequestLimitHit = true
-          shouldStopBatch = true
+          shouldStop = true
           continue
         }
         console.warn('[TrackingSync] Błąd odświeżania trackingu:', message)
       }
     }
 
-    if (shouldStopBatch) break
+    if (shouldStop) break
   }
 
   if (subrequestLimitHit) {
-    console.warn('[TrackingSync] Osiągnięto limit subrequestów — dokończę pozostałe zamówienia w kolejnym cyklu crona')
+    console.warn('[TrackingSync] Osiągnięto limit subrequestów — dokończę pozostałe w kolejnym cyklu crona')
   }
 
-  for (const transition of refreshTransitions) {
-    const trackingNo = transition.after.trackingNumber ?? transition.before.trackingNumber ?? 'brak'
-    const suffix = transition.changed ? '' : ' [bez zmian]'
-    console.log(
-      `[TrackingSync] Przesyłka #${transition.orderId} (${transition.checkoutFormId}, waybill: ${trackingNo}) ${displayStatusCode(transition.before.trackingStatusCode)} (${displayStatusText(transition.before.trackingStatus)}) -> ${displayStatusCode(transition.after.trackingStatusCode)} (${displayStatusText(transition.after.trackingStatus)})${suffix}`,
-    )
-  }
+  console.log(`[TrackingSync] Zakończono: odświeżono ${refreshed}/${due.length}, kolejka: ${queue.summary()}`)
 
-  if (refreshed === 0) {
-    console.log(`[TrackingSync] Run zakończony bez odświeżeń (kandydaci: ${candidates.length})`)
-  }
-
-  if (refreshed > 0) {
-    console.log(`[TrackingSync] Odświeżono tracking dla ${refreshed}/${candidates.length} zamówień`)
-  }
+  await queue.save(env.ALLEGRO_KV).catch((err) => {
+    console.error('[TrackingSync] Błąd zapisu kolejki do KV:', formatDbError(err))
+  })
 }
