@@ -13,7 +13,7 @@ import {
 import { eq, and, or } from 'drizzle-orm'
 import type { AllegroCheckoutForm, AllegroOrderEvent } from './types'
 import { generateOrderNumber, buildShippingAddress, buildCustomerData, fetchCheckoutForm } from './helpers'
-import { TRACKING_ACTIVE_KV_KEY } from './tracking-refresh'
+import { enqueueTrackingOrder, tombstoneTrackingOrder } from './tracking-queue'
 import { getRate, type ForeignCurrency } from '../nbp'
 
 // ── Extract real purchase date from Allegro checkout form ─────────────────
@@ -544,11 +544,21 @@ export async function reconcileOrder(
     })
     .where(eq(orders.externalId, form.id))
 
-  // Clear KV idle flag whenever the order has an active shipment (SENT/PICKED_UP),
-  // not only on first transition to shipped — handles orders already in shipped/processing
-  // state where the flag was set to '0' before the shipment was assigned.
+  // Enqueue in tracking queue whenever order has active shipment (SENT/PICKED_UP).
+  // Idempotent: kolejne wywołania dla tego samego zamówienia po prostu nadpisują pending klucz.
+  // Cron zadrainuje go do manifestu i uszereguje do natychmiastowego sprawdzenia.
   if (isSent && kv) {
-    await kv.delete(TRACKING_ACTIVE_KV_KEY).catch(() => {})
+    await enqueueTrackingOrder(
+      kv,
+      existing.id,
+      form.id,
+      fulfillmentStatus === 'PICKED_UP' ? 'PICKED_UP' : 'SENT',
+    ).catch(() => {})
+  }
+
+  // Tombstone przy anulacji — kolejka usunie wpis na następnym runie crona
+  if (newLocalStatus === 'cancelled' && kv) {
+    await tombstoneTrackingOrder(kv, existing.id).catch(() => {})
   }
 
   // If newly cancelled AND was previously paid → restore stock
