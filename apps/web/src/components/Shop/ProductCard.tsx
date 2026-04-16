@@ -48,7 +48,8 @@ export const ProductCard: React.FC<{
   const imageUrl =
     product.imageUrl ||
     product.image ||
-    "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=600";
+    "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?q=90&w=1400&auto=format&fit=crop";
+  const prioritizeImage = index < 4;
 
   // Custom restricted overlay component
   const RestrictedOverlay = () => (
@@ -91,8 +92,9 @@ export const ProductCard: React.FC<{
             src={imageUrl}
             alt={product.name}
             fill
-            className="object-contain p-3 transition-transform duration-300"
-            sizes="144px"
+            className="object-contain p-2 sm:p-3 transition-transform duration-300"
+            sizes="(max-width: 640px) 160px, 144px"
+            quality={90}
           />
           {product.isNew && !isRestricted && (
             <span className="absolute top-2 left-2 px-2 py-0.5 bg-brand-700 text-white text-[10px] font-bold uppercase tracking-wider rounded-md">
@@ -172,8 +174,10 @@ export const ProductCard: React.FC<{
           src={imageUrl}
           alt={product.name}
           fill
-          className="object-contain p-3 transition-transform duration-300"
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          className="object-contain p-2 sm:p-3 transition-transform duration-300"
+          sizes="(max-width: 640px) calc(100vw - 3.5rem), (max-width: 1024px) 50vw, 33vw"
+          quality={92}
+          priority={prioritizeImage}
         />
 
         {!isRestricted && (
