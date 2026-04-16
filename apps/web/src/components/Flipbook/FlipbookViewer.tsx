@@ -5,6 +5,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 const CROP = 1;
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 4;
+const MOBILE_MAX_DPR = 2.5;
+const MOBILE_MIN_DPR = 2;
+const MOBILE_IMAGE_QUALITY = 0.95;
 
 interface FlipbookViewerProps {
   pdfUrl: string;
@@ -91,8 +94,11 @@ export default function FlipbookViewer({ pdfUrl, catalogName }: FlipbookViewerPr
           dispH = Math.floor(dispW / aspect);
           setPageWidth(dispW);
 
-          // Lower DPR for performance
-          const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+          // Keep mobile pages crisp on high-density screens.
+          const dpr = Math.min(
+            MOBILE_MAX_DPR,
+            Math.max(MOBILE_MIN_DPR, window.devicePixelRatio || 1)
+          );
           const renderScale = (dispW / baseVp.width) * dpr;
 
           const pageUrls: string[] = [];
@@ -119,14 +125,23 @@ export default function FlipbookViewer({ pdfUrl, catalogName }: FlipbookViewerPr
             await page.render({ canvasContext: ctx, viewport: renderVp }).promise;
 
             // Crop
-            const cropW = fw - CROP * 2 * dpr;
-            const cropH = fh - CROP * 2 * dpr;
+            const cropOffset = CROP * dpr;
+            const cropW = Math.max(1, Math.round(fw - cropOffset * 2));
+            const cropH = Math.max(1, Math.round(fh - cropOffset * 2));
             const cropped = document.createElement('canvas');
             cropped.width = cropW;
             cropped.height = cropH;
-            cropped.getContext('2d', { alpha: false })!.drawImage(canvas, -CROP * dpr, -CROP * dpr);
+            cropped.getContext('2d', { alpha: false })!.drawImage(canvas, -cropOffset, -cropOffset);
 
-            const url = cropped.toDataURL('image/jpeg', 0.80);
+            let url = '';
+            try {
+              url = cropped.toDataURL('image/webp', MOBILE_IMAGE_QUALITY);
+              if (!url.startsWith('data:image/webp')) {
+                url = cropped.toDataURL('image/jpeg', MOBILE_IMAGE_QUALITY);
+              }
+            } catch {
+              url = cropped.toDataURL('image/jpeg', MOBILE_IMAGE_QUALITY);
+            }
             pageUrls.push(url);
 
             // Free memory

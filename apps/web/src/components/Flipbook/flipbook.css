@@ -403,11 +403,18 @@
   width: auto;
   height: auto;
   object-fit: contain;
+  image-rendering: auto;
   user-select: none;
   -webkit-user-select: none;
   pointer-events: none;
   border-radius: 2px;
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.6);
+}
+
+@supports (-webkit-touch-callout: none) {
+  .flipbook-mobile-page-img {
+    image-rendering: -webkit-optimize-contrast;
+  }
 }
 
 /* Invisible tap zones on left/right side of the page image */
