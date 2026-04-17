@@ -35,12 +35,28 @@ import { relations, sql } from 'drizzle-orm';
 export const userRoleEnum = pgEnum('user_role', ['customer', 'admin']);
 
 export const orderStatusEnum = pgEnum('order_status', [
-  'pending',      // Oczekuje na płatność (stock zarezerwowany)
-  'paid',         // Opłacone
-  'processing',   // W realizacji
-  'shipped',      // Wysłane
-  'delivered',    // Dostarczone
-  'cancelled'     // Anulowane (stock zwrócony)
+  'pending',              // Oczekuje na płatność (stock zarezerwowany)
+  'paid',                 // Opłacone
+  'processing',           // W realizacji
+  'shipped',              // Wysłane (przekazane kurierowi)
+  'in_transit',           // Kurier potwierdził odbiór, w drodze
+  'out_for_delivery',     // Ostatnia mila
+  'delivered',            // Dostarczone
+  'return_requested',     // Kupujący zgłosił zwrot
+  'return_in_transit',    // Paczka wraca do nas
+  'return_received',      // Otrzymaliśmy zwrot
+  'refunded',             // Zwrot pieniędzy zrealizowany
+  'disputed',             // Otwarta dyskusja/spór na Allegro
+  'cancelled'             // Anulowane przed realizacją
+]);
+
+export const statusSourceEnum = pgEnum('status_source', [
+  'system',          // Automatyczne przejście (np. webhook P24 → paid)
+  'admin',           // Ręczna zmiana w panelu admina
+  'allegro_sync',    // Cron odpytujący /order/events
+  'carrier_sync',    // Cron odpytujący tracking kuriera
+  'p24_webhook',     // Callback z Przelewy24
+  'backfill'         // Jednorazowe uzupełnienie historycznych danych
 ]);
 
 export const orderSourceEnum = pgEnum('order_source', ['shop', 'allegro']);
@@ -479,6 +495,35 @@ export const orders = pgTable('orders', {
 }));
 
 // ============================================
+// TABLES: ORDER STATUS HISTORY (append-only audit)
+// ============================================
+
+export const orderStatusHistory = pgTable('order_status_history', {
+  id: serial('id').primaryKey(),
+  orderId: integer('order_id').references(() => orders.id, { onDelete: 'cascade' }).notNull(),
+
+  // 'status' = wewnętrzny cykl życia zamówienia, 'tracking' = kod statusu kuriera
+  category: varchar('category', { length: 20 }).notNull(),
+
+  // Dla category='status': literały z orderStatusEnum
+  // Dla category='tracking': wolna forma (kody przewoźników, np. 'DELIVERED', 'IN_TRANSIT')
+  previousValue: varchar('previous_value', { length: 100 }),
+  newValue: varchar('new_value', { length: 100 }).notNull(),
+
+  source: statusSourceEnum('source').notNull(),
+  sourceRef: varchar('source_ref', { length: 200 }),  // np. Allegro event ID, email admina, waybill
+
+  // Dodatkowy kontekst (raw payload, revision, etc.)
+  metadata: jsonb('metadata').$type<Record<string, unknown>>(),
+
+  occurredAt: timestamp('occurred_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  orderIdx: index('osh_order_idx').on(table.orderId, table.occurredAt),
+  categoryIdx: index('osh_category_idx').on(table.category, table.occurredAt),
+  sourceIdx: index('osh_source_idx').on(table.source),
+}));
+
+// ============================================
 // TABLES: ORDER SEQUENCES (atomic per-year counter)
 // ============================================
 
@@ -676,6 +721,14 @@ export const ordersRelations = relations(orders, ({ one, many }) => ({
   }),
   items: many(orderItems),
   stockChanges: many(stockChanges),
+  statusHistory: many(orderStatusHistory),
+}));
+
+export const orderStatusHistoryRelations = relations(orderStatusHistory, ({ one }) => ({
+  order: one(orders, {
+    fields: [orderStatusHistory.orderId],
+    references: [orders.id],
+  }),
 }));
 
 export const orderItemsRelations = relations(orderItems, ({ one }) => ({
