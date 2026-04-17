@@ -751,3 +751,37 @@ adminOrdersRouter.patch('/:id/status', async (c) => {
     return serverError(c, 'PATCH /admin/orders/:id/status', err)
   }
 })
+
+// ── GET /:id/history ──────────────────────────────────────────────────────
+adminOrdersRouter.get('/:id/history', async (c) => {
+  try {
+    const db  = c.get('db') as ReturnType<typeof createDb>
+    const orderId = Number(c.req.param('id'))
+    if (!Number.isFinite(orderId)) {
+      return c.json({ error: { code: 'BAD_REQUEST', message: 'Nieprawidłowe ID zamówienia' } }, 400)
+    }
+
+    // Verify order exists
+    const [order] = await db
+      .select({ id: orders.id })
+      .from(orders)
+      .where(eq(orders.id, orderId))
+      .limit(1)
+    if (!order) {
+      return c.json({ error: { code: 'NOT_FOUND', message: 'Zamówienie nie znalezione' } }, 404)
+    }
+
+    // Raw SQL — order_status_history not in @repo/db/schema symlink yet (worktree)
+    const result = await db.execute(sql`
+      SELECT id, order_id, category, previous_value, new_value,
+             source, source_ref, metadata, occurred_at
+      FROM   order_status_history
+      WHERE  order_id = ${orderId}
+      ORDER  BY occurred_at ASC
+    `)
+
+    return c.json({ data: result.rows })
+  } catch (err) {
+    return serverError(c, 'GET /admin/orders/:id/history', err)
+  }
+})
