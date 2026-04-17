@@ -6,6 +6,7 @@ import { adminApi } from '../lib/adminApiClient'
 import { resolveShipmentStatus } from '../lib/shipmentStatus'
 import { OrderStatusBadge } from './OrderStatusBadge'
 import { ShipmentLabelPickerModal } from './ShipmentLabelPickerModal'
+import { OrderTimeline } from './OrderTimeline'
 import type { AdminOrder, AllegroShipmentEntry, OrderTrackingSnapshot } from '../types/admin-api'
 
 interface OrderDetailModalProps {
@@ -457,6 +458,14 @@ export function OrderDetailModal({
               </>
             </div>
           </div>
+        </div>
+
+        {/* Historia zmian statusów */}
+        <div className="px-4 md:px-6 pb-4">
+          <h3 className="text-xs font-semibold text-[#A3A3A3] uppercase tracking-wider mb-3 mt-2">
+            Historia zmian
+          </h3>
+          <OrderTimeline orderId={order.id} />
         </div>
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 px-4 md:px-6 py-4 border-t border-[#F0EFEC] shrink-0">

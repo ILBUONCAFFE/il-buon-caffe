@@ -533,3 +533,19 @@ export interface ReturnsResponse {
   data: AdminReturn[]
   meta: { total: number; page: number; limit: number; totalPages: number }
 }
+
+// ── Order status history ──────────────────────────────────────────────────────
+export type StatusSource = 'system' | 'admin' | 'allegro_sync' | 'carrier_sync' | 'p24_webhook' | 'backfill'
+export type StatusCategory = 'status' | 'tracking'
+
+export interface OrderStatusHistoryEntry {
+  id: number
+  order_id: number
+  category: StatusCategory
+  previous_value: string | null
+  new_value: string
+  source: StatusSource
+  source_ref: string | null
+  metadata: Record<string, unknown> | null
+  occurred_at: string
+}

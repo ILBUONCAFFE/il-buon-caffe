@@ -30,6 +30,7 @@ import type {
   UpdateProductStockPayload,
   UpdateProductStockResponse,
   UploadProductImageResponse,
+  OrderStatusHistoryEntry,
 } from '../types/admin-api'
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
@@ -124,6 +125,9 @@ export const adminApi = {
     request<OrderTrackingRefreshResponse>(`/api/admin/orders/${id}/tracking/refresh`, {
       method: 'POST',
     }),
+
+  getOrderHistory: (id: number) =>
+    request<{ data: OrderStatusHistoryEntry[] }>(`/api/admin/orders/${id}/history`),
 
   getTrackingPulse: (since?: string) => {
     const qs = since ? `?since=${encodeURIComponent(since)}` : ''
