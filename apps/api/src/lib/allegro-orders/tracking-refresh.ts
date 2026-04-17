@@ -123,7 +123,7 @@ function displayStatusText(value: string | null): string {
 function extractLatestCarrierTrackingStatus(
   trackData: Record<string, unknown>,
   waybill: string,
-): Omit<ShipmentTrackingSnapshot, 'waybill'> {
+): { latestCode: string; latestDescription: string | null; latestOccurredAt: Date | null } {
   const buckets: Array<Record<string, unknown>> = []
   for (const key of ['shipments', 'packages', 'items', 'waybills', 'tracking']) {
     if (!Array.isArray(trackData[key])) continue
@@ -353,6 +353,21 @@ export async function refreshOrderTrackingSnapshot(
       )`,
     ))
 
+  // Log tracking code transition (raw SQL — avoids @repo/db import resolution in worktree)
+  if (before.trackingStatusCode !== after.trackingStatusCode && after.trackingStatusCode) {
+    await db.execute(sql`
+      INSERT INTO order_status_history (order_id, category, previous_value, new_value, source, source_ref, metadata)
+      VALUES (
+        ${orderId}, 'tracking',
+        ${before.trackingStatusCode},
+        ${after.trackingStatusCode},
+        'carrier_sync'::status_source,
+        ${after.trackingNumber ?? null},
+        ${selectedSnapshot?.carrierId ? JSON.stringify({ carrierId: selectedSnapshot.carrierId }) : null}::jsonb
+      )
+    `)
+  }
+
   if (shouldMarkDelivered) {
     // Carrier-level delivery confirmation is authoritative for the final transition.
     // Allow processing → delivered for orders that were never manually marked shipped
@@ -369,6 +384,18 @@ export async function refreshOrderTrackingSnapshot(
         // so the order never transitions through 'shipped'. Carrier delivery is authoritative.
         inArray(orders.status, ['shipped', 'processing', 'paid']),
       ))
+    // Log carrier-confirmed delivery to status history
+    await db.execute(sql`
+      INSERT INTO order_status_history (order_id, category, previous_value, new_value, source, source_ref, metadata)
+      VALUES (
+        ${orderId}, 'status',
+        NULL,
+        'delivered',
+        'carrier_sync'::status_source,
+        ${after.trackingNumber ?? null},
+        ${after.trackingStatusCode ? JSON.stringify({ trackingStatusCode: after.trackingStatusCode }) : null}::jsonb
+      )
+    `)
   }
 
   return buildRefreshOutcome(before, after)

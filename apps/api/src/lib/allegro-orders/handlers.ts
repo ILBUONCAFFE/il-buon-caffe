@@ -14,6 +14,7 @@ import { eq, and, or } from 'drizzle-orm'
 import type { AllegroCheckoutForm, AllegroOrderEvent } from './types'
 import { generateOrderNumber, buildShippingAddress, buildCustomerData, fetchCheckoutForm } from './helpers'
 import { TRACKING_ACTIVE_KV_KEY } from './tracking-refresh'
+import { recordStatusChange } from '../record-status-change'
 import { getRate, type ForeignCurrency } from '../nbp'
 
 // ── Extract real purchase date from Allegro checkout form ─────────────────
@@ -265,9 +266,10 @@ export async function handleReadyForProcessing(
         console.log(`[AllegroOrders] READY_FOR_PROCESSING conflict resolved (status: ${reFetched.status}, allegro id: ${form.id})`)
         return
       }
+      await recordStatusChange(db, { orderId: reFetched.id, category: 'status', newValue: readyStatus, source: 'allegro_sync', sourceRef: form.id })
       await db
         .update(orders)
-        .set({ status: readyStatus, paidAt, totalPln, exchangeRate, rateDate, invoiceRequired, updatedAt: new Date() })
+        .set({ paidAt, totalPln, exchangeRate, rateDate, invoiceRequired, updatedAt: new Date() })
         .where(eq(orders.externalId, form.id))
       orderId = reFetched.id
     }
@@ -282,9 +284,10 @@ export async function handleReadyForProcessing(
     const orderDate      = extractAllegroOrderDate(form)
     const invoiceRequired = form.invoice?.required === true
     const { totalPln, exchangeRate, rateDate } = await resolveRateFields(totalAmount, currency, orderDate, kv)
+    await recordStatusChange(db, { orderId: existing.id, category: 'status', newValue: readyStatus, source: 'allegro_sync', sourceRef: form.id })
     await db
       .update(orders)
-      .set({ status: readyStatus, paidAt, totalPln, exchangeRate, rateDate, invoiceRequired, updatedAt: new Date() })
+      .set({ paidAt, totalPln, exchangeRate, rateDate, invoiceRequired, updatedAt: new Date() })
       .where(eq(orders.externalId, form.id))
     orderId = existing.id
   }
@@ -383,11 +386,14 @@ export async function handleCancelled(
 
   if (existing.status === 'cancelled') return  // already cancelled
 
-  // Mark cancelled
-  await db
-    .update(orders)
-    .set({ status: 'cancelled', updatedAt: new Date() })
-    .where(eq(orders.externalId, form.id))
+  // Mark cancelled (recordStatusChange atomically updates status + writes history)
+  await recordStatusChange(db, {
+    orderId: existing.id,
+    category: 'status',
+    newValue: 'cancelled',
+    source: 'allegro_sync',
+    sourceRef: `${eventType}:${form.id}`,
+  })
 
   // Restore stock only if order was paid (stock was previously deducted)
   if (existing.status === 'paid' || existing.status === 'processing' || existing.status === 'shipped') {
@@ -538,11 +544,24 @@ export async function reconcileOrder(
         ...(isSent      && { trackingStatusUpdatedAt: null }),
         ...(isCancelled && { trackingStatusUpdatedAt: new Date() }),
       }),
-      ...(newLocalStatus === 'cancelled' && { status: 'cancelled' as const }),
-      ...(newLocalStatus === 'shipped'   && { status: 'shipped' as const, shippedAt: new Date() }),
       updatedAt: new Date(),
     })
     .where(eq(orders.externalId, form.id))
+
+  // Record status transition to history (after bulk update)
+  if (newLocalStatus) {
+    await recordStatusChange(db, {
+      orderId: existing.id,
+      category: 'status',
+      newValue: newLocalStatus,
+      source: 'allegro_sync',
+      sourceRef: form.id,
+      metadata: { allegroRevision: form.revision ?? null, allegroFulfillmentStatus: fulfillmentStatus ?? null },
+    })
+    if (newLocalStatus === 'shipped') {
+      await db.update(orders).set({ shippedAt: new Date(), updatedAt: new Date() }).where(eq(orders.externalId, form.id))
+    }
+  }
 
   // Clear KV idle flag whenever the order has an active shipment (SENT/PICKED_UP),
   // not only on first transition to shipped — handles orders already in shipped/processing

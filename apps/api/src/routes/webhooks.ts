@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import { createDb } from '@repo/db/client'
 import { orders, orderItems, products, auditLog } from '@repo/db/schema'
 import { eq, and, sql } from 'drizzle-orm'
+import { recordStatusChange } from '../lib/record-status-change'
 import type { Env } from '../index'
 
 export interface WebhookEnv extends Env {
@@ -149,10 +150,17 @@ webhooksRouter.post('/przelewy24', async (c) => {
   const ip = c.req.header('CF-Connecting-IP') || c.req.header('X-Forwarded-For') || '0.0.0.0'
 
   if (txStatus === 'success' || txStatus === 'completed') {
-    // Mark order as paid
+    // Mark order as paid — status + history atomic via CTE
+    await recordStatusChange(db, {
+      orderId: order.id,
+      category: 'status',
+      newValue: 'paid',
+      source: 'p24_webhook',
+      sourceRef: body.sessionId,
+      metadata: { p24OrderId: String(body.orderId), amount: body.amount, currency: body.currency },
+    })
     await db.update(orders)
       .set({
-        status:      'paid',
         p24OrderId:  String(body.orderId),
         p24Status:   'success',
         paidAt:      new Date(),

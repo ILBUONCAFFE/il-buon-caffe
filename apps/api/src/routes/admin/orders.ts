@@ -11,6 +11,7 @@ import { getActiveAllegroToken } from '../../lib/allegro-tokens'
 import { allegroHeaders } from '../../lib/allegro-orders/helpers'
 import { refreshOrderTrackingSnapshot } from '../../lib/allegro-orders/tracking-refresh'
 import { bulkReconcileProcessingOrders } from '../../lib/allegro-orders/bulk-reconcile'
+import { recordStatusChange } from '../../lib/record-status-change'
 import type { Env } from '../../index'
 import { checkContentLength, parsePagination, getClientIp, serverError } from '../../lib/request'
 
@@ -659,7 +660,6 @@ adminOrdersRouter.patch('/:id/status', async (c) => {
     }
 
     const setCols: Record<string, unknown> = {
-      status:    body.status,
       updatedAt: new Date(),
     }
 
@@ -711,7 +711,17 @@ adminOrdersRouter.patch('/:id/status', async (c) => {
       }
     }
 
-    await db.update(orders).set(setCols as any).where(eq(orders.id, orderId))
+    await recordStatusChange(db, {
+      orderId,
+      category: 'status',
+      newValue: body.status,
+      source: 'admin',
+      sourceRef: adminUser.sub,
+      metadata: body.internalNotes ? { note: body.internalNotes.trim().slice(0, 500) } : null,
+    })
+    if (Object.keys(setCols).length > 1) {
+      await db.update(orders).set(setCols as any).where(eq(orders.id, orderId))
+    }
 
     // Trigger processing watchdog if order becomes processing
     if (body.status === 'processing') {
