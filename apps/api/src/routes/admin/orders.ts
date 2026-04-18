@@ -8,6 +8,7 @@ import { eq, and, desc, sql, gte, lte, inArray } from 'drizzle-orm'
 import { requireAdminOrProxy } from '../../middleware/auth'
 import { auditLogMiddleware } from '../../middleware/auditLog'
 import { recordStatusChange } from '../../lib/record-status-change'
+import { invalidateNextDueKv } from '../../lib/shipments'
 import type { Env } from '../../index'
 import { checkContentLength, parsePagination, getClientIp, serverError } from '../../lib/request'
 
@@ -554,5 +555,41 @@ adminOrdersRouter.get('/:id/history', async (c) => {
     return c.json({ data: result.rows })
   } catch (err) {
     return serverError(c, 'GET /admin/orders/:id/history', err)
+  }
+})
+
+// ============================================
+// POST /admin/orders/:id/refresh-shipment  🛡️
+// Wymuszenie natychmiastowego odświeżenia statusu przesyłki
+// ============================================
+adminOrdersRouter.post('/:id/refresh-shipment', async (c) => {
+  try {
+    const id = Number(c.req.param('id'))
+    if (!Number.isFinite(id) || id <= 0) {
+      return c.json({ error: { code: 'BAD_ID', message: 'Invalid order id' } }, 400)
+    }
+
+    const db  = c.get('db') as ReturnType<typeof createDb>
+    const now = new Date()
+
+    const res = await db
+      .update(orders)
+      .set({
+        shipmentNextCheckAt:   now,
+        shipmentCheckAttempts: 0,
+        updatedAt:             now,
+      })
+      .where(eq(orders.id, id))
+      .returning({ id: orders.id })
+
+    if (res.length === 0) {
+      return c.json({ error: { code: 'NOT_FOUND', message: 'Order not found' } }, 404)
+    }
+
+    await invalidateNextDueKv(c.env.ALLEGRO_KV).catch(() => {})
+
+    return c.json({ data: { id, queuedAt: now.toISOString() } })
+  } catch (err) {
+    return serverError(c, 'POST /admin/orders/:id/refresh-shipment', err)
   }
 })
