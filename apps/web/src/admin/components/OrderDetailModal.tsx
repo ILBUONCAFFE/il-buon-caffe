@@ -5,6 +5,8 @@ import { X } from 'lucide-react'
 import { resolveShipmentStatus } from '../lib/shipmentStatus'
 import { OrderStatusBadge } from './OrderStatusBadge'
 import { ShipmentLabelPickerModal } from './ShipmentLabelPickerModal'
+import { OrderTimeline } from './OrderTimeline'
+import { adminApi } from '../lib/adminApiClient'
 import type { AdminOrder, AllegroShipmentEntry } from '../types/admin-api'
 
 const SHIPMENT_STATE_LABELS: Record<string, { label: string; tone: string }> = {
@@ -15,6 +17,64 @@ const SHIPMENT_STATE_LABELS: Record<string, { label: string; tone: string }> = {
   delivered:         { label: 'Dostarczone',          tone: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300' },
   exception:         { label: 'Problem',              tone: 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300' },
   stale:             { label: 'Brak aktualizacji',    tone: 'bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-400' },
+}
+
+function formatRelative(dateStr: string | null | undefined): string {
+  if (!dateStr) return '\u2014'
+  const diff = new Date(dateStr).getTime() - Date.now()
+  const abs  = Math.abs(diff)
+  const mins = Math.round(abs / 60_000)
+  if (mins < 60) return diff < 0 ? `${mins} min temu` : `za ${mins} min`
+  const hrs = Math.round(mins / 60)
+  return diff < 0 ? `${hrs}h temu` : `za ${hrs}h`
+}
+
+function ShipmentPanel({
+  order,
+  onRefresh,
+  refreshing,
+}: {
+  order: AdminOrder
+  onRefresh: () => void
+  refreshing?: boolean
+}) {
+  const state = order.shipmentState as string
+  const meta  = SHIPMENT_STATE_LABELS[state] ?? { label: state, tone: 'bg-stone-100 text-stone-700' }
+
+  return (
+    <div className="bg-[#F9F9F9] border border-[#E5E4E1] rounded-lg p-3 mt-4 text-xs space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-[#1A1A1A] font-semibold flex items-center gap-1.5">
+          Śledzenie automatyczne
+          {order.shipmentCarrier && (
+            <span className="text-[#666] font-normal capitalize">({order.shipmentCarrier})</span>
+          )}
+        </span>
+        <span className={`px-2 py-0.5 rounded text-[10px] font-medium tracking-wide ${meta.tone}`}>
+          {meta.label}
+        </span>
+      </div>
+
+      <div className="flex items-center justify-between text-[#666] pt-1 border-t border-[#E5E4E1]/50">
+        <div className="flex flex-col gap-0.5 text-[11px]">
+          <span>Ost. sprawdz.: {formatRelative(order.shipmentLastCheckedAt)}</span>
+          <span>Nast. sprawdz.: {formatRelative(order.shipmentNextCheckAt)}</span>
+        </div>
+        <button
+          onClick={onRefresh}
+          disabled={refreshing}
+          className="text-[#1A1A1A] hover:underline disabled:opacity-50 font-medium px-2 py-1 bg-white border border-[#E5E4E1] rounded shadow-sm transition-colors hover:bg-gray-50"
+        >
+          {refreshing ? 'Odświeżanie...' : 'Wymuś spr.'}
+        </button>
+      </div>
+      {(order.shipmentCheckAttempts ?? 0) > 0 && (
+        <p className="text-xs text-red-600 mt-1 font-medium bg-red-50 p-1.5 rounded">
+          Nieudane próby: {order.shipmentCheckAttempts} (API Timeout/Error)
+        </p>
+      )}
+    </div>
+  )
 }
 
 interface OrderDetailModalProps {
@@ -49,6 +109,90 @@ function formatAmount(value: number | undefined | null, currency = 'PLN'): strin
 }
 
 
+const SHIPMENT_STEPS = [
+  { key: 'accepted', label: 'Przyjete' },
+  { key: 'preparing', label: 'Przygotowanie' },
+  { key: 'shipped', label: 'Wyslane' },
+  { key: 'delivered', label: 'Dostarczone' },
+] as const
+
+function ShipmentTimeline({
+  activeStep,
+  isIssue,
+  isCancelled,
+  trackingStatus,
+  updatedAt,
+}: {
+  activeStep: number
+  isIssue: boolean
+  isCancelled: boolean
+  trackingStatus: string | null
+  updatedAt: string | null
+}) {
+  return (
+    <div className="mt-4 mb-2">
+      <div className="relative flex justify-between items-center z-0 px-2">
+        {/* Background line */}
+        <div className="absolute left-0 top-1.5 w-full h-[2px] bg-[#E5E4E1] -z-10" />
+        
+        {/* Active line */}
+        <div
+          className={`absolute left-0 top-1.5 h-[2px] transition-all duration-300 -z-10 ${isCancelled ? 'bg-[#D4D3D0]' : 'bg-[#1A1A1A]'}`}
+          style={{ width: `${(Math.min(activeStep, SHIPMENT_STEPS.length - 1) / (SHIPMENT_STEPS.length - 1)) * 100}%` }}
+        />
+        
+        {SHIPMENT_STEPS.map((step, i) => {
+          const isActive = !isCancelled && i <= activeStep
+          const isCurrent = !isCancelled && i === activeStep
+          return (
+            <div key={step.key} className="flex flex-col items-center gap-1.5 bg-white px-2 cursor-default" title={step.label}>
+              <div
+                className={`w-3.5 h-3.5 rounded-full border-2 transition-colors ${
+                  isCancelled
+                    ? 'border-[#D4D3D0] bg-white'
+                    : isIssue && isCurrent
+                      ? 'border-red-500 bg-red-500'
+                      : isActive
+                        ? 'border-[#1A1A1A] bg-[#1A1A1A]'
+                        : 'border-[#D4D3D0] bg-white'
+                }`}
+              />
+              <span
+                className={`text-[10px] leading-tight text-center whitespace-nowrap ${
+                  isCancelled ? 'text-[#A3A3A3]' : isActive ? 'text-[#1A1A1A] font-medium' : 'text-[#A3A3A3]'
+                }`}
+              >
+                {step.label}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+
+      <div className="mt-4 space-y-1">
+        {isCancelled && (
+          <div className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+            Przesyłka została anulowana.
+          </div>
+        )}
+        {isIssue && !isCancelled && (
+          <div className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2 font-medium">
+            Problem: {trackingStatus ?? 'Wystąpił problem z doręczeniem.'}
+          </div>
+        )}
+        {!isIssue && !isCancelled && trackingStatus && (
+          <p className="text-xs text-[#666] leading-relaxed">{trackingStatus}</p>
+        )}
+        {updatedAt && (
+          <div className="text-[11px] text-[#A3A3A3] pt-1">
+            Zaktualizowano: {formatDate(updatedAt)}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function InfoRow({ label, value }: { label: string; value: string | ReactNode }) {
   return (
     <div className="flex justify-between py-1 gap-4">
@@ -75,6 +219,20 @@ export function OrderDetailModal({
   onDownloadLabel,
 }: OrderDetailModalProps) {
   const [labelPickerOpen, setLabelPickerOpen] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
+
+  const handleRefreshShipment = useCallback(async () => {
+    if (!order || refreshing) return
+    setRefreshing(true)
+    try {
+      await adminApi.refreshShipment(order.id)
+      await onShipmentRefreshQueued?.(order.id)
+    } catch (err) {
+      console.error('refresh-shipment failed', err)
+    } finally {
+      setRefreshing(false)
+    }
+  }, [onShipmentRefreshQueued, order, refreshing])
 
   useEffect(() => {
     if (!isOpen) setLabelPickerOpen(false)
@@ -237,8 +395,85 @@ export function OrderDetailModal({
               <SectionLabel>Platnosc</SectionLabel>
               <InfoRow label="Metoda" value={order.paymentMethod ?? '-'} />
               <InfoRow label="Oplacono" value={formatDate(order.paidAt)} />
+
+              <SectionLabel>Przesylka</SectionLabel>
+              <div className="space-y-3">
+                {shipmentTrackingExpected && !order.shipmentState && (
+                  <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                    <p className="font-semibold">Brak danych śledzenia</p>
+                    <p>Zamówienie nie zostało jeszcze przekazane do systemu automatycznego monitorowania przesyłek (Scheduler). System wkrótce zaktualizuje status.</p>
+                  </div>
+                )}
+                
+                <div className="bg-white rounded-lg space-y-1">
+                  <InfoRow label="Status" value={resolvedShipmentStatus.label} />
+                  {effectiveTrackingNumber && (
+                    <InfoRow label="Numer listu" value={<span className="font-mono text-xs font-medium tracking-wide">{effectiveTrackingNumber}</span>} />
+                  )}
+                  {order.shippingMethod && (
+                    <InfoRow label="Przewoźnik" value={order.shippingMethod} />
+                  )}
+                </div>
+
+                <ShipmentTimeline
+                  activeStep={resolvedShipmentStatus.step}
+                  isIssue={resolvedShipmentStatus.isIssue}
+                  isCancelled={resolvedShipmentStatus.isCancelled}
+                  trackingStatus={shipmentStatusText}
+                  updatedAt={effectiveTrackingStatusUpdatedAt}
+                />
+
+                {/* Multi-shipment list — shown when order has >1 parcel or duplicate labels */}
+                {order.allShipments && order.allShipments.length > 1 && (
+                  <div className="pt-2 mt-4 border-t border-[#E5E4E1]">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-semibold text-[#1A1A1A]">Paczki w zamówieniu</span>
+                      <span className="text-[10px] bg-[#E5E4E1] text-[#666] px-1.5 py-0.5 rounded font-medium">{order.allShipments.length}</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      {order.allShipments.map((s) => (
+                        <div
+                          key={s.waybill}
+                          className={`flex items-center justify-between gap-3 px-3 py-2 rounded-md text-xs transition-colors ${
+                            s.isSelected
+                              ? 'bg-blue-50 border border-blue-100'
+                              : 'bg-[#F9F9F9] border border-transparent'
+                          }`}
+                        >
+                          <span className={`font-mono text-xs truncate ${s.isSelected ? 'text-blue-900 font-medium' : 'text-[#666]'}`}>
+                            {s.waybill}
+                          </span>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className={`text-[10px] ${s.isSelected ? 'text-blue-800' : 'text-[#A3A3A3]'}`}>
+                              {s.statusLabel ?? s.statusCode}
+                            </span>
+                            {s.isSelected && (
+                              <span className="text-[9px] font-bold bg-blue-600 text-white px-1.5 py-0.5 rounded-sm uppercase tracking-wide">
+                                Główna
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Shipment scheduler panel — shown when state-machine tracking is active */}
+                {order.shipmentState && (
+                  <ShipmentPanel order={order} onRefresh={handleRefreshShipment} refreshing={refreshing} />
+                )}
+              </div>
             </div>
           </div>
+        </div>
+
+        {/* Historia zmian statusów */}
+        <div className="px-4 md:px-6 pb-4">
+          <h3 className="text-xs font-semibold text-[#A3A3A3] uppercase tracking-wider mb-3 mt-2">
+            Historia zmian
+          </h3>
+          <OrderTimeline orderId={order.id} />
         </div>
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 px-4 md:px-6 py-4 border-t border-[#F0EFEC] shrink-0">
