@@ -50,7 +50,7 @@ export async function backfillShipmentEnrollment(
   const res = await db.update(orders).set({
     shipmentState:          'awaiting_handover',
     shipmentCarrier:        'allegro',
-    shipmentNextCheckAt:    now,
+    shipmentNextCheckAt:    computeNextCheckAt('awaiting_handover', now),
     shipmentStateChangedAt: now,
     shipmentCheckAttempts:  0,
     updatedAt:              now,
@@ -58,7 +58,7 @@ export async function backfillShipmentEnrollment(
     and(
       eq(orders.source, 'allegro'),
       isNull(orders.shipmentState),
-      inArray(orders.status, ['paid', 'processing', 'shipped', 'in_transit', 'out_for_delivery'] as any),
+      inArray(orders.status, ['paid', 'processing', 'shipped', 'in_transit', 'out_for_delivery'] as (typeof orders.status._.data)[]),
       gt(orders.createdAt, thirtyDaysAgo),
     ),
   ).returning({ id: orders.id })

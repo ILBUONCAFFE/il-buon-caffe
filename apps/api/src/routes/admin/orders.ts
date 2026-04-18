@@ -4,7 +4,7 @@ import {
   orders, orderItems, products, users, stockChanges,
 } from '@repo/db/schema'
 import { logAdminAction } from '../../lib/audit'
-import { eq, and, desc, sql, gte, lte, inArray } from 'drizzle-orm'
+import { eq, and, desc, sql, gte, lte, inArray, isNotNull } from 'drizzle-orm'
 import { requireAdminOrProxy } from '../../middleware/auth'
 import { auditLogMiddleware } from '../../middleware/auditLog'
 import { recordStatusChange } from '../../lib/record-status-change'
@@ -579,11 +579,16 @@ adminOrdersRouter.post('/:id/refresh-shipment', async (c) => {
         shipmentCheckAttempts: 0,
         updatedAt:             now,
       })
-      .where(eq(orders.id, id))
+      .where(
+        and(
+          eq(orders.id, id),
+          isNotNull(orders.shipmentState),
+        )
+      )
       .returning({ id: orders.id })
 
     if (res.length === 0) {
-      return c.json({ error: { code: 'NOT_FOUND', message: 'Order not found' } }, 404)
+      return c.json({ error: { code: 'NOT_FOUND', message: 'Order not found or not enrolled in shipment tracking' } }, 404)
     }
 
     await invalidateNextDueKv(c.env.ALLEGRO_KV).catch(() => {})
