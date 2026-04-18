@@ -6,7 +6,7 @@ import type { AllegroShipmentRecord } from './types'
 export const KV_NEXT_DUE_AT = 'shipments:next_due_at'
 export const KV_CIRCUIT_OPEN = 'shipments:circuit_open'
 const BATCH_SIZE = 10
-const TERMINAL_STATES = ['delivered', 'stale'] as const
+const TERMINAL_STATES: string[] = ['delivered', 'stale']
 
 export interface DueOrder {
   id: number
@@ -55,7 +55,7 @@ export async function selectDueShipments(
       and(
         eq(orders.source, 'allegro'),
         isNotNull(orders.shipmentState),
-        notInArray(orders.shipmentState, TERMINAL_STATES as unknown as string[]),
+        notInArray(orders.shipmentState, TERMINAL_STATES),
         lte(orders.shipmentNextCheckAt, now),
       ),
     )
@@ -78,7 +78,7 @@ export async function refreshNextDueKv(
       and(
         eq(orders.source, 'allegro'),
         isNotNull(orders.shipmentState),
-        notInArray(orders.shipmentState, TERMINAL_STATES as unknown as string[]),
+        notInArray(orders.shipmentState, TERMINAL_STATES),
       ),
     )
   const next = row?.next ? new Date(row.next) : new Date(Date.now() + 60 * 60 * 1000)

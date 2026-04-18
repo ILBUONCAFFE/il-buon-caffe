@@ -27,7 +27,6 @@ export interface PollResult {
 }
 
 export interface PollFailure {
-  orderId: number
   kind: 'http' | 'auth' | 'rate_limit' | 'parse' | 'unknown'
   retryAfterSec?: number
   message: string

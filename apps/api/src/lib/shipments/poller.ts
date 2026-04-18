@@ -34,7 +34,7 @@ export async function pollAllegroShipment(
   | { ok: false; failure: PollFailure }
 > {
   const token = await getAccessToken(env.ALLEGRO_KV)
-  if (!token) return { ok: false, failure: { orderId: 0, kind: 'auth', message: 'no_token_in_kv' } }
+  if (!token) return { ok: false, failure: { kind: 'auth', message: 'no_token_in_kv' } }
 
   const base = ALLEGRO_API[env.ALLEGRO_ENVIRONMENT] ?? ALLEGRO_API.production
   const url = `${base}/order/checkout-forms/${checkoutFormId}/shipments`
@@ -47,14 +47,14 @@ export async function pollAllegroShipment(
 
   if (res.status === 401) {
     await env.ALLEGRO_KV.delete(KV_KEYS.ACCESS_TOKEN)
-    return { ok: false, failure: { orderId: 0, kind: 'auth', message: 'token_rejected' } }
+    return { ok: false, failure: { kind: 'auth', message: 'token_rejected' } }
   }
   if (res.status === 429) {
     const retryAfter = parseInt(res.headers.get('Retry-After') ?? '60', 10)
-    return { ok: false, failure: { orderId: 0, kind: 'rate_limit', retryAfterSec: retryAfter, message: '429' } }
+    return { ok: false, failure: { kind: 'rate_limit', retryAfterSec: retryAfter, message: '429' } }
   }
   if (!res.ok) {
-    return { ok: false, failure: { orderId: 0, kind: 'http', message: `HTTP ${res.status}` } }
+    return { ok: false, failure: { kind: 'http', message: `HTTP ${res.status}` } }
   }
 
   try {
@@ -62,7 +62,7 @@ export async function pollAllegroShipment(
     const list = Array.isArray(body?.shipments) ? body.shipments : []
     return { ok: true, shipments: list }
   } catch (e) {
-    return { ok: false, failure: { orderId: 0, kind: 'parse', message: String(e) } }
+    return { ok: false, failure: { kind: 'parse', message: String(e) } }
   }
 }
 
@@ -94,7 +94,8 @@ export async function applyPollResult(
     shipmentNextCheckAt:      nextCheckAt,
     shipmentCheckAttempts:    0,
     shipmentStateChangedAt:   stateChanged ? now : order.shipmentStateChangedAt,
-    allegroShipmentsSnapshot: shipments as any,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    allegroShipmentsSnapshot: shipments as any, // Drizzle jsonb requires cast
     updatedAt:                now,
   }).where(eq(orders.id, order.id))
 

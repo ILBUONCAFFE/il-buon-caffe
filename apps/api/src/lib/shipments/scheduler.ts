@@ -40,12 +40,15 @@ export async function refreshShipments(env: SchedulerEnv): Promise<CycleSummary>
     let rateLimitedRetryAfter: number | null = null
 
     for (const order of due) {
-      if (!order.externalId) { failures++; continue }
+      if (!order.externalId) {
+        console.warn(`[Shipments] order ${order.id} missing externalId — skipped`)
+        continue
+      }
 
       const res = await pollAllegroShipment(order.externalId, env)
       if (!res.ok) {
         failures++
-        await applyBackoff(db, order, { ...res.failure, orderId: order.id })
+        await applyBackoff(db, order, res.failure)
         if (res.failure.kind === 'rate_limit') {
           rateLimitedRetryAfter = res.failure.retryAfterSec ?? 60
           break
