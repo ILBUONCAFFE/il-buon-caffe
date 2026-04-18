@@ -17,6 +17,16 @@ const DISPLAY_STATUS_MAP: Record<string, ShipmentStage> = {
   issue: { step: 2, label: 'Problem z przesylka', isIssue: true },
 }
 
+const SHIPMENT_STATE_MAP: Record<string, ShipmentStage> = {
+  awaiting_handover: { step: 0, label: 'Oczekuje na nadanie' },
+  label_created: { step: 1, label: 'Etykieta utworzona' },
+  in_transit: { step: 2, label: 'W drodze' },
+  out_for_delivery: { step: 2, label: 'W doreczeniu' },
+  delivered: { step: 3, label: 'Dostarczona' },
+  exception: { step: 2, label: 'Problem z przesylka', isIssue: true },
+  stale: { step: 2, label: 'Brak aktualizacji', isIssue: true },
+}
+
 const ALLEGRO_FULFILLMENT_MAP: Record<string, ShipmentStage> = {
   NEW: { step: 0, label: 'Przyjete w Allegro' },
   PROCESSING: { step: 1, label: 'W przygotowaniu' },
@@ -53,6 +63,7 @@ export interface ResolveShipmentStatusInput {
   status: OrderStatus | string
   shipmentDisplayStatus?: ShipmentDisplayStatus | string | null
   allegroFulfillmentStatus?: string | null
+  shipmentState?: string | null
 }
 
 export interface ResolvedShipmentStatus {
@@ -67,6 +78,7 @@ export function resolveShipmentStatus({
   status,
   shipmentDisplayStatus,
   allegroFulfillmentStatus,
+  shipmentState,
 }: ResolveShipmentStatusInput): ResolvedShipmentStatus {
   // Cancelled/refunded always wins — stale tracking fields must not override
   if (status === 'cancelled' || status === 'refunded') {
@@ -81,6 +93,11 @@ export function resolveShipmentStatus({
 
   const normalizedDisplayStatus = normalizeStatus(shipmentDisplayStatus)
   const normalizedFulfillmentStatus = normalizeFulfillmentStatus(allegroFulfillmentStatus)
+  const normalizedShipmentState = normalizeStatus(shipmentState)
+
+  const byShipmentState = normalizedShipmentState
+    ? SHIPMENT_STATE_MAP[normalizedShipmentState]
+    : undefined
 
   const byDisplay = normalizedDisplayStatus
     ? DISPLAY_STATUS_MAP[normalizedDisplayStatus]
@@ -92,9 +109,11 @@ export function resolveShipmentStatus({
 
   const byOrder = ORDER_STATUS_MAP[status] ?? { step: 0, label: 'Przyjete' }
 
-  const base = byDisplay ?? byFulfillment ?? byOrder
+  const base = byShipmentState ?? byDisplay ?? byFulfillment ?? byOrder
 
-  const detail = byDisplay
+  const detail = byShipmentState
+    ? (byFulfillment ? `Allegro: ${byFulfillment.label}` : null)
+    : byDisplay
     ? (byFulfillment ? `Allegro: ${byFulfillment.label}` : null)
     : (normalizedFulfillmentStatus && !byFulfillment
       ? `Allegro: ${normalizedFulfillmentStatus}`

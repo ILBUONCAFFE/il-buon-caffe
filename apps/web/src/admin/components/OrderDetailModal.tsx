@@ -85,6 +85,7 @@ interface OrderDetailModalProps {
   order: AdminOrder | null
   isOpen: boolean
   onClose: () => void
+  onShipmentRefreshQueued?: (orderId: number) => void | Promise<void>
   onCreateShipment?: (order: AdminOrder) => void
   onDownloadLabel?: (order: AdminOrder) => void
 }
@@ -217,6 +218,7 @@ export function OrderDetailModal({
   order,
   isOpen,
   onClose,
+  onShipmentRefreshQueued,
   onCreateShipment,
   onDownloadLabel,
 }: OrderDetailModalProps) {
@@ -228,12 +230,13 @@ export function OrderDetailModal({
     setRefreshing(true)
     try {
       await adminApi.refreshShipment(order.id)
+      await onShipmentRefreshQueued?.(order.id)
     } catch (err) {
       console.error('refresh-shipment failed', err)
     } finally {
       setRefreshing(false)
     }
-  }, [order, refreshing])
+  }, [onShipmentRefreshQueued, order, refreshing])
 
   useEffect(() => {
     if (!isOpen) setLabelPickerOpen(false)
@@ -271,6 +274,7 @@ export function OrderDetailModal({
     status: order.status,
     shipmentDisplayStatus: effectiveShipmentDisplayStatus,
     allegroFulfillmentStatus: order.allegroFulfillmentStatus,
+    shipmentState: order.shipmentState,
   })
   const shipmentStatusText = effectiveTrackingStatus ?? resolvedShipmentStatus.detail
 

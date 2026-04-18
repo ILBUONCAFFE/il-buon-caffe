@@ -68,6 +68,7 @@ const STATUS_TABS = [
 
 const LIMIT = 50
 const ALLEGRO_QUEUE_REFRESH_MS = 3 * 60 * 1000
+const ACTIVE_SHIPMENTS_REFRESH_MS = 60 * 1000
 
 // Mobile card for a single order
 function OrderCard({
@@ -89,6 +90,7 @@ function OrderCard({
     status: order.status,
     shipmentDisplayStatus: order.shipmentDisplayStatus,
     allegroFulfillmentStatus: order.allegroFulfillmentStatus,
+    shipmentState: order.shipmentState,
   })
   const shipmentBadgeClass = getShipmentBadgeClass(shipment.step, shipment.isIssue, shipment.isCancelled)
   const trackingBadge = getShipmentTrackingBadge(order)
@@ -242,15 +244,24 @@ export const OrdersView = () => {
   }, [fetchOrders])
 
   useEffect(() => {
-    const shouldAutoRefresh = statusFilter === 'fulfillment' || statusFilter === 'awaiting_payment'
+    const isQueueView = statusFilter === 'fulfillment' || statusFilter === 'awaiting_payment'
+    const hasActiveShipmentOnPage = orders.some(
+      (order) =>
+        order.source === 'allegro' &&
+        Boolean(order.shipmentState) &&
+        !['delivered', 'stale'].includes(order.shipmentState ?? ''),
+    )
+    const shouldAutoRefresh = isQueueView || hasActiveShipmentOnPage
     if (!shouldAutoRefresh) return
+
+    const intervalMs = isQueueView ? ALLEGRO_QUEUE_REFRESH_MS : ACTIVE_SHIPMENTS_REFRESH_MS
 
     const timer = setInterval(() => {
       void fetchOrders()
-    }, ALLEGRO_QUEUE_REFRESH_MS)
+    }, intervalMs)
 
     return () => clearInterval(timer)
-  }, [fetchOrders, statusFilter])
+  }, [fetchOrders, orders, statusFilter])
 
   useEffect(() => {
     return () => {
@@ -282,6 +293,23 @@ export const OrdersView = () => {
       // Keep current UX minimal
     }
   }
+
+  const refreshOrderSnapshot = useCallback(async (orderId: number) => {
+    try {
+      const res = await adminApi.getOrder(orderId)
+      const freshOrder = res.data
+
+      setOrders((prev) => prev.map((order) => (order.id === orderId ? { ...order, ...freshOrder } : order)))
+      setDetailOrder((prev) => (prev?.id === orderId ? freshOrder : prev))
+    } catch {
+      // Silent fail: periodic refresh should not interrupt the UI.
+    }
+  }, [])
+
+  const openOrderDetails = useCallback((order: AdminOrder) => {
+    setDetailOrder(order)
+    void refreshOrderSnapshot(order.id)
+  }, [refreshOrderSnapshot])
 
   const handleContextMenu = (e: React.MouseEvent, order: AdminOrder) => {
     e.preventDefault()
@@ -452,6 +480,7 @@ export const OrdersView = () => {
                       status: order.status,
                       shipmentDisplayStatus: order.shipmentDisplayStatus,
                       allegroFulfillmentStatus: order.allegroFulfillmentStatus,
+                      shipmentState: order.shipmentState,
                     })
                     const shipmentBadgeClass = getShipmentBadgeClass(
                       shipment.step,
@@ -467,7 +496,7 @@ export const OrdersView = () => {
                       <tr
                         key={order.id}
                         className="border-b border-[#F0EFEC] last:border-0 py-3 hover:bg-[#FAFAF9] cursor-pointer group"
-                        onClick={() => setDetailOrder(order)}
+                        onClick={() => openOrderDetails(order)}
                         onContextMenu={(e) => handleContextMenu(e, order)}
                       >
                         <td className="px-4 py-3 align-middle" onClick={(e) => e.stopPropagation()}>
@@ -569,7 +598,7 @@ export const OrdersView = () => {
                   order={order}
                   selected={selectedIds.has(order.id)}
                   onSelect={() => handleToggleSelect(order.id)}
-                  onClick={() => setDetailOrder(order)}
+                  onClick={() => openOrderDetails(order)}
                   onContextMenu={(e) => {
                     e.preventDefault()
                     const rect = e.currentTarget.getBoundingClientRect()
@@ -612,7 +641,7 @@ export const OrdersView = () => {
           order={contextMenu.order}
           position={{ x: contextMenu.x, y: contextMenu.y }}
           onClose={() => setContextMenu(null)}
-          onOpenDetails={(order) => setDetailOrder(order)}
+          onOpenDetails={openOrderDetails}
           onChangeStatus={handleStatusChange}
           onCreateShipment={(order) => setShipmentOrder(order)}
           onDownloadLabel={handleDownloadLabel}
@@ -623,6 +652,9 @@ export const OrdersView = () => {
         order={detailOrder}
         isOpen={!!detailOrder}
         onClose={() => setDetailOrder(null)}
+        onShipmentRefreshQueued={(orderId) => {
+          void refreshOrderSnapshot(orderId)
+        }}
         onCreateShipment={(order) => {
           setDetailOrder(null)
           setShipmentOrder(order)
