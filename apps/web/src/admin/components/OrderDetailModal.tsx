@@ -6,7 +6,7 @@ import { resolveShipmentStatus } from '../lib/shipmentStatus'
 import { OrderStatusBadge } from './OrderStatusBadge'
 import { ShipmentLabelPickerModal } from './ShipmentLabelPickerModal'
 import { OrderTimeline } from './OrderTimeline'
-import { adminApiClient } from '../lib/adminApiClient'
+import { adminApi } from '../lib/adminApiClient'
 import type { AdminOrder, AllegroShipmentEntry } from '../types/admin-api'
 
 const SHIPMENT_STATE_LABELS: Record<string, { label: string; tone: string }> = {
@@ -227,7 +227,7 @@ export function OrderDetailModal({
     if (!order || refreshing) return
     setRefreshing(true)
     try {
-      await adminApiClient.refreshShipment(order.id)
+      await adminApi.refreshShipment(order.id)
     } catch (err) {
       console.error('refresh-shipment failed', err)
     } finally {
