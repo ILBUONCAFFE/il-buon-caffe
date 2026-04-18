@@ -1,4 +1,4 @@
-import { createDb } from '@repo/db/client'
+import { createDbWithPool } from '@repo/db/client'
 import { orders, orderStatusHistory } from '@repo/db/schema'
 import { eq } from 'drizzle-orm'
 import type { ShipmentState, PollResult, PollFailure, AllegroShipmentRecord } from './types'
@@ -11,6 +11,9 @@ import {
   MAX_BACKOFF_ATTEMPTS,
 } from './state-machine'
 import { KV_KEYS } from '../allegro'
+import { decryptText } from '../crypto'
+
+type ShipmentDb = ReturnType<typeof createDbWithPool>['db']
 
 const ALLEGRO_API = {
   sandbox:    'https://api.allegro.pl.allegrosandbox.pl',
@@ -20,10 +23,26 @@ const ALLEGRO_API = {
 interface PollerEnv {
   ALLEGRO_KV: KVNamespace
   ALLEGRO_ENVIRONMENT: 'sandbox' | 'production'
+  ALLEGRO_TOKEN_ENCRYPTION_KEY?: string
 }
 
-async function getAccessToken(kv: KVNamespace): Promise<string | null> {
-  return kv.get(KV_KEYS.ACCESS_TOKEN)
+async function getAccessToken(env: PollerEnv): Promise<string | null> {
+  const rawToken = await env.ALLEGRO_KV.get(KV_KEYS.ACCESS_TOKEN)
+  if (!rawToken) return null
+
+  const encKey = env.ALLEGRO_TOKEN_ENCRYPTION_KEY
+  if (!encKey) {
+    console.error('[Shipments] ALLEGRO_TOKEN_ENCRYPTION_KEY is missing — cannot decrypt access token')
+    return null
+  }
+
+  try {
+    return await decryptText(rawToken, encKey)
+  } catch (err) {
+    console.warn('[Shipments] Failed to decrypt access token from KV — clearing stale token', err instanceof Error ? err.message : String(err))
+    await env.ALLEGRO_KV.delete(KV_KEYS.ACCESS_TOKEN).catch(() => {})
+    return null
+  }
 }
 
 export async function pollAllegroShipment(
@@ -33,8 +52,8 @@ export async function pollAllegroShipment(
   | { ok: true; shipments: AllegroShipmentRecord[] }
   | { ok: false; failure: PollFailure }
 > {
-  const token = await getAccessToken(env.ALLEGRO_KV)
-  if (!token) return { ok: false, failure: { kind: 'auth', message: 'no_token_in_kv' } }
+  const token = await getAccessToken(env)
+  if (!token) return { ok: false, failure: { kind: 'auth', message: 'no_usable_token_in_kv' } }
 
   const base = ALLEGRO_API[env.ALLEGRO_ENVIRONMENT] ?? ALLEGRO_API.production
   const url = `${base}/order/checkout-forms/${checkoutFormId}/shipments`
@@ -47,6 +66,7 @@ export async function pollAllegroShipment(
 
   if (res.status === 401) {
     await env.ALLEGRO_KV.delete(KV_KEYS.ACCESS_TOKEN)
+    console.warn(`[Shipments] Allegro rejected access token for checkoutFormId=${checkoutFormId} (401)`)
     return { ok: false, failure: { kind: 'auth', message: 'token_rejected' } }
   }
   if (res.status === 429) {
@@ -71,7 +91,7 @@ export async function pollAllegroShipment(
  * Updates shipment_state, snapshot, timestamps, resets attempts, logs state change.
  */
 export async function applyPollResult(
-  db: ReturnType<typeof createDb>,
+  db: ShipmentDb,
   order: DueOrder,
   shipments: AllegroShipmentRecord[],
   now: Date = new Date(),
@@ -117,7 +137,7 @@ export async function applyPollResult(
  * Apply backoff after a failure.
  */
 export async function applyBackoff(
-  db: ReturnType<typeof createDb>,
+  db: ShipmentDb,
   order: DueOrder,
   failure: PollFailure,
   now: Date = new Date(),

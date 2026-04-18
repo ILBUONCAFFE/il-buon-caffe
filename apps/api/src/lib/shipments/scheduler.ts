@@ -18,11 +18,13 @@ interface SchedulerEnv {
 export async function refreshShipments(env: SchedulerEnv): Promise<CycleSummary> {
   // 1. KV idle guard
   if (await isBeforeNextDue(env.ALLEGRO_KV)) {
+    console.log('[Shipments] skip — not_due (KV guard)')
     return { processed: 0, updated: 0, stateChanges: 0, failures: 0, skippedReason: 'not_due', nextDueAt: null }
   }
 
   // 2. Circuit breaker
   if (await isCircuitOpen(env.ALLEGRO_KV)) {
+    console.warn('[Shipments] skip — circuit_open')
     return { processed: 0, updated: 0, stateChanges: 0, failures: 0, skippedReason: 'circuit_open', nextDueAt: null }
   }
 
@@ -31,6 +33,7 @@ export async function refreshShipments(env: SchedulerEnv): Promise<CycleSummary>
     const due = await selectDueShipments(db)
     if (due.length === 0) {
       const next = await refreshNextDueKv(db, env.ALLEGRO_KV)
+      console.log(`[Shipments] skip — queue_empty nextDueAt=${next?.toISOString() ?? 'none'}`)
       return { processed: 0, updated: 0, stateChanges: 0, failures: 0, nextDueAt: next }
     }
 
@@ -48,6 +51,9 @@ export async function refreshShipments(env: SchedulerEnv): Promise<CycleSummary>
       const res = await pollAllegroShipment(order.externalId, env)
       if (!res.ok) {
         failures++
+        console.warn(
+          `[Shipments] poll failed order=${order.id} externalId=${order.externalId} kind=${res.failure.kind} message=${res.failure.message}`,
+        )
         await applyBackoff(db, order, res.failure)
         if (res.failure.kind === 'rate_limit') {
           rateLimitedRetryAfter = res.failure.retryAfterSec ?? 60

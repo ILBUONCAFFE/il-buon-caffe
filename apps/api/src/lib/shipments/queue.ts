@@ -1,7 +1,9 @@
-import { createDb } from '@repo/db/client'
+import { createDbWithPool } from '@repo/db/client'
 import { orders } from '@repo/db/schema'
 import { and, eq, lte, isNotNull, notInArray, sql, asc } from 'drizzle-orm'
 import type { AllegroShipmentRecord } from './types'
+
+type ShipmentDb = ReturnType<typeof createDbWithPool>['db']
 
 export const KV_NEXT_DUE_AT = 'shipments:next_due_at'
 export const KV_CIRCUIT_OPEN = 'shipments:circuit_open'
@@ -38,7 +40,7 @@ export async function isBeforeNextDue(kv: KVNamespace, now: Date = new Date()): 
 }
 
 export async function selectDueShipments(
-  db: ReturnType<typeof createDb>,
+  db: ShipmentDb,
   now: Date = new Date(),
 ): Promise<DueOrder[]> {
   const rows = await db
@@ -68,7 +70,7 @@ export async function selectDueShipments(
  * After a cycle, update KV with the earliest future check timestamp.
  */
 export async function refreshNextDueKv(
-  db: ReturnType<typeof createDb>,
+  db: ShipmentDb,
   kv: KVNamespace,
 ): Promise<Date | null> {
   const [row] = await db

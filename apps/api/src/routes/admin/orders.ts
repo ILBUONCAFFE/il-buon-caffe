@@ -295,7 +295,11 @@ adminOrdersRouter.get('/', auditLogMiddleware('view_order'), async (c) => {
           trackingNumber: true, trackingStatus: true,
           trackingStatusCode: true, trackingStatusUpdatedAt: true,
           trackingLastEventAt: true,
+          shipmentState: true, shipmentCarrier: true,
+          shipmentLastCheckedAt: true, shipmentNextCheckAt: true,
+          shipmentCheckAttempts: true, shipmentStateChangedAt: true,
           allegroShipmentId: true, allegroFulfillmentStatus: true,
+          allegroShipmentsSnapshot: true,
           paidAt: true, shippedAt: true, createdAt: true,
           updatedAt: true, internalNotes: true, notes: true, invoiceRequired: true,
         },
@@ -331,6 +335,7 @@ adminOrdersRouter.get('/', auditLogMiddleware('view_order'), async (c) => {
         trackingStatusCode: o.trackingStatusCode ?? null,
         trackingStatusUpdatedAt: o.trackingStatusUpdatedAt ?? null,
         trackingLastEventAt: o.trackingLastEventAt ?? null,
+        allegroShipmentsSnapshot: o.allegroShipmentsSnapshot ?? null,
       }),
     }))
 
@@ -381,6 +386,7 @@ adminOrdersRouter.get('/:id', auditLogMiddleware('view_order'), async (c) => {
           trackingStatusCode: order.trackingStatusCode ?? null,
           trackingStatusUpdatedAt: order.trackingStatusUpdatedAt ?? null,
           trackingLastEventAt: order.trackingLastEventAt ?? null,
+          allegroShipmentsSnapshot: order.allegroShipmentsSnapshot ?? null,
         }),
       },
     })

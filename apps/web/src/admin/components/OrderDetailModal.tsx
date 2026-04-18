@@ -261,6 +261,8 @@ export function OrderDetailModal({
   const address = customer?.shippingAddress
   const canShip = ['paid', 'processing'].includes(order.status)
   const canCancel = ['pending', 'paid', 'processing'].includes(order.status)
+  const shipmentTrackingExpected =
+    order.source === 'allegro' && ['paid', 'processing', 'shipped'].includes(order.status)
   const effectiveTrackingNumber = order.trackingNumber ?? null
   const effectiveTrackingStatus = order.trackingStatus ?? null
   const effectiveTrackingStatusUpdatedAt = order.trackingStatusUpdatedAt ?? null
@@ -396,6 +398,11 @@ export function OrderDetailModal({
 
               <SectionLabel>Przesylka</SectionLabel>
               <>
+                {shipmentTrackingExpected && !order.shipmentState && (
+                  <div className="text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-md px-2.5 py-1.5 mb-2">
+                    Monitoring przesylki nie jest aktywny dla tego zamowienia. Uzyj odswiezenia lub sprawdz enrollment w kolejce shipment.
+                  </div>
+                )}
                 <InfoRow label="Status" value={resolvedShipmentStatus.label} />
                 {effectiveTrackingNumber && (
                   <InfoRow label="Numer" value={<span className="font-mono text-xs">{effectiveTrackingNumber}</span>} />

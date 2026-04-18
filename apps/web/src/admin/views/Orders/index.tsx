@@ -39,6 +39,21 @@ function getShipmentBadgeClass(step: number, isIssue: boolean, isCancelled: bool
   return 'bg-[#F5F4F1] text-[#666] border-[#E5E4E1]'
 }
 
+function getShipmentTrackingBadge(order: AdminOrder): { label: string; tone: string } | null {
+  if (order.source !== 'allegro') return null
+  if (!['paid', 'processing', 'shipped'].includes(order.status)) return null
+  if (order.shipmentState) {
+    return {
+      label: 'Tracking aktywny',
+      tone: 'text-emerald-700 bg-emerald-50 border border-emerald-200',
+    }
+  }
+  return {
+    label: 'Brak enrolmentu',
+    tone: 'text-rose-700 bg-rose-50 border border-rose-200',
+  }
+}
+
 const STATUS_TABS = [
   { key: 'all', label: 'Wszystkie' },
   { key: 'fulfillment', label: 'Do realizacji' },
@@ -76,6 +91,7 @@ function OrderCard({
     allegroFulfillmentStatus: order.allegroFulfillmentStatus,
   })
   const shipmentBadgeClass = getShipmentBadgeClass(shipment.step, shipment.isIssue, shipment.isCancelled)
+  const trackingBadge = getShipmentTrackingBadge(order)
   const showStaleHint = ['shipped', 'delivered'].includes(order.status) && order.shipmentFreshness === 'stale'
 
   return (
@@ -143,6 +159,11 @@ function OrderCard({
             <span className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-medium ${shipmentBadgeClass}`}>
               {shipment.label}
             </span>
+            {trackingBadge && (
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${trackingBadge.tone}`}>
+                {trackingBadge.label}
+              </span>
+            )}
             {showStaleHint && (
               <span className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">
                 nieaktualne
@@ -437,6 +458,7 @@ export const OrdersView = () => {
                       shipment.isIssue,
                       shipment.isCancelled,
                     )
+                    const trackingBadge = getShipmentTrackingBadge(order)
                     const showStaleHint =
                       ['shipped', 'delivered'].includes(order.status) &&
                       order.shipmentFreshness === 'stale'
@@ -485,6 +507,11 @@ export const OrdersView = () => {
                             <span className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-medium ${shipmentBadgeClass}`}>
                               {shipment.label}
                             </span>
+                            {trackingBadge && (
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${trackingBadge.tone}`}>
+                                {trackingBadge.label}
+                              </span>
+                            )}
                             {showStaleHint && (
                               <span className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">
                                 nieaktualne

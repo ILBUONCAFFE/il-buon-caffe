@@ -1,15 +1,17 @@
-import { createDb } from '@repo/db/client'
+import { createDbWithPool } from '@repo/db/client'
 import { orders } from '@repo/db/schema'
 import { and, eq, isNull, inArray, gt } from 'drizzle-orm'
 import { invalidateNextDueKv } from './queue'
 import { computeNextCheckAt } from './state-machine'
+
+type ShipmentDb = ReturnType<typeof createDbWithPool>['db']
 
 /**
  * Eager enrollment — call from order handlers when a paid/processing order
  * is confirmed. Idempotent: only sets fields if shipmentState is NULL.
  */
 export async function enrollShipment(
-  db: ReturnType<typeof createDb>,
+  db: ShipmentDb,
   orderId: number,
   kv: KVNamespace,
   now: Date = new Date(),
@@ -41,7 +43,7 @@ export async function enrollShipment(
  * missed eager enrollment. Scoped to last 30 days to avoid ancient data.
  */
 export async function backfillShipmentEnrollment(
-  db: ReturnType<typeof createDb>,
+  db: ShipmentDb,
   kv: KVNamespace,
 ): Promise<{ enrolled: number }> {
   const now = new Date()
