@@ -250,7 +250,7 @@ const PAID_SWEEP_LAST_RUN_KV_KEY = 'orders:paid_sweep:last_run_at'
 const PAID_SWEEP_CURSOR_KV_KEY = 'orders:paid_sweep:cursor'
 const PAID_SWEEP_ACTIVE_KV_KEY = 'orders:paid_sweep:has_paid_orders'
 const PAID_SWEEP_INTERVAL_MS = 60 * 60 * 1000
-const PAID_SWEEP_BATCH_SIZE = 10
+const PAID_SWEEP_BATCH_SIZE = 50
 const PAID_SWEEP_IDLE_TTL_SECONDS = 24 * 60 * 60
 
 type PaidSweepCursor = { createdAt: Date; id: number }

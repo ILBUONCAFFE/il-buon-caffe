@@ -509,7 +509,7 @@ export async function selectTrackingRefreshCandidates(
       and(
         eq(orders.source, 'allegro'),
         or(
-          inArray(orders.status, ['shipped', 'delivered']),
+          inArray(orders.status, ['shipped', 'in_transit', 'out_for_delivery', 'delivered']),
           and(
             inArray(orders.status, ['processing', 'paid', 'pending']),
             or(
