@@ -1,13 +1,12 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { X } from 'lucide-react'
-import { adminApi } from '../lib/adminApiClient'
 import { resolveShipmentStatus } from '../lib/shipmentStatus'
 import { OrderStatusBadge } from './OrderStatusBadge'
 import { ShipmentLabelPickerModal } from './ShipmentLabelPickerModal'
 import { OrderTimeline } from './OrderTimeline'
-import type { AdminOrder, AllegroShipmentEntry, OrderTrackingSnapshot } from '../types/admin-api'
+import type { AdminOrder, AllegroShipmentEntry } from '../types/admin-api'
 
 interface OrderDetailModalProps {
   order: AdminOrder | null
@@ -26,30 +25,6 @@ function formatDate(iso: string | null | undefined): string {
     hour: '2-digit',
     minute: '2-digit',
   }).format(new Date(iso))
-}
-
-function computeNextRefreshText(
-  trackingStatusCode: string | null | undefined,
-  trackingStatusUpdatedAt: string | null | undefined,
-): string | null {
-  if (!trackingStatusUpdatedAt) return null
-  const updated = new Date(trackingStatusUpdatedAt).getTime()
-  if (isNaN(updated)) return null
-  const code = (trackingStatusCode ?? '').toUpperCase()
-  if (code.includes('RETURN')) return null
-  let intervalMs: number
-  if (code.includes('OUT_FOR_DELIVERY') || code.includes('COURIER')) intervalMs = 5 * 60_000
-  else if (code.includes('EXCEPTION') || code.includes('FAILED')) intervalMs = 20 * 60_000
-  else if (code.includes('IN_TRANSIT') || code.includes('TRANSIT') || code.includes('SENT')) intervalMs = 30 * 60_000
-  else if (code.includes('PICKED_UP') || code.includes('DELIVERED')) intervalMs = 12 * 3_600_000
-  else if (code.includes('LABEL_CREATED') || code.includes('CREATED') || code.includes('REGISTERED')) intervalMs = 90 * 60_000
-  else intervalMs = 60 * 60_000
-  const diff = updated + intervalMs - Date.now()
-  if (diff <= 0) return 'za chwile'
-  const mins = Math.ceil(diff / 60_000)
-  if (mins < 60) return `za ~${mins} min`
-  const hours = Math.round(diff / 3_600_000)
-  return `za ~${hours} godz`
 }
 
 function formatAmount(value: number | undefined | null, currency = 'PLN'): string {
@@ -77,16 +52,12 @@ function ShipmentTimeline({
   isCancelled,
   trackingStatus,
   updatedAt,
-  nextRefreshText,
-  loading,
 }: {
   activeStep: number
   isIssue: boolean
   isCancelled: boolean
   trackingStatus: string | null
   updatedAt: string | null
-  nextRefreshText: string | null
-  loading: boolean
 }) {
   return (
     <div className="mt-3 mb-1">
@@ -147,14 +118,6 @@ function ShipmentTimeline({
             Zaktualizowano: {formatDate(updatedAt)}
           </p>
         )}
-        {nextRefreshText && !loading && (
-          <p className="text-[11px] text-[#A3A3A3]">
-            Nastepne odswiezenie: {nextRefreshText}
-          </p>
-        )}
-        {loading && (
-          <p className="text-[11px] text-[#A3A3A3] animate-pulse">Sprawdzam status przesylki...</p>
-        )}
       </div>
     </div>
   )
@@ -184,84 +147,11 @@ export function OrderDetailModal({
   onCreateShipment,
   onDownloadLabel,
 }: OrderDetailModalProps) {
-  const [tracking, setTracking] = useState<OrderTrackingSnapshot | null>(null)
-  const [trackingLoading, setTrackingLoading] = useState(false)
-  const [trackingError, setTrackingError] = useState<string | null>(null)
-  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [labelPickerOpen, setLabelPickerOpen] = useState(false)
 
   useEffect(() => {
     if (!isOpen) setLabelPickerOpen(false)
   }, [isOpen])
-
-  const refreshTrackingSnapshot = useCallback(async (showError = true) => {
-    if (!order) return
-    if (order.source !== 'allegro' || !order.externalId) return
-
-    setTrackingLoading(true)
-    setTrackingError(null)
-
-    let scheduleRetry = false
-    try {
-      const res = await adminApi.refreshOrderTracking(order.id)
-      setTracking(res.data)
-    } catch (err) {
-      const isAlreadyRefreshing =
-        err instanceof Error &&
-        (err.message.includes('409') ||
-         err.message.toLowerCase().includes('already') ||
-         err.message.toLowerCase().includes('refreshinprogress'))
-
-      if (isAlreadyRefreshing) {
-        scheduleRetry = true
-        retryTimerRef.current = setTimeout(async () => {
-          try {
-            const fresh = await adminApi.getOrder(order.id)
-            if (fresh?.data) {
-              setTracking({
-                id: fresh.data.id,
-                status: fresh.data.status,
-                trackingStatus: fresh.data.trackingStatus ?? null,
-                trackingStatusCode: fresh.data.trackingStatusCode ?? null,
-                trackingStatusUpdatedAt: fresh.data.trackingStatusUpdatedAt ?? null,
-                trackingLastEventAt: fresh.data.trackingLastEventAt ?? null,
-                trackingNumber: fresh.data.trackingNumber ?? null,
-                shipmentDisplayStatus: fresh.data.shipmentDisplayStatus ?? 'unknown',
-                shipmentFreshness: fresh.data.shipmentFreshness ?? 'unknown',
-              })
-            }
-          } catch {
-            // Ignore retry errors silently
-          } finally {
-            setTrackingLoading(false)
-          }
-        }, 10_000)
-      } else if (showError) {
-        setTrackingError('Nie udalo sie odswiezyc statusu przesylki')
-      }
-    } finally {
-      if (!scheduleRetry) {
-        setTrackingLoading(false)
-      }
-    }
-  }, [order])
-
-  useEffect(() => {
-    if (!isOpen || !order) return
-
-    setTracking(null)
-    setTrackingError(null)
-
-    const shouldAutoRefresh =
-      order.source === 'allegro' &&
-      !!order.externalId &&
-      ['shipped', 'delivered'].includes(order.status) &&
-      (order.shipmentFreshness === 'stale' || order.shipmentFreshness === 'unknown')
-
-    if (shouldAutoRefresh) {
-      void refreshTrackingSnapshot(false)
-    }
-  }, [isOpen, order, refreshTrackingSnapshot])
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -276,7 +166,6 @@ export function OrderDetailModal({
     return () => {
       document.removeEventListener('keydown', handleEscape)
       document.body.style.overflow = ''
-      if (retryTimerRef.current) clearTimeout(retryTimerRef.current)
     }
   }, [isOpen, onClose])
 
@@ -284,15 +173,14 @@ export function OrderDetailModal({
 
   const customer = order.customerData
   const address = customer?.shippingAddress
-  const canRefresh = order.source === 'allegro' && !!order.externalId
   const canShip = ['paid', 'processing'].includes(order.status)
   const canCancel = ['pending', 'paid', 'processing'].includes(order.status)
-  const effectiveTrackingNumber = tracking?.trackingNumber ?? order.trackingNumber ?? null
-  const effectiveTrackingStatus = tracking?.trackingStatus ?? order.trackingStatus ?? null
-  const effectiveTrackingStatusUpdatedAt = tracking?.trackingStatusUpdatedAt ?? order.trackingStatusUpdatedAt ?? null
-  const effectiveShipmentDisplayStatus = tracking?.shipmentDisplayStatus ?? order.shipmentDisplayStatus ?? 'unknown'
+  const effectiveTrackingNumber = order.trackingNumber ?? null
+  const effectiveTrackingStatus = order.trackingStatus ?? null
+  const effectiveTrackingStatusUpdatedAt = order.trackingStatusUpdatedAt ?? null
+  const effectiveShipmentDisplayStatus = order.shipmentDisplayStatus ?? 'unknown'
   const resolvedShipmentStatus = resolveShipmentStatus({
-    status: tracking?.status ?? order.status,
+    status: order.status,
     shipmentDisplayStatus: effectiveShipmentDisplayStatus,
     allegroFulfillmentStatus: order.allegroFulfillmentStatus,
   })
@@ -436,21 +324,11 @@ export function OrderDetailModal({
                   isCancelled={resolvedShipmentStatus.isCancelled}
                   trackingStatus={shipmentStatusText}
                   updatedAt={effectiveTrackingStatusUpdatedAt}
-                  nextRefreshText={
-                    canRefresh && !resolvedShipmentStatus.isCancelled
-                      ? computeNextRefreshText(
-                          tracking?.trackingStatusCode ?? order.trackingStatusCode,
-                          effectiveTrackingStatusUpdatedAt,
-                        )
-                      : null
-                  }
-                  loading={trackingLoading}
                 />
 
                 {/* Multi-shipment list — shown when order has >1 parcel or duplicate labels */}
                 {(() => {
-                  const allShipments: AllegroShipmentEntry[] | null | undefined =
-                    (tracking?.allShipments ?? order.allShipments)
+                  const allShipments: AllegroShipmentEntry[] | null | undefined = order.allShipments
                   if (!allShipments || allShipments.length <= 1) return null
                   return (
                     <div className="mt-3 space-y-1.5">
@@ -480,20 +358,6 @@ export function OrderDetailModal({
                     </div>
                   )
                 })()}
-
-                {trackingError && (
-                  <p className="text-xs text-red-600 mt-2">{trackingError}</p>
-                )}
-                {canRefresh && (
-                  <button
-                    type="button"
-                    onClick={() => void refreshTrackingSnapshot()}
-                    disabled={trackingLoading}
-                    className="mt-3 text-xs font-medium text-[#1A1A1A] hover:text-[#666] disabled:text-[#A3A3A3] disabled:cursor-not-allowed underline underline-offset-2"
-                  >
-                    {trackingLoading ? 'Odswiezanie...' : 'Odswiez status'}
-                  </button>
-                )}
               </>
             </div>
           </div>

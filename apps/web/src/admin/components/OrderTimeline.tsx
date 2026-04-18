@@ -9,8 +9,8 @@ import type { OrderStatusHistoryEntry, StatusSource, StatusCategory } from '../t
 const SOURCE_LABELS: Record<StatusSource, string> = {
   system:       'System',
   admin:        'Administrator',
-  allegro_sync: 'Allegro (auto)',
-  carrier_sync: 'Kurier (auto)',
+  allegro_sync: 'Allegro',
+  carrier_sync: 'Kurier',
   p24_webhook:  'Przelewy24',
   backfill:     'Dane historyczne',
 }

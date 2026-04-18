@@ -16,9 +16,7 @@ import { createDbWithPool } from '@repo/db/client'
 import { allegroCredentials, allegroSyncLog, auditLog } from '@repo/db/schema'
 import { eq, desc, lt, sql } from 'drizzle-orm'
 import { refreshAllegroToken, getAllegroOAuthConfig, KV_KEYS, type AllegroEnvironment } from './lib/allegro'
-import { runTrackingStatusSync } from './lib/allegro-orders/tracking-refresh'
 import { syncAllegroOrders } from './lib/allegro-orders'
-import { reconcileStaleProcessing, reconcileHourlyPaidOrders } from './lib/allegro-orders/bulk-reconcile'
 import { preWarmAllegroQualityCache } from './routes/allegro'
 import { backfillExchangeRates } from './lib/allegro-orders/backfill-rates'
 import { encryptText, decryptText } from './lib/crypto'
@@ -152,8 +150,6 @@ const NIGHT_THINNING_START_HOUR = 22
 const NIGHT_THINNING_END_HOUR = 7
 const NIGHT_SYNC_INTERVAL_MINUTES = 60
 const ORDER_SYNC_CRON = '*/10 * * * *'
-const TRACKING_SYNC_CRON = '5,15,25,35,45,55 * * * *'
-const TRACKING_SYNC_NIGHT_MINUTE = 5
 const QUALITY_PREWARM_WINDOW_START_HOUR = 1
 const QUALITY_PREWARM_WINDOW_END_HOUR = 5
 
@@ -187,11 +183,6 @@ function normalizeCronExpression(value: string): string {
 function isOrderSyncCronExpression(value: string): boolean {
   const expr = normalizeCronExpression(value)
   return expr === ORDER_SYNC_CRON || expr === '0/10 * * * *'
-}
-
-function isTrackingSyncCronExpression(value: string): boolean {
-  const expr = normalizeCronExpression(value)
-  return expr === TRACKING_SYNC_CRON || expr === '5/10 * * * *'
 }
 
 // ── Scheduled handler (Cron Trigger) ────────────────────────────────────────
@@ -351,8 +342,7 @@ export default {
     setHttpMode(true, env.DATABASE_URL)
 
     // "0 * * * *"   — hourly token refresh + daily retention cleanup (+ quality prewarm in PL-night window)
-    // "*/10 * * * *" — every 10 min Allegro order polling + reconcile; in Poland night (22:00-06:59) thinned to every 60 min
-    // "5,15,25,35,45,55 * * * *" — every 10 min (offset +5) tracking refresh; separate invocation to keep subrequest budget isolated
+    // "*/10 * * * *" — every 10 min Allegro order polling; in Poland night (22:00-06:59) thinned to every 60 min
     // "0 3 * * *"   — daily at 04:00 CET / 05:00 CEST (03:00 UTC) — backfill exchange rates (total_pln)
     const cronExpr = normalizeCronExpression(event.cron)
 
@@ -373,29 +363,6 @@ export default {
       }
 
       ctx.waitUntil(syncAllegroOrders(env))
-      ctx.waitUntil(reconcileStaleProcessing(env))
-      ctx.waitUntil(reconcileHourlyPaidOrders(env))
-    } else if (isTrackingSyncCronExpression(cronExpr)) {
-      const { hour, minute } = getPolandClock()
-
-      // Night thinning: only the :05 tick runs during Poland night (22–07).
-      // Check before logging so the 5 skipped invocations per hour leave no log noise.
-      if (isPolandNightHour(hour) && minute !== TRACKING_SYNC_NIGHT_MINUTE) {
-        return
-      }
-
-      console.log(`[TrackingSync Cron] Tick expression=${cronExpr}, PL time=${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`)
-
-      if (env.ALLEGRO_KV) {
-        const allegroStatus = await env.ALLEGRO_KV.get<{ connected: boolean }>(KV_KEYS.STATUS, 'json')
-        if (allegroStatus?.connected === false) {
-          console.log('[Cron] Allegro disconnected (KV status) — skip tracking sync')
-          return
-        }
-      }
-
-      console.log('[TrackingSync Cron] Kolejkuję runTrackingStatusSync')
-      ctx.waitUntil(runTrackingStatusSync(env))
     } else if (cronExpr === '0 3 * * *') {
       // Daily at 04:00 CET (03:00 UTC) — backfill exchange rates for foreign currency orders
       ctx.waitUntil(backfillExchangeRates(env))

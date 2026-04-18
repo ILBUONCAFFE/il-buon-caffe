@@ -7,10 +7,6 @@ import { logAdminAction } from '../../lib/audit'
 import { eq, and, desc, sql, gte, lte, inArray } from 'drizzle-orm'
 import { requireAdminOrProxy } from '../../middleware/auth'
 import { auditLogMiddleware } from '../../middleware/auditLog'
-import { getActiveAllegroToken } from '../../lib/allegro-tokens'
-import { allegroHeaders } from '../../lib/allegro-orders/helpers'
-import { refreshOrderTrackingSnapshot } from '../../lib/allegro-orders/tracking-refresh'
-import { bulkReconcileProcessingOrders } from '../../lib/allegro-orders/bulk-reconcile'
 import { recordStatusChange } from '../../lib/record-status-change'
 import type { Env } from '../../index'
 import { checkContentLength, parsePagination, getClientIp, serverError } from '../../lib/request'
@@ -22,7 +18,6 @@ type ShipmentFreshness = 'fresh' | 'stale' | 'unknown'
 
 const TRACKING_STALE_MS = 60 * 60 * 1000
 const TRACKING_DELIVERED_STALE_MS = 24 * 60 * 60 * 1000
-const TRACKING_REFRESH_LOCK_TTL_SECONDS = 90
 
 function normalizeTrackingCode(value: string | null | undefined): string | null {
   if (!value) return null
@@ -193,74 +188,6 @@ function buildTrackingSnapshot(order: {
 
 // All admin order routes require admin role or internal proxy secret
 adminOrdersRouter.use('*', requireAdminOrProxy())
-
-// ============================================
-// GET /admin/orders/tracking-pulse  🛡️
-// Lightweight delta endpoint for frontend adaptive polling.
-// Returns only changed tracking fields for shipped/delivered orders since `since`.
-// LIMIT 51 trick: if 51 rows → hasMore:true (return 50, signal more).
-// nextSince is always server-side time — never trust client clock.
-// ============================================
-adminOrdersRouter.get('/tracking-pulse', async (c) => {
-  try {
-    const db = createDb(c.env.DATABASE_URL)
-    const sinceParam = c.req.query('since')
-
-    let sinceDate: Date
-    if (sinceParam) {
-      sinceDate = new Date(sinceParam)
-      if (Number.isNaN(sinceDate.getTime())) {
-        return c.json({ error: { code: 'INVALID_SINCE', message: 'Nieprawidłowy parametr since' } }, 400)
-      }
-    } else {
-      // First poll — default to last 5 min so any recent cron run is included
-      sinceDate = new Date(Date.now() - 5 * 60 * 1000)
-    }
-
-    // Capture server time BEFORE the query — used as nextSince in response.
-    // Client must use this value in the next poll to avoid clock drift.
-    const serverNow = new Date().toISOString()
-
-    const rows = await db
-      .select({
-        id: orders.id,
-        status: orders.status,
-        trackingNumber: orders.trackingNumber,
-        trackingStatus: orders.trackingStatus,
-        trackingStatusCode: orders.trackingStatusCode,
-        trackingStatusUpdatedAt: orders.trackingStatusUpdatedAt,
-        trackingLastEventAt: orders.trackingLastEventAt,
-      })
-      .from(orders)
-      .where(
-        and(
-          sql`${orders.updatedAt} > ${sinceDate}`,
-          inArray(orders.status, ['shipped', 'delivered']),
-        ),
-      )
-      .orderBy(sql`${orders.updatedAt} ASC`)
-      .limit(51)
-
-    const hasMore = rows.length === 51
-    const slice = hasMore ? rows.slice(0, 50) : rows
-
-    const data = slice.map(o =>
-      buildTrackingSnapshot({
-        id: o.id,
-        status: o.status,
-        trackingNumber: o.trackingNumber ?? null,
-        trackingStatus: o.trackingStatus ?? null,
-        trackingStatusCode: o.trackingStatusCode ?? null,
-        trackingStatusUpdatedAt: o.trackingStatusUpdatedAt ?? null,
-        trackingLastEventAt: o.trackingLastEventAt ?? null,
-      }),
-    )
-
-    return c.json({ success: true, data, nextSince: serverNow, hasMore })
-  } catch (err) {
-    return serverError(c, 'GET /admin/orders/tracking-pulse', err)
-  }
-})
 
 // ============================================
 // GET /admin/orders  🛡️
@@ -462,154 +389,6 @@ adminOrdersRouter.get('/:id', auditLogMiddleware('view_order'), async (c) => {
 })
 
 // ============================================
-// POST /admin/orders/:id/tracking/refresh  🛡️
-// Asynchroniczne odświeżenie snapshotu trackingu
-// ============================================
-adminOrdersRouter.post('/:id/tracking/refresh', async (c) => {
-  try {
-    const db = createDb(c.env.DATABASE_URL)
-    const orderId = parseInt(c.req.param('id') ?? '', 10)
-
-    if (isNaN(orderId)) return c.json({ error: 'Nieprawidłowe ID zamówienia' }, 400)
-
-    const [order] = await db.select({
-      id: orders.id,
-      status: orders.status,
-      source: orders.source,
-      externalId: orders.externalId,
-      allegroShipmentId: orders.allegroShipmentId,
-      trackingNumber: orders.trackingNumber,
-      trackingStatus: orders.trackingStatus,
-      trackingStatusCode: orders.trackingStatusCode,
-      trackingStatusUpdatedAt: orders.trackingStatusUpdatedAt,
-      trackingLastEventAt: orders.trackingLastEventAt,
-      allegroShipmentsSnapshot: orders.allegroShipmentsSnapshot,
-    }).from(orders).where(eq(orders.id, orderId)).limit(1)
-
-    if (!order) return c.json({ error: 'Zamówienie nie znalezione' }, 404)
-
-    const snapshot = buildTrackingSnapshot({
-      id: order.id,
-      status: order.status,
-      trackingNumber: order.trackingNumber,
-      trackingStatus: order.trackingStatus,
-      trackingStatusCode: order.trackingStatusCode,
-      trackingStatusUpdatedAt: order.trackingStatusUpdatedAt,
-      trackingLastEventAt: order.trackingLastEventAt,
-    })
-
-    if (order.source !== 'allegro' || !order.externalId) {
-      return c.json({
-        success: true,
-        refreshed: false,
-        reason: 'not_refreshable',
-        data: snapshot,
-      })
-    }
-
-    if (snapshot.shipmentFreshness === 'fresh') {
-      return c.json({
-        success: true,
-        refreshed: false,
-        reason: 'fresh',
-        data: snapshot,
-      })
-    }
-
-    const lockKey = `allegro:tracking:refresh:order:${order.id}`
-    const alreadyRefreshing = await c.env.ALLEGRO_KV.get(lockKey)
-    if (alreadyRefreshing) {
-      return c.json({
-        success: true,
-        refreshed: false,
-        reason: 'already_refreshing',
-        data: snapshot,
-      })
-    }
-
-    await c.env.ALLEGRO_KV.put(lockKey, String(Date.now()), { expirationTtl: TRACKING_REFRESH_LOCK_TTL_SECONDS })
-
-    // Synchronous refresh — returns fresh data to the frontend immediately
-    try {
-      await refreshOrderTrackingSnapshot(db, c.env, order.id, order.externalId!)
-    } finally {
-      await c.env.ALLEGRO_KV.delete(lockKey).catch(() => {})
-    }
-
-    // Re-read updated tracking data from DB
-    const [updated] = await db.select({
-      id: orders.id,
-      status: orders.status,
-      trackingNumber: orders.trackingNumber,
-      trackingStatus: orders.trackingStatus,
-      trackingStatusCode: orders.trackingStatusCode,
-      trackingStatusUpdatedAt: orders.trackingStatusUpdatedAt,
-      trackingLastEventAt: orders.trackingLastEventAt,
-      allegroShipmentsSnapshot: orders.allegroShipmentsSnapshot,
-    }).from(orders).where(eq(orders.id, orderId)).limit(1)
-
-    const freshSnapshot = updated ? buildTrackingSnapshot({
-      id: updated.id,
-      status: updated.status,
-      trackingNumber: updated.trackingNumber,
-      trackingStatus: updated.trackingStatus,
-      trackingStatusCode: updated.trackingStatusCode,
-      trackingStatusUpdatedAt: updated.trackingStatusUpdatedAt,
-      trackingLastEventAt: updated.trackingLastEventAt,
-    }) : snapshot
-
-    return c.json({
-      success: true,
-      refreshed: true,
-      reason: 'refreshed',
-      data: freshSnapshot,
-    })
-  } catch (err) {
-    return serverError(c, 'POST /admin/orders/:id/tracking/refresh', err)
-  }
-})
-
-// ============================================
-// POST /admin/orders/reconcile-processing  🛡️
-// Jednorazowy bulk reconcile dla zamówień processing
-// ============================================
-adminOrdersRouter.post('/reconcile-processing', async (c) => {
-  try {
-    const adminUser = c.get('user')
-    const body = await c.req.json<{
-      dryRun?: boolean
-      includeStatuses?: string[]
-      maxOrders?: number
-    }>().catch(() => ({} as { dryRun?: boolean, includeStatuses?: string[], maxOrders?: number }))
-
-    const result = await bulkReconcileProcessingOrders(c.env, {
-      dryRun: body.dryRun ?? false,
-      includeStatuses: body.includeStatuses,
-      maxOrders: body.maxOrders,
-    })
-
-    const db = createDb(c.env.DATABASE_URL)
-    await logAdminAction(db, {
-      adminSub: adminUser.sub,
-      action: 'admin_action',
-      ipAddress: getClientIp(c),
-      details: {
-        event: 'reconcile_orders',
-        total: result.total,
-        updated: result.updated,
-      },
-    })
-
-    return c.json({
-      success: true,
-      data: result,
-    })
-  } catch (err) {
-    return serverError(c, 'POST /admin/orders/reconcile-processing', err)
-  }
-})
-
-// ============================================
 // PATCH /admin/orders/:id/status  🛡️
 // Zmiana statusu zamówienia
 // ============================================
@@ -721,14 +500,6 @@ adminOrdersRouter.patch('/:id/status', async (c) => {
     })
     if (Object.keys(setCols).length > 1) {
       await db.update(orders).set(setCols as any).where(eq(orders.id, orderId))
-    }
-
-    // Trigger processing watchdog if order becomes processing
-    if (body.status === 'processing') {
-      await Promise.all([
-        c.env.ALLEGRO_KV.delete('orders:has_processing').catch(() => {}),
-        c.env.ALLEGRO_KV.delete('orders:processing:next_due_at').catch(() => {}),
-      ])
     }
 
     // Audit

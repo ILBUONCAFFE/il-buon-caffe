@@ -10,10 +10,7 @@ import { ShipmentLabelPickerModal } from '../../components/ShipmentLabelPickerMo
 import { BulkActionBar } from '../../components/BulkActionBar'
 import { Dropdown } from '../../components/ui/Dropdown'
 import { DateRangePicker } from '../../components/ui/DateRangePicker'
-import { useTrackingPulse, type TrackingStatusChange } from '../../hooks/useTrackingPulse'
-import { TrackingToast, type TrackingToastMessage } from '../../components/ui/TrackingToast'
 import { resolveShipmentStatus } from '../../lib/shipmentStatus'
-import type { TrackingPulseUpdate } from '../../types/admin-api'
 import { MoreVertical, ChevronLeft, ChevronRight as ChevronRightIcon } from 'lucide-react'
 
 const DATE_FORMATTER = new Intl.DateTimeFormat('pl-PL', {
@@ -191,9 +188,6 @@ export const OrdersView = () => {
   const [shipmentOrder, setShipmentOrder] = useState<AdminOrder | null>(null)
   const [labelPickerOrder, setLabelPickerOrder] = useState<AdminOrder | null>(null)
 
-  const [toasts, setToasts] = useState<TrackingToastMessage[]>([])
-  const toastCounterRef = useRef(0)
-
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const fetchOrders = useCallback(async () => {
@@ -318,49 +312,6 @@ export const OrdersView = () => {
       await handleDownloadLabel(order)
     }
   }
-
-  const patchOrders = useCallback((updates: TrackingPulseUpdate[]) => {
-    setOrders((prev) =>
-      prev.map((order) => {
-        const update = updates.find((u) => u.id === order.id)
-        if (!update) return order
-        return {
-          ...order,
-          trackingStatus: update.trackingStatus,
-          trackingStatusCode: update.trackingStatusCode,
-          trackingStatusUpdatedAt: update.trackingStatusUpdatedAt,
-          trackingLastEventAt: update.trackingLastEventAt,
-          shipmentDisplayStatus: update.shipmentDisplayStatus,
-          shipmentFreshness: update.shipmentFreshness,
-        }
-      }),
-    )
-  }, [])
-
-  const handleTrackingChanged = useCallback((changes: TrackingStatusChange[]) => {
-    const codeToLabel = (code: string): string => {
-      if (/OUT_FOR_DELIVERY|COURIER/i.test(code)) return 'W doręczeniu'
-      if (/EXCEPTION|RETURN|FAILED/i.test(code)) return 'Problem z przesyłką'
-      if (/IN_TRANSIT|TRANSIT|SENT/i.test(code)) return 'W drodze'
-      if (/LABEL_CREATED|CREATED|REGISTERED/i.test(code)) return 'Etykieta'
-      if (/DELIVERED|PICKED_UP/i.test(code)) return 'Dostarczona'
-      return code
-    }
-
-    const message =
-      changes.length === 1
-        ? `Zamówienie ${changes[0].orderNumber} — ${codeToLabel(changes[0].prevCode)} → ${codeToLabel(changes[0].nextCode)}`
-        : `Zaktualizowano status ${changes.length} przesyłek`
-
-    const id = `toast-${++toastCounterRef.current}`
-    setToasts((prev) => [...prev.slice(-2), { id, message, type: 'info', duration: 4000 }])
-  }, [])
-
-  useTrackingPulse({
-    orders,
-    onOrdersUpdated: patchOrders,
-    onStatusChanged: handleTrackingChanged,
-  })
 
   const selectedOrders = orders.filter((order) => selectedIds.has(order.id))
   const totalPages = Math.ceil(total / LIMIT)
@@ -677,11 +628,6 @@ export const OrdersView = () => {
         onChangeStatus={handleBulkStatusChange}
         onDownloadLabels={handleBulkDownloadLabels}
         onClearSelection={() => setSelectedIds(new Set())}
-      />
-
-      <TrackingToast
-        messages={toasts}
-        onDismiss={(id) => setToasts((prev) => prev.filter((t) => t.id !== id))}
       />
     </div>
   )

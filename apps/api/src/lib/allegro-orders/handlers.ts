@@ -13,7 +13,6 @@ import {
 import { eq, and, or } from 'drizzle-orm'
 import type { AllegroCheckoutForm, AllegroOrderEvent } from './types'
 import { generateOrderNumber, buildShippingAddress, buildCustomerData, fetchCheckoutForm } from './helpers'
-import { TRACKING_ACTIVE_KV_KEY } from './tracking-refresh'
 import { recordStatusChange } from '../record-status-change'
 import { getRate, type ForeignCurrency } from '../nbp'
 
@@ -197,18 +196,6 @@ export async function handleReadyForProcessing(
     : null
 
   let orderId: number
-
-  // Trigger processing watchdog if order becomes processing
-  if (readyStatus === 'processing') {
-    await Promise.all([
-      kv.delete('orders:has_processing').catch(() => {}),
-      kv.delete('orders:processing:next_due_at').catch(() => {}),
-    ])
-  }
-
-  if (readyStatus === 'paid') {
-    await kv.delete('orders:paid_sweep:has_paid_orders').catch(() => {})
-  }
 
   if (!existing) {
     // Missed BOUGHT/FILLED_IN — create directly as paid
@@ -561,13 +548,6 @@ export async function reconcileOrder(
     if (newLocalStatus === 'shipped') {
       await db.update(orders).set({ shippedAt: new Date(), updatedAt: new Date() }).where(eq(orders.externalId, form.id))
     }
-  }
-
-  // Clear KV idle flag whenever the order has an active shipment (SENT/PICKED_UP),
-  // not only on first transition to shipped — handles orders already in shipped/processing
-  // state where the flag was set to '0' before the shipment was assigned.
-  if (isSent && kv) {
-    await kv.delete(TRACKING_ACTIVE_KV_KEY).catch(() => {})
   }
 
   // If newly cancelled AND was previously paid → restore stock

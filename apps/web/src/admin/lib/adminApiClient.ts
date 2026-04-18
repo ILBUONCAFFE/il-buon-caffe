@@ -9,8 +9,6 @@ import type {
   DeliveryServicesResponse,
   CreateShipmentPayload,
   ShipmentCreatedResponse,
-  OrderTrackingRefreshResponse,
-  TrackingPulseResponse,
   ActivityFeedResponse,
   NotificationsResponse,
   AllegroStatusResponse,
@@ -121,18 +119,8 @@ export const adminApi = {
       body: JSON.stringify({ status }),
     }),
 
-  refreshOrderTracking: (id: number) =>
-    request<OrderTrackingRefreshResponse>(`/api/admin/orders/${id}/tracking/refresh`, {
-      method: 'POST',
-    }),
-
   getOrderHistory: (id: number) =>
     request<{ data: OrderStatusHistoryEntry[] }>(`/api/admin/orders/${id}/history`),
-
-  getTrackingPulse: (since?: string) => {
-    const qs = since ? `?since=${encodeURIComponent(since)}` : ''
-    return request<TrackingPulseResponse>(`/api/admin/orders/tracking-pulse${qs}`)
-  },
 
   // ── Shipment management ────────────────────────────────────────────────
   getDeliveryServices: () =>
@@ -327,8 +315,6 @@ export type {
   DeliveryServiceInfo,
   CreateShipmentPayload,
   ShipmentCreatedResponse,
-  OrderTrackingSnapshot,
-  OrderTrackingRefreshResponse,
   AllegroSalesQualityResponse,
   AdminProduct,
   AdminProductImage,

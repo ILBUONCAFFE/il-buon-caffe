@@ -364,43 +364,6 @@ export interface ShipmentCreatedResponse {
   }
 }
 
-export interface OrderTrackingSnapshot {
-  id: number
-  status: OrderStatus
-  trackingNumber: string | null
-  trackingStatus: string | null
-  trackingStatusCode: string | null
-  trackingStatusUpdatedAt: string | null
-  trackingLastEventAt: string | null
-  shipmentDisplayStatus: ShipmentDisplayStatus
-  shipmentFreshness: ShipmentFreshness
-  allShipments?: AllegroShipmentEntry[] | null
-}
-
-export interface OrderTrackingRefreshResponse {
-  success: boolean
-  refreshed: boolean
-  reason: string
-  data: OrderTrackingSnapshot
-}
-
-export interface TrackingPulseUpdate {
-  id: number
-  trackingStatus: string | null
-  trackingStatusCode: string | null
-  trackingStatusUpdatedAt: string | null
-  trackingLastEventAt: string | null
-  shipmentDisplayStatus: ShipmentDisplayStatus
-  shipmentFreshness: ShipmentFreshness
-}
-
-export interface TrackingPulseResponse {
-  success: boolean
-  data: TrackingPulseUpdate[]
-  nextSince: string
-  hasMore: boolean
-}
-
 // ── Allegro OAuth ─────────────────────────────────────────────────────────────
 export type AllegroEnvironment = 'sandbox' | 'production'
 
