@@ -28,6 +28,30 @@ function formatDate(iso: string | null | undefined): string {
   }).format(new Date(iso))
 }
 
+function computeNextRefreshText(
+  trackingStatusCode: string | null | undefined,
+  trackingStatusUpdatedAt: string | null | undefined,
+): string | null {
+  if (!trackingStatusUpdatedAt) return null
+  const updated = new Date(trackingStatusUpdatedAt).getTime()
+  if (isNaN(updated)) return null
+  const code = (trackingStatusCode ?? '').toUpperCase()
+  if (code.includes('RETURN')) return null
+  let intervalMs: number
+  if (code.includes('OUT_FOR_DELIVERY') || code.includes('COURIER')) intervalMs = 5 * 60_000
+  else if (code.includes('EXCEPTION') || code.includes('FAILED')) intervalMs = 20 * 60_000
+  else if (code.includes('IN_TRANSIT') || code.includes('TRANSIT') || code.includes('SENT')) intervalMs = 30 * 60_000
+  else if (code.includes('PICKED_UP') || code.includes('DELIVERED')) intervalMs = 12 * 3_600_000
+  else if (code.includes('LABEL_CREATED') || code.includes('CREATED') || code.includes('REGISTERED')) intervalMs = 90 * 60_000
+  else intervalMs = 60 * 60_000
+  const diff = updated + intervalMs - Date.now()
+  if (diff <= 0) return 'za chwile'
+  const mins = Math.ceil(diff / 60_000)
+  if (mins < 60) return `za ~${mins} min`
+  const hours = Math.round(diff / 3_600_000)
+  return `za ~${hours} godz`
+}
+
 function formatAmount(value: number | undefined | null, currency = 'PLN'): string {
   if (value == null) return '-'
   const symbol: Record<string, string> = {
@@ -53,6 +77,7 @@ function ShipmentTimeline({
   isCancelled,
   trackingStatus,
   updatedAt,
+  nextRefreshText,
   loading,
 }: {
   activeStep: number
@@ -60,6 +85,7 @@ function ShipmentTimeline({
   isCancelled: boolean
   trackingStatus: string | null
   updatedAt: string | null
+  nextRefreshText: string | null
   loading: boolean
 }) {
   return (
@@ -119,6 +145,11 @@ function ShipmentTimeline({
         {updatedAt && (
           <p className="text-[11px] text-[#A3A3A3]">
             Zaktualizowano: {formatDate(updatedAt)}
+          </p>
+        )}
+        {nextRefreshText && !loading && (
+          <p className="text-[11px] text-[#A3A3A3]">
+            Nastepne odswiezenie: {nextRefreshText}
           </p>
         )}
         {loading && (
@@ -405,6 +436,14 @@ export function OrderDetailModal({
                   isCancelled={resolvedShipmentStatus.isCancelled}
                   trackingStatus={shipmentStatusText}
                   updatedAt={effectiveTrackingStatusUpdatedAt}
+                  nextRefreshText={
+                    canRefresh && !resolvedShipmentStatus.isCancelled
+                      ? computeNextRefreshText(
+                          tracking?.trackingStatusCode ?? order.trackingStatusCode,
+                          effectiveTrackingStatusUpdatedAt,
+                        )
+                      : null
+                  }
                   loading={trackingLoading}
                 />
 

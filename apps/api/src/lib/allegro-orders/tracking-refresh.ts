@@ -473,6 +473,54 @@ const CONCURRENCY = 2
 const HARD_CUTOFF_DAYS = 30
 const TRACKING_IDLE_TTL_SECONDS = 24 * 60 * 60
 
+/**
+ * When 0 candidates are found, query the soonest time any active order will become stale.
+ * Returns TTL in seconds: how long to suppress DB checks via the KV idle guard.
+ * Falls back to TRACKING_IDLE_TTL_SECONDS when no active tracked orders exist at all.
+ */
+async function querySoonestNextDueTtlSeconds(db: ReturnType<typeof createDb>): Promise<number> {
+  const cutoffDate = new Date(Date.now() - HARD_CUTOFF_DAYS * 24 * 60 * 60 * 1000)
+  const result = await db.execute(sql`
+    SELECT EXTRACT(EPOCH FROM (
+      MIN(CASE
+        WHEN ${orders.trackingStatusCode} ILIKE '%OUT_FOR_DELIVERY%'
+          OR ${orders.trackingStatusCode} ILIKE '%COURIER%'
+          THEN ${orders.trackingStatusUpdatedAt} + INTERVAL '5 minutes'
+        WHEN ${orders.trackingStatusCode} ILIKE '%EXCEPTION%'
+          OR ${orders.trackingStatusCode} ILIKE '%RETURN%'
+          OR ${orders.trackingStatusCode} ILIKE '%FAILED%'
+          THEN ${orders.trackingStatusUpdatedAt} + INTERVAL '20 minutes'
+        WHEN ${orders.trackingStatusCode} ILIKE '%IN_TRANSIT%'
+          OR ${orders.trackingStatusCode} ILIKE '%TRANSIT%'
+          OR ${orders.trackingStatusCode} ILIKE '%SENT%'
+          THEN ${orders.trackingStatusUpdatedAt} + INTERVAL '30 minutes'
+        WHEN ${orders.trackingStatusCode} ILIKE '%PICKED_UP%'
+          OR ${orders.trackingStatusCode} ILIKE '%DELIVERED%'
+          THEN ${orders.trackingStatusUpdatedAt} + INTERVAL '12 hours'
+        WHEN ${orders.trackingStatusCode} ILIKE '%LABEL_CREATED%'
+          OR ${orders.trackingStatusCode} ILIKE '%CREATED%'
+          OR ${orders.trackingStatusCode} ILIKE '%REGISTERED%'
+          THEN ${orders.trackingStatusUpdatedAt} + INTERVAL '90 minutes'
+        ELSE ${orders.trackingStatusUpdatedAt} + INTERVAL '60 minutes'
+      END) - NOW()
+    ))::int AS ttl_seconds
+    FROM ${orders}
+    WHERE ${orders.source} = 'allegro'
+      AND ${orders.externalId} IS NOT NULL
+      AND COALESCE(${orders.shippedAt}, ${orders.createdAt}) > ${cutoffDate}
+      AND NOT (
+        (${orders.status} = 'delivered'
+          AND (${orders.trackingStatusCode} ILIKE '%DELIVERED%' OR ${orders.trackingStatusCode} ILIKE '%PICKED_UP%'))
+        OR ${orders.trackingStatusCode} ILIKE '%RETURN%'
+      )
+      AND ${orders.trackingStatusUpdatedAt} IS NOT NULL
+  `)
+  const row = result.rows?.[0] as { ttl_seconds: number | null } | undefined
+  const ttl = row?.ttl_seconds
+  if (typeof ttl === 'number' && ttl > 0) return Math.min(ttl, TRACKING_IDLE_TTL_SECONDS)
+  return TRACKING_IDLE_TTL_SECONDS
+}
+
 // KV key: '0' = no active tracked orders (skip DB), absent/other = check DB.
 // Cleared by processEvent when an order becomes shipped so tracking kicks in immediately.
 export const TRACKING_ACTIVE_KV_KEY = 'allegro:tracking:has_active_orders'
@@ -615,9 +663,11 @@ export async function runTrackingStatusSync(env: Env): Promise<void> {
   }
 
   if (candidates.length === 0) {
-    // No active orders — set flag so next runs skip DB entirely
-    await env.ALLEGRO_KV.put(TRACKING_ACTIVE_KV_KEY, '0', { expirationTtl: TRACKING_IDLE_TTL_SECONDS }).catch(() => {})
-    console.log('[TrackingSync] Brak kandydatów — ustawiam active flag=0 i kończę run')
+    // No stale candidates right now — compute exactly when the soonest one will become stale
+    // and use that as TTL so we don't oversleep (old 24h TTL caused multi-hour gaps after refresh).
+    const idleTtl = await querySoonestNextDueTtlSeconds(db).catch(() => TRACKING_IDLE_TTL_SECONDS)
+    await env.ALLEGRO_KV.put(TRACKING_ACTIVE_KV_KEY, '0', { expirationTtl: Math.max(60, idleTtl) }).catch(() => {})
+    console.log(`[TrackingSync] Brak kandydatów — active flag=0, następny run za ${Math.round(idleTtl / 60)} min`)
     return
   }
 
