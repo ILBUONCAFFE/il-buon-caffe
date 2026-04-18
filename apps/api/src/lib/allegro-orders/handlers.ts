@@ -15,6 +15,7 @@ import type { AllegroCheckoutForm, AllegroOrderEvent } from './types'
 import { generateOrderNumber, buildShippingAddress, buildCustomerData, fetchCheckoutForm } from './helpers'
 import { recordStatusChange } from '../record-status-change'
 import { getRate, type ForeignCurrency } from '../nbp'
+import { enrollShipment } from '../shipments'
 
 // ── Extract real purchase date from Allegro checkout form ─────────────────
 
@@ -341,6 +342,13 @@ export async function handleReadyForProcessing(
     })
   }
 
+  // Enrol into shipment refresh queue (idempotent — only runs if not already enrolled)
+  if (orderId) {
+    await enrollShipment(db, orderId, kv).catch((err) => {
+      console.warn('[AllegroOrders] enrollShipment failed for order', orderId, err)
+    })
+  }
+
   await db.insert(allegroSyncLog).values({
     action:  'order_sync',
     status:  'success',
@@ -547,6 +555,12 @@ export async function reconcileOrder(
     })
     if (newLocalStatus === 'shipped') {
       await db.update(orders).set({ shippedAt: new Date(), updatedAt: new Date() }).where(eq(orders.externalId, form.id))
+      // Enrol into shipment refresh queue (idempotent — only runs if not already enrolled)
+      if (kv) {
+        await enrollShipment(db, existing.id, kv).catch((err) => {
+          console.warn('[AllegroOrders] enrollShipment failed for order', existing.id, err)
+        })
+      }
     }
   }
 
