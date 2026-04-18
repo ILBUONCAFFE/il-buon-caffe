@@ -1,12 +1,85 @@
 'use client'
 
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useState, useCallback, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 import { resolveShipmentStatus } from '../lib/shipmentStatus'
 import { OrderStatusBadge } from './OrderStatusBadge'
 import { ShipmentLabelPickerModal } from './ShipmentLabelPickerModal'
 import { OrderTimeline } from './OrderTimeline'
+import { adminApiClient } from '../lib/adminApiClient'
 import type { AdminOrder, AllegroShipmentEntry } from '../types/admin-api'
+
+const SHIPMENT_STATE_LABELS: Record<string, { label: string; tone: string }> = {
+  awaiting_handover: { label: 'Oczekuje na nadanie',  tone: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' },
+  label_created:     { label: 'Etykieta utworzona',   tone: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' },
+  in_transit:        { label: 'W drodze',             tone: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300' },
+  out_for_delivery:  { label: 'W dor\u0119czeniu',   tone: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' },
+  delivered:         { label: 'Dostarczone',          tone: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300' },
+  exception:         { label: 'Problem',              tone: 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300' },
+  stale:             { label: 'Brak aktualizacji',    tone: 'bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-400' },
+}
+
+function formatRelative(dateStr: string | null | undefined): string {
+  if (!dateStr) return '\u2014'
+  const diff = new Date(dateStr).getTime() - Date.now()
+  const abs  = Math.abs(diff)
+  const mins = Math.round(abs / 60_000)
+  if (mins < 60) return diff < 0 ? `${mins} min temu` : `za ${mins} min`
+  const hrs = Math.round(mins / 60)
+  return diff < 0 ? `${hrs}h temu` : `za ${hrs}h`
+}
+
+function ShipmentPanel({
+  order,
+  onRefresh,
+  refreshing,
+}: {
+  order: AdminOrder
+  onRefresh: () => void
+  refreshing?: boolean
+}) {
+  const state = order.shipmentState as string
+  const meta  = SHIPMENT_STATE_LABELS[state] ?? { label: state, tone: 'bg-stone-100 text-stone-700' }
+
+  return (
+    <div className="rounded-lg border border-[#E5E4E1] p-4 space-y-2 mt-3">
+      <h3 className="text-xs font-semibold text-[#A3A3A3] uppercase tracking-wider">
+        Status przesy\u0142ki (scheduler)
+      </h3>
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${meta.tone}`}>
+          {meta.label}
+        </span>
+        {order.shipmentCarrier && (
+          <span className="text-xs text-[#666]">{order.shipmentCarrier}</span>
+        )}
+      </div>
+      {order.trackingNumber && (
+        <p className="text-xs text-[#666]">
+          Numer \u015bledzenia: <code className="font-mono">{order.trackingNumber}</code>
+        </p>
+      )}
+      <p className="text-xs text-[#A3A3A3]">
+        Ostatnie sprawdzenie: {formatRelative(order.shipmentLastCheckedAt)}
+      </p>
+      <p className="text-xs text-[#A3A3A3]">
+        Kolejne sprawdzenie: {formatRelative(order.shipmentNextCheckAt)}
+      </p>
+      {(order.shipmentCheckAttempts ?? 0) > 0 && (
+        <p className="text-xs text-red-600">
+          Nieudane pr\u00f3by: {order.shipmentCheckAttempts}
+        </p>
+      )}
+      <button
+        onClick={onRefresh}
+        disabled={refreshing}
+        className="mt-1 px-3 py-1.5 text-xs rounded bg-[#1A1A1A] text-white hover:bg-[#333] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+      >
+        {refreshing ? 'Odświeżanie…' : 'Odśwież teraz'}
+      </button>
+    </div>
+  )
+}
 
 interface OrderDetailModalProps {
   order: AdminOrder | null
@@ -148,6 +221,19 @@ export function OrderDetailModal({
   onDownloadLabel,
 }: OrderDetailModalProps) {
   const [labelPickerOpen, setLabelPickerOpen] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
+
+  const handleRefreshShipment = useCallback(async () => {
+    if (!order || refreshing) return
+    setRefreshing(true)
+    try {
+      await adminApiClient.refreshShipment(order.id)
+    } catch (err) {
+      console.error('refresh-shipment failed', err)
+    } finally {
+      setRefreshing(false)
+    }
+  }, [order, refreshing])
 
   useEffect(() => {
     if (!isOpen) setLabelPickerOpen(false)
@@ -358,6 +444,11 @@ export function OrderDetailModal({
                     </div>
                   )
                 })()}
+
+                {/* Shipment scheduler panel — shown when state-machine tracking is active */}
+                {order.shipmentState && (
+                  <ShipmentPanel order={order} onRefresh={handleRefreshShipment} refreshing={refreshing} />
+                )}
               </>
             </div>
           </div>

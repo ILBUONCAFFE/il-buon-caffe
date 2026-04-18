@@ -460,6 +460,15 @@ export const orders = pgTable('orders', {
     occurredAt: string | null
     isSelected: boolean
   }[]>(),
+
+  // ── Intelligent shipment tracking layer ────────────────────────────────
+  shipmentState:          varchar('shipment_state', { length: 32 }),
+  shipmentCarrier:        varchar('shipment_carrier', { length: 32 }),
+  shipmentLastCheckedAt:  timestamp('shipment_last_checked_at', { withTimezone: true }),
+  shipmentNextCheckAt:    timestamp('shipment_next_check_at', { withTimezone: true }),
+  shipmentCheckAttempts:  integer('shipment_check_attempts').notNull().default(0),
+  shipmentStateChangedAt: timestamp('shipment_state_changed_at', { withTimezone: true }),
+
   shippedAt: timestamp('shipped_at', { withTimezone: true }),
   deliveredAt: timestamp('delivered_at', { withTimezone: true }),
 
@@ -489,9 +498,11 @@ export const orders = pgTable('orders', {
   reservationIdx: index('orders_reservation_idx').on(table.reservationExpiresAt),
   retentionIdx: index('orders_retention_idx').on(table.retentionStatus, table.createdAt),
   invoiceIdx: index('orders_invoice_idx').on(table.invoiceRequired).where(sql`${table.invoiceRequired} = true`),
-  trackingQueueIdx: index('orders_tracking_queue_idx')
-    .on(table.trackingStatusUpdatedAt, table.updatedAt)
-    .where(sql`${table.source} = 'allegro' AND ${table.allegroShipmentId} IS NOT NULL AND ${table.status} IN ('shipped', 'delivered')`),
+  shipmentQueueIdx: index('orders_shipment_queue_idx')
+    .on(table.shipmentNextCheckAt)
+    .where(sql`${table.source} = 'allegro'
+             AND ${table.shipmentState} IS NOT NULL
+             AND ${table.shipmentState} NOT IN ('delivered', 'stale')`),
 }));
 
 // ============================================
