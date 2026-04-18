@@ -556,22 +556,9 @@ export async function selectTrackingRefreshCandidates(
     .where(
       and(
         eq(orders.source, 'allegro'),
-        or(
-          inArray(orders.status, ['shipped', 'in_transit', 'out_for_delivery', 'delivered']),
-          and(
-            inArray(orders.status, ['processing', 'paid', 'pending']),
-            or(
-              // Standard flow: Allegro confirmed shipment
-              inArray(orders.allegroFulfillmentStatus, ['SENT', 'PICKED_UP']),
-              // Non-standard flow: merchant added tracking number directly (without updating Allegro
-              // fulfillmentStatus). Poll the carrier API so we can detect delivery and auto-close.
-              and(
-                isNotNull(orders.trackingNumber),
-                sql`${orders.allegroFulfillmentStatus} IN ('NEW', 'PROCESSING') OR ${orders.allegroFulfillmentStatus} IS NULL`,
-              ),
-            ),
-          ),
-        ),
+        // Poll shipments for any active Allegro order regardless of allegroFulfillmentStatus —
+        // merchant may add a waybill in Allegro without transitioning fulfillment to SENT.
+        inArray(orders.status, ['shipped', 'in_transit', 'out_for_delivery', 'delivered', 'processing', 'paid', 'pending']),
         isNotNull(orders.externalId),
         // Only shippedAt/createdAt — never updatedAt (reconcile/admin bumps updatedAt on old
         // orders, causing stale November orders to appear eligible forever).
