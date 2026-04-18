@@ -122,6 +122,11 @@ export const adminApi = {
   getOrderHistory: (id: number) =>
     request<{ data: OrderStatusHistoryEntry[] }>(`/api/admin/orders/${id}/history`),
 
+  refreshShipment: (id: number) =>
+    request<{ data: { id: number; queuedAt: string } }>(`/api/admin/orders/${id}/refresh-shipment`, {
+      method: 'POST',
+    }),
+
   // ── Shipment management ────────────────────────────────────────────────
   getDeliveryServices: () =>
     request<DeliveryServicesResponse>('/api/admin/shipment/delivery-services'),

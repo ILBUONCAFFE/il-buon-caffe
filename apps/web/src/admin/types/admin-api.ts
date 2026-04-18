@@ -149,6 +149,13 @@ export interface AdminOrder {
   invoiceRequired?: boolean
   createdAt: string
   updatedAt?: string
+  // Shipment state-machine fields (from scheduler)
+  shipmentState?: string | null
+  shipmentCarrier?: string | null
+  shipmentLastCheckedAt?: string | null
+  shipmentNextCheckAt?: string | null
+  shipmentCheckAttempts?: number
+  shipmentStateChangedAt?: string | null
 }
 
 export interface OrdersQueryParams {
