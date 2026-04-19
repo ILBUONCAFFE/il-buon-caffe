@@ -7,6 +7,7 @@ import { productsRouter } from './routes/products'
 import { categoriesRouter } from './routes/categories'
 import { ordersRouter } from './routes/orders'
 import { userRouter } from './routes/user'
+import { returnsRouter } from './routes/returns'
 import { legalRouter } from './routes/legal'
 import { paymentsRouter } from './routes/payments'
 import { webhooksRouter } from './routes/webhooks'
@@ -119,6 +120,8 @@ app.route('/api/legal',      legalRouter)
 
 // ── Authenticated customer API ────────────────────────────────────────────
 app.route('/api/orders',   ordersRouter)
+app.route('/api/returns',  returnsRouter)   // GET /api/returns  (buyer list)
+app.route('/api/orders',   returnsRouter)   // POST /api/orders/:orderId/return-request
 app.route('/api/user',     userRouter)
 app.route('/api/payments', paymentsRouter)
 
