@@ -11,6 +11,15 @@ import { auditLogMiddleware } from '../../middleware/auditLog'
 import { recordStatusChange } from '../../lib/record-status-change'
 import { parsePagination, serverError } from '../../lib/request'
 import type { Env } from '../../index'
+import {
+  acceptShopReturn,
+  acceptAllegroReturnRefund,
+  rejectReturn,
+  issueManualRefund,
+  reopenReturn,
+  CommandError,
+  type CommandEnv,
+} from '../../lib/allegro-returns/commands'
 
 export const adminReturnsRouter = new Hono<{ Bindings: Env }>()
 
@@ -332,7 +341,7 @@ adminReturnsRouter.post('/', async (c) => {
 
 // ============================================
 // POST /admin/returns/:id/approve
-// Zatwierdzenie zwrotu (Phase 1 — bez wywołań P24/Allegro)
+// Zatwierdzenie zwrotu — shop lub Allegro (z P24/Allegro API)
 // ============================================
 adminReturnsRouter.post('/:id/approve', async (c) => {
   try {
@@ -344,8 +353,9 @@ adminReturnsRouter.post('/:id/approve', async (c) => {
       return c.json({ error: { code: 'INVALID_ID', message: 'Nieprawidłowe ID zwrotu' } }, 400)
     }
 
+    // Determine source to route to correct command
     const returnRow = await db
-      .select({ id: returns.id, status: returns.status, orderId: returns.orderId })
+      .select({ id: returns.id, source: returns.source, status: returns.status })
       .from(returns)
       .where(eq(returns.id, returnId))
       .limit(1)
@@ -354,39 +364,32 @@ adminReturnsRouter.post('/:id/approve', async (c) => {
       return c.json({ error: { code: 'NOT_FOUND', message: 'Zwrot nie istnieje' } }, 404)
     }
 
+    // Idempotency: already approved
     if (returnRow[0].status === 'approved') {
       return c.json({ data: { id: returnId, status: 'approved' } })
     }
 
-    await db
-      .update(returns)
-      .set({ status: 'approved', updatedAt: new Date() })
-      .where(eq(returns.id, returnId))
+    const adminId = parseInt(adminUser?.sub ?? '0')
+    const env = c.env as unknown as CommandEnv
 
-    // Record order status change
-    await recordStatusChange(db, {
-      orderId: returnRow[0].orderId,
-      category: 'status',
-      newValue: 'return_received',
-      source: 'admin',
-    })
-
-    await logAdminAction(db, {
-      adminSub: adminUser?.sub ?? '0',
-      action: 'approve_return' as any,
-      targetOrderId: returnRow[0].orderId,
-      details: { returnId },
-    })
+    if (returnRow[0].source === 'allegro') {
+      await acceptAllegroReturnRefund(db, returnId, adminId, env, c.executionCtx.waitUntil.bind(c.executionCtx))
+    } else {
+      await acceptShopReturn(db, returnId, adminId, env)
+    }
 
     return c.json({ data: { id: returnId, status: 'approved' } })
   } catch (err) {
+    if (err instanceof CommandError) {
+      return c.json({ error: { code: err.code, message: err.message } }, err.httpStatus as 400 | 404 | 422 | 503)
+    }
     return serverError(c, 'POST /admin/returns/:id/approve', err)
   }
 })
 
 // ============================================
 // POST /admin/returns/:id/reject
-// Odrzucenie zwrotu
+// Odrzucenie zwrotu (shop lub Allegro)
 // ============================================
 adminReturnsRouter.post('/:id/reject', async (c) => {
   try {
@@ -405,32 +408,77 @@ adminReturnsRouter.post('/:id/reject', async (c) => {
 
     const { code, reason } = body as { code: string; reason?: string }
 
-    const returnRow = await db
-      .select({ id: returns.id, status: returns.status, orderId: returns.orderId })
-      .from(returns)
-      .where(eq(returns.id, returnId))
-      .limit(1)
+    const adminId = parseInt(adminUser?.sub ?? '0')
+    const env = c.env as unknown as CommandEnv
 
-    if (!returnRow[0]) {
-      return c.json({ error: { code: 'NOT_FOUND', message: 'Zwrot nie istnieje' } }, 404)
-    }
-
-    const now = new Date()
-    await db
-      .update(returns)
-      .set({ status: 'rejected', closedAt: now, updatedAt: now })
-      .where(eq(returns.id, returnId))
-
-    await logAdminAction(db, {
-      adminSub: adminUser?.sub ?? '0',
-      action: 'reject_return' as any,
-      targetOrderId: returnRow[0].orderId,
-      details: { returnId, code, reason },
-    })
+    await rejectReturn(db, returnId, adminId, { code, reason }, env)
 
     return c.json({ data: { id: returnId, status: 'rejected' } })
   } catch (err) {
+    if (err instanceof CommandError) {
+      return c.json({ error: { code: err.code, message: err.message } }, err.httpStatus as 400 | 404 | 422 | 503)
+    }
     return serverError(c, 'POST /admin/returns/:id/reject', err)
+  }
+})
+
+// ============================================
+// POST /admin/returns/:id/refund
+// Ręczny zwrot pieniędzy (przelew bankowy)
+// ============================================
+adminReturnsRouter.post('/:id/refund', async (c) => {
+  try {
+    const db        = createDb(c.env.DATABASE_URL)
+    const adminUser = c.get('user')
+    const returnId  = parseInt(c.req.param('id') ?? '', 10)
+
+    if (isNaN(returnId)) {
+      return c.json({ error: { code: 'INVALID_ID', message: 'Nieprawidłowe ID zwrotu' } }, 400)
+    }
+
+    const body = await c.req.json().catch(() => null)
+    if (!body || typeof body.amount !== 'number' || body.amount <= 0) {
+      return c.json({ error: { code: 'VALIDATION_ERROR', message: 'Wymagane: amount (liczba > 0)' } }, 400)
+    }
+
+    const adminId = parseInt(adminUser?.sub ?? '0')
+    const env = c.env as unknown as CommandEnv
+
+    await issueManualRefund(db, returnId, adminId, body.amount as number, env)
+
+    return c.json({ data: { id: returnId, status: 'refunded' } })
+  } catch (err) {
+    if (err instanceof CommandError) {
+      return c.json({ error: { code: err.code, message: err.message } }, err.httpStatus as 400 | 404 | 422 | 503)
+    }
+    return serverError(c, 'POST /admin/returns/:id/refund', err)
+  }
+})
+
+// ============================================
+// POST /admin/returns/:id/reopen
+// Ponowne otwarcie zamkniętego zwrotu
+// ============================================
+adminReturnsRouter.post('/:id/reopen', async (c) => {
+  try {
+    const db        = createDb(c.env.DATABASE_URL)
+    const adminUser = c.get('user')
+    const returnId  = parseInt(c.req.param('id') ?? '', 10)
+
+    if (isNaN(returnId)) {
+      return c.json({ error: { code: 'INVALID_ID', message: 'Nieprawidłowe ID zwrotu' } }, 400)
+    }
+
+    const adminId = parseInt(adminUser?.sub ?? '0')
+
+    await reopenReturn(db, returnId, adminId)
+
+    return c.json({ data: { id: returnId, status: 'in_review' } })
+  } catch (err) {
+    if (err instanceof CommandError) {
+      return c.json({ error: { code: err.code, message: err.message } }, err.httpStatus as 400 | 404 | 422 | 503)
+    }
+    return serverError(c, 'POST /admin/returns/:id/reopen', err)
   }
 })
 
