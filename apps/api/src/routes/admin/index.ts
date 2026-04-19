@@ -10,6 +10,7 @@ import { adminCustomersRouter } from './customers'
 import { adminAuditRouter } from './audit'
 import { adminCategoriesRouter } from './categories'
 import { adminShipmentsRouter } from './shipments'
+import { adminReturnsRouter } from './returns'
 import type { Env } from '../../index'
 
 // ── Polish timezone helpers ───────────────────────────────────────────────────
@@ -70,6 +71,7 @@ adminRouter.route('/products',   adminProductsRouter)
 adminRouter.route('/customers',  adminCustomersRouter)
 adminRouter.route('/audit',      adminAuditRouter)
 adminRouter.route('/categories', adminCategoriesRouter)
+adminRouter.route('/returns',    adminReturnsRouter)
 
 // ============================================
 // GET /admin/dashboard  🛡️
