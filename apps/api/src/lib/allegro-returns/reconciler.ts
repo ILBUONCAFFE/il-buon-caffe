@@ -8,7 +8,7 @@
  * DB errors bubble up to the caller. Fire-and-forget logs use console.log.
  */
 
-import { sql } from 'drizzle-orm'
+import { sql, eq } from 'drizzle-orm'
 import { returns, returnItems } from '@repo/db/schema'
 import type { Database } from '@repo/db/client'
 import type { AllegroCustomerReturn } from './client'
@@ -49,9 +49,7 @@ export async function upsertAllegroReturn(
   const reason = mapAllegroReasonToInternal(firstItem?.reason?.type ?? 'MISTAKE')
   const reasonNote = firstItem?.reason?.userComment ?? null
 
-  const totalRefundAmount = allegroReturn.refund?.value?.amount
-    ? parseFloat(allegroReturn.refund.value.amount)
-    : null
+  const totalRefundAmount = allegroReturn.refund?.value?.amount ?? null
   const currency = allegroReturn.refund?.value?.currency ?? 'PLN'
 
   const buyer = allegroReturn.buyer
@@ -116,7 +114,7 @@ export async function upsertAllegroReturn(
         status: newStatus,
         reason,
         reasonNote,
-        totalRefundAmount: totalRefundAmount !== null ? String(totalRefundAmount) : null,
+        totalRefundAmount: totalRefundAmount,
         currency,
         customerData,
         allegro: allegroJsonb,
@@ -130,16 +128,19 @@ export async function upsertAllegroReturn(
     // Insert return items
     if (allegroReturn.items && allegroReturn.items.length > 0) {
       const itemRows = allegroReturn.items.map((item) => {
-        const unitPrice = parseFloat(item.price?.amount ?? '0')
+        const priceStr = item.price?.amount ?? '0'
         const quantity = item.quantity ?? 1
+        const unitCents = Math.round(parseFloat(priceStr) * 100)
+        const totalCents = unitCents * quantity
+        const totalStr = (totalCents / 100).toFixed(2)
         return {
           returnId,
           orderItemId: null,
           productSku: item.offerId ?? 'UNKNOWN',
           productName: item.offerTitle ?? 'Produkt Allegro',
           quantity,
-          unitPrice: String(unitPrice),
-          totalPrice: String(quantity * unitPrice),
+          unitPrice: priceStr,
+          totalPrice: totalStr,
           condition: null,
         }
       })
@@ -161,10 +162,10 @@ export async function upsertAllegroReturn(
     .set({
       status: newStatus,
       allegro: allegroJsonb,
-      totalRefundAmount: totalRefundAmount !== null ? String(totalRefundAmount) : null,
+      totalRefundAmount: totalRefundAmount,
       updatedAt: new Date(),
     })
-    .where(sql`${returns.id} = ${existingRecord.id}`)
+    .where(eq(returns.id, existingRecord.id))
 
   console.log(
     `[Returns] Updated return id=${existingRecord.id} allegroId=${allegroReturn.id} statusChanged=${statusChanged}`,
