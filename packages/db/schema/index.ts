@@ -117,11 +117,11 @@ export const returnStatusEnum = pgEnum('return_status', [
 ]);
 
 export const returnReasonEnum = pgEnum('return_reason', [
-  'damaged',          // Uszkodzony produkt (shop + Allegro DEFECT)
+  'damaged',          // Uszkodzenie transportowe — produkt był sprawny przy wysyłce, uszkodzony w transporcie (shipping damage)
   'wrong_item',       // Błędny produkt
   'not_as_described', // Niezgodny z opisem (Allegro NOT_AS_DESCRIBED, WRONG_DESCRIPTION, INCOMPLETE)
   'change_of_mind',   // Zmiana decyzji (Allegro MISTAKE)
-  'defect',           // Wada fabryczna (Allegro DEFECT)
+  'defect',           // Wada fabryczna — produkt był wadliwy z fabryki (manufacturing defect; distinct from 'damaged')
   'mistake',          // Zamówienie z pomyłki (Allegro MISTAKE)
   'other'             // Inne
 ]);
@@ -706,6 +706,7 @@ export const returns = pgTable('returns', {
   totalRefundAmount: decimal('total_refund_amount', { precision: 10, scale: 2 }),
   currency: varchar('currency', { length: 3 }).notNull().default('PLN'),
   // Snapshot danych kupującego (name, email, phone, bankAccount)
+  // Nullable: populated immediately for shop returns; may be set after sync for Allegro returns
   customerData: jsonb('customer_data').$type<{
     name: string
     email: string
@@ -728,8 +729,8 @@ export const returns = pgTable('returns', {
   orderIdx: index('returns_order_idx').on(table.orderId),
   statusIdx: index('returns_status_idx').on(table.status),
   sourceStatusIdx: index('returns_source_status_idx').on(table.source, table.status),
-  // Functional index on JSONB — uniqueness enforced at application level in reconciler
-  allegroReturnIdIdx: index('returns_allegro_return_id_idx').on(table.source),
+  // Note: uniqueness of allegro->>'customerReturnId' enforced at application level (reconciler)
+  // A functional JSONB index must be added via raw SQL in migration if needed.
 }));
 
 // ============================================
@@ -748,6 +749,7 @@ export const returnItems = pgTable('return_items', {
   // Opcjonalny stan zwracanego towaru
   condition: varchar('condition', { length: 20 }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({
   returnIdx: index('return_items_return_idx').on(table.returnId),
   orderItemIdx: index('return_items_order_item_idx').on(table.orderItemId),
@@ -787,7 +789,7 @@ export const allegroRefundClaims = pgTable('allegro_refund_claims', {
   id: serial('id').primaryKey(),
   returnId: integer('return_id').references(() => returns.id, { onDelete: 'cascade' }).notNull(),
   allegroClaimId: varchar('allegro_claim_id', { length: 100 }).notNull().unique(),
-  status: varchar('status', { length: 50 }).notNull(),
+  status: varchar('status', { length: 50 }).notNull(), // Allegro status: open-ended (CREATED, IN_CONSIDERATION, ACCEPTED, REJECTED...)
   amount: decimal('amount', { precision: 10, scale: 2 }),
   payload: jsonb('payload').$type<Record<string, unknown>>(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
@@ -806,8 +808,7 @@ export const allegroIssues = pgTable('allegro_issues', {
   allegroIssueId: varchar('allegro_issue_id', { length: 100 }).notNull().unique(),
   orderId: integer('order_id').references(() => orders.id),
   returnId: integer('return_id').references(() => returns.id),
-  // Allegro status: DISPUTE_ONGOING | DISPUTE_CLOSED | DISPUTE_UNRESOLVED | CLAIM_SUBMITTED | CLAIM_ACCEPTED | CLAIM_REJECTED
-  status: varchar('status', { length: 50 }).notNull(),
+  status: varchar('status', { length: 50 }).notNull(), // Allegro status: DISPUTE_ONGOING | DISPUTE_CLOSED | DISPUTE_UNRESOLVED | CLAIM_SUBMITTED | CLAIM_ACCEPTED | CLAIM_REJECTED
   subject: varchar('subject', { length: 500 }),
   lastMessageAt: timestamp('last_message_at', { withTimezone: true }),
   payload: jsonb('payload').$type<Record<string, unknown>>(),
@@ -830,7 +831,7 @@ export const allegroIssueMessages = pgTable('allegro_issue_messages', {
   authorRole: varchar('author_role', { length: 20 }).notNull(),
   text: text('text'),
   attachments: jsonb('attachments').$type<Array<{ id: string; url?: string; name?: string }>>(),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({
   issueIdx: index('allegro_issue_messages_issue_idx').on(table.issueId, table.createdAt),
 }));
@@ -931,7 +932,7 @@ export const orderStatusHistoryRelations = relations(orderStatusHistory, ({ one 
   }),
 }));
 
-export const orderItemsRelations = relations(orderItems, ({ one }) => ({
+export const orderItemsRelations = relations(orderItems, ({ one, many }) => ({
   order: one(orders, {
     fields: [orderItems.orderId],
     references: [orders.id],
@@ -940,6 +941,7 @@ export const orderItemsRelations = relations(orderItems, ({ one }) => ({
     fields: [orderItems.productSku],
     references: [products.sku],
   }),
+  returnItems: many(returnItems),
 }));
 
 export const stockChangesRelations = relations(stockChanges, ({ one }) => ({
