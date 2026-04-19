@@ -287,12 +287,67 @@ export const adminApi = {
     ),
 
   // ── Returns ──────────────────────────────────────────────────────────────────
-  // TODO: wire up to GET /api/admin/returns when the API endpoint exists
-  getReturns: (_params?: ReturnsQueryParams): Promise<ReturnsResponse> =>
-    Promise.resolve({ data: [], meta: { total: 0, page: 1, limit: 50, totalPages: 0 } }),
+  getReturns: (params?: ReturnsQueryParams): Promise<ReturnsResponse> => {
+    const qs = new URLSearchParams()
+    if (params?.page)   qs.set('page',   String(params.page))
+    if (params?.limit)  qs.set('limit',  String(params.limit))
+    if (params?.status) qs.set('status', params.status)
+    if (params?.search) qs.set('search', params.search)
+    if (params?.from)   qs.set('from',   params.from)
+    if (params?.to)     qs.set('to',     params.to)
+    return request<ReturnsResponse>(`/api/admin/returns?${qs}`)
+  },
 
-  updateReturnStatus: (_id: number, _status: string): Promise<void> =>
-    Promise.resolve(),
+  updateReturnStatus: (id: number, status: string) =>
+    request<{ success: boolean }>(`/api/admin/returns/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    }),
+
+  getReturnDetail: (id: number) =>
+    request<{ data: AdminReturn }>(`/api/admin/returns/${id}`),
+
+  approveReturn: (id: number, body?: { refundMethod?: string }) =>
+    request<{ success: boolean }>(`/api/admin/returns/${id}/approve`, {
+      method: 'POST',
+      body: JSON.stringify(body ?? {}),
+    }),
+
+  rejectReturn: (id: number, body: { code: string; reason?: string }) =>
+    request<{ success: boolean }>(`/api/admin/returns/${id}/reject`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  refundReturn: (id: number, body: { amount: number }) =>
+    request<{ success: boolean }>(`/api/admin/returns/${id}/refund`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  reopenReturn: (id: number) =>
+    request<{ success: boolean }>(`/api/admin/returns/${id}/reopen`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }),
+
+  restockReturn: (id: number) =>
+    request<{ success: boolean }>(`/api/admin/returns/${id}/restock`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }),
+
+  refreshReturn: (id: number) =>
+    request<{ success: boolean }>(`/api/admin/returns/${id}/refresh`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }),
+
+  postReturnMessage: (id: number, body: { text: string }) =>
+    request<{ success: boolean }>(`/api/admin/returns/${id}/messages`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
 }
 
 // ── Re-export types so components can import from one place ──────────────────

@@ -62,6 +62,12 @@ export const ReturnsView = () => {
   const [selectedIds, setSelectedIds]     = useState<Set<number>>(new Set())
   const [contextMenu, setContextMenu]     = useState<{ ret: AdminReturn; x: number; y: number } | null>(null)
   const [detailReturn, setDetailReturn]   = useState<AdminReturn | null>(null)
+  const [feedback, setFeedback]           = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+
+  const showFeedback = (type: 'success' | 'error', message: string) => {
+    setFeedback({ type, message })
+    setTimeout(() => setFeedback(null), 5000)
+  }
 
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -107,8 +113,70 @@ export const ReturnsView = () => {
     try {
       await adminApi.updateReturnStatus(ret.id, status)
       await fetchReturns()
+      showFeedback('success', 'Status zwrotu zaktualizowany')
     } catch {
-      // silent — toast/notification can be added in next iteration
+      showFeedback('error', 'Błąd aktualizacji statusu zwrotu')
+    }
+  }
+
+  const handleApprove = async (ret: AdminReturn) => {
+    try {
+      await adminApi.approveReturn(ret.id)
+      await fetchReturns()
+      showFeedback('success', 'Zwrot zatwierdzony')
+    } catch {
+      showFeedback('error', 'Błąd zatwierdzenia zwrotu')
+    }
+  }
+
+  const handleReject = async (ret: AdminReturn) => {
+    const reason = window.prompt('Powód odrzucenia (opcjonalnie):') ?? undefined
+    try {
+      await adminApi.rejectReturn(ret.id, { code: 'REFUND_REJECTED', reason: reason || undefined })
+      await fetchReturns()
+      showFeedback('success', 'Zwrot odrzucony')
+    } catch {
+      showFeedback('error', 'Błąd odrzucenia zwrotu')
+    }
+  }
+
+  const handleRefund = async (ret: AdminReturn) => {
+    try {
+      await adminApi.refundReturn(ret.id, { amount: ret.totalRefundAmount ?? 0 })
+      await fetchReturns()
+      showFeedback('success', 'Zwrot pieniędzy potwierdzony')
+    } catch {
+      showFeedback('error', 'Błąd potwierdzenia zwrotu pieniędzy')
+    }
+  }
+
+  const handleReopen = async (ret: AdminReturn) => {
+    try {
+      await adminApi.reopenReturn(ret.id)
+      await fetchReturns()
+      showFeedback('success', 'Zwrot ponownie otwarty')
+    } catch {
+      showFeedback('error', 'Błąd ponownego otwarcia zwrotu')
+    }
+  }
+
+  const handleRestock = async (ret: AdminReturn) => {
+    try {
+      await adminApi.restockReturn(ret.id)
+      await fetchReturns()
+      showFeedback('success', 'Produkt przywrócony na stan')
+    } catch {
+      showFeedback('error', 'Błąd przywracania produktu na stan')
+    }
+  }
+
+  const handleRefreshReturn = async (ret: AdminReturn) => {
+    try {
+      await adminApi.refreshReturn(ret.id)
+      await fetchReturns()
+      showFeedback('success', 'Zwrot odświeżony')
+    } catch {
+      showFeedback('error', 'Błąd odświeżania zwrotu')
     }
   }
 
@@ -345,6 +413,12 @@ export const ReturnsView = () => {
           onClose={() => setContextMenu(null)}
           onOpenDetails={(ret) => setDetailReturn(ret)}
           onChangeStatus={handleChangeStatus}
+          onApprove={(ret) => { handleApprove(ret); setContextMenu(null) }}
+          onReject={(ret) => { handleReject(ret); setContextMenu(null) }}
+          onRefund={(ret) => { handleRefund(ret); setContextMenu(null) }}
+          onReopen={(ret) => { handleReopen(ret); setContextMenu(null) }}
+          onRestock={(ret) => { handleRestock(ret); setContextMenu(null) }}
+          onRefreshReturn={(ret) => { handleRefreshReturn(ret); setContextMenu(null) }}
         />
       )}
 
@@ -353,7 +427,20 @@ export const ReturnsView = () => {
         isOpen={!!detailReturn}
         onClose={() => setDetailReturn(null)}
         onChangeStatus={handleChangeStatus}
+        onApprove={handleApprove}
+        onReject={handleReject}
+        onRefund={handleRefund}
       />
+
+      {feedback && (
+        <div className={`fixed bottom-6 right-6 z-[9999] flex items-center gap-3 px-4 py-3 rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.15)] text-sm font-medium animate-in slide-in-from-bottom-3 fade-in duration-200 ${
+          feedback.type === 'success'
+            ? 'bg-[#1A1A1A] text-white'
+            : 'bg-red-600 text-white'
+        }`}>
+          {feedback.message}
+        </div>
+      )}
     </div>
   )
 }

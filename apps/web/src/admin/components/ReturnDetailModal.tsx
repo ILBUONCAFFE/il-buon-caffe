@@ -10,6 +10,9 @@ interface ReturnDetailModalProps {
   isOpen: boolean
   onClose: () => void
   onChangeStatus?: (ret: AdminReturn, status: ReturnStatus) => void
+  onApprove?: (ret: AdminReturn) => void
+  onReject?: (ret: AdminReturn) => void
+  onRefund?: (ret: AdminReturn) => void
 }
 
 const REASON_LABELS: Record<string, string> = {
@@ -54,7 +57,7 @@ function SectionLabel({ children }: { children: ReactNode }) {
   )
 }
 
-export function ReturnDetailModal({ ret, isOpen, onClose, onChangeStatus }: ReturnDetailModalProps) {
+export function ReturnDetailModal({ ret, isOpen, onClose, onChangeStatus, onApprove, onReject, onRefund }: ReturnDetailModalProps) {
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
@@ -168,26 +171,35 @@ export function ReturnDetailModal({ ret, isOpen, onClose, onChangeStatus }: Retu
         </div>
 
         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[#F0EFEC] shrink-0">
-          {canReject && onChangeStatus && (
+          {canReject && (onReject || onChangeStatus) && (
             <button
               className="text-sm text-red-600 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors"
-              onClick={() => { onChangeStatus(ret, 'rejected'); onClose() }}
+              onClick={() => {
+                if (onReject) { onReject(ret); onClose() }
+                else if (onChangeStatus) { onChangeStatus(ret, 'rejected'); onClose() }
+              }}
             >
               Odrzuc zwrot
             </button>
           )}
-          {canApprove && onChangeStatus && (
+          {canApprove && (onApprove || onChangeStatus) && (
             <button
               className="btn-secondary text-sm"
-              onClick={() => { onChangeStatus(ret, 'approved'); onClose() }}
+              onClick={() => {
+                if (onApprove) { onApprove(ret); onClose() }
+                else if (onChangeStatus) { onChangeStatus(ret, 'approved'); onClose() }
+              }}
             >
               Zaakceptuj
             </button>
           )}
-          {canRefund && onChangeStatus && (
+          {canRefund && (onRefund || onChangeStatus) && (
             <button
               className="btn-primary text-sm"
-              onClick={() => { onChangeStatus(ret, 'refunded'); onClose() }}
+              onClick={() => {
+                if (onRefund) { onRefund(ret); onClose() }
+                else if (onChangeStatus) { onChangeStatus(ret, 'refunded'); onClose() }
+              }}
             >
               Potwierdz wyslanie zwrotu
             </button>

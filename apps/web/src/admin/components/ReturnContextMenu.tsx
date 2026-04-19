@@ -10,6 +10,12 @@ interface ReturnContextMenuProps {
   onClose: () => void
   onOpenDetails: (ret: AdminReturn) => void
   onChangeStatus: (ret: AdminReturn, status: ReturnStatus) => void
+  onApprove?: (ret: AdminReturn) => void
+  onReject?: (ret: AdminReturn) => void
+  onRefund?: (ret: AdminReturn) => void
+  onReopen?: (ret: AdminReturn) => void
+  onRestock?: (ret: AdminReturn) => void
+  onRefreshReturn?: (ret: AdminReturn) => void
 }
 
 const STATUS_TRANSITIONS: Record<ReturnStatus, ReturnStatus[]> = {
@@ -38,6 +44,12 @@ export function ReturnContextMenu({
   onClose,
   onOpenDetails,
   onChangeStatus,
+  onApprove,
+  onReject,
+  onRefund,
+  onReopen,
+  onRestock,
+  onRefreshReturn,
 }: ReturnContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -139,6 +151,64 @@ export function ReturnContextMenu({
       >
         Kopiuj email klienta
       </button>
+
+      {(onApprove || onReject || onRefund || onReopen || onRestock || onRefreshReturn) && (
+        <div className="h-px bg-[#F0EFEC] my-1" />
+      )}
+
+      {onApprove && ret.status === 'in_review' && (
+        <button
+          className="w-full px-3 py-2 text-left hover:bg-[#F5F4F1] text-green-700"
+          onClick={() => onApprove(ret)}
+        >
+          Zatwierdz zwrot
+        </button>
+      )}
+
+      {onReject && (ret.status === 'new' || ret.status === 'in_review') && (
+        <button
+          className="w-full px-3 py-2 text-left hover:bg-[#F5F4F1] text-red-600"
+          onClick={() => onReject(ret)}
+        >
+          Odrzuc zwrot
+        </button>
+      )}
+
+      {onRefund && ret.status === 'approved' && (
+        <button
+          className="w-full px-3 py-2 text-left hover:bg-[#F5F4F1] text-blue-700"
+          onClick={() => onRefund(ret)}
+        >
+          Potwierdz zwrot pieniedzy
+        </button>
+      )}
+
+      {onReopen && ret.status === 'closed' && (
+        <button
+          className="w-full px-3 py-2 text-left hover:bg-[#F5F4F1]"
+          onClick={() => onReopen(ret)}
+        >
+          Ponownie otworz
+        </button>
+      )}
+
+      {onRestock && (ret.status === 'approved' || ret.status === 'refunded') && (
+        <button
+          className="w-full px-3 py-2 text-left hover:bg-[#F5F4F1]"
+          onClick={() => onRestock(ret)}
+        >
+          Przywroc na stan
+        </button>
+      )}
+
+      {onRefreshReturn && (
+        <button
+          className="w-full px-3 py-2 text-left hover:bg-[#F5F4F1] text-[#A3A3A3]"
+          onClick={() => onRefreshReturn(ret)}
+        >
+          Odswiez dane zwrotu
+        </button>
+      )}
     </div>
   )
 
