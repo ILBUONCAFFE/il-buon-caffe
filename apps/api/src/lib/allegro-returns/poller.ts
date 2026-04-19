@@ -9,6 +9,7 @@ import { orders, allegroIssues } from '@repo/db/schema'
 import { listCustomerReturns, listIssues, AllegroReturnsRateLimitError } from './client'
 import type { AllegroIssue } from './client'
 import { upsertAllegroReturn } from './reconciler'
+import { resolveAccessToken } from '../allegro-orders/resolve-token'
 import type { Env } from '../../index'
 
 // Env bindings needed by the poller (subset of Env)
@@ -36,18 +37,9 @@ const ALLEGRO_API_BASE_URLS = {
   sandbox:    'https://api.allegro.pl.allegrosandbox.pl',
 } as const
 
-// Lazy import to avoid circular dependency at module load time — resolveAccessToken
-// is in allegro-orders and the function signature requires the full Env type.
-// We cast PollEnv → Env: PollEnv is structurally compatible with the fields resolveAccessToken reads.
-async function getAccessToken(env: PollEnv): Promise<string | null> {
-  const { resolveAccessToken } = await import('../allegro-orders/resolve-token')
-  const db = createDb(env.DATABASE_URL)
-  return resolveAccessToken(env.ALLEGRO_KV, db, env as unknown as Env)
-}
-
 export async function pollReturnsCycle(env: PollEnv): Promise<PollCycleSummary> {
   const db = createDb(env.DATABASE_URL)
-  const accessToken = await getAccessToken(env)
+  const accessToken = await resolveAccessToken(env.ALLEGRO_KV, db, env as unknown as Env)
   if (!accessToken) {
     console.warn('[Returns] skip cycle — no access token available')
     return { processed: 0, upserted: 0, newReturns: 0, failures: 0, rateLimited: false }
@@ -111,7 +103,7 @@ export async function pollReturnsCycle(env: PollEnv): Promise<PollCycleSummary> 
     }
 
     // Advance cursor to now so next cycle is incremental
-    if (allegroReturns.length > 0) {
+    if (upserted > 0) {
       const nextCursor = new Date().toISOString()
       await env.ALLEGRO_KV.put(RETURNS_CURSOR_KV, nextCursor)
       return { processed, upserted, newReturns, failures, rateLimited, nextCursor }
@@ -135,7 +127,7 @@ export async function pollIssuesCycle(
   env: PollEnv,
 ): Promise<{ processed: number; failures: number; rateLimited: boolean }> {
   const db = createDb(env.DATABASE_URL)
-  const accessToken = await getAccessToken(env)
+  const accessToken = await resolveAccessToken(env.ALLEGRO_KV, db, env as unknown as Env)
   if (!accessToken) {
     console.warn('[Issues] skip cycle — no access token available')
     return { processed: 0, failures: 0, rateLimited: false }
@@ -191,6 +183,6 @@ export async function pollIssuesCycle(
       return { processed: 0, failures: 0, rateLimited: true }
     }
     console.error('[Issues] list failed:', err instanceof Error ? err.message : String(err))
-    return { processed: 0, failures: 1, rateLimited: false }
+    throw err  // let scheduler's catch open the circuit breaker
   }
 }
