@@ -102,8 +102,20 @@ export function corsConfig() {
     },
     credentials: true,
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Admin-Internal-Secret'],
-    exposeHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining', 'X-RateLimit-Reset'],
+    // PDF.js can send byte-range requests cross-origin (`Range` header).
+    allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Admin-Internal-Secret', 'Range'],
+    // Expose range/size headers so the browser PDF client can read them.
+    exposeHeaders: [
+      'X-RateLimit-Limit',
+      'X-RateLimit-Remaining',
+      'X-RateLimit-Reset',
+      'Accept-Ranges',
+      'Content-Length',
+      'Content-Range',
+      'Content-Type',
+      'Content-Disposition',
+      'ETag',
+    ],
     maxAge: 600 // 10 minutes
   }
 }

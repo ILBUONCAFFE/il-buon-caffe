@@ -70,16 +70,45 @@ app.get('/:slug/pdf', async (c) => {
     return c.json({ error: 'Katalog nie znaleziony' }, 404)
   }
 
-  const object = await c.env.CATALOGS_BUCKET.get(catalog.r2Key)
+  // Forward incoming Range headers to R2 so PDF.js can stream by byte ranges.
+  const object = await c.env.CATALOGS_BUCKET.get(catalog.r2Key, {
+    range: c.req.raw.headers,
+  })
   if (!object) {
     return c.json({ error: 'Plik PDF nie znaleziony w storage' }, 404)
   }
 
   const headers = new Headers()
+  object.writeHttpMetadata(headers)
+  headers.set('etag', object.httpEtag)
   headers.set('content-type', 'application/pdf')
   headers.set('cache-control', 'public, max-age=86400')
   // Zapobiegaj pobieraniu — wyświetl inline
   headers.set('content-disposition', 'inline')
+  headers.set('accept-ranges', 'bytes')
+
+  const range = object.range as { offset?: number; length?: number; suffix?: number } | undefined
+  if (range) {
+    let start = 0
+    let end = Math.max(0, object.size - 1)
+
+    if (typeof range.suffix === 'number') {
+      const suffix = Math.max(0, Math.min(range.suffix, object.size))
+      start = object.size - suffix
+    } else if (typeof range.offset === 'number') {
+      start = Math.max(0, range.offset)
+      if (typeof range.length === 'number') {
+        end = Math.min(object.size - 1, start + range.length - 1)
+      }
+    }
+
+    const partialLength = Math.max(0, end - start + 1)
+    headers.set('content-range', `bytes ${start}-${end}/${object.size}`)
+    headers.set('content-length', String(partialLength))
+    return new Response(object.body, { status: 206, headers })
+  }
+
+  headers.set('content-length', String(object.size))
 
   return new Response(object.body, { headers })
 })
