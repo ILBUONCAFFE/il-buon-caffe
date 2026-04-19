@@ -292,7 +292,7 @@ export async function rejectCustomerReturn(
       headers: allegroReturnHeaders(accessToken, true),
       body: JSON.stringify(body),
     })
-    log(db, 'customer_return_reject', { id, body }, null)
+    log(db, 'customer_return_reject', { id, body }, null) // 204 No Content — null response is correct
   } catch (err) {
     log(db, 'customer_return_reject', { id, body }, null, err)
     throw err
@@ -417,7 +417,7 @@ export async function cancelCommissionRefundClaim(
       method: 'DELETE',
       headers: allegroReturnHeaders(accessToken),
     })
-    log(db, 'refund_claim_cancel', { claimId }, null)
+    log(db, 'refund_claim_cancel', { claimId }, null) // 204 No Content — null response is correct
   } catch (err) {
     log(db, 'refund_claim_cancel', { claimId }, null, err)
     throw err
@@ -448,10 +448,10 @@ export async function listIssues(
   let result: unknown
   try {
     result = await allegroFetch(url, { headers: allegroReturnHeaders(accessToken) })
-    log(db, 'issue_fetch', { params }, result)
+    log(db, 'issue_list', { params }, result)
     return result as AllegroIssuesResponse
   } catch (err) {
-    log(db, 'issue_fetch', { params }, null, err)
+    log(db, 'issue_list', { params }, null, err)
     throw err
   }
 }
@@ -467,10 +467,10 @@ export async function getIssue(
   let result: unknown
   try {
     result = await allegroFetch(url, { headers: allegroReturnHeaders(accessToken) })
-    log(db, 'issue_fetch', { id }, result)
+    log(db, 'issue_get', { id }, result)
     return result as AllegroIssue
   } catch (err) {
-    log(db, 'issue_fetch', { id }, null, err)
+    log(db, 'issue_get', { id }, null, err)
     throw err
   }
 }
@@ -490,10 +490,10 @@ export async function listIssueMessages(
   let result: unknown
   try {
     result = await allegroFetch(url, { headers: allegroReturnHeaders(accessToken) })
-    log(db, 'issue_fetch', { id, params }, result)
+    log(db, 'issue_messages_fetch', { id, params }, result)
     return result as { messages: AllegroIssueMessage[] }
   } catch (err) {
-    log(db, 'issue_fetch', { id, params }, null, err)
+    log(db, 'issue_messages_fetch', { id, params }, null, err)
     throw err
   }
 }
@@ -533,14 +533,13 @@ export async function uploadIssueAttachment(
   const url = `${uploadBase}/sale/user-issues/attachments`
   let result: unknown
   try {
+    const headers = {
+      ...allegroReturnHeaders(accessToken),
+      'Content-Type': mimeType, // Override beta content-type with binary MIME for upload
+    }
     result = await allegroFetch(url, {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': mimeType,
-        Accept: BETA_CONTENT_TYPE,
-        'User-Agent': ALLEGRO_USER_AGENT,
-      },
+      headers,
       body: file,
     })
     log(db, 'issue_attachment_upload', { mimeType, bytes: file.byteLength }, result)

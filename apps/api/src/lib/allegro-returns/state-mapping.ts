@@ -82,6 +82,7 @@ export function mapAllegroReasonToInternal(
     case 'INCOMPLETE':
       return 'wrong_item'
     case 'WRONG_DESCRIPTION':
+      // Intentionally lossy — no exact enum match; 'not_as_described' is the closest semantic equivalent
       return 'not_as_described'
     case 'CHANGE_OF_MIND':
       return 'change_of_mind'
