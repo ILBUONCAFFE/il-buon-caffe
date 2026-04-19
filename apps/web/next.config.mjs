@@ -171,6 +171,8 @@ const nextConfig = {
     // /api/admin/* is intentionally absent — those are handled by route handlers:
     //   src/app/api/admin/allegro/[...slug]/route.ts  (Allegro proxy)
     //   src/app/api/admin/[...slug]/route.ts           (General admin proxy)
+    // /api/catalogs/* is also handled by a dedicated route handler:
+    //   src/app/api/catalogs/[...slug]/route.ts (service-binding proxy; no DNS dependency)
     const CF_ROUTES = [
       '/api/auth',
       '/api/products',
@@ -181,7 +183,6 @@ const nextConfig = {
       '/api/payments',
       '/api/webhooks',
       '/api/uploads',
-      '/api/catalogs',
     ]
 
     return {
