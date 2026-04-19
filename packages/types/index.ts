@@ -619,3 +619,187 @@ export interface ShipmentRefreshInfo {
   checkAttempts: number
   stateChangedAt: string | null
 }
+
+// ============================================
+// RETURNS / REFUNDS / DISPUTES
+// ============================================
+
+export type ReturnStatus = 'new' | 'in_review' | 'approved' | 'rejected' | 'refunded' | 'closed'
+
+export type ReturnReason =
+  | 'damaged'          // Uszkodzenie w transporcie
+  | 'wrong_item'       // Błędny produkt
+  | 'not_as_described' // Niezgodny z opisem
+  | 'change_of_mind'   // Zmiana decyzji kupującego
+  | 'defect'           // Wada fabryczna
+  | 'mistake'          // Zamówienie z pomyłki
+  | 'other'
+
+export type ReturnSource = 'shop' | 'allegro'
+
+export type RefundMethod = 'p24' | 'allegro_payments' | 'bank_transfer_manual'
+
+export type RefundStatus = 'pending' | 'processing' | 'succeeded' | 'failed' | 'rejected'
+
+export interface ReturnCustomerData {
+  name: string
+  email: string
+  phone?: string
+  bankAccount?: {
+    owner: string
+    accountNumber: string
+    iban?: string
+    swift?: string
+  }
+}
+
+export interface ReturnAllegroData {
+  customerReturnId: string
+  referenceNumber?: string
+  rejection?: { code: string; reason?: string; createdAt: string }
+  refund?: {
+    value: { amount: string; currency: string }
+    status: string
+    bankAccount?: Record<string, unknown>
+  }
+  parcels?: Array<{
+    transportingCarrierId: string
+    trackingNumber: string
+    sender?: string
+  }>
+}
+
+export interface ReturnItem {
+  id: number
+  returnId: number
+  orderItemId: number | null
+  productSku: string
+  productName: string
+  quantity: number
+  unitPrice: string
+  totalPrice: string
+  condition: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface Refund {
+  id: number
+  returnId: number
+  method: RefundMethod
+  status: RefundStatus
+  amount: string
+  currency: string
+  externalId: string | null
+  commandId: string
+  payload: Record<string, unknown> | null
+  error: { code?: string; message?: string } | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface Return {
+  id: number
+  returnNumber: string
+  orderId: number
+  source: ReturnSource
+  status: ReturnStatus
+  reason: ReturnReason
+  reasonNote: string | null
+  totalRefundAmount: string | null
+  currency: string
+  customerData: ReturnCustomerData | null
+  allegro: ReturnAllegroData | null
+  restockApplied: boolean
+  closedAt: string | null
+  createdAt: string
+  updatedAt: string
+  // Relations (optional, populated by joins)
+  items?: ReturnItem[]
+  refunds?: Refund[]
+}
+
+// ── Admin API shapes ─────────────────────────────────────────────────────────
+
+export interface AdminReturn extends Return {
+  orderNumber: string
+  items: ReturnItem[]
+}
+
+export interface AdminReturnDetail extends AdminReturn {
+  refunds: Refund[]
+  allegroIssue?: AllegroIssue | null
+}
+
+export interface ReturnsListResponse {
+  data: AdminReturn[]
+  meta: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
+}
+
+// ── Allegro Issues (Disputes) ────────────────────────────────────────────────
+
+export type AllegroIssueStatus =
+  | 'DISPUTE_ONGOING'
+  | 'DISPUTE_CLOSED'
+  | 'DISPUTE_UNRESOLVED'
+  | 'CLAIM_SUBMITTED'
+  | 'CLAIM_ACCEPTED'
+  | 'CLAIM_REJECTED'
+
+export interface AllegroIssueMessage {
+  id: number
+  issueId: number
+  allegroMessageId: string
+  authorRole: 'BUYER' | 'SELLER' | 'ALLEGRO'
+  text: string | null
+  attachments: Array<{ id: string; url?: string; name?: string }> | null
+  createdAt: string
+}
+
+export interface AllegroIssue {
+  id: number
+  allegroIssueId: string
+  orderId: number | null
+  returnId: number | null
+  status: string
+  subject: string | null
+  lastMessageAt: string | null
+  payload: Record<string, unknown> | null
+  createdAt: string
+  updatedAt: string
+  messages?: AllegroIssueMessage[]
+}
+
+// ── Zod-compatible request shapes (used for API validation) ─────────────────
+
+export interface CreateReturnRequest {
+  orderId: number
+  reason: ReturnReason
+  reasonNote?: string
+  items: Array<{
+    orderItemId: number
+    quantity: number
+    condition?: string
+  }>
+  customerBankAccount?: ReturnCustomerData['bankAccount']
+}
+
+export interface ApproveReturnRequest {
+  refundMethod?: RefundMethod
+  amount?: number
+}
+
+export interface RejectReturnRequest {
+  code: string
+  reason?: string
+}
+
+export interface PostIssueMessageRequest {
+  text: string
+  attachmentIds?: string[]
+}
