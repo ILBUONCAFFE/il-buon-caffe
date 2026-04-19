@@ -78,7 +78,14 @@ export const auditActionEnum = pgEnum('audit_action', [
   'anonymize_customer',
   'admin_action',
   'update_stock',
-  'password_reset'
+  'password_reset',
+  // Returns
+  'create_return',
+  'approve_return',
+  'reject_return',
+  'issue_refund',
+  'cancel_refund',
+  'create_refund_claim'
 ]);
 
 export const stockChangeReasonEnum = pgEnum('stock_change_reason', [
@@ -87,7 +94,8 @@ export const stockChangeReasonEnum = pgEnum('stock_change_reason', [
   'inventory',
   'damage',
   'allegro_sync',
-  'cancellation'
+  'cancellation',
+  'return'  // Zwrot towaru do magazynu
 ]);
 
 export const retentionStatusEnum = pgEnum('retention_status', [
@@ -98,6 +106,41 @@ export const retentionStatusEnum = pgEnum('retention_status', [
 ]);
 
 export const allegroEnvEnum = pgEnum('allegro_env', ['sandbox', 'production']);
+
+export const returnStatusEnum = pgEnum('return_status', [
+  'new',        // Nowe zgłoszenie
+  'in_review',  // W rozpatrzeniu
+  'approved',   // Zaakceptowane
+  'rejected',   // Odrzucone
+  'refunded',   // Zwrot pieniędzy wysłany
+  'closed'      // Zamknięte
+]);
+
+export const returnReasonEnum = pgEnum('return_reason', [
+  'damaged',          // Uszkodzony produkt (shop + Allegro DEFECT)
+  'wrong_item',       // Błędny produkt
+  'not_as_described', // Niezgodny z opisem (Allegro NOT_AS_DESCRIBED, WRONG_DESCRIPTION, INCOMPLETE)
+  'change_of_mind',   // Zmiana decyzji (Allegro MISTAKE)
+  'defect',           // Wada fabryczna (Allegro DEFECT)
+  'mistake',          // Zamówienie z pomyłki (Allegro MISTAKE)
+  'other'             // Inne
+]);
+
+export const returnSourceEnum = pgEnum('return_source', ['shop', 'allegro']);
+
+export const refundMethodEnum = pgEnum('refund_method', [
+  'p24',                  // Zwrot przez Przelewy24
+  'allegro_payments',     // Zwrot przez system płatności Allegro
+  'bank_transfer_manual'  // Ręczny przelew bankowy
+]);
+
+export const refundStatusEnum = pgEnum('refund_status', [
+  'pending',    // Oczekuje na przetworzenie
+  'processing', // W trakcie przetwarzania
+  'succeeded',  // Zakończony sukcesem
+  'failed',     // Nieudany
+  'rejected'    // Odrzucony
+]);
 
 // ============================================
 // TYPES
@@ -649,6 +692,150 @@ export const catalogs = pgTable('catalogs', {
 }));
 
 // ============================================
+// TABLES: RETURNS (Unified: Shop + Allegro)
+// ============================================
+
+export const returns = pgTable('returns', {
+  id: serial('id').primaryKey(),
+  returnNumber: varchar('return_number', { length: 50 }).notNull().unique(),
+  orderId: integer('order_id').references(() => orders.id, { onDelete: 'cascade' }).notNull(),
+  source: returnSourceEnum('source').notNull(),
+  status: returnStatusEnum('status').notNull().default('new'),
+  reason: returnReasonEnum('reason').notNull(),
+  reasonNote: text('reason_note'),
+  totalRefundAmount: decimal('total_refund_amount', { precision: 10, scale: 2 }),
+  currency: varchar('currency', { length: 3 }).notNull().default('PLN'),
+  // Snapshot danych kupującego (name, email, phone, bankAccount)
+  customerData: jsonb('customer_data').$type<{
+    name: string
+    email: string
+    phone?: string
+    bankAccount?: { owner: string; accountNumber: string; iban?: string; swift?: string }
+  }>(),
+  // Dane specyficzne dla Allegro (wypełnione tylko gdy source='allegro')
+  allegro: jsonb('allegro').$type<{
+    customerReturnId: string
+    referenceNumber?: string
+    rejection?: { code: string; reason?: string; createdAt: string }
+    refund?: { value: { amount: string; currency: string }; status: string; bankAccount?: Record<string, unknown> }
+    parcels?: Array<{ transportingCarrierId: string; trackingNumber: string; sender?: string }>
+  }>(),
+  restockApplied: boolean('restock_applied').notNull().default(false),
+  closedAt: timestamp('closed_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  orderIdx: index('returns_order_idx').on(table.orderId),
+  statusIdx: index('returns_status_idx').on(table.status),
+  sourceStatusIdx: index('returns_source_status_idx').on(table.source, table.status),
+  // Functional index on JSONB — uniqueness enforced at application level in reconciler
+  allegroReturnIdIdx: index('returns_allegro_return_id_idx').on(table.source),
+}));
+
+// ============================================
+// TABLES: RETURN ITEMS
+// ============================================
+
+export const returnItems = pgTable('return_items', {
+  id: serial('id').primaryKey(),
+  returnId: integer('return_id').references(() => returns.id, { onDelete: 'cascade' }).notNull(),
+  orderItemId: integer('order_item_id').references(() => orderItems.id),
+  productSku: varchar('product_sku', { length: 255 }).notNull(),
+  productName: varchar('product_name', { length: 255 }).notNull(),
+  quantity: integer('quantity').notNull(),
+  unitPrice: decimal('unit_price', { precision: 10, scale: 2 }).notNull(),
+  totalPrice: decimal('total_price', { precision: 10, scale: 2 }).notNull(),
+  // Opcjonalny stan zwracanego towaru
+  condition: varchar('condition', { length: 20 }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  returnIdx: index('return_items_return_idx').on(table.returnId),
+  orderItemIdx: index('return_items_order_item_idx').on(table.orderItemId),
+}));
+
+// ============================================
+// TABLES: REFUNDS (Płatności zwrotne)
+// ============================================
+
+export const refunds = pgTable('refunds', {
+  id: serial('id').primaryKey(),
+  returnId: integer('return_id').references(() => returns.id, { onDelete: 'cascade' }).notNull(),
+  method: refundMethodEnum('method').notNull(),
+  status: refundStatusEnum('status').notNull().default('pending'),
+  amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
+  currency: varchar('currency', { length: 3 }).notNull().default('PLN'),
+  // ID zwrotu z zewnętrznego systemu (P24 refund id, Allegro payment refund id)
+  externalId: varchar('external_id', { length: 255 }),
+  // UUID wysyłany jako commandId do Allegro lub requestId do P24 (idempotency)
+  commandId: uuid('command_id').defaultRandom().notNull().unique(),
+  // Pełny request/response do audytu
+  payload: jsonb('payload').$type<Record<string, unknown>>(),
+  error: jsonb('error').$type<{ code?: string; message?: string; raw?: unknown }>(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  returnIdx: index('refunds_return_idx').on(table.returnId),
+  statusIdx: index('refunds_status_idx').on(table.status),
+  commandIdIdx: uniqueIndex('refunds_command_id_idx').on(table.commandId),
+}));
+
+// ============================================
+// TABLES: ALLEGRO REFUND CLAIMS (Zwrot prowizji)
+// ============================================
+
+export const allegroRefundClaims = pgTable('allegro_refund_claims', {
+  id: serial('id').primaryKey(),
+  returnId: integer('return_id').references(() => returns.id, { onDelete: 'cascade' }).notNull(),
+  allegroClaimId: varchar('allegro_claim_id', { length: 100 }).notNull().unique(),
+  status: varchar('status', { length: 50 }).notNull(),
+  amount: decimal('amount', { precision: 10, scale: 2 }),
+  payload: jsonb('payload').$type<Record<string, unknown>>(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  returnIdx: index('allegro_refund_claims_return_idx').on(table.returnId),
+  statusIdx: index('allegro_refund_claims_status_idx').on(table.status),
+}));
+
+// ============================================
+// TABLES: ALLEGRO ISSUES (Dyskusje/Spory)
+// ============================================
+
+export const allegroIssues = pgTable('allegro_issues', {
+  id: serial('id').primaryKey(),
+  allegroIssueId: varchar('allegro_issue_id', { length: 100 }).notNull().unique(),
+  orderId: integer('order_id').references(() => orders.id),
+  returnId: integer('return_id').references(() => returns.id),
+  // Allegro status: DISPUTE_ONGOING | DISPUTE_CLOSED | DISPUTE_UNRESOLVED | CLAIM_SUBMITTED | CLAIM_ACCEPTED | CLAIM_REJECTED
+  status: varchar('status', { length: 50 }).notNull(),
+  subject: varchar('subject', { length: 500 }),
+  lastMessageAt: timestamp('last_message_at', { withTimezone: true }),
+  payload: jsonb('payload').$type<Record<string, unknown>>(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  orderIdx: index('allegro_issues_order_idx').on(table.orderId),
+  returnIdx: index('allegro_issues_return_idx').on(table.returnId),
+  statusIdx: index('allegro_issues_status_idx').on(table.status),
+}));
+
+// ============================================
+// TABLES: ALLEGRO ISSUE MESSAGES
+// ============================================
+
+export const allegroIssueMessages = pgTable('allegro_issue_messages', {
+  id: serial('id').primaryKey(),
+  issueId: integer('issue_id').references(() => allegroIssues.id, { onDelete: 'cascade' }).notNull(),
+  allegroMessageId: varchar('allegro_message_id', { length: 100 }).notNull().unique(),
+  authorRole: varchar('author_role', { length: 20 }).notNull(),
+  text: text('text'),
+  attachments: jsonb('attachments').$type<Array<{ id: string; url?: string; name?: string }>>(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
+}, (table) => ({
+  issueIdx: index('allegro_issue_messages_issue_idx').on(table.issueId, table.createdAt),
+}));
+
+// ============================================
 // RELATIONS
 // ============================================
 
@@ -733,6 +920,8 @@ export const ordersRelations = relations(orders, ({ one, many }) => ({
   items: many(orderItems),
   stockChanges: many(stockChanges),
   statusHistory: many(orderStatusHistory),
+  returns: many(returns),
+  allegroIssues: many(allegroIssues),
 }));
 
 export const orderStatusHistoryRelations = relations(orderStatusHistory, ({ one }) => ({
@@ -768,6 +957,61 @@ export const stockChangesRelations = relations(stockChanges, ({ one }) => ({
   }),
 }));
 
+export const returnsRelations = relations(returns, ({ one, many }) => ({
+  order: one(orders, {
+    fields: [returns.orderId],
+    references: [orders.id],
+  }),
+  items: many(returnItems),
+  refunds: many(refunds),
+  allegroRefundClaims: many(allegroRefundClaims),
+  allegroIssues: many(allegroIssues),
+}));
+
+export const returnItemsRelations = relations(returnItems, ({ one }) => ({
+  return: one(returns, {
+    fields: [returnItems.returnId],
+    references: [returns.id],
+  }),
+  orderItem: one(orderItems, {
+    fields: [returnItems.orderItemId],
+    references: [orderItems.id],
+  }),
+}));
+
+export const refundsRelations = relations(refunds, ({ one }) => ({
+  return: one(returns, {
+    fields: [refunds.returnId],
+    references: [returns.id],
+  }),
+}));
+
+export const allegroRefundClaimsRelations = relations(allegroRefundClaims, ({ one }) => ({
+  return: one(returns, {
+    fields: [allegroRefundClaims.returnId],
+    references: [returns.id],
+  }),
+}));
+
+export const allegroIssuesRelations = relations(allegroIssues, ({ one, many }) => ({
+  order: one(orders, {
+    fields: [allegroIssues.orderId],
+    references: [orders.id],
+  }),
+  return: one(returns, {
+    fields: [allegroIssues.returnId],
+    references: [returns.id],
+  }),
+  messages: many(allegroIssueMessages),
+}));
+
+export const allegroIssueMessagesRelations = relations(allegroIssueMessages, ({ one }) => ({
+  issue: one(allegroIssues, {
+    fields: [allegroIssueMessages.issueId],
+    references: [allegroIssues.id],
+  }),
+}));
+
 // ============================================
 // INFERRED TYPES
 // ============================================
@@ -789,3 +1033,15 @@ export type NewDbOrderItem = typeof orderItems.$inferInsert;
 
 export type DbCatalog = typeof catalogs.$inferSelect;
 export type NewDbCatalog = typeof catalogs.$inferInsert;
+
+export type DbReturn = typeof returns.$inferSelect;
+export type NewDbReturn = typeof returns.$inferInsert;
+
+export type DbReturnItem = typeof returnItems.$inferSelect;
+export type NewDbReturnItem = typeof returnItems.$inferInsert;
+
+export type DbRefund = typeof refunds.$inferSelect;
+export type NewDbRefund = typeof refunds.$inferInsert;
+
+export type DbAllegroIssue = typeof allegroIssues.$inferSelect;
+export type NewDbAllegroIssue = typeof allegroIssues.$inferInsert;
