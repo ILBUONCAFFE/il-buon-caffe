@@ -19,6 +19,10 @@ import type {
   AdminReturn,
   ReturnsQueryParams,
   ReturnsResponse,
+  AdminComplaint,
+  AdminComplaintDetail,
+  ComplaintsQueryParams,
+  ComplaintsResponse,
   AdminProductsResponse,
   AdminProductsQueryParams,
   AdminProductResponse,
@@ -348,6 +352,21 @@ export const adminApi = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+
+  // ── Complaints (Allegro Issues / Disputes) ──────────────────────────────────
+  getComplaints: (params?: ComplaintsQueryParams): Promise<ComplaintsResponse> => {
+    const qs = new URLSearchParams()
+    if (params?.page)   qs.set('page',   String(params.page))
+    if (params?.limit)  qs.set('limit',  String(params.limit))
+    if (params?.status) qs.set('status', params.status)
+    if (params?.search) qs.set('search', params.search)
+    if (params?.from)   qs.set('from',   params.from)
+    if (params?.to)     qs.set('to',     params.to)
+    return request<ComplaintsResponse>(`/api/admin/issues?${qs}`)
+  },
+
+  getComplaintDetail: (id: number) =>
+    request<{ data: AdminComplaintDetail }>(`/api/admin/issues/${id}`),
 }
 
 // ── Re-export types so components can import from one place ──────────────────
@@ -388,4 +407,10 @@ export type {
   UpdateProductStockPayload,
   UpdateProductStockResponse,
   UploadProductImageResponse,
+  AdminComplaint,
+  AdminComplaintDetail,
+  ComplaintsQueryParams,
+  ComplaintsResponse,
+  ComplaintStatus,
+  ComplaintMessage,
 } from '../types/admin-api'

@@ -504,6 +504,63 @@ export interface ReturnsResponse {
   meta: { total: number; page: number; limit: number; totalPages: number }
 }
 
+// ── Complaints (Allegro Issues / Disputes) ───────────────────────────────────
+
+export type ComplaintStatus =
+  | 'DISPUTE_ONGOING'
+  | 'DISPUTE_CLOSED'
+  | 'DISPUTE_UNRESOLVED'
+  | 'CLAIM_SUBMITTED'
+  | 'CLAIM_ACCEPTED'
+  | 'CLAIM_REJECTED'
+
+export type ComplaintAuthorRole = 'BUYER' | 'SELLER' | 'ALLEGRO'
+
+export interface ComplaintMessage {
+  id: number
+  issueId: number
+  allegroMessageId: string
+  authorRole: ComplaintAuthorRole
+  text: string | null
+  attachments: Array<{ id: string; url?: string; name?: string }> | null
+  createdAt: string
+}
+
+export interface AdminComplaint {
+  id: number
+  allegroIssueId: string
+  orderId: number | null
+  returnId: number | null
+  status: ComplaintStatus | string
+  subject: string | null
+  lastMessageAt: string | null
+  createdAt: string
+  updatedAt: string
+  orderNumber: string | null
+  customerData: { name?: string; email?: string } | null
+  lastMessage?: { text: string | null; authorRole: string; createdAt: string } | null
+}
+
+export interface AdminComplaintDetail extends AdminComplaint {
+  payload: Record<string, unknown> | null
+  returnNumber: string | null
+  messages: ComplaintMessage[]
+}
+
+export interface ComplaintsQueryParams {
+  page?: number
+  limit?: number
+  status?: string
+  search?: string
+  from?: string
+  to?: string
+}
+
+export interface ComplaintsResponse {
+  data: AdminComplaint[]
+  meta: { total: number; page: number; limit: number; totalPages: number }
+}
+
 // ── Order status history ──────────────────────────────────────────────────────
 export type StatusSource = 'system' | 'admin' | 'allegro_sync' | 'carrier_sync' | 'p24_webhook' | 'backfill'
 export type StatusCategory = 'status' | 'tracking'
