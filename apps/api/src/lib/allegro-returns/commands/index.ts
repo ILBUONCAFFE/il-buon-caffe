@@ -25,6 +25,16 @@ import type { Env } from '../../../index'
 
 // ── Supporting types ────────────────────────────────────────────────────────
 
+/** Pre-fetched return row — pass from the route to avoid a second DB round-trip inside commands. */
+export interface PrefetchedReturn {
+  id:                number
+  status:            string
+  source:            string
+  orderId:           number
+  totalRefundAmount: string | null
+  allegro?:          Record<string, unknown> | null
+}
+
 export interface CommandEnv {
   DATABASE_URL: string
   ALLEGRO_KV: KVNamespace
@@ -75,20 +85,24 @@ export async function acceptShopReturn(
   returnId: number,
   adminId: number,
   env: CommandEnv,
+  prefetchedReturn?: PrefetchedReturn,
 ): Promise<void> {
-  const returnRows = await db
-    .select({
-      id:                returns.id,
-      status:            returns.status,
-      source:            returns.source,
-      orderId:           returns.orderId,
-      totalRefundAmount: returns.totalRefundAmount,
-    })
-    .from(returns)
-    .where(eq(returns.id, returnId))
-    .limit(1)
+  let ret: PrefetchedReturn | undefined = prefetchedReturn
+  if (!ret) {
+    const returnRows = await db
+      .select({
+        id:                returns.id,
+        status:            returns.status,
+        source:            returns.source,
+        orderId:           returns.orderId,
+        totalRefundAmount: returns.totalRefundAmount,
+      })
+      .from(returns)
+      .where(eq(returns.id, returnId))
+      .limit(1)
+    ret = returnRows[0]
+  }
 
-  const ret = returnRows[0]
   if (!ret) {
     throw new CommandError('NOT_FOUND', 404, `Return ${returnId} not found`)
   }
@@ -193,21 +207,25 @@ export async function acceptAllegroReturnRefund(
   adminId: number,
   env: CommandEnv,
   waitUntil?: (p: Promise<unknown>) => void,
+  prefetchedReturn?: PrefetchedReturn,
 ): Promise<void> {
-  const returnRows = await db
-    .select({
-      id:                returns.id,
-      status:            returns.status,
-      source:            returns.source,
-      orderId:           returns.orderId,
-      totalRefundAmount: returns.totalRefundAmount,
-      allegro:           returns.allegro,
-    })
-    .from(returns)
-    .where(eq(returns.id, returnId))
-    .limit(1)
+  let ret: PrefetchedReturn | undefined = prefetchedReturn
+  if (!ret) {
+    const returnRows = await db
+      .select({
+        id:                returns.id,
+        status:            returns.status,
+        source:            returns.source,
+        orderId:           returns.orderId,
+        totalRefundAmount: returns.totalRefundAmount,
+        allegro:           returns.allegro,
+      })
+      .from(returns)
+      .where(eq(returns.id, returnId))
+      .limit(1)
+    ret = returnRows[0]
+  }
 
-  const ret = returnRows[0]
   if (!ret) {
     throw new CommandError('NOT_FOUND', 404, `Return ${returnId} not found`)
   }
@@ -303,8 +321,8 @@ export async function rejectReturn(
     throw new CommandError('NOT_FOUND', 404, `Return ${returnId} not found`)
   }
 
-  if (ret.status === 'rejected' || ret.status === 'closed') {
-    throw new CommandError('INVALID_STATE', 422, `Cannot reject return in status '${ret.status}'`)
+  if (ret.status !== 'new' && ret.status !== 'in_review') {
+    throw new CommandError('INVALID_STATE', 422, `Cannot reject a return in status '${ret.status}'`)
   }
 
   const orderId = ret.orderId
@@ -356,7 +374,6 @@ export async function issueManualRefund(
   returnId: number,
   adminId: number,
   amount: number,
-  env: CommandEnv,
 ): Promise<void> {
   const returnRows = await db
     .select({
@@ -441,6 +458,7 @@ export async function reopenReturn(
     .set({ status: 'in_review', closedAt: null, updatedAt: new Date() })
     .where(eq(returns.id, returnId))
 
+  // TODO: add 'reopen_return' to auditActionEnum when schema migration is feasible
   await logAdminAction(db, {
     adminSub: String(adminId),
     action: 'admin_action' as never,

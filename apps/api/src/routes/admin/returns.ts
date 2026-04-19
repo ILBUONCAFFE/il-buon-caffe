@@ -19,6 +19,7 @@ import {
   reopenReturn,
   CommandError,
   type CommandEnv,
+  type PrefetchedReturn,
 } from '../../lib/allegro-returns/commands'
 
 export const adminReturnsRouter = new Hono<{ Bindings: Env }>()
@@ -353,9 +354,16 @@ adminReturnsRouter.post('/:id/approve', async (c) => {
       return c.json({ error: { code: 'INVALID_ID', message: 'Nieprawidłowe ID zwrotu' } }, 400)
     }
 
-    // Determine source to route to correct command
+    // Fetch once — pass to command to avoid a second DB round-trip inside the command
     const returnRow = await db
-      .select({ id: returns.id, source: returns.source, status: returns.status })
+      .select({
+        id:                returns.id,
+        source:            returns.source,
+        status:            returns.status,
+        orderId:           returns.orderId,
+        totalRefundAmount: returns.totalRefundAmount,
+        allegro:           returns.allegro,
+      })
       .from(returns)
       .where(eq(returns.id, returnId))
       .limit(1)
@@ -371,11 +379,19 @@ adminReturnsRouter.post('/:id/approve', async (c) => {
 
     const adminId = parseInt(adminUser?.sub ?? '0')
     const env = c.env as unknown as CommandEnv
+    const prefetched: PrefetchedReturn = {
+      id:                returnRow[0].id,
+      status:            returnRow[0].status,
+      source:            returnRow[0].source,
+      orderId:           returnRow[0].orderId,
+      totalRefundAmount: returnRow[0].totalRefundAmount,
+      allegro:           returnRow[0].allegro as Record<string, unknown> | null,
+    }
 
     if (returnRow[0].source === 'allegro') {
-      await acceptAllegroReturnRefund(db, returnId, adminId, env, c.executionCtx.waitUntil.bind(c.executionCtx))
+      await acceptAllegroReturnRefund(db, returnId, adminId, env, c.executionCtx.waitUntil.bind(c.executionCtx), prefetched)
     } else {
-      await acceptShopReturn(db, returnId, adminId, env)
+      await acceptShopReturn(db, returnId, adminId, env, prefetched)
     }
 
     return c.json({ data: { id: returnId, status: 'approved' } })
@@ -442,9 +458,8 @@ adminReturnsRouter.post('/:id/refund', async (c) => {
     }
 
     const adminId = parseInt(adminUser?.sub ?? '0')
-    const env = c.env as unknown as CommandEnv
 
-    await issueManualRefund(db, returnId, adminId, body.amount as number, env)
+    await issueManualRefund(db, returnId, adminId, body.amount as number)
 
     return c.json({ data: { id: returnId, status: 'refunded' } })
   } catch (err) {
