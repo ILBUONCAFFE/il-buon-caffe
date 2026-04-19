@@ -51,3 +51,9 @@ export type {
   InternalReturnReason,
   ReturnDrivenOrderStatus,
 } from './state-mapping'
+
+export { pollReturnsCycle, pollIssuesCycle } from './poller'
+export type { PollEnv, PollCycleSummary } from './poller'
+
+export { returnsReconcileTick, issuesReconcileTick } from './scheduler'
+export type { SchedulerEnv } from './scheduler'
