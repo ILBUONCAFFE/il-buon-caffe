@@ -12,32 +12,104 @@ const lato = Lato({ subsets: ["latin"], weight: ['300', '400', '700'], variable:
 // preload: false — dekoracyjna czcionka, nieużywana na wszystkich stronach, unika preload warning
 const pinyon = Pinyon_Script({ weight: ['400'], subsets: ["latin"], variable: '--font-pinyon', display: 'swap', preload: false });
 
-const CONSENT_STORAGE_KEY = "ibc-consent-v1";
+const CONSENT_STORAGE_KEY = "ibc-consent-v2";
+const LEGACY_CONSENT_STORAGE_KEY = "ibc-consent-v1";
+const CONSENT_COOKIE_KEY = "ibc_consent";
+const CLARITY_PROJECT_ID = process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID?.trim() ?? "";
 
 const consentBootstrapScript = `
 window.dataLayer = window.dataLayer || [];
 window.gtag = window.gtag || function gtag(){window.dataLayer.push(arguments);};
+window.__ibcClarityLoaded = window.__ibcClarityLoaded || false;
+
+const CLARITY_PROJECT_ID = ${JSON.stringify(CLARITY_PROJECT_ID)};
+
+function normalizeLegacyConsent(value) {
+  if (value === "all") return { analytics: true, marketing: true };
+  if (value === "analytics") return { analytics: true, marketing: false };
+  if (value === "necessary") return { analytics: false, marketing: false };
+  return null;
+}
+
+function parseStoredConsent(rawValue) {
+  if (!rawValue) return null;
+
+  try {
+    const parsed = JSON.parse(rawValue);
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      parsed.version === 2 &&
+      typeof parsed.analytics === "boolean" &&
+      typeof parsed.marketing === "boolean"
+    ) {
+      return { analytics: parsed.analytics, marketing: parsed.marketing };
+    }
+  } catch (_err) {
+    // ignore parse failure and continue to legacy parser
+  }
+
+  return normalizeLegacyConsent(rawValue);
+}
 
 function readConsentCookie() {
-  const prefix = "ibc_consent=";
+  const prefix = "${CONSENT_COOKIE_KEY}=";
   const consentCookie = document.cookie
     .split(";")
     .map(function(part) { return part.trim(); })
     .find(function(part) { return part.startsWith(prefix); });
 
   if (!consentCookie) return null;
-  return decodeURIComponent(consentCookie.slice(prefix.length));
+  return parseStoredConsent(decodeURIComponent(consentCookie.slice(prefix.length)));
 }
 
 function readStoredConsent() {
   try {
     const localStorageChoice = window.localStorage.getItem("${CONSENT_STORAGE_KEY}");
-    if (localStorageChoice) return localStorageChoice;
+    const parsedV2 = parseStoredConsent(localStorageChoice);
+    if (parsedV2) return parsedV2;
+
+    const legacyChoice = window.localStorage.getItem("${LEGACY_CONSENT_STORAGE_KEY}");
+    const parsedLegacy = parseStoredConsent(legacyChoice);
+    if (parsedLegacy) return parsedLegacy;
   } catch (_err) {
     // Ignore storage access failures and fallback to cookie.
   }
 
   return readConsentCookie();
+}
+
+function maybeLoadClarity(consent) {
+  if (!consent || !consent.analytics) return;
+  if (!CLARITY_PROJECT_ID) return;
+  if (window.__ibcClarityLoaded) return;
+
+  window.__ibcClarityLoaded = true;
+
+  (function(c, l, a, r, i, t, y) {
+    c[a] = c[a] || function() { (c[a].q = c[a].q || []).push(arguments); };
+    t = l.createElement(r);
+    t.async = 1;
+    t.src = "https://www.clarity.ms/tag/" + i;
+    y = l.getElementsByTagName(r)[0];
+    y.parentNode.insertBefore(t, y);
+  })(window, document, "clarity", "script", CLARITY_PROJECT_ID);
+}
+
+function applyConsent(consent) {
+  if (!consent) return;
+
+  window.gtag("consent", "update", {
+    ad_storage: consent.marketing ? "granted" : "denied",
+    ad_user_data: consent.marketing ? "granted" : "denied",
+    ad_personalization: consent.marketing ? "granted" : "denied",
+    analytics_storage: consent.analytics ? "granted" : "denied",
+    functionality_storage: "granted",
+    personalization_storage: consent.marketing ? "granted" : "denied",
+    security_storage: "granted",
+  });
+
+  maybeLoadClarity(consent);
 }
 
 window.gtag("consent", "default", {
@@ -53,45 +125,20 @@ window.gtag("consent", "default", {
 
 try {
   const storedConsent = readStoredConsent();
-
-  if (storedConsent === "all") {
-    window.gtag("consent", "update", {
-      ad_storage: "granted",
-      ad_user_data: "granted",
-      ad_personalization: "granted",
-      analytics_storage: "granted",
-      functionality_storage: "granted",
-      personalization_storage: "granted",
-      security_storage: "granted",
-    });
-  }
-
-  if (storedConsent === "analytics") {
-    window.gtag("consent", "update", {
-      ad_storage: "denied",
-      ad_user_data: "denied",
-      ad_personalization: "denied",
-      analytics_storage: "granted",
-      functionality_storage: "granted",
-      personalization_storage: "denied",
-      security_storage: "granted",
-    });
-  }
-
-  if (storedConsent === "necessary") {
-    window.gtag("consent", "update", {
-      ad_storage: "denied",
-      ad_user_data: "denied",
-      ad_personalization: "denied",
-      analytics_storage: "denied",
-      functionality_storage: "granted",
-      personalization_storage: "denied",
-      security_storage: "granted",
-    });
-  }
+  applyConsent(storedConsent);
 } catch (_err) {
   // Ignore storage access failures (private mode / restricted browser settings).
 }
+
+window.addEventListener("ibc:consent-updated", function(event) {
+  const detail = event && event.detail;
+  if (!detail || typeof detail !== "object") return;
+
+  applyConsent({
+    analytics: !!detail.analytics,
+    marketing: !!detail.marketing,
+  });
+});
 `;
 
 const storeJsonLd = {
@@ -186,9 +233,6 @@ export const metadata: Metadata = {
   },
   description: "Prawdziwa włoska kawiarnia w Koszalinie. Zapraszamy na doskonałe espresso, świeżo palone kawy specialty i włoskie wypieki. Sklep online z włoskimi delikatesami — kawa, wino, oliwy. Il Buon Caffe – ul. Biskupa Czesława Domina 3/6.",
   metadataBase: new URL("https://ilbuoncaffe.pl"),
-  alternates: {
-    canonical: "/",
-  },
   icons: {
     icon: [{ url: "/assets/logo.png" }],
     shortcut: ["/assets/logo.png"],

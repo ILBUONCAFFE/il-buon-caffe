@@ -27,6 +27,8 @@ export interface Product {
   // Static content override from Electron admin (partial JSONB)
   // NULL = use static wineData.ts catalog. Contains only overridden fields.
   wineDetails?: Record<string, unknown> | null;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
 }
 
 export interface CartItem extends Product {

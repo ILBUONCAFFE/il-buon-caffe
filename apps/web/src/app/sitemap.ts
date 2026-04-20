@@ -11,7 +11,6 @@ const STATIC_ROUTES: Array<{
   { path: "/", changeFrequency: "daily", priority: 1 },
   { path: "/sklep", changeFrequency: "daily", priority: 0.9 },
   { path: "/kawiarnia", changeFrequency: "weekly", priority: 0.9 },
-  { path: "/encyklopedia", changeFrequency: "weekly", priority: 0.5 },
   { path: "/o-nas", changeFrequency: "monthly", priority: 0.6 },
 ];
 
@@ -33,6 +32,17 @@ const normalizeCategorySlug = (category?: string) => {
   return categorySlugMap[category] || category;
 };
 
+const parseDateOrFallback = (value: unknown, fallback: Date): Date => {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return value;
+
+  if (typeof value === "string" || typeof value === "number") {
+    const parsed = new Date(value);
+    if (!Number.isNaN(parsed.getTime())) return parsed;
+  }
+
+  return fallback;
+};
+
 export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -40,16 +50,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const products = await getProducts();
 
   const categorySlugs = new Set<string>(DEFAULT_CATEGORY_SLUGS);
+  const categoryLastModified = new Map<string, Date>();
 
   const productEntries: MetadataRoute.Sitemap = products
     .filter((product) => product.slug)
     .map((product) => {
       const category = normalizeCategorySlug(product.category) || "kawa";
+      const lastModified = parseDateOrFallback(product.updatedAt ?? product.createdAt, now);
+
       categorySlugs.add(category);
+      const prevCategoryLastModified = categoryLastModified.get(category);
+      if (!prevCategoryLastModified || lastModified > prevCategoryLastModified) {
+        categoryLastModified.set(category, lastModified);
+      }
 
       return {
         url: `${BASE_URL}/sklep/${product.slug}`,
-        lastModified: now,
+        lastModified,
         changeFrequency: "weekly",
         priority: 0.8,
       };
@@ -57,7 +74,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const categoryEntries: MetadataRoute.Sitemap = Array.from(categorySlugs).map((category) => ({
     url: `${BASE_URL}/sklep/${category}`,
-    lastModified: now,
+    lastModified: categoryLastModified.get(category) ?? now,
     changeFrequency: "weekly",
     priority: 0.7,
   }));

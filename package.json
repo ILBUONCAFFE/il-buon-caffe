@@ -6,6 +6,8 @@
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "clean": "turbo run clean",
+    "seo:monitor": "node scripts/seo-monitoring-check.mjs --base-url=https://ilbuoncaffe.pl",
+    "seo:monitor:strict": "node scripts/seo-monitoring-check.mjs --base-url=https://ilbuoncaffe.pl --strict",
     "media:generate": "node scripts/generate-placeholder-images.js",
     "media:upload": "bash scripts/upload-r2-media.sh il-buon-caffe-media-dev",
     "media:upload:prod": "bash scripts/upload-r2-media.sh il-buon-caffe-media"

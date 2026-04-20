@@ -57,3 +57,13 @@ jobs:
         working-directory: apps/web
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+
+      - name: SEO smoke monitoring (post-deploy)
+        run: node scripts/seo-monitoring-check.mjs --base-url=https://ilbuoncaffe.pl --strict --output=.artifacts/seo-monitoring-postdeploy.json
+
+      - name: Upload SEO smoke artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: seo-monitoring-postdeploy
+          path: .artifacts/seo-monitoring-postdeploy.json

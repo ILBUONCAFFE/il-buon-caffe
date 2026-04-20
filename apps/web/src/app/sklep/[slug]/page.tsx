@@ -2,6 +2,7 @@ import { ProductClient } from "@/components/Product/ProductClient";
 import { ShopClient } from "@/components/Shop/ShopClient";
 import { getProductBySlug, getProducts, getFilteredProducts } from "@/actions/products";
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
 const BASE_URL = "https://ilbuoncaffe.pl";
 
@@ -88,21 +89,43 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     };
   }
 
-  // Product metadata — built from slug only, no DB fetch
+  // Product metadata: best-effort DB lookup with safe fallback to slug-based metadata.
+  // All failures are swallowed to avoid metadata exceptions taking down requests.
+  let product: Awaited<ReturnType<typeof getProductBySlug>> = null;
+  try {
+    product = await getProductBySlug(slug);
+  } catch {
+    product = null;
+  }
+
   const prettySlug = slug
     .split("-")
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
-  const safeName = prettySlug || "Produkt";
-  const canonicalPath = `/sklep/${slug}`;
+  const safeName =
+    typeof product?.name === "string" && product.name.trim()
+      ? product.name.trim()
+      : prettySlug || "Produkt";
+  const canonicalSlug =
+    typeof product?.slug === "string" && product.slug.trim()
+      ? product.slug
+      : slug;
+  const canonicalPath = `/sklep/${canonicalSlug}`;
   const title = `${safeName} | Sklep Il Buon Caffe`;
-  const description = `Kup ${safeName} w sklepie Il Buon Caffe. Najwyższa jakość, szybka dostawa.`;
+  const description =
+    typeof product?.description === "string" && product.description.trim()
+      ? product.description.trim()
+      : `Kup ${safeName} w sklepie Il Buon Caffe. Najwyższa jakość, szybka dostawa.`;
+  const productImage = toAbsoluteUrl(product?.imageUrl || product?.image) || `${BASE_URL}/assets/kawiarnia.jpg`;
 
   return {
     title,
     description,
     alternates: { canonical: canonicalPath },
+    robots: product
+      ? { index: true, follow: true }
+      : { index: false, follow: false },
     openGraph: {
       title,
       description,
@@ -110,13 +133,13 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       locale: "pl_PL",
       siteName: "Il Buon Caffe",
       url: `${BASE_URL}${canonicalPath}`,
-      images: [{ url: `${BASE_URL}/assets/kawiarnia.jpg`, width: 1920, height: 998, alt: safeName }],
+      images: [{ url: productImage, width: 1920, height: 998, alt: safeName }],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: [`${BASE_URL}/assets/kawiarnia.jpg`],
+      images: [productImage],
     },
   };
 }
@@ -140,7 +163,7 @@ export default async function ShopRoute({ params }: { params: Promise<{ slug: st
   }
 
   if (!product) {
-    return <ProductClient initialProduct={null} />;
+    notFound();
   }
 
   const parsedPrice = Number(product.price);
@@ -149,6 +172,7 @@ export default async function ShopRoute({ params }: { params: Promise<{ slug: st
   const safeDescription = typeof product.description === "string" ? product.description : "";
   const normalizedCategory = normalizeCategorySlug(product.category || "");
   const categoryLabel = categoryNameMap[normalizedCategory] || normalizedCategory || "Sklep";
+  const categoryUrl = normalizedCategory ? `${BASE_URL}/sklep/${normalizedCategory}` : `${BASE_URL}/sklep`;
   const productUrl = `${BASE_URL}/sklep/${product.slug || slug}`;
   const productImage = toAbsoluteUrl(product.imageUrl || product.image);
 
@@ -179,7 +203,7 @@ export default async function ShopRoute({ params }: { params: Promise<{ slug: st
     "@type": "BreadcrumbList",
     itemListElement: [
       { "@type": "ListItem", position: 1, name: "Sklep", item: `${BASE_URL}/sklep` },
-      { "@type": "ListItem", position: 2, name: categoryLabel, item: `${BASE_URL}/sklep/${normalizedCategory}` },
+      { "@type": "ListItem", position: 2, name: categoryLabel, item: categoryUrl },
       { "@type": "ListItem", position: 3, name: safeName, item: productUrl },
     ],
   };

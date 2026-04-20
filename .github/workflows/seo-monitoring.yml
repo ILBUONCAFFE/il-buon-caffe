@@ -1,0 +1,27 @@
+name: SEO Monitoring
+
+on:
+  schedule:
+    - cron: "20 5 * * *"
+  workflow_dispatch:
+
+jobs:
+  seo-monitoring:
+    name: Daily SEO monitoring
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run strict SEO monitoring
+        run: node scripts/seo-monitoring-check.mjs --base-url=https://ilbuoncaffe.pl --strict --output=.artifacts/seo-monitoring-daily.json
+
+      - name: Upload SEO monitoring artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: seo-monitoring-daily
+          path: .artifacts/seo-monitoring-daily.json

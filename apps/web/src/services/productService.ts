@@ -87,6 +87,8 @@ function mapDbProductToProduct(dbProduct: DbProduct, categorySlug?: string): Pro
     grapeVariety: dbProduct.grapeVariety || undefined,
     // Static content override (Electron admin, partial JSONB)
     wineDetails: (dbProduct.wineDetails as Record<string, unknown>) || undefined,
+    createdAt: dbProduct.createdAt,
+    updatedAt: dbProduct.updatedAt,
   };
 }
 

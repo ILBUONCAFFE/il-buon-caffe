@@ -66,6 +66,18 @@ function applyConsent(settings: ConsentSettings) {
   globalWindow.gtag("consent", "update", buildPayload(settings));
 }
 
+function broadcastConsent(settings: ConsentSettings) {
+  try {
+    window.dispatchEvent(
+      new CustomEvent("ibc:consent-updated", {
+        detail: settings,
+      })
+    );
+  } catch {
+    // ignore event dispatch errors in restricted environments
+  }
+}
+
 function readStoredConsent(): StoredConsent | null {
   try {
     const raw = window.localStorage.getItem(CONSENT_STORAGE_KEY);
@@ -380,7 +392,9 @@ export function ConsentBanner() {
 
     const stored = readStoredConsent();
     if (stored) {
-      applyConsent({ analytics: stored.analytics, marketing: stored.marketing });
+      const settings = { analytics: stored.analytics, marketing: stored.marketing };
+      applyConsent(settings);
+      broadcastConsent(settings);
       setIsVisible(false);
       return;
     }
@@ -391,6 +405,7 @@ export function ConsentBanner() {
   const handleAccept = (settings: ConsentSettings) => {
     persistConsent(settings);
     applyConsent(settings);
+    broadcastConsent(settings);
     setIsVisible(false);
     setShowSettings(false);
   };

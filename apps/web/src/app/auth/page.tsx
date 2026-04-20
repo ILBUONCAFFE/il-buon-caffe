@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   description: "Zaloguj się lub stwórz konto w Il Buon Caffe. Uzyskaj dostęp do historii zamówień, listy życzeń i ekskluzywnych ofert.",
   robots: {
     index: false,
-    follow: true,
+    follow: false,
   },
   openGraph: {
     title: "Logowanie | Il Buon Caffe",

@@ -125,6 +125,40 @@ Przed ogłoszeniem sklepu publicznie:
 
 ---
 
+## TOR C — SEO/Bing (Faza 1)
+
+- [ ] Domena kanoniczna działa: `https://www.ilbuoncaffe.pl/*` przekierowuje 301 do `https://ilbuoncaffe.pl/*`
+- [ ] `https://ilbuoncaffe.pl/robots.txt` zwraca 200 i blokuje tylko strefy prywatne (`/admin`, `/account`, `/auth`, `/checkout`, `/order`, `/api/`)
+- [ ] `https://ilbuoncaffe.pl/sitemap.xml` zwraca 200 oraz zawiera komplet URL z storefrontu
+- [ ] Strona główna nie wymusza globalnego canonical dla wszystkich podstron
+- [ ] `noindex,nofollow` dla stref prywatnych (`/account`, `/checkout`, `/admin`) jest aktywne
+- [ ] Przygotowany baseline SEO i KPI na 30/60/90 dni (plik operacyjny)
+- [ ] Gotowa macierz testów regresji SEO do odpalania po każdym deployu
+
+---
+
+## TOR D — SEO/Bing (Faza 3)
+
+- [ ] Zweryfikowana własność `https://ilbuoncaffe.pl` w Bing Webmaster (DNS TXT)
+- [ ] Zgłoszona sitemap: `https://ilbuoncaffe.pl/sitemap.xml`
+- [ ] URL Inspection wykonany dla home, sklep, kategorii i min. 2 produktów
+- [ ] Brak krytycznych błędów Coverage blokujących indeksację
+- [ ] Wdrożony Microsoft Clarity z poszanowaniem consent (analytics)
+- [ ] `NEXT_PUBLIC_CLARITY_PROJECT_ID` ustawiony na produkcji
+- [ ] Aktywne runbooki: `docs/BING_WEBMASTER_SETUP.md`, `docs/SEO_MONITORING_PLAYBOOK.md`, `docs/incidents/bing-dns-fetch-failed.md`
+
+---
+
+## TOR E — SEO/Bing (Faza 4)
+
+- [ ] Działa monitoring po deployu (`.github/workflows/deploy.yml` + artifact `seo-monitoring-postdeploy`)
+- [ ] Działa monitoring cykliczny (`.github/workflows/seo-monitoring.yml`)
+- [ ] `npm run seo:monitor:strict` przechodzi dla produkcyjnego hosta
+- [ ] Zdefiniowany owner reakcji na alerty critical i warning
+- [ ] Miesięczny rytm przeglądu KPI indeksacji i crawl jest aktywny
+
+---
+
 ## Co NIE jest potrzebne do launch'u
 
 _(zostaw na po starcie)_

@@ -123,12 +123,12 @@ const SECURITY_HEADERS = [
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://tagmanager.google.com https://static.cloudflareinsights.com",
-      "script-src-elem 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://tagmanager.google.com https://static.cloudflareinsights.com",
+      "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://tagmanager.google.com https://static.cloudflareinsights.com https://www.clarity.ms",
+      "script-src-elem 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://tagmanager.google.com https://static.cloudflareinsights.com https://www.clarity.ms",
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: https: https://www.google-analytics.com https://*.google-analytics.com https://www.googletagmanager.com",
+      "img-src 'self' data: https: https://www.google-analytics.com https://*.google-analytics.com https://www.googletagmanager.com https://*.clarity.ms",
       "font-src 'self' data:",
-      "connect-src 'self' https: https://www.google-analytics.com https://*.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com https://tagassistant.google.com https://cloudflareinsights.com",
+      "connect-src 'self' https: https://www.google-analytics.com https://*.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com https://tagassistant.google.com https://cloudflareinsights.com https://www.clarity.ms https://c.clarity.ms https://*.clarity.ms",
       "worker-src 'self' blob:",
       "frame-src https://www.google.com",
       "object-src 'none'",
@@ -154,6 +154,13 @@ const nextConfig = {
   },
   async redirects() {
     return [
+      // Enforce a single canonical host to avoid duplicate indexing between www/non-www.
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'www.ilbuoncaffe.pl' }],
+        destination: 'https://ilbuoncaffe.pl/:path*',
+        permanent: true,
+      },
       {
         source: '/sklep/:category(kawa|wino|slodycze|spizarnia)/:slug',
         destination: '/sklep/:slug',
