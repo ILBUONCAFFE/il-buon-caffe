@@ -67,7 +67,7 @@ export function deriveWorstState(
 
 // ── Cadence rules (success path) ─────────────────────────────────────────
 export const CADENCE: Record<ShipmentState, CadenceRule> = {
-  awaiting_handover: { intervalMs: 30 * 60 * 1000,      maxLifetimeMs: 24 * 60 * 60 * 1000,       lifetimeExceededState: 'exception' },
+  awaiting_handover: { intervalMs: 30 * 60 * 1000,      maxLifetimeMs: 7 * 24 * 60 * 60 * 1000,   lifetimeExceededState: 'stale' },
   label_created:     { intervalMs: 2 * 60 * 60 * 1000,  maxLifetimeMs: 48 * 60 * 60 * 1000,       lifetimeExceededState: 'exception' },
   in_transit:        { intervalMs: 6 * 60 * 60 * 1000,  maxLifetimeMs: 14 * 24 * 60 * 60 * 1000,  lifetimeExceededState: 'stale' },
   out_for_delivery:  { intervalMs: 30 * 60 * 1000,      maxLifetimeMs: 48 * 60 * 60 * 1000,       lifetimeExceededState: 'exception' },
