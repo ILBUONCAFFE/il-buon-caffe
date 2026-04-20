@@ -56,7 +56,10 @@ export async function pollAllegroShipment(
   if (!token) return { ok: false, failure: { kind: 'auth', message: 'no_usable_token_in_kv' } }
 
   const base = ALLEGRO_API[env.ALLEGRO_ENVIRONMENT] ?? ALLEGRO_API.production
-  const url = `${base}/order/checkout-forms/${checkoutFormId}/shipments`
+  // Fetch full checkout form — fulfillment.status is the authoritative delivery state.
+  // The /shipments sub-endpoint only returns dispatch metadata (waybill, carrierId) without
+  // any tracking status field, so it cannot be used to advance shipment state.
+  const url = `${base}/order/checkout-forms/${checkoutFormId}`
   const res = await fetch(url, {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -78,9 +81,20 @@ export async function pollAllegroShipment(
   }
 
   try {
-    const body = await res.json<{ shipments?: AllegroShipmentRecord[] }>()
-    const list = Array.isArray(body?.shipments) ? body.shipments : []
-    return { ok: true, shipments: list }
+    const form = await res.json<{
+      fulfillment?: { status?: string }
+      delivery?: { shipmentSummary?: { waybill?: string; trackingNumber?: string } }
+    }>()
+    const fulfillmentStatus = form?.fulfillment?.status
+    const waybill = (
+      form?.delivery?.shipmentSummary?.waybill ??
+      form?.delivery?.shipmentSummary?.trackingNumber
+    )?.trim() || undefined
+
+    // Synthesise a single record so deriveWorstState can map fulfillment status
+    // (PICKED_UP, SENT, NEW, PROCESSING, etc.) to our internal ShipmentState.
+    const shipments: AllegroShipmentRecord[] = [{ id: checkoutFormId, waybillNumber: waybill, status: fulfillmentStatus }]
+    return { ok: true, shipments }
   } catch (e) {
     return { ok: false, failure: { kind: 'parse', message: String(e) } }
   }

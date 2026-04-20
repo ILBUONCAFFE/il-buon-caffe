@@ -15,10 +15,12 @@ const ALLEGRO_STATUS_MAP: Record<string, ShipmentState> = {
   HANDED_TO_CARRIER: 'in_transit',
   IN_DELIVERY: 'in_transit',
   SENT: 'in_transit',
-  // Label only
+  // Label only / awaiting handover (Allegro fulfillment statuses)
   LABEL_CREATED: 'label_created',
   AWAITING_PICKUP: 'label_created',
   NEW: 'label_created',
+  PROCESSING: 'awaiting_handover',
+  READY_FOR_SHIPMENT: 'awaiting_handover',
   // Problems
   RETURNED: 'exception',
   DELIVERY_FAILED: 'exception',
@@ -57,7 +59,7 @@ export function deriveWorstState(
 
   let worst: ShipmentState = 'delivered'
   for (const s of shipments) {
-    const mapped = mapAllegroStatus(s.status) ?? 'in_transit'
+    const mapped = mapAllegroStatus(s.status) ?? fallbackWhenEmpty
     if (STATE_RANK[mapped] < STATE_RANK[worst]) worst = mapped
   }
   return worst
