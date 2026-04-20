@@ -113,8 +113,23 @@ export async function applyPollResult(
   const previousState = order.shipmentState as ShipmentState
   let newState = deriveWorstState(shipments, previousState)
 
-  // Lifetime escalation
-  if (order.shipmentStateChangedAt) {
+  // No-regression: Allegro fulfillment.status can be stale (e.g. returns PROCESSING
+  // after a package is already in transit). Never move to a lower-rank state unless
+  // it is an exception/stale escalation — those can override anything.
+  const STATE_RANK_INLINE: Record<ShipmentState, number> = {
+    exception: 0, awaiting_handover: 1, label_created: 2,
+    in_transit: 3, out_for_delivery: 4, delivered: 5, stale: 6,
+  }
+  if (
+    STATE_RANK_INLINE[newState] < STATE_RANK_INLINE[previousState] &&
+    newState !== 'exception' && newState !== 'stale'
+  ) {
+    newState = previousState
+  }
+
+  // Lifetime escalation: only when state is UNCHANGED (order stuck in same state).
+  // If Allegro returned a different state, the clock resets — don't use the old timestamp.
+  if (newState === previousState && order.shipmentStateChangedAt) {
     const escalated = checkLifetimeExceeded(newState, order.shipmentStateChangedAt, now)
     if (escalated) newState = escalated
   }
