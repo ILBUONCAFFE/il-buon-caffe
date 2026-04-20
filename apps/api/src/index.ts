@@ -356,7 +356,7 @@ export default {
     // "0 3 * * *"   — daily at 04:00 CET / 05:00 CEST (03:00 UTC) — backfill exchange rates + shipment enrollment
     const cronExpr = normalizeCronExpression(event.cron)
 
-    if (cronExpr === '*/2 * * * *') {
+    if (cronExpr === '0 */2 * * *') {
       ctx.waitUntil(
         returnsReconcileTick(env as unknown as SchedulerEnv).catch((err) => {
           console.error('[Returns] cron failed', err instanceof Error ? err.message : String(err))
