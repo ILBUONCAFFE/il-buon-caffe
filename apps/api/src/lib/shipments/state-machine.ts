@@ -27,6 +27,20 @@ const ALLEGRO_STATUS_MAP: Record<string, ShipmentState> = {
   LOST: 'exception',
   ADDRESSEE_ABSENT: 'exception',
   CANCELLED: 'exception',
+  // ── InPost ShipX carrier codes (lowercase uppercased by mapAllegroStatus) ──
+  PICKED_UP_BY_RECIPIENT: 'delivered',
+  STORED_IN_PARCEL_LOCKER: 'out_for_delivery',
+  READY_TO_PICKUP: 'out_for_delivery',
+  DISPATCHED_BY_SENDER: 'awaiting_handover',
+  ADOPTED_AT_SOURCE_BRANCH: 'in_transit',
+  SENT_FROM_SOURCE_BRANCH: 'in_transit',
+  ADOPTED_AT_SORTING_CENTER: 'in_transit',
+  SENT_FROM_SORTING_CENTER: 'in_transit',
+  ADOPTED_AT_TARGET_BRANCH: 'in_transit',
+  OUT_FOR_DELIVERY_LOCKER: 'out_for_delivery',
+  PICKUP_TIME_EXPIRED: 'exception',
+  RETURNED_TO_SENDER: 'exception',
+  AVIZO: 'in_transit',
 }
 
 // Worst → best ordering for multi-parcel reduction

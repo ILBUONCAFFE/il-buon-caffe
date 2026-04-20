@@ -133,9 +133,11 @@ export async function syncAllegroOrders(env: Env): Promise<void> {
 
     const events = allEvents // process ALL event types (reconcileOrder handles unknowns)
 
-    // ── Deduplicate: group events by checkoutFormId, keep only the highest-priority event ──
-    // Multiple events for the same order (BOUGHT → FILLED_IN → READY_FOR_PROCESSING) produce
-    // redundant fetchCheckoutForm calls. We only need to process the latest/most-important one.
+    // ── Deduplicate: per order keep the best KNOWN event + last UNKNOWN event ──
+    // Known events (BOUGHT, FILLED_IN, READY_FOR_PROCESSING, *_CANCELLED) deduplicate
+    // by priority so the most important handler runs once.
+    // Unknown events (SENT, PICKED_UP, fulfillment status changes) are never suppressed
+    // by a known event — they carry separate information and call reconcileOrder.
     const EVENT_PRIORITY: Record<string, number> = {
       'BUYER_CANCELLED':      5,
       'AUTO_CANCELLED':       5,
@@ -144,20 +146,33 @@ export async function syncAllegroOrders(env: Env): Promise<void> {
       'BOUGHT':               1,
     }
 
-    const bestEventPerOrder = new Map<string, AllegroOrderEvent>()
+    const bestKnownEvent   = new Map<string, AllegroOrderEvent>()
+    const lastUnknownEvent = new Map<string, AllegroOrderEvent>()
 
     for (const event of events) {
-      const formId = event.order.checkoutForm.id
-      const existing = bestEventPerOrder.get(formId)
-      const priority = EVENT_PRIORITY[event.type] ?? 0
-      const existingPriority = existing ? (EVENT_PRIORITY[existing.type] ?? 0) : -1
-
-      if (priority > existingPriority) {
-        bestEventPerOrder.set(formId, event)
+      const formId   = event.order.checkoutForm.id
+      const priority = EVENT_PRIORITY[event.type]
+      if (priority !== undefined) {
+        const existing = bestKnownEvent.get(formId)
+        if (!existing || priority > (EVENT_PRIORITY[existing.type] ?? 0)) {
+          bestKnownEvent.set(formId, event)
+        }
+      } else {
+        // Unknown event type — keep the last one (events are chronological)
+        lastUnknownEvent.set(formId, event)
       }
     }
 
-    const dedupedEvents = Array.from(bestEventPerOrder.values())
+    // Combine: known event first, then unknown (if it's a different event ID)
+    const dedupedEvents: AllegroOrderEvent[] = []
+    for (const [formId, known] of bestKnownEvent) {
+      dedupedEvents.push(known)
+      const unknown = lastUnknownEvent.get(formId)
+      if (unknown && unknown.id !== known.id) dedupedEvents.push(unknown)
+    }
+    for (const [formId, unknown] of lastUnknownEvent) {
+      if (!bestKnownEvent.has(formId)) dedupedEvents.push(unknown)
+    }
 
     console.log(`[AllegroOrders] Strona ${pagesProcessed + 1}: ${events.length} eventów → ${dedupedEvents.length} unikalnych zamówień (z ${allEvents.length} total)`)
 
