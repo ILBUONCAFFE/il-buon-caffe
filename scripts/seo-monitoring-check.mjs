@@ -11,6 +11,14 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 
 const DEFAULT_TIMEOUT_MS = 15000;
+const DEFAULT_REQUEST_HEADERS = {
+  accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+  'accept-language': 'pl-PL,pl;q=0.9,en-US;q=0.8,en;q=0.7',
+  'cache-control': 'no-cache',
+  pragma: 'no-cache',
+  'user-agent':
+    'Mozilla/5.0 (compatible; IBCSeoMonitoring/1.0; +https://ilbuoncaffe.pl)',
+};
 
 function parseArgs(argv) {
   const args = {
@@ -51,7 +59,19 @@ async function fetchWithTimeout(url, options = {}) {
   const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
 
   try {
-    const response = await fetch(url, { ...options, signal: controller.signal });
+    const headers = new Headers(DEFAULT_REQUEST_HEADERS);
+    if (options.headers) {
+      const customHeaders = new Headers(options.headers);
+      for (const [key, value] of customHeaders.entries()) {
+        headers.set(key, value);
+      }
+    }
+
+    const response = await fetch(url, {
+      ...options,
+      headers,
+      signal: controller.signal,
+    });
     return response;
   } finally {
     clearTimeout(timeout);
@@ -236,14 +256,35 @@ async function run() {
     checks.push(makeCheck('SEO-09', 'Checkout noindex/nofollow', 'critical', false, `fetch_error=${String(error)}`));
   }
 
-  // SEO-11: non-existing product should return 404
+  // SEO-11: non-existing product should behave as non-indexable missing resource
+  // In App Router streaming mode, notFound() can surface as soft-404 (200 + noindex).
   try {
-    const response = await fetchWithTimeout(`${canonicalOrigin}/sklep/slug-ktorego-nie-ma`, { redirect: 'manual' });
+    const missingProductUrl = `${canonicalOrigin}/sklep/slug-ktorego-nie-ma`;
+    const { response, text } = await fetchText(missingProductUrl, { redirect: 'manual' });
+    const robots = extractRobotsMeta(text);
+    const canonical = extractCanonical(text);
+    const isHard404 = response.status === 404;
+    const isSoft404Noindex = response.status === 200 && robots.includes('noindex');
+
     checks.push(
-      makeCheck('SEO-11', 'Non-existing product returns 404', 'critical', response.status === 404, `status=${response.status}`),
+      makeCheck(
+        'SEO-11',
+        'Non-existing product is non-indexable (hard or soft 404)',
+        'critical',
+        isHard404 || isSoft404Noindex,
+        `status=${response.status}; robots=${robots || 'missing'}; canonical=${canonical || 'missing'}`,
+      ),
     );
   } catch (error) {
-    checks.push(makeCheck('SEO-11', 'Non-existing product returns 404', 'critical', false, `fetch_error=${String(error)}`));
+    checks.push(
+      makeCheck(
+        'SEO-11',
+        'Non-existing product is non-indexable (hard or soft 404)',
+        'critical',
+        false,
+        `fetch_error=${String(error)}`,
+      ),
+    );
   }
 
   const summary = summarize(checks);

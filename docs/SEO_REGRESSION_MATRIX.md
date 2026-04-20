@@ -33,7 +33,7 @@ Cel: szybki pakiet testow regresji SEO po kazdym deployu web/app i zmianach w me
 
 | ID | Test | Komenda kontrolna | Oczekiwany wynik |
 |---|---|---|---|
-| SEO-11 | Nieistniejacy produkt | `curl -sSI https://ilbuoncaffe.pl/sklep/slug-ktorego-nie-ma | head -n 5` | `404` (nie `200`) |
+| SEO-11 | Nieistniejacy produkt (hard/soft 404) | `curl -sSI https://ilbuoncaffe.pl/sklep/slug-ktorego-nie-ma | head -n 5` + `curl -sS https://ilbuoncaffe.pl/sklep/slug-ktorego-nie-ma | grep -i -m1 'name="robots"'` | `404` lub `200` z `meta robots: noindex` |
 | SEO-12 | Product canonical | `curl -sS https://ilbuoncaffe.pl/sklep/<slug> | grep -i -m1 'rel="canonical"'` | canonical zgodny z finalnym slug URL |
 | SEO-13 | Product schema | walidator schema.org + source strony produktu | `Product` + `Offer` + `BreadcrumbList` zgodne z trescia |
 | SEO-14 | OG image per produkt | source strony produktu | `og:image` wskazuje obraz produktu, nie globalny fallback |
