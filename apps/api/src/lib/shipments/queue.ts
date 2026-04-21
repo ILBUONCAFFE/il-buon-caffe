@@ -13,6 +13,7 @@ const TERMINAL_STATES: string[] = ['delivered', 'stale']
 export interface DueOrder {
   id: number
   externalId: string | null
+  status: string
   shipmentState: string
   shipmentCheckAttempts: number
   shipmentStateChangedAt: Date | null
@@ -47,6 +48,7 @@ export async function selectDueShipments(
     .select({
       id:                       orders.id,
       externalId:               orders.externalId,
+      status:                   orders.status,
       shipmentState:            orders.shipmentState,
       shipmentCheckAttempts:    orders.shipmentCheckAttempts,
       shipmentStateChangedAt:   orders.shipmentStateChangedAt,
@@ -56,6 +58,7 @@ export async function selectDueShipments(
     .where(
       and(
         eq(orders.source, 'allegro'),
+        isNotNull(orders.externalId),
         isNotNull(orders.shipmentState),
         notInArray(orders.shipmentState, TERMINAL_STATES),
         lte(orders.shipmentNextCheckAt, now),
@@ -79,6 +82,7 @@ export async function refreshNextDueKv(
     .where(
       and(
         eq(orders.source, 'allegro'),
+        isNotNull(orders.externalId),
         isNotNull(orders.shipmentState),
         notInArray(orders.shipmentState, TERMINAL_STATES),
       ),

@@ -23,9 +23,9 @@ const ALLEGRO_SYNC_MAP: Record<string, string[]> = {
   pending: ['NEW'],
   paid: ['NEW', 'PROCESSING'],
   processing: ['PROCESSING', 'READY_FOR_SHIPMENT'],
-  shipped: ['SENT', 'PICKED_UP'],
-  delivered: ['SENT', 'PICKED_UP'],
-  completed: ['SENT', 'PICKED_UP'],
+  shipped: ['SENT'],
+  delivered: ['PICKED_UP'],
+  completed: ['PICKED_UP'],
   cancelled: ['CANCELLED'],
 }
 

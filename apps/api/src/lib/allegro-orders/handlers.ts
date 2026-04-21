@@ -449,7 +449,8 @@ export async function handleCancelled(
  * Status mapping:
  *   Allegro status CANCELLED             → local 'cancelled' (+ stock restore if was paid)
  *   Allegro fulfillment.status CANCELLED → local 'cancelled' (+ stock restore if was paid)
- *   Allegro fulfillment.status SENT/PICKED_UP → local 'shipped'
+ *   Allegro fulfillment.status SENT      → local 'shipped'
+ *   Allegro fulfillment.status PICKED_UP → local 'delivered'
  *   Other changes                        → update allegroFulfillmentStatus only
  */
 export async function reconcileOrder(
@@ -495,28 +496,44 @@ export async function reconcileOrder(
     allegroStatus === 'CANCELLED' ||
     fulfillmentStatus === 'CANCELLED'
 
-  const isSent =
-    fulfillmentStatus === 'SENT' || fulfillmentStatus === 'PICKED_UP'
+  const isPickedUp = fulfillmentStatus === 'PICKED_UP'
+  const isSent = fulfillmentStatus === 'SENT'
 
   const trackingSnapshotCode = isCancelled
     ? 'CANCELLED'
-    : isSent
-      ? (fulfillmentStatus === 'PICKED_UP' ? 'PICKED_UP' : 'SENT')
+    : (isPickedUp || isSent)
+      ? (isPickedUp ? 'PICKED_UP' : 'SENT')
       : null
 
   const trackingSnapshotLabel = isCancelled
     ? 'Przesylka anulowana'
-    : isSent
-      ? (fulfillmentStatus === 'PICKED_UP' ? 'Przesylka odebrana' : 'Przesylka w drodze')
+    : (isPickedUp || isSent)
+      ? (isPickedUp ? 'Przesylka dostarczona' : 'Przesylka w drodze')
       : null
 
-  let newLocalStatus: 'cancelled' | 'shipped' | null = null
+  let newLocalStatus: 'cancelled' | 'shipped' | 'delivered' | null = null
 
   if (isCancelled && existing.status !== 'cancelled') {
     newLocalStatus = 'cancelled'
   } else if (
+    isPickedUp &&
+    existing.status !== 'cancelled' &&
+    existing.status !== 'refunded' &&
+    existing.status !== 'return_requested' &&
+    existing.status !== 'return_in_transit' &&
+    existing.status !== 'return_received' &&
+    existing.status !== 'disputed' &&
+    existing.status !== 'delivered'
+  ) {
+    newLocalStatus = 'delivered'
+  } else if (
     isSent &&
     existing.status !== 'cancelled' &&
+    existing.status !== 'refunded' &&
+    existing.status !== 'return_requested' &&
+    existing.status !== 'return_in_transit' &&
+    existing.status !== 'return_received' &&
+    existing.status !== 'disputed' &&
     existing.status !== 'shipped' &&
     existing.status !== 'delivered'
   ) {
@@ -561,6 +578,8 @@ export async function reconcileOrder(
           console.warn('[AllegroOrders] enrollShipment failed for order', existing.id, err)
         })
       }
+    } else if (newLocalStatus === 'delivered') {
+      await db.update(orders).set({ deliveredAt: new Date(), updatedAt: new Date() }).where(eq(orders.externalId, form.id))
     }
   }
 

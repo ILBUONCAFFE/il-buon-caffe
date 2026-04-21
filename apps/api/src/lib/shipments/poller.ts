@@ -15,6 +15,16 @@ import { decryptText } from '../crypto'
 
 type ShipmentDb = ReturnType<typeof createDbWithPool>['db']
 
+const ORDER_STATUSES_BLOCKING_AUTO_DELIVER = new Set([
+  'delivered',
+  'cancelled',
+  'refunded',
+  'return_requested',
+  'return_in_transit',
+  'return_received',
+  'disputed',
+])
+
 const ALLEGRO_API = {
   sandbox:    'https://api.allegro.pl.allegrosandbox.pl',
   production: 'https://api.allegro.pl',
@@ -237,6 +247,25 @@ export async function applyPollResult(
       previousValue: previousState ?? null,
       newValue:      newState,
       source:        'allegro_sync',
+      occurredAt:    now,
+    })
+  }
+
+  // Keep business status aligned with terminal shipment state.
+  // Without this, orders can stay "shipped" forever after carrier confirms delivery.
+  if (newState === 'delivered' && !ORDER_STATUSES_BLOCKING_AUTO_DELIVER.has(order.status)) {
+    await db.update(orders).set({
+      status:      'delivered',
+      deliveredAt: now,
+      updatedAt:   now,
+    }).where(eq(orders.id, order.id))
+
+    await db.insert(orderStatusHistory).values({
+      orderId:       order.id,
+      category:      'status',
+      previousValue: order.status,
+      newValue:      'delivered',
+      source:        'carrier_sync',
       occurredAt:    now,
     })
   }

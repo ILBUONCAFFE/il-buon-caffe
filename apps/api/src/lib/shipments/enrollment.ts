@@ -1,6 +1,6 @@
 import { createDbWithPool } from '@repo/db/client'
 import { orders } from '@repo/db/schema'
-import { and, eq, isNull, inArray, gt } from 'drizzle-orm'
+import { and, eq, isNull, isNotNull, inArray, gt } from 'drizzle-orm'
 import { invalidateNextDueKv } from './queue'
 import { computeNextCheckAt } from './state-machine'
 
@@ -59,6 +59,7 @@ export async function backfillShipmentEnrollment(
   }).where(
     and(
       eq(orders.source, 'allegro'),
+      isNotNull(orders.externalId),
       isNull(orders.shipmentState),
       inArray(orders.status, ['paid', 'processing', 'shipped', 'in_transit', 'out_for_delivery'] as (typeof orders.status._.data)[]),
       gt(orders.createdAt, thirtyDaysAgo),

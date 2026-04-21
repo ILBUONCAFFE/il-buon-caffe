@@ -8,6 +8,8 @@ import { getClientIp, serverError } from '../../lib/request'
 import { logAdminAction } from '../../lib/audit'
 import { allegroHeaders, sleep } from '../../lib/allegro-orders/helpers'
 import { getActiveAllegroToken } from '../../lib/allegro-tokens'
+import { recordStatusChange } from '../../lib/record-status-change'
+import { computeNextCheckAt } from '../../lib/shipments/state-machine'
 
 export const adminShipmentsRouter = new Hono<{ Bindings: Env }>()
 
@@ -21,6 +23,27 @@ function asNumber(value: unknown): number {
   }
   return 0
 }
+
+const ORDER_STATUSES_BLOCKING_DELIVERED = new Set([
+  'delivered',
+  'cancelled',
+  'refunded',
+  'return_requested',
+  'return_in_transit',
+  'return_received',
+  'disputed',
+])
+
+const ORDER_STATUSES_BLOCKING_SHIPPED = new Set([
+  'shipped',
+  'delivered',
+  'cancelled',
+  'refunded',
+  'return_requested',
+  'return_in_transit',
+  'return_received',
+  'disputed',
+])
 
 // GET /admin/shipment/delivery-services
 adminShipmentsRouter.get('/shipment/delivery-services', async (c) => {
@@ -326,6 +349,7 @@ adminShipmentsRouter.post('/orders/:id/fulfillment', async (c) => {
     const [order] = await db.select({
       id: orders.id,
       externalId: orders.externalId,
+      status: orders.status,
     }).from(orders).where(eq(orders.id, orderId)).limit(1)
 
     if (!order?.externalId) {
@@ -348,17 +372,58 @@ adminShipmentsRouter.post('/orders/:id/fulfillment', async (c) => {
       return c.json({ error: { code: 'FULFILLMENT_FAILED', message: `Allegro error: ${resp.status}` } }, 502)
     }
 
+    const now = new Date()
+    const nextStatus =
+      body.status === 'PICKED_UP' && !ORDER_STATUSES_BLOCKING_DELIVERED.has(order.status)
+        ? 'delivered'
+        : body.status === 'SENT' && !ORDER_STATUSES_BLOCKING_SHIPPED.has(order.status)
+          ? 'shipped'
+          : null
+
     await db.update(orders).set({
       allegroFulfillmentStatus: body.status,
       ...(body.status === 'SENT' || body.status === 'PICKED_UP'
         ? {
             trackingStatusCode: body.status,
-            trackingStatus: body.status === 'PICKED_UP' ? 'Przesylka odebrana' : 'Przesylka nadana',
-            trackingStatusUpdatedAt: new Date(),
+            trackingStatus: body.status === 'PICKED_UP' ? 'Przesylka dostarczona' : 'Przesylka nadana',
+            trackingStatusUpdatedAt: now,
           }
         : {}),
-      updatedAt: new Date(),
+      ...(body.status === 'PICKED_UP'
+        ? {
+            shipmentState: 'delivered',
+            shipmentStateChangedAt: now,
+            shipmentLastCheckedAt: now,
+            shipmentNextCheckAt: computeNextCheckAt('delivered', now),
+            shipmentCheckAttempts: 0,
+            deliveredAt: now,
+          }
+        : body.status === 'SENT'
+          ? {
+              shipmentState: 'in_transit',
+              shipmentStateChangedAt: now,
+              shipmentLastCheckedAt: now,
+              shipmentNextCheckAt: computeNextCheckAt('in_transit', now),
+              shipmentCheckAttempts: 0,
+              ...(nextStatus === 'shipped' ? { shippedAt: now } : {}),
+            }
+          : {}),
+      updatedAt: now,
     }).where(eq(orders.id, orderId))
+
+    if (nextStatus) {
+      await recordStatusChange(db, {
+        orderId: order.id,
+        category: 'status',
+        newValue: nextStatus,
+        source: 'admin',
+        sourceRef: order.externalId,
+        metadata: {
+          fulfillmentStatus: body.status,
+          previousStatus: order.status,
+        },
+      })
+    }
 
     return c.json({ success: true })
   } catch (err) {

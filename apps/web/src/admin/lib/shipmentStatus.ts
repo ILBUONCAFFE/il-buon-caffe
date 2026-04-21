@@ -32,7 +32,7 @@ const ALLEGRO_FULFILLMENT_MAP: Record<string, ShipmentStage> = {
   PROCESSING: { step: 1, label: 'W przygotowaniu' },
   READY_FOR_SHIPMENT: { step: 1, label: 'Gotowe do nadania' },
   SENT: { step: 2, label: 'Nadane' },
-  PICKED_UP: { step: 3, label: 'Odebrane' },
+  PICKED_UP: { step: 3, label: 'Dostarczona' },
   CANCELLED: { step: 0, label: 'Przesylka anulowana', isCancelled: true },
 }
 

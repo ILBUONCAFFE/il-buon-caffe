@@ -45,6 +45,8 @@ export async function refreshShipments(env: SchedulerEnv): Promise<CycleSummary>
     for (const order of due) {
       if (!order.externalId) {
         console.warn(`[Shipments] order ${order.id} missing externalId — skipped`)
+        failures++
+        await applyBackoff(db, order, { kind: 'unknown', message: 'missing_external_id' })
         continue
       }
 

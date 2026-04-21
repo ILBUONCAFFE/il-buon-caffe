@@ -12,6 +12,9 @@ describe('mapAllegroStatus', () => {
   it('maps DELIVERED → delivered', () => {
     expect(mapAllegroStatus('DELIVERED')).toBe('delivered')
   })
+  it('maps PICKED_UP → delivered', () => {
+    expect(mapAllegroStatus('PICKED_UP')).toBe('delivered')
+  })
   it('is case-insensitive', () => {
     expect(mapAllegroStatus('delivered')).toBe('delivered')
     expect(mapAllegroStatus(' In_Transit ')).toBe('in_transit')
@@ -48,8 +51,8 @@ describe('deriveWorstState', () => {
       { id: 'b', status: 'RETURNED' },
     ])).toBe('exception')
   })
-  it('unknown parcel codes fall back to in_transit', () => {
-    expect(deriveWorstState([{ id: 'a', status: 'WHATEVER' }])).toBe('in_transit')
+  it('unknown parcel codes fall back to awaiting_handover', () => {
+    expect(deriveWorstState([{ id: 'a', status: 'WHATEVER' }])).toBe('awaiting_handover')
   })
 })
 
@@ -84,10 +87,10 @@ describe('checkLifetimeExceeded', () => {
     const now    = new Date('2026-04-18T11:00:00Z')
     expect(checkLifetimeExceeded('awaiting_handover', changed, now)).toBeNull()
   })
-  it('escalates awaiting_handover → exception after 24h', () => {
-    const changed = new Date('2026-04-17T09:00:00Z')
+  it('escalates awaiting_handover → stale after 7d', () => {
+    const changed = new Date('2026-04-10T09:00:00Z')
     const now    = new Date('2026-04-18T10:00:00Z')
-    expect(checkLifetimeExceeded('awaiting_handover', changed, now)).toBe('exception')
+    expect(checkLifetimeExceeded('awaiting_handover', changed, now)).toBe('stale')
   })
   it('escalates in_transit → stale after 14d', () => {
     const changed = new Date('2026-04-01T10:00:00Z')
