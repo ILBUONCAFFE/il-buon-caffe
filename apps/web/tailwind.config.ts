@@ -47,6 +47,9 @@ const config: Config = {
         "glow": "glow 3s ease-in-out infinite",
         "scale-in": "scaleIn 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards",
         "slide-mask": "slideMask 1.4s cubic-bezier(0.76, 0, 0.24, 1) forwards",
+        "orb-1": "orbDrift1 28s ease-in-out infinite",
+        "orb-2": "orbDrift2 36s ease-in-out infinite",
+        "orb-3": "orbDrift3 22s ease-in-out infinite",
       },
       keyframes: {
         fadeIn: {
@@ -106,6 +109,23 @@ const config: Config = {
         slideMask: {
           "0%": { clipPath: "inset(0 100% 0 0)" },
           "100%": { clipPath: "inset(0 0 0 0)" },
+        },
+        orbDrift1: {
+          "0%, 100%": { transform: "translate(0%, 0%) scale(1)" },
+          "25%": { transform: "translate(4%, -6%) scale(1.06)" },
+          "50%": { transform: "translate(-3%, 4%) scale(0.96)" },
+          "75%": { transform: "translate(6%, 2%) scale(1.03)" },
+        },
+        orbDrift2: {
+          "0%, 100%": { transform: "translate(0%, 0%) scale(1)" },
+          "30%": { transform: "translate(-5%, 5%) scale(1.08)" },
+          "60%": { transform: "translate(4%, -3%) scale(0.94)" },
+          "80%": { transform: "translate(-2%, -5%) scale(1.04)" },
+        },
+        orbDrift3: {
+          "0%, 100%": { transform: "translate(0%, 0%) scale(1)" },
+          "40%": { transform: "translate(3%, 6%) scale(1.05)" },
+          "70%": { transform: "translate(-4%, -4%) scale(0.97)" },
         },
       },
     },

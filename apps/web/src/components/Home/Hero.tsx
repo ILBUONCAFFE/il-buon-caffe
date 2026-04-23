@@ -16,8 +16,39 @@ const images = [
 ];
 
 export const Hero = () => (
-  <section className="min-h-[88vh] bg-white dark:bg-brand-950 flex items-center border-b border-brand-100 dark:border-white/5">
-    <div className="container mx-auto px-6 lg:px-12 py-20 md:py-24">
+  <section className="relative min-h-[88vh] bg-white dark:bg-brand-950 flex items-center border-b border-brand-100 dark:border-white/5 overflow-hidden">
+
+    {/* ── Animated gradient orbs ── */}
+    <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+      {/* Orb 1 — warm amber, top-left */}
+      <div className="absolute -top-[20%] -left-[10%] w-[55vw] h-[55vw] rounded-full animate-orb-1"
+        style={{ background: "radial-gradient(circle, rgba(163,127,91,0.18) 0%, transparent 70%)", filter: "blur(60px)" }}
+      />
+      {/* Orb 2 — deep espresso, bottom-right */}
+      <div className="absolute -bottom-[20%] -right-[10%] w-[50vw] h-[50vw] rounded-full animate-orb-2"
+        style={{ background: "radial-gradient(circle, rgba(88,65,49,0.14) 0%, transparent 70%)", filter: "blur(80px)" }}
+      />
+      {/* Orb 3 — gold center, subtle */}
+      <div className="absolute top-[30%] left-[40%] w-[35vw] h-[35vw] rounded-full animate-orb-3"
+        style={{ background: "radial-gradient(circle, rgba(184,156,125,0.12) 0%, transparent 65%)", filter: "blur(50px)" }}
+      />
+      {/* Dark mode — stronger glows */}
+      <div className="hidden dark:block absolute -top-[15%] -left-[5%] w-[50vw] h-[50vw] rounded-full animate-orb-1"
+        style={{ background: "radial-gradient(circle, rgba(163,127,91,0.22) 0%, transparent 70%)", filter: "blur(90px)" }}
+      />
+      <div className="hidden dark:block absolute -bottom-[15%] -right-[5%] w-[45vw] h-[45vw] rounded-full animate-orb-2"
+        style={{ background: "radial-gradient(circle, rgba(111,80,56,0.18) 0%, transparent 70%)", filter: "blur(110px)" }}
+      />
+      {/* Grain overlay */}
+      <div className="absolute inset-0 opacity-[0.035] dark:opacity-[0.055] mix-blend-overlay animate-grain"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+          backgroundSize: "160px 160px",
+        }}
+      />
+    </div>
+
+    <div className="relative z-10 container mx-auto px-6 lg:px-12 py-20 md:py-24">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-24 items-center">
 
         {/* Left — text */}
