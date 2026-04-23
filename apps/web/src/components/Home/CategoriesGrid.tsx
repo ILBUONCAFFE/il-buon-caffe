@@ -1,202 +1,98 @@
 "use client";
 
-import React, { useRef, useState, useCallback } from "react";
+import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import {
-  motion,
-  useMotionValue,
-  useSpring,
-  AnimatePresence,
-} from "motion/react";
+import { motion } from "motion/react";
 import { ArrowUpRight } from "lucide-react";
 
-const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
+const EASE = [0.16, 1, 0.3, 1] as const;
+const R2 = process.env.NEXT_PUBLIC_R2_MEDIA_URL || "https://media.ilbuoncaffe.pl";
 
-interface Category {
-  title: string;
-  subtitle: string;
-  href: string;
-  image: string;
-}
-
-const R2_MEDIA_BASE = process.env.NEXT_PUBLIC_R2_MEDIA_URL || "https://media.ilbuoncaffe.pl";
-
-const categories: Category[] = [
+const categories = [
   {
     title: "Kawa",
     subtitle: "Specialty",
     href: "/sklep/kawa",
-    image: `${R2_MEDIA_BASE}/categories/kawa.webp`,
+    image: `${R2}/categories/kawa.webp`,
   },
   {
     title: "Wina",
     subtitle: "i Alkohole",
     href: "/sklep/wino",
-    image: `${R2_MEDIA_BASE}/categories/wino.webp`,
+    image: `${R2}/categories/wino.webp`,
   },
   {
     title: "Delikatesy",
-    subtitle: "Włoskie i hiszpańskie",
+    subtitle: "Włoskie i Hiszpańskie",
     href: "/sklep/spizarnia",
-    image: `${R2_MEDIA_BASE}/categories/delikatesy.webp`,
+    image: `${R2}/categories/delikatesy.webp`,
   },
 ];
 
-// ── Category row ───────────────────────────────────────────────────
-const CategoryRow = ({
-  category,
-  index,
-  onHover,
-  onMove,
-  onLeave,
-}: {
-  category: Category;
-  index: number;
-  onHover: (idx: number) => void;
-  onMove: (e: React.MouseEvent) => void;
-  onLeave: () => void;
-}) => (
-  <motion.div
-    initial={{ opacity: 0, y: 40 }}
-    whileInView={{ opacity: 1, y: 0 }}
-    viewport={{ once: true, margin: "-60px" }}
-    transition={{ duration: 0.8, delay: index * 0.08, ease: EASE }}
-  >
-    <Link
-      href={category.href}
-      onMouseEnter={() => onHover(index)}
-      onMouseMove={onMove}
-      onMouseLeave={onLeave}
-      className="group flex items-center justify-between py-8 md:py-10 lg:py-12 border-b border-white/8 transition-colors duration-500 hover:border-white/20"
-    >
-      {/* Left: number + name */}
-      <div className="flex items-baseline gap-4 md:gap-8">
-        <span className="text-[11px] font-mono text-white/20 tracking-wider tabular-nums">
-          {String(index + 1).padStart(2, "0")}
-        </span>
+export const CategoriesGrid = () => (
+  <section className="bg-brand-50 dark:bg-brand-950 py-20 md:py-28 border-b border-brand-100 dark:border-white/5">
+    <div className="container mx-auto px-6 lg:px-12">
 
-        <div className="flex items-baseline gap-3 md:gap-4">
-          <h3 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-serif text-white/85 transition-colors duration-500 group-hover:text-white">
-            {category.title}
-          </h3>
-          <span className="text-sm md:text-base font-handwriting text-white/25 transition-colors duration-500 group-hover:text-brand-400">
-            {category.subtitle}
-          </span>
-        </div>
-      </div>
-
-      {/* Right: arrow */}
-      <div className="w-10 h-10 md:w-12 md:h-12 rounded-full border border-white/10 flex items-center justify-center transition-all duration-500 group-hover:border-white/30 group-hover:bg-white/5">
-        <ArrowUpRight className="w-4 h-4 md:w-5 md:h-5 text-white/30 transition-all duration-500 group-hover:text-white group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-      </div>
-    </Link>
-  </motion.div>
-);
-
-// ── Floating cursor image ──────────────────────────────────────────
-const CursorImage = ({
-  image,
-  x,
-  y,
-}: {
-  image: string;
-  x: ReturnType<typeof useSpring>;
-  y: ReturnType<typeof useSpring>;
-}) => (
-  <motion.div
-    className="fixed top-0 left-0 z-50 pointer-events-none hidden lg:block"
-    style={{ x, y }}
-  >
-    <motion.div
-      initial={{ opacity: 0, scale: 0.7, rotate: -6 }}
-      animate={{ opacity: 1, scale: 1, rotate: -3 }}
-      exit={{ opacity: 0, scale: 0.7, rotate: 4 }}
-      transition={{ duration: 0.4, ease: EASE }}
-      className="w-[280px] h-[360px] rounded-xl overflow-hidden shadow-2xl shadow-black/40 -translate-x-1/2 -translate-y-1/2"
-    >
-      <Image
-        src={image}
-        alt=""
-        fill
-        className="object-cover"
-        sizes="280px"
-      />
-    </motion.div>
-  </motion.div>
-);
-
-// ── Main section ───────────────────────────────────────────────────
-export const CategoriesGrid = () => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
-
-  const rawX = useMotionValue(0);
-  const rawY = useMotionValue(0);
-  const springCfg = { stiffness: 150, damping: 20, mass: 0.5 };
-  const cursorX = useSpring(rawX, springCfg);
-  const cursorY = useSpring(rawY, springCfg);
-
-  const handleMove = useCallback(
-    (e: React.MouseEvent) => {
-      rawX.set(e.clientX);
-      rawY.set(e.clientY);
-    },
-    [rawX, rawY]
-  );
-
-  const handleHover = useCallback((idx: number) => setHoveredIdx(idx), []);
-  const handleLeave = useCallback(() => setHoveredIdx(null), []);
-
-  return (
-    <section ref={containerRef} className="relative bg-brand-950 overflow-hidden">
-      <div className="container mx-auto px-6 lg:px-12 py-24 md:py-32 lg:py-40">
-        {/* Minimal header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8, ease: EASE }}
-          className="mb-12 md:mb-16"
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.6, ease: EASE }}
+        className="flex items-end justify-between mb-10 md:mb-12"
+      >
+        <h2 className="text-2xl md:text-3xl font-serif text-brand-900 dark:text-white">
+          Kategorie
+        </h2>
+        <Link
+          href="/sklep"
+          className="group inline-flex items-center gap-1.5 text-brand-400 dark:text-white/30 hover:text-brand-900 dark:hover:text-white transition-colors duration-300 text-[11px] uppercase tracking-[0.2em] font-medium"
         >
-          <span className="text-[11px] uppercase tracking-[0.3em] text-white/30 font-medium">
-            Kategorie
-          </span>
-        </motion.div>
+          Wszystkie
+          <ArrowUpRight className="w-3 h-3 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" strokeWidth={2} />
+        </Link>
+      </motion.div>
 
-        {/* Top border */}
-        <motion.div
-          initial={{ scaleX: 0 }}
-          whileInView={{ scaleX: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 1.2, ease: [0.76, 0, 0.24, 1] }}
-          className="origin-left h-px bg-white/10 mb-0"
-        />
-
-        {/* Category rows */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
         {categories.map((cat, i) => (
-          <CategoryRow
-            key={cat.title}
-            category={cat}
-            index={i}
-            onHover={handleHover}
-            onMove={handleMove}
-            onLeave={handleLeave}
-          />
+          <motion.div
+            key={cat.href}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7, delay: i * 0.08, ease: EASE }}
+          >
+            <Link
+              href={cat.href}
+              className="group block relative aspect-[4/3] overflow-hidden rounded-sm bg-brand-200 dark:bg-brand-900"
+            >
+              <Image
+                src={cat.image}
+                alt={cat.title}
+                fill
+                className="object-cover transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.04]"
+              />
+              {/* Gradient overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
+
+              {/* Label */}
+              <div className="absolute bottom-0 left-0 right-0 p-5 md:p-6 flex items-end justify-between">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.22em] text-white/45 mb-1">
+                    {cat.subtitle}
+                  </p>
+                  <h3 className="text-xl md:text-2xl font-serif text-white">
+                    {cat.title}
+                  </h3>
+                </div>
+                <div className="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center transition-all duration-300 group-hover:border-white/50 group-hover:bg-white/10">
+                  <ArrowUpRight className="w-3.5 h-3.5 text-white" strokeWidth={1.5} />
+                </div>
+              </div>
+            </Link>
+          </motion.div>
         ))}
       </div>
-
-      {/* Floating image that follows cursor */}
-      <AnimatePresence>
-        {hoveredIdx !== null && (
-          <CursorImage
-            key={hoveredIdx}
-            image={categories[hoveredIdx].image}
-            x={cursorX}
-            y={cursorY}
-          />
-        )}
-      </AnimatePresence>
-    </section>
-  );
-};
+    </div>
+  </section>
+);
