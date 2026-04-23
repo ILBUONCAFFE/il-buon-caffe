@@ -8,6 +8,7 @@ import type { Env } from '../../index'
 import { sanitize } from '../../lib/sanitize'
 import { slugify } from '../../lib/slugify'
 import { checkContentLength, parsePagination, getClientIp, serverError } from '../../lib/request'
+import { notifyIndexNow, productUrl } from '../../lib/indexnow'
 
 const MAX_BODY = 50_000
 
@@ -162,6 +163,11 @@ adminProductsRouter.post('/', async (c) => {
       details:   { event: 'product_created', sku, name },
     })
 
+    // Notify Bing of the new product URL — fire-and-forget, never blocks the response
+    if (product.slug && c.env.INDEXNOW_KEY) {
+      void notifyIndexNow([productUrl(product.slug)], c.env.INDEXNOW_KEY)
+    }
+
     return c.json({ success: true, data: product }, 201)
   } catch (err: any) {
     if (err?.code === '23505') return c.json({ error: 'SKU lub slug już istnieje' }, 409)
@@ -223,6 +229,11 @@ adminProductsRouter.put('/:sku', async (c) => {
       ipAddress: getClientIp(c),
       details:   { event: 'product_updated', sku, fields: Object.keys(setCols) },
     })
+
+    // Notify Bing that the product page has changed — fire-and-forget
+    if (updated.slug && c.env.INDEXNOW_KEY) {
+      void notifyIndexNow([productUrl(updated.slug)], c.env.INDEXNOW_KEY)
+    }
 
     return c.json({
       success: true,
@@ -347,6 +358,16 @@ adminProductsRouter.delete('/:sku', async (c) => {
       ipAddress: adminIp,
       details:   { event: 'product_deactivated', sku, productName: product.name },
     })
+
+    // Notify Bing that this URL is gone — Bing will recrawl and pick up the 404
+    // Re-query slug since we only fetched sku/name/isActive above
+    const deactivated = await db.query.products.findFirst({
+      columns: { slug: true },
+      where: eq(products.sku, sku),
+    })
+    if (deactivated?.slug && c.env.INDEXNOW_KEY) {
+      void notifyIndexNow([productUrl(deactivated.slug)], c.env.INDEXNOW_KEY)
+    }
 
     return c.json({ success: true, message: `Produkt '${sku}' został zdezaktywowany` })
   } catch (err) {

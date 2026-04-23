@@ -65,6 +65,9 @@ export interface Env {
   ALLEGRO_TOKEN_ENCRYPTION_KEY?: string   // 32-byte hex — AES-256-GCM
   ALLEGRO_KV: KVNamespace
 
+  // IndexNow — Bing URL submission (optional; set via `wrangler secret put INDEXNOW_KEY`)
+  INDEXNOW_KEY?: string
+
   // Native Workers Rate Limiting API bindings (Paid plan)
   RL_API?:            { limit(opts: { key: string }): Promise<{ success: boolean }> }
   RL_ADMIN?:          { limit(opts: { key: string }): Promise<{ success: boolean }> }
