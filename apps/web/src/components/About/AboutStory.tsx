@@ -45,7 +45,7 @@ const ChapterColumn = ({
   chapter: {
     year: string;
     title: string;
-    body: string[];
+    body: readonly string[];
     image?: string;
     imageAlt?: string;
   };

@@ -162,7 +162,7 @@ export const Navbar = () => {
   const [searchError, setSearchError] = useState<string | null>(null);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [pillStyle, setPillStyle] = useState({ left: 0, width: 0 });
-  const [isDarkTheme, setIsDarkTheme] = useState(false);
+  const [isEffectiveDark, setisEffectiveDark] = useState(false);
   const [isSystemDark, setIsSystemDark] = useState(false);
   const navContainerRef = useRef<HTMLDivElement>(null);
   const linkRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -188,7 +188,7 @@ export const Navbar = () => {
   useEffect(() => {
     const checkTheme = () => {
       const theme = document.body.getAttribute('data-theme');
-      setIsDarkTheme(theme === 'wine-dark' || theme === 'dark');
+      setisEffectiveDark(theme === 'wine-dark' || theme === 'dark');
     };
     
     checkTheme();
@@ -339,7 +339,7 @@ export const Navbar = () => {
   const isEncyclopedia = pathname?.startsWith("/encyklopedia");
   
   // Effective dark theme considers data-theme AND system preference, but excludes Shop where light is forced
-  const isEffectiveDark = isDarkTheme || (isSystemDark && !isShopRootOrCategory);
+  const isEffectiveDark = isEffectiveDark || (isSystemDark && !isShopRootOrCategory);
   
   // Include isEffectiveDark for pages that set data-theme="wine-dark" or "dark" or have system dark
   const isDarkHeroPage = isEffectiveDark || pathname === "/" || pathname === "/kawiarnia" || pathname === "/o-nas" || isEncyclopedia || pathname === "/auth";
@@ -470,7 +470,7 @@ export const Navbar = () => {
                         width={48}
                         height={48}
                         className={cn(
-                          "w-full h-full object-contain p-1 transition-all duration-500 brightness-0",
+                          "w-full h-full object-contain p-1 transition-all duration-500 brightness-0 ",
                           ((!isScrolled && isDarkHeroPage) || (isScrolled && isEffectiveDark)) && "invert"
                         )}
                       />
