@@ -342,7 +342,7 @@ export const Navbar = () => {
   const isEffectiveDark = isDarkTheme || (isSystemDark && !isShopRootOrCategory);
   
   // Include isEffectiveDark for pages that set data-theme="wine-dark" or "dark" or have system dark
-  const isDarkHeroPage = isEffectiveDark || pathname === "/" || pathname === "/kawiarnia" || pathname === "/o-nas" || isEncyclopedia || pathname === "/auth";
+  const isDarkHeroPage = isEffectiveDark || isEncyclopedia || pathname === "/auth";
   const isDarkText = !isMobileMenuOpen && (isScrolled || !isDarkHeroPage);
   const accountHref = ACCOUNTS_ENABLED ? '/account' : '/auth';
   const accountLabel = ACCOUNTS_ENABLED ? 'Konto' : 'Konto (wkrótce)';
