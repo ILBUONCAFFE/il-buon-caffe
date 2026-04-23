@@ -8,6 +8,12 @@ export const revalidate = 600;
 export const metadata: Metadata = {
   title: "Sklep Online – Włoskie Delikatesy",
   description: "Przeglądaj naszą pełną ofertę: świeżo palone kawy specialty, wina z renomowanych winnic, oliwy extra virgin, sery dojrzewające i włoskie słodycze. Zamów z dostawą do całej Polski.",
+  keywords: [
+    "sklep włoski online", "włoskie delikatesy online", "kawa specialty sklep",
+    "wino włoskie sklep", "oliwa z oliwek sklep", "włoskie produkty online",
+    "kup kawę online", "włoskie słodycze sklep", "delikatesy z Włoch",
+    "sklep z kawą ziarnistą", "włoskie makarony online", "prezenty z Włoch",
+  ],
   openGraph: {
     title: "Sklep Online – Włoskie Delikatesy | Il Buon Caffe",
     description: "Kawa, wina, oliwy, słodycze — najwyższa jakość prosto z Włoch i Hiszpanii. Dostawa do całej Polski.",

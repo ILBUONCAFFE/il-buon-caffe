@@ -19,6 +19,7 @@ const AI_TRAINING_BOTS = [
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
+      // Bing crawlers — explicit rules for best Bing Search indexing coverage
       {
         userAgent: "bingbot",
         allow: "/",
@@ -31,11 +32,25 @@ export default function robots(): MetadataRoute.Robots {
         disallow: PRIVATE_DISALLOW,
         crawlDelay: 1,
       },
+      // BingPreview — renders Open Graph previews shown in Bing search results
+      {
+        userAgent: "BingPreview",
+        allow: "/",
+        disallow: PRIVATE_DISALLOW,
+      },
+      // adidxbot — Bing Ads quality/relevance crawler
+      {
+        userAgent: "adidxbot",
+        allow: "/",
+        disallow: PRIVATE_DISALLOW,
+      },
+      // All other well-behaved crawlers
       {
         userAgent: "*",
         allow: "/",
         disallow: PRIVATE_DISALLOW,
       },
+      // Block AI training scrapers — no disallow exceptions
       {
         userAgent: AI_TRAINING_BOTS,
         disallow: "/",

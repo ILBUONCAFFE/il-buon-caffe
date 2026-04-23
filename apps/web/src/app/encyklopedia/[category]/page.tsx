@@ -3,6 +3,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ENCYCLOPEDIA_CATEGORIES } from "@/lib/constants";
 
+// Pre-generate all valid category paths so Next.js knows the exact set at build
+// time. Unknown slugs still 404 cleanly through notFound(), but don't hit the
+// server as purely dynamic requests.
+export function generateStaticParams() {
+  // Include 'wino' as an alias for 'wine' — handled by getCategory() at runtime
+  const ids = [...ENCYCLOPEDIA_CATEGORIES.map((c) => c.id), "wino"] as string[];
+  return ids.map((category) => ({ category }));
+}
+
 type CategoryId = (typeof ENCYCLOPEDIA_CATEGORIES)[number]["id"];
 
 const getCategory = (id: string) => {

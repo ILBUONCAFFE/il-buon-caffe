@@ -238,9 +238,16 @@ export const metadata: Metadata = {
     shortcut: ["/assets/logo.png"],
     apple: [{ url: "/assets/logo.png" }],
   },
+  // Bing Webmaster Tools verification — https://www.bing.com/webmasters
+  verification: {
+    other: {
+      "msvalidate.01": ["27E441F2D839892F253F4D74C953E26B"],
+    },
+  },
   robots: {
     index: true,
     follow: true,
+    nocache: false,
     googleBot: {
       index: true,
       follow: true,
@@ -277,10 +284,14 @@ export const metadata: Metadata = {
     "kawa ziarnista", "wypieki włoskie", "delikatesy włoskie", "wino włoskie",
     "sklep włoski online", "włoskie produkty", "kawa online", "wino włoskie online",
     "oliwa z oliwek", "włoskie słodycze", "sklep internetowy delikatesy",
+    "sklep z kawą", "włoskie delikatesy Koszalin", "kawa arabica",
   ],
   authors: [{ name: "Il Buon Caffe" }],
   creator: "Il Buon Caffe",
   publisher: "Il Buon Caffe",
+  alternates: {
+    canonical: "https://ilbuoncaffe.pl",
+  },
 };
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

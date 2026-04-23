@@ -6,6 +6,8 @@
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "clean": "turbo run clean",
+    "shipments:backfill:dry": "node packages/db/scripts/backfill-shipment-consistency.cjs",
+    "shipments:backfill:apply": "node packages/db/scripts/backfill-shipment-consistency.cjs --apply",
     "seo:monitor": "node scripts/seo-monitoring-check.mjs --base-url=https://ilbuoncaffe.pl",
     "seo:monitor:strict": "node scripts/seo-monitoring-check.mjs --base-url=https://ilbuoncaffe.pl --strict",
     "media:generate": "node scripts/generate-placeholder-images.js",

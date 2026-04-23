@@ -2,11 +2,15 @@ import type { Metadata } from "next";
 import AboutClient from "@/components/About/AboutClient";
 
 export const metadata: Metadata = {
-  title: "O Nas",
+  title: "O Nas – Historia Il Buon Caffe od 2003 roku",
   description:
     "Poznaj historię Il Buon Caffe — kawiarni i delikatesów premium w Koszalinie. Od 2003 roku z pasją przenosimy autentyczny smak Włoch do Polski. Kawa specialty, wina, oliwy i rzemieślnicze wypieki.",
+  keywords: [
+    "Il Buon Caffe historia", "kawiarnia Koszalin od 2003", "włoskie delikatesy Koszalin",
+    "o nas Il Buon Caffe", "kawa specialty Koszalin", "passion café Koszalin",
+  ],
   openGraph: {
-    title: "O Nas | Il Buon Caffe",
+    title: "O Nas – Historia Il Buon Caffe od 2003 roku | Il Buon Caffe",
     description:
       "Historia Il Buon Caffe — ponad 20 lat pasji do włoskiego smaku. Kawiarnia i delikatesy premium w Koszalinie.",
     type: "website",
@@ -24,7 +28,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "O Nas | Il Buon Caffe",
+    title: "O Nas – Historia Il Buon Caffe | Il Buon Caffe",
     description:
       "Historia Il Buon Caffe — ponad 20 lat pasji do włoskiego smaku w Koszalinie.",
     images: ["https://ilbuoncaffe.pl/assets/kawiarnia.jpg"],
