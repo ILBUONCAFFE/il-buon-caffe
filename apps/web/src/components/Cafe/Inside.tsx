@@ -55,10 +55,7 @@ export const Inside: React.FC = () => {
             <div className="absolute top-4 left-4 bg-white/95 dark:bg-brand-950/95 backdrop-blur-sm px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] font-bold text-brand-900 dark:text-white">
               Sala główna
             </div>
-            <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between">
-              <p className="font-serif italic text-white text-lg md:text-xl max-w-sm drop-shadow-lg">
-                Drewno, cegła, światło z witryny.
-              </p>
+            <div className="absolute bottom-4 left-4 right-4 flex items-end justify-end">
               <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-white/80">
                 01 / 03
               </span>
@@ -68,7 +65,7 @@ export const Inside: React.FC = () => {
           {/* Bakery */}
           <div className="md:col-span-2 relative aspect-[4/3] md:aspect-auto md:min-h-[250px] overflow-hidden bg-brand-900/5 shadow-[0_30px_60px_-20px_rgba(28,25,23,0.2)]">
             <Image
-              src="/assets/about-bakery.png"
+              src="https://media.ilbuoncaffe.pl/about-us/wypieki.jpg"
               alt="Świeże wypieki w Il Buon Caffe"
               fill
               className="object-cover"
@@ -84,13 +81,6 @@ export const Inside: React.FC = () => {
 
           {/* Deli */}
           <div className="md:col-span-2 relative aspect-[4/3] md:aspect-auto md:min-h-[250px] overflow-hidden bg-brand-900/5 shadow-[0_30px_60px_-20px_rgba(28,25,23,0.2)]">
-            <Image
-              src="/assets/about-deli.png"
-              alt="Włoskie delikatesy w Il Buon Caffe"
-              fill
-              className="object-cover"
-              sizes="(max-width: 768px) 100vw, 33vw"
-            />
             <div className="absolute top-3 left-3 bg-white/95 dark:bg-brand-950/95 backdrop-blur-sm px-2.5 py-1 text-[10px] uppercase tracking-[0.2em] font-bold text-brand-900 dark:text-white">
               Delikatesy
             </div>

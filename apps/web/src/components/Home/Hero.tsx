@@ -237,18 +237,6 @@ export const Hero = () => {
               </div>
             </motion.div>
 
-            {/* Corner price tag — shop signal */}
-            <motion.div
-              initial={{ scale: 0, rotate: -12 }}
-              animate={{ scale: 1, rotate: -8 }}
-              transition={{ duration: 0.8, delay: 0.9, ease: EASE }}
-              className="absolute top-[56%] right-[60%] bg-brand-900 dark:bg-white text-white dark:text-brand-950 px-4 py-3 text-center"
-            >
-              <div className="text-[9px] uppercase tracking-[0.2em] font-medium opacity-70">
-                Od
-              </div>
-              <div className="font-serif text-xl">29 zł</div>
-            </motion.div>
           </motion.div>
 
         </div>

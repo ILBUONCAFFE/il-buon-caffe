@@ -322,13 +322,10 @@ export const Navbar = () => {
   // Determine navbar appearance based on page and scroll
   const pathSegmentsArray = pathname?.split('/').filter(Boolean) || [];
   const pathSegments = pathSegmentsArray.length;
-  const shopCategories = ['all', 'kawa', 'wino', 'slodycze', 'spizarnia', 'coffee', 'alcohol', 'pantry', 'sweets'];
-  const isShopRootOrCategory = pathSegmentsArray[0] === 'sklep' && 
-    (pathSegments === 1 || (pathSegments === 2 && shopCategories.includes(pathSegmentsArray[1])));
   const isEncyclopedia = pathname?.startsWith("/encyklopedia");
   
   // Include isDarkTheme for pages that set data-theme="wine-dark" or "dark"
-  const isDarkHeroPage = isDarkTheme || pathname === "/" || pathname === "/kawiarnia" || pathname === "/o-nas" || isShopRootOrCategory || isEncyclopedia || pathname === "/auth";
+  const isDarkHeroPage = isDarkTheme || pathname === "/" || pathname === "/kawiarnia" || pathname === "/o-nas" || isEncyclopedia || pathname === "/auth";
   const isDarkText = !isMobileMenuOpen && (isScrolled || !isDarkHeroPage);
   const accountHref = ACCOUNTS_ENABLED ? '/account' : '/auth';
   const accountLabel = ACCOUNTS_ENABLED ? 'Konto' : 'Konto (wkrótce)';
@@ -423,7 +420,9 @@ export const Navbar = () => {
                     "flex items-center gap-3 z-50 group rounded-full transition-all duration-500",
                     // Island styling - always visible but adapts to context
                     isScrolled 
-                      ? "bg-white/95 backdrop-blur-xl shadow-lg shadow-black/[0.08] border border-black/[0.04] pl-1.5 pr-4 py-1.5"
+                      ? (isDarkTheme
+                          ? "bg-brand-950/80 backdrop-blur-xl shadow-lg shadow-black/[0.2] border border-white/[0.08] pl-1.5 pr-4 py-1.5"
+                          : "bg-white/95 backdrop-blur-xl shadow-lg shadow-black/[0.08] border border-black/[0.04] pl-1.5 pr-4 py-1.5")
                       : isDarkHeroPage
                         ? "bg-white/[0.01] backdrop-blur-xl border border-white/[0.12] pl-1.5 pr-4 py-1.5 hover:bg-white/[0.12]"
                         : "bg-white/80 backdrop-blur-xl shadow-sm border border-black/[0.04] pl-1.5 pr-4 py-1.5 hover:bg-white/95"
@@ -440,7 +439,7 @@ export const Navbar = () => {
                     <div className={cn(
                       "absolute inset-0 rounded-full blur-md transition-all duration-500",
                       isScrolled 
-                        ? "bg-brand-700/10" 
+                        ? (isDarkTheme ? "bg-white/5" : "bg-brand-700/10") 
                         : isDarkHeroPage 
                           ? "bg-white/10 group-hover:bg-white/20" 
                           : "bg-brand-700/5 group-hover:bg-brand-700/10"
@@ -455,7 +454,7 @@ export const Navbar = () => {
                         height={48}
                         className={cn(
                           "w-full h-full object-contain p-1 transition-all duration-500 brightness-0",
-                          !isScrolled && isDarkHeroPage && "invert"
+                          ((!isScrolled && isDarkHeroPage) || (isScrolled && isDarkTheme)) && "invert"
                         )}
                       />
                     </div>
@@ -467,7 +466,7 @@ export const Navbar = () => {
                       className={cn(
                         "text-sm font-serif font-bold tracking-tight leading-none mb-0.5 whitespace-nowrap transition-colors duration-500",
                         isScrolled 
-                          ? "text-brand-900" 
+                          ? (isDarkTheme ? "text-white" : "text-brand-900") 
                           : isDarkHeroPage 
                             ? "text-white" 
                             : "text-brand-900"
@@ -478,7 +477,7 @@ export const Navbar = () => {
                     <span className={cn(
                       "text-[9px] uppercase tracking-[0.15em] whitespace-nowrap transition-colors duration-500",
                       isScrolled 
-                        ? "text-brand-700" 
+                        ? (isDarkTheme ? "text-white/70" : "text-brand-700") 
                         : isDarkHeroPage 
                           ? "text-white/50" 
                           : "text-brand-700"
@@ -521,7 +520,9 @@ export const Navbar = () => {
                   className={cn(
                     "relative flex items-center rounded-full px-1.5 py-1.5 transition-all duration-500",
                     isScrolled 
-                      ? "bg-white/95 backdrop-blur-xl shadow-lg shadow-black/[0.08] border border-black/[0.04]" 
+                      ? (isDarkTheme
+                          ? "bg-brand-950/80 backdrop-blur-xl shadow-lg shadow-black/[0.2] border border-white/[0.08]"
+                          : "bg-white/95 backdrop-blur-xl shadow-lg shadow-black/[0.08] border border-black/[0.04]") 
                       : (isDarkHeroPage 
                           ? "bg-white/[0.08] backdrop-blur-xl border border-white/[0.12]" 
                           : "bg-white/80 backdrop-blur-xl shadow-sm border border-black/[0.04]")
@@ -532,7 +533,7 @@ export const Navbar = () => {
                       className={cn(
                         "absolute top-1.5 bottom-1.5 rounded-full",
                         isScrolled 
-                          ? "bg-brand-900/10" 
+                          ? (isDarkTheme ? "bg-white/10" : "bg-brand-900/10") 
                           : (isDarkHeroPage ? "bg-white/15" : "bg-brand-900/5")
                       )}
                       initial={false}
@@ -565,9 +566,9 @@ export const Navbar = () => {
                             className={cn(
                               "block px-5 py-2 text-sm font-medium transition-colors duration-200 rounded-full whitespace-nowrap",
                               (isActive || isHovered)
-                                ? (isScrolled ? "text-brand-950" : (isDarkHeroPage ? "text-white" : "text-brand-950"))
+                                ? (isScrolled ? (isDarkTheme ? "text-white" : "text-brand-950") : (isDarkHeroPage ? "text-white" : "text-brand-950"))
                                 : (isScrolled 
-                                    ? "text-brand-600 hover:text-brand-950" 
+                                    ? (isDarkTheme ? "text-white/70 hover:text-white" : "text-brand-600 hover:text-brand-950") 
                                     : (isDarkHeroPage ? "text-white/70 hover:text-white" : "text-brand-700 hover:text-brand-950"))
                             )}
                           >
@@ -629,7 +630,7 @@ export const Navbar = () => {
                 className={cn(
                   "hidden sm:flex w-9 h-9 items-center justify-center rounded-full transition-colors",
                   isScrolled
-                    ? "text-brand-700 hover:bg-brand-100"
+                    ? (isDarkTheme ? "text-white/80 hover:text-white hover:bg-white/10" : "text-brand-700 hover:bg-brand-100")
                     : (isDarkHeroPage 
                         ? "text-white/80 hover:text-white hover:bg-white/10" 
                         : "text-brand-700 hover:bg-brand-100")
@@ -650,7 +651,7 @@ export const Navbar = () => {
                   className={cn(
                     "hidden sm:flex w-9 h-9 items-center justify-center rounded-full transition-colors",
                     isScrolled
-                      ? "text-brand-700 hover:bg-brand-100"
+                      ? (isDarkTheme ? "text-white/80 hover:text-white hover:bg-white/10" : "text-brand-700 hover:bg-brand-100")
                       : (isDarkHeroPage 
                           ? "text-white/80 hover:text-white hover:bg-white/10" 
                           : "text-brand-700 hover:bg-brand-100")
@@ -685,7 +686,7 @@ export const Navbar = () => {
                       : cn(
                           "w-9 justify-center",
                           isScrolled
-                            ? "text-brand-700 hover:bg-brand-100"
+                            ? (isDarkTheme ? "text-white/80 hover:text-white hover:bg-white/10" : "text-brand-700 hover:bg-brand-100")
                             : (isDarkHeroPage 
                                 ? "text-white/80 hover:text-white hover:bg-white/10" 
                                 : "text-brand-700 hover:bg-brand-100")
@@ -720,7 +721,7 @@ export const Navbar = () => {
                 className={cn(
                   "lg:hidden flex w-9 h-9 items-center justify-center rounded-full transition-colors z-50",
                   isScrolled
-                    ? "text-brand-900 hover:bg-brand-100"
+                    ? (isDarkTheme ? "text-white hover:bg-white/10" : "text-brand-900 hover:bg-brand-100")
                     : (isDarkHeroPage 
                         ? "text-white hover:bg-white/10" 
                         : "text-brand-900 hover:bg-brand-100")

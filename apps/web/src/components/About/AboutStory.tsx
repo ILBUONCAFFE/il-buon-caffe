@@ -35,8 +35,6 @@ const CHAPTERS = [
       "Pandemia zamknęła kawiarnię. Zamiast czekać, zmieniliśmy lokal — obok kawy i wypieków na półkach pojawiły się wina od małych winiarzy, oliwy, makarony rzemieślnicze.",
       "Każdy produkt musi najpierw przejść przez nasze ręce i podniebienia. Jeśli nas nie przekona — nie trafi na półkę.",
     ],
-    image: "/assets/about-deli.png",
-    imageAlt: "Delikatesy Il Buon Caffe — wina, oliwy, produkty włoskie",
   },
 ] as const;
 
@@ -44,7 +42,13 @@ const ChapterColumn = ({
   chapter,
   index,
 }: {
-  chapter: (typeof CHAPTERS)[number];
+  chapter: {
+    year: string;
+    title: string;
+    body: string[];
+    image?: string;
+    imageAlt?: string;
+  };
   index: number;
 }) => {
   const ref = useRef<HTMLDivElement>(null);
@@ -89,19 +93,21 @@ const ChapterColumn = ({
       </div>
 
       {/* Image — sits at the bottom of each column */}
-      <motion.div
-        style={{ scale: imgScale }}
-        className="mt-10 relative aspect-[4/5] w-full overflow-hidden"
-      >
-        <Image
-          src={chapter.image}
-          alt={chapter.imageAlt}
-          fill
-          className="object-cover"
-          sizes="(max-width: 768px) 100vw, 33vw"
-        />
-        <div className="absolute inset-0 ring-1 ring-inset ring-white/10" />
-      </motion.div>
+      {chapter.image && (
+        <motion.div
+          style={{ scale: imgScale }}
+          className="mt-10 relative aspect-[4/5] w-full overflow-hidden"
+        >
+          <Image
+            src={chapter.image}
+            alt={chapter.imageAlt || ""}
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, 33vw"
+          />
+          <div className="absolute inset-0 ring-1 ring-inset ring-white/10" />
+        </motion.div>
+      )}
     </motion.article>
   );
 };

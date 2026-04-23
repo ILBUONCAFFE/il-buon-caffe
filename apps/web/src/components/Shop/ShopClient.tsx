@@ -2,7 +2,6 @@
 
 import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
-import Image from "next/image";
 import { getFilteredProducts } from "@/actions/products";
 import { Product, Category } from "@/types";
 import type { FilteredProductsResult, PriceRange, WineFilterOptions } from "@/types/filters";
@@ -229,93 +228,116 @@ export const ShopClient = ({ initialData }: ShopClientProps) => {
     [priceFilters.length, selectedOrigins.length, searchQuery.length, selectedCountry, selectedRegion, selectedGrape]
   );
 
+  const wordmarkText = useMemo(() => {
+    switch (selectedCategory) {
+      case "wino": return "Vino";
+      case "kawa": return "Caffè";
+      case "slodycze": return "Dolci";
+      case "spizarnia": return "Dispensa";
+      default: return "Sklep";
+    }
+  }, [selectedCategory]);
+
+  const heroLead = useMemo(() => {
+    switch (selectedCategory) {
+      case "wino": return "Wyselekcjonowane wina z Włoch i Hiszpanii. Od małych, rodzinnych winiarzy.";
+      case "kawa": return "Świeżo palona kawa specialty z najlepszych plantacji.";
+      case "slodycze": return "Tradycyjne włoskie słodycze i czekolady rzemieślnicze.";
+      case "spizarnia": return "Oliwy extra virgin, przetwory, makarony i przysmaki z Południa.";
+      default: return "Ponad 300 wyselekcjonowanych włoskich i hiszpańskich specjałów.";
+    }
+  }, [selectedCategory]);
+
   return (
-    <div className="min-h-screen bg-brand-50">
-      {/* Hero Header */}
-      <div className="relative bg-brand-950 text-white pt-24 pb-14 md:pt-32 md:pb-18 overflow-hidden">
-        {/* Category-aware background image */}
-        {selectedCategory === "wino" && (
-          <>
-            <div className="absolute inset-0 z-0">
-              <Image
-                src="https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?q=80&w=2000&auto=format&fit=crop"
-                alt=""
-                fill
-                className="object-cover opacity-20"
-                sizes="100vw"
-                priority
-              />
-            </div>
-            <div className="absolute inset-0 bg-brand-950/80 z-[1]" />
-          </>
-        )}
-        {selectedCategory === "kawa" && (
-          <>
-            <div className="absolute inset-0 z-0">
-              <Image
-                src="https://images.unsplash.com/photo-1447933601403-0c6688de566e?q=80&w=2000&auto=format&fit=crop"
-                alt=""
-                fill
-                className="object-cover opacity-15"
-                sizes="100vw"
-                priority
-              />
-            </div>
-            <div className="absolute inset-0 bg-brand-950/80 z-[1]" />
-          </>
-        )}
-
-        <div className="container mx-auto px-6 lg:px-12 relative z-10">
-          <div className="mb-10">
-            <span className="block text-[11px] uppercase tracking-[0.3em] text-white/25 font-medium mb-6">
-              Sklep
-            </span>
-
-            <h1
-              key={selectedCategory}
-              className="text-5xl md:text-6xl lg:text-7xl font-serif mb-5 leading-[0.95]"
+    <div className="min-h-screen bg-[#f3eee8]">
+      {/* Editorial Hero */}
+      <section className="relative bg-[#f3eee8] border-b border-brand-100 overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none select-none" aria-hidden="true">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#f7f2ec] via-[#f3eee8] to-[#ebe2d5]" />
+          <div
+            className="absolute inset-0 opacity-[0.035]"
+            style={{
+              backgroundImage:
+                "repeating-linear-gradient(45deg, #1c1917 0, #1c1917 1px, transparent 1px, transparent 14px)",
+            }}
+          />
+          <div className="absolute inset-x-0 -bottom-[30%] md:-bottom-[40%] flex items-end justify-center">
+            <h2
+              aria-hidden="true"
+              className="font-serif italic font-bold leading-none tracking-tighter text-transparent whitespace-nowrap transition-all duration-500"
+              style={{
+                fontSize: "clamp(14rem, 26vw, 36rem)",
+                WebkitTextStroke: "1.5px rgba(163,127,91,0.18)",
+              }}
             >
-              {activeCategoryConfig?.name || "Sklep"}
-            </h1>
+              {wordmarkText}
+            </h2>
+          </div>
+          <div className="absolute top-8 right-6 md:right-12 flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] text-brand-500/60 font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            Dostawa 24h
+          </div>
+          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-brand-300/40 to-transparent" />
+        </div>
 
-            <p className="text-white/35 max-w-lg text-base leading-relaxed">
-              {selectedCategory === "wino"
-                ? "Wyselekcjonowane wina z Włoch i Hiszpanii. Od małych, rodzinnych winiarzy."
-                : selectedCategory === "kawa"
-                ? "Świeżo palona kawa specialty z najlepszych plantacji."
-                : selectedCategory === "slodycze"
-                ? "Tradycyjne włoskie słodycze i czekolady rzemieślnicze."
-                : selectedCategory === "spizarnia"
-                ? "Oliwy extra virgin, przetwory, makarony i przysmaki z Południa."
-                : "Ponad 300 wyselekcjonowanych włoskich i hiszpańskich specjałów."}
-            </p>
+        <div className="relative z-10 container mx-auto px-6 lg:px-12 pt-24 md:pt-28 pb-12 md:pb-16">
+          <div className="flex items-center gap-4 mb-10 md:mb-14">
+            <span className="text-[11px] uppercase tracking-[0.3em] text-brand-500 font-medium">
+              § Sklep online
+            </span>
+            <span className="h-px flex-1 max-w-[60px] bg-brand-300/50" />
+            <span className="text-[11px] uppercase tracking-[0.3em] text-brand-500 font-medium tabular-nums">
+              {filteredResult.totalCount} {filteredResult.totalCount === 1 ? "produkt" : "produktów"}
+            </span>
           </div>
 
-          {/* Divider */}
-          <div className="h-px bg-white/10 mb-8" />
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end">
+            <div className="lg:col-span-8">
+              <div className="overflow-hidden mb-6">
+                <h1
+                  key={selectedCategory}
+                  className="text-[clamp(3rem,7.5vw,6rem)] font-serif text-brand-900 leading-[0.98] tracking-[-0.02em]"
+                >
+                  {activeCategoryConfig?.name || "Wszystko"}
+                </h1>
+              </div>
+              <p className="text-base md:text-[17px] text-brand-600 leading-relaxed max-w-xl">
+                {heroLead}
+              </p>
+            </div>
 
-          {/* Category Pills */}
-          <div className="flex flex-wrap gap-2">
-            {filteredCategories.map((cat, i) => (
-              <button
-                key={cat.id}
-                onClick={() => handleCategorySelect(cat.slug)}
-                aria-pressed={selectedCategory === cat.id}
-                className={`
-                  px-5 py-2.5 rounded-full text-sm font-medium transition-colors border
-                  ${
-                    selectedCategory === cat.id
-                      ? "bg-white text-brand-900 border-white"
-                      : "bg-transparent text-white/50 border-white/20 hover:text-white"
-                  }
-                `}
-              >
-                {cat.name}
-              </button>
-            ))}
+            <div className="lg:col-span-4 hidden lg:block">
+              <p className="font-serif italic text-brand-700 text-lg leading-snug">
+                Prosto od producentów z Włoch i Hiszpanii — zamawiasz dziś, jutro u Ciebie.
+              </p>
+            </div>
+          </div>
+
+          {/* Category nav */}
+          <div className="mt-14 md:mt-20 border-t border-brand-200/60 pt-6 flex flex-wrap items-center gap-x-8 gap-y-3">
+            <span className="text-[10px] uppercase tracking-[0.3em] text-brand-500 font-semibold">
+              Kategorie —
+            </span>
+            {filteredCategories.map((cat) => {
+              const active = selectedCategory === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => handleCategorySelect(cat.slug)}
+                  aria-pressed={active}
+                  className={`group relative text-[12px] uppercase tracking-[0.18em] font-semibold transition-colors duration-200 pb-1 ${
+                    active
+                      ? "text-brand-900 border-b-2 border-brand-900"
+                      : "text-brand-500 hover:text-brand-900 border-b border-transparent"
+                  }`}
+                >
+                  {cat.name}
+                </button>
+              );
+            })}
           </div>
         </div>
-      </div>
+      </section>
 
       {/* Main Content */}
       <div className="container mx-auto px-6 lg:px-12 py-10">
@@ -332,18 +354,18 @@ export const ShopClient = ({ initialData }: ShopClientProps) => {
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="mobile-filters-title"
-                className="fixed inset-y-0 left-0 w-80 bg-white z-50 p-6 overflow-y-auto lg:hidden"
+                className="fixed inset-y-0 left-0 w-80 bg-[#f7f2ec]  z-50 p-6 overflow-y-auto lg:hidden border-r border-brand-200 "
               >
                 <div className="flex justify-between items-center mb-8">
-                  <h2 id="mobile-filters-title" className="font-serif text-2xl text-brand-900">
+                  <h2 id="mobile-filters-title" className="font-serif text-2xl text-brand-900 ">
                     Filtry
                   </h2>
                   <button
                     onClick={() => setIsMobileFiltersOpen(false)}
                     aria-label="Zamknij filtry"
-                    className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center hover:bg-brand-200 transition-colors"
+                    className="w-10 h-10 border border-brand-200  flex items-center justify-center hover:bg-brand-200/50 :bg-white/5 transition-colors"
                   >
-                    <X size={20} aria-hidden="true" className="text-brand-700" />
+                    <X size={18} aria-hidden="true" className="text-brand-700 " />
                   </button>
                 </div>
 
@@ -421,19 +443,19 @@ export const ShopClient = ({ initialData }: ShopClientProps) => {
           {/* Main Content */}
           <main className="flex-1 min-w-0">
             {/* Toolbar */}
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-8 bg-white rounded-xl border border-brand-100 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-8 border-b border-brand-200/60  pb-4">
               <div className="flex items-center gap-4">
                 <button
-                  className="lg:hidden flex items-center gap-2 text-sm font-medium text-brand-700 bg-brand-50 px-4 py-2 rounded-lg hover:bg-brand-100 transition-colors"
+                  className="lg:hidden inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-brand-900  border-b border-brand-300  hover:border-brand-900 :border-white transition-colors pb-1"
                   onClick={() => setIsMobileFiltersOpen(true)}
                   aria-expanded={isMobileFiltersOpen}
                   aria-controls="mobile-filters-panel"
                 >
-                  <Filter size={16} aria-hidden="true" /> Filtry
+                  <Filter size={14} aria-hidden="true" /> Filtry
                 </button>
 
-                <p className="text-sm text-brand-700">
-                  <span className="font-bold text-brand-900">
+                <p className="text-[11px] uppercase tracking-[0.22em] text-brand-500  font-medium tabular-nums">
+                  <span className="font-bold text-brand-900  font-serif text-base normal-case tracking-normal">
                     {filteredResult.totalCount}
                   </span>{" "}
                   {filteredResult.totalCount === 1 ? "produkt" : "produkt\u00f3w"}
@@ -443,30 +465,30 @@ export const ShopClient = ({ initialData }: ShopClientProps) => {
               <div className="flex items-center gap-3 ml-auto">
                 <SortDropdown current={sortOption} onChange={setSortOption} />
 
-                <div className="hidden sm:flex items-center border border-brand-200 rounded-lg p-1 bg-brand-50">
+                <div className="hidden sm:flex items-center border border-brand-200  bg-white/50 ">
                   <button
                     onClick={() => setViewMode("grid")}
                     aria-label="Widok siatki"
                     aria-pressed={viewMode === "grid"}
-                    className={`p-2 rounded-md transition-all ${
+                    className={`p-2.5 transition-colors ${
                       viewMode === "grid"
-                        ? "bg-white text-brand-900 shadow-sm"
-                        : "text-brand-400 hover:text-brand-700"
+                        ? "bg-brand-900  text-white "
+                        : "text-brand-400  hover:text-brand-700 :text-white"
                     }`}
                   >
-                    <Grid2X2 size={16} aria-hidden="true" />
+                    <Grid2X2 size={14} aria-hidden="true" />
                   </button>
                   <button
                     onClick={() => setViewMode("list")}
                     aria-label="Widok listy"
                     aria-pressed={viewMode === "list"}
-                    className={`p-2 rounded-md transition-all ${
+                    className={`p-2.5 transition-colors ${
                       viewMode === "list"
-                        ? "bg-white text-brand-900 shadow-sm"
-                        : "text-brand-400 hover:text-brand-700"
+                        ? "bg-brand-900  text-white "
+                        : "text-brand-400  hover:text-brand-700 :text-white"
                     }`}
                   >
-                    <LayoutList size={16} aria-hidden="true" />
+                    <LayoutList size={14} aria-hidden="true" />
                   </button>
                 </div>
               </div>
@@ -538,19 +560,19 @@ export const ShopClient = ({ initialData }: ShopClientProps) => {
                     <div key={i} className="animate-pulse">
                       {viewMode === "grid" ? (
                         <>
-                          <div className="bg-brand-100 rounded-2xl aspect-[3/4] mb-4" />
-                          <div className="h-3 bg-brand-100 rounded w-1/3 mb-2" />
-                          <div className="h-5 bg-brand-100 rounded w-3/4 mb-2" />
-                          <div className="h-4 bg-brand-100 rounded w-1/4" />
+                          <div className="bg-brand-200/50  aspect-[3/4] mb-4" />
+                          <div className="h-3 bg-brand-200/50  w-1/3 mb-2" />
+                          <div className="h-5 bg-brand-200/50  w-3/4 mb-2" />
+                          <div className="h-4 bg-brand-200/50  w-1/4" />
                         </>
                       ) : (
-                        <div className="flex gap-6 p-5 bg-white rounded-2xl border border-brand-100">
-                          <div className="w-36 h-36 bg-brand-100 rounded-xl" />
+                        <div className="flex gap-6 p-5 border border-brand-200/60  bg-white/40 ">
+                          <div className="w-36 h-36 bg-brand-200/50 " />
                           <div className="flex-1 py-2">
-                            <div className="h-3 bg-brand-100 rounded w-1/4 mb-3" />
-                            <div className="h-6 bg-brand-100 rounded w-2/3 mb-3" />
-                            <div className="h-4 bg-brand-100 rounded w-full mb-4" />
-                            <div className="h-5 bg-brand-100 rounded w-1/4" />
+                            <div className="h-3 bg-brand-200/50  w-1/4 mb-3" />
+                            <div className="h-6 bg-brand-200/50  w-2/3 mb-3" />
+                            <div className="h-4 bg-brand-200/50  w-full mb-4" />
+                            <div className="h-5 bg-brand-200/50  w-1/4" />
                           </div>
                         </div>
                       )}
@@ -558,23 +580,23 @@ export const ShopClient = ({ initialData }: ShopClientProps) => {
                   ))}
                 </div>
               ) : filteredProducts.length === 0 ? (
-                <div className="py-20 text-center bg-white rounded-2xl border border-brand-100">
-                  <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-brand-100 flex items-center justify-center">
-                    <Search size={32} className="text-brand-400" />
+                <div className="py-24 text-center border border-brand-200/60  bg-white/40 ">
+                  <div className="inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] text-brand-500  font-medium mb-6">
+                    <Search size={14} aria-hidden="true" /> Brak wyników
                   </div>
-                  <h3 className="text-2xl font-serif text-brand-900 mb-2">
-                    Brak wyników
+                  <h3 className="font-serif text-3xl md:text-4xl text-brand-900  mb-4 tracking-[-0.01em]">
+                    Nic nie pasuje <span className="italic text-brand-700 ">do filtrów</span>
                   </h3>
-                  <p className="text-brand-700 mb-8 max-w-md mx-auto">
-                    Nie znaleźliśmy produktów spełniających Twoje kryteria. Spróbuj
-                    zmienić filtry lub wyszukać coś innego.
+                  <p className="text-brand-600  mb-10 max-w-md mx-auto leading-relaxed">
+                    Spróbuj zmienić kryteria albo wyczyść filtry, żeby zobaczyć całą ofertę.
                   </p>
                   <button
                     onClick={clearAllFilters}
-                    className="px-8 py-3 bg-brand-900 text-white text-sm font-bold uppercase tracking-wider rounded-full hover:bg-brand-700 transition-all inline-flex items-center gap-2"
+                    className="group inline-flex items-center gap-3 bg-brand-900  text-white  pl-7 pr-5 py-4 text-[12px] font-bold uppercase tracking-[0.18em] hover:bg-brand-700 :bg-brand-100 transition-colors"
                   >
                     Wyczyść filtry
-                    <ArrowRight size={16} />
+                    <span className="w-px h-5 bg-white/20  mx-1" />
+                    <ArrowRight size={14} className="transition-transform duration-300 group-hover:translate-x-0.5" />
                   </button>
                 </div>
               ) : (

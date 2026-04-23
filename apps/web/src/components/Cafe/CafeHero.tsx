@@ -4,7 +4,7 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { ArrowUpRight, MapPin, Phone } from "lucide-react";
+import { ArrowUpRight, MapPin } from "lucide-react";
 
 const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
@@ -186,7 +186,7 @@ export const CafeHero: React.FC = () => {
               className="absolute bottom-8 left-0 w-[52%] h-[44%] overflow-hidden shadow-[0_30px_60px_-20px_rgba(28,25,23,0.3)] dark:shadow-[0_30px_60px_-20px_rgba(0,0,0,0.7)]"
             >
               <Image
-                src="/assets/about-bakery.png"
+                src="https://media.ilbuoncaffe.pl/about-us/wypieki.jpg"
                 alt="Świeże wypieki"
                 fill
                 className="object-cover"
@@ -202,33 +202,13 @@ export const CafeHero: React.FC = () => {
               initial={{ y: 30, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 1, delay: 0.6, ease: EASE }}
-              className="absolute bottom-0 right-4 w-[38%] h-[32%] overflow-hidden shadow-[0_20px_40px_-15px_rgba(28,25,23,0.3)] dark:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.7)]"
+              className="absolute bottom-0 right-4 w-[38%] h-[32%] overflow-hidden shadow-[0_20px_40px_-15px_rgba(28,25,23,0.3)] dark:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.7)] bg-brand-900/5"
             >
-              <Image
-                src="/assets/about-deli.png"
-                alt="Włoskie delikatesy"
-                fill
-                className="object-cover"
-                sizes="(max-width: 1024px) 0px, 20vw"
-              />
               <div className="absolute top-2 left-2 bg-white/95 dark:bg-brand-950/95 backdrop-blur-sm px-2.5 py-1 text-[9px] uppercase tracking-[0.2em] font-bold text-brand-900 dark:text-white">
                 Delikatesy
               </div>
             </motion.div>
 
-            {/* Espresso price tag */}
-            <motion.a
-              href="tel:+48664937937"
-              initial={{ scale: 0, rotate: -12 }}
-              animate={{ scale: 1, rotate: -8 }}
-              transition={{ duration: 0.8, delay: 0.9, ease: EASE }}
-              className="absolute top-[56%] right-[60%] bg-brand-900 dark:bg-white text-white dark:text-brand-950 px-4 py-3 text-center hover:rotate-0 transition-transform duration-300"
-            >
-              <div className="text-[9px] uppercase tracking-[0.2em] font-medium opacity-70 flex items-center justify-center gap-1">
-                <Phone className="w-2.5 h-2.5" /> Rezerwacja
-              </div>
-              <div className="font-serif text-base tabular-nums">664 937 937</div>
-            </motion.a>
           </motion.div>
 
         </div>
