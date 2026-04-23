@@ -17,15 +17,15 @@ const heroImages = [
 
 const tickerItems = [
   "Kawa specialty",
-  "Włoskie wina",
+  "Wina z Rioja",
   "Oliwy extra vergine",
-  "Panettone",
-  "Pandoro",
-  "Grappa",
-  "Limoncello",
+  "Jamón Ibérico",
   "Makarony z Gragnano",
+  "Cava & Prosecco",
+  "Manchego & Parmigiano",
+  "Chorizo & Salumi",
   "Trufle",
-  "Sery z Południa",
+  "Wina z Toskanii",
 ];
 
 export const Hero = () => {
@@ -99,7 +99,7 @@ export const Hero = () => {
                 transition={{ duration: 0.9, delay: 0.1, ease: EASE }}
                 className="text-[clamp(3rem,7.5vw,6rem)] font-serif text-brand-900 dark:text-white leading-[0.98] tracking-[-0.02em]"
               >
-                Włochy.<br />
+                Południe Europy.<br />
                 <span className="italic text-brand-700 dark:text-brand-300">Prosto</span> do Twoich drzwi.
               </motion.h1>
             </div>
@@ -111,7 +111,7 @@ export const Hero = () => {
               transition={{ duration: 0.8, delay: 0.35, ease: EASE }}
               className="text-base md:text-[17px] text-brand-600 dark:text-white/50 leading-relaxed mb-10 md:mb-12 max-w-md"
             >
-              Kawa specialty, wina z rodzinnych winnic, oliwy i delikatesy.
+              Kawa specialty, włoskie i hiszpańskie wina, oliwy i delikatesy prosto od producentów.
               Zamów online, dostarczymy w 24h.
             </motion.p>
 
