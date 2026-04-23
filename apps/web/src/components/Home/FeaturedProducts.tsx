@@ -44,7 +44,7 @@ const ProductCard = ({ product, index }: { product: Product; index: number }) =>
     >
       <Link href={`/sklep/${toSlug(product)}`} className="group block">
         {/* Image */}
-        <div className="relative aspect-square rounded-sm overflow-hidden bg-white dark:bg-brand-900 border border-brand-100 dark:border-white/5 mb-4 transition-all duration-500 group-hover:border-brand-200 dark:group-hover:border-white/10 group-hover:shadow-md group-hover:shadow-brand-900/5">
+        <div className="relative aspect-square rounded-sm overflow-hidden bg-brand-50 border border-brand-100 mb-4 transition-all duration-500 group-hover:border-brand-200 group-hover:shadow-md group-hover:shadow-brand-900/5">
           <Image
             src={imageUrl}
             alt={product.name}
@@ -99,7 +99,7 @@ const ProductCard = ({ product, index }: { product: Product; index: number }) =>
 // ── Skeleton ───────────────────────────────────────────────────────
 const CardSkeleton = () => (
   <div>
-    <div className="aspect-square rounded-sm bg-brand-100 dark:bg-brand-900 animate-pulse mb-4" />
+    <div className="aspect-square rounded-sm bg-brand-100 animate-pulse mb-4" />
     <div className="h-2.5 w-1/4 bg-brand-100 dark:bg-white/5 rounded animate-pulse mb-2" />
     <div className="h-3.5 w-3/4 bg-brand-100 dark:bg-white/5 rounded animate-pulse mb-2" />
     <div className="h-3.5 w-1/3 bg-brand-100 dark:bg-white/5 rounded animate-pulse" />
