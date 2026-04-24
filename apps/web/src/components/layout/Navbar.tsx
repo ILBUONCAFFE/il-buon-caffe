@@ -6,7 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion, useMotionValue, useSpring } from "motion/react";
-import { ShoppingBag, User, Menu, X, Search, ChevronRight, Store, Coffee, MapPin, BookOpenText, ArrowUpRight, Sparkles } from "lucide-react";
+import { ShoppingBag, User, Menu, X, Search, ChevronRight, Store, Coffee, MapPin, BookOpenText } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { cn } from "@/lib/utils";
 import { SHOP_ENABLED, ACCOUNTS_ENABLED } from "@/config/launch";
@@ -160,6 +160,7 @@ export const Navbar = () => {
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [isSearchLoading, setIsSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [searchSelectedIndex, setSearchSelectedIndex] = useState(0);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [pillStyle, setPillStyle] = useState({ left: 0, width: 0 });
   const [isDarkTheme, setIsDarkTheme] = useState(false);
@@ -327,14 +328,34 @@ export const Navbar = () => {
     };
   }, [isMobileMenuOpen]);
 
-  // Close search on Escape
+  // Escape closes, Ctrl/Cmd+K toggles
   useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
+    const handleKey = (e: KeyboardEvent) => {
+      if ((e.key === 'k' || e.key === 'K') && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setIsSearchOpen((v) => {
+          const next = !v;
+          if (next) {
+            setSearchQuery("");
+            setSearchResults([]);
+            setSearchError(null);
+            setIsSearchLoading(false);
+            setSearchSelectedIndex(0);
+          }
+          return next;
+        });
+        return;
+      }
       if (e.key === 'Escape' && isSearchOpen) setIsSearchOpen(false);
     };
-    window.addEventListener('keydown', handleEsc);
-    return () => window.removeEventListener('keydown', handleEsc);
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
   }, [isSearchOpen]);
+
+  // Reset selection index on query change
+  useEffect(() => {
+    setSearchSelectedIndex(0);
+  }, [searchQuery]);
 
   useEffect(() => {
     if (!isSearchOpen) return;
@@ -981,198 +1002,223 @@ export const Navbar = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-xl flex items-start justify-center pt-24 md:pt-28 px-4"
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[60] bg-[#1a1410]/75 backdrop-blur-md flex items-start justify-center pt-20 md:pt-24 px-4"
             onClick={closeSearch}
             role="dialog"
             aria-modal="true"
             aria-label="Wyszukiwarka"
           >
+            {(() => {
+              const q = searchQuery.trim();
+              const navTargets = hasTypedQuery ? searchResults.map(resolveSearchProductHref) : filteredShortcuts.map((s) => s.href);
+              const onInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+                if (e.key === "ArrowDown") {
+                  e.preventDefault();
+                  if (navTargets.length) setSearchSelectedIndex((i) => (i + 1) % navTargets.length);
+                } else if (e.key === "ArrowUp") {
+                  e.preventDefault();
+                  if (navTargets.length) setSearchSelectedIndex((i) => (i - 1 + navTargets.length) % navTargets.length);
+                } else if (e.key === "Enter") {
+                  e.preventDefault();
+                  const target = navTargets[searchSelectedIndex] || navTargets[0];
+                  if (target) navigateFromSearch(target);
+                }
+              };
+              return (
             <motion.div
-              initial={{ opacity: 0, y: -30, scale: 0.95 }}
+              initial={{ opacity: 0, y: -20, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -30, scale: 0.95 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="w-full max-w-5xl"
+              exit={{ opacity: 0, y: -20, scale: 0.98 }}
+              transition={{ type: "spring", damping: 28, stiffness: 320 }}
+              className="w-full max-w-2xl"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="relative overflow-hidden rounded-3xl border border-white/20 bg-[#fbf8f4]/95 shadow-[0_30px_80px_rgba(0,0,0,0.45)]">
-                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-400/80 to-transparent" />
-
-                <div className="relative border-b border-brand-200/70 px-4 md:px-6 py-4 md:py-5">
-                  <Search className="absolute left-8 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-500" />
+              <div className="relative overflow-hidden rounded-2xl border border-brand-900/10 bg-[#f8f3ec] shadow-[0_40px_90px_-20px_rgba(26,20,16,0.55)]">
+                {/* Header / Input */}
+                <div className="relative flex items-center gap-4 px-5 md:px-6 border-b border-brand-900/10">
+                  <Search className="w-4 h-4 text-brand-900/50 flex-shrink-0" strokeWidth={1.75} />
                   <input
                     type="text"
                     id="search-input"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key !== "Enter") return;
-                      e.preventDefault();
-
-                      if (hasTypedQuery && searchResults.length > 0) {
-                        navigateFromSearch(resolveSearchProductHref(searchResults[0]));
-                        return;
-                      }
-
-                      if (filteredShortcuts.length > 0) {
-                        navigateFromSearch(filteredShortcuts[0].href);
-                      }
-                    }}
-                    placeholder="Szukaj produktu, kategorii lub strony..."
+                    onKeyDown={onInputKeyDown}
+                    placeholder="Kawa, wino, region, produkt…"
                     autoFocus
-                    className="w-full rounded-2xl border border-brand-200/80 bg-white py-4 pl-14 pr-24 text-base md:text-lg text-brand-900 placeholder-brand-500/70 focus:outline-none focus:ring-2 focus:ring-brand-400/50"
+                    className="flex-1 bg-transparent py-5 md:py-6 text-base md:text-lg font-serif text-brand-950 placeholder-brand-900/35 focus:outline-none tracking-[0.005em]"
                   />
-
-                  <div className="absolute right-7 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                    {searchQuery && (
-                      <button
-                        onClick={() => setSearchQuery("")}
-                        className="p-2 text-brand-500 hover:text-brand-700 rounded-full hover:bg-brand-50 transition-colors"
-                        aria-label="Wyczyść wyszukiwanie"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    )}
+                  {searchQuery && (
                     <button
-                      onClick={closeSearch}
-                      className="p-2 text-brand-500 hover:text-brand-700 rounded-full hover:bg-brand-50 transition-colors"
-                      aria-label="Zamknij wyszukiwarkę"
+                      onClick={() => setSearchQuery("")}
+                      className="text-[10px] uppercase tracking-[0.2em] text-brand-900/50 hover:text-brand-900 transition-colors"
+                      aria-label="Wyczyść"
                     >
-                      <X className="w-5 h-5" />
+                      Wyczyść
                     </button>
-                  </div>
+                  )}
+                  <button
+                    onClick={closeSearch}
+                    className="w-8 h-8 flex items-center justify-center rounded-full text-brand-900/60 hover:bg-brand-900/5 hover:text-brand-900 transition-colors"
+                    aria-label="Zamknij"
+                  >
+                    <X className="w-4 h-4" strokeWidth={1.75} />
+                  </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-[280px_1fr]">
-                  <aside className="border-b md:border-b-0 md:border-r border-brand-200/70 bg-brand-50/40 px-4 md:px-5 py-5">
-                    <p className="text-[11px] uppercase tracking-[0.22em] text-brand-600 mb-3">Skróty</p>
-                    <div className="space-y-2">
-                      {filteredShortcuts.map((shortcut) => (
-                        <button
-                          key={shortcut.id}
-                          type="button"
-                          onClick={() => navigateFromSearch(shortcut.href)}
-                          className="w-full text-left rounded-2xl border border-transparent hover:border-brand-200 hover:bg-white px-3 py-3 transition-all group"
-                        >
-                          <div className="flex items-start gap-3">
-                            <div className="mt-0.5 w-9 h-9 rounded-xl bg-brand-900 text-white flex items-center justify-center">
-                              <shortcut.icon className="w-4 h-4" />
-                            </div>
+                {/* Body */}
+                <div className="max-h-[60vh] overflow-y-auto">
+                  {/* Idle state — shortcuts only, no AI fluff */}
+                  {!hasTypedQuery && (
+                    <div className="px-5 md:px-6 py-5">
+                      <p className="text-[10px] uppercase tracking-[0.28em] text-brand-900/45 mb-4">Przejdź do</p>
+                      <div className="space-y-1">
+                        {filteredShortcuts.map((shortcut, idx) => (
+                          <button
+                            key={shortcut.id}
+                            type="button"
+                            onMouseEnter={() => setSearchSelectedIndex(idx)}
+                            onClick={() => navigateFromSearch(shortcut.href)}
+                            className={cn(
+                              "w-full text-left flex items-center gap-4 px-3 py-3 rounded-lg transition-colors group",
+                              searchSelectedIndex === idx ? "bg-brand-900/5" : "hover:bg-brand-900/5"
+                            )}
+                          >
+                            <shortcut.icon className="w-4 h-4 text-brand-900/60 flex-shrink-0" strokeWidth={1.5} />
                             <div className="min-w-0 flex-1">
-                              <p className="text-sm font-semibold text-brand-900">{shortcut.title}</p>
-                              <p className="text-xs text-brand-600 mt-0.5 line-clamp-2">{shortcut.subtitle}</p>
+                              <p className="text-sm font-medium text-brand-950">{shortcut.title}</p>
+                              <p className="text-xs text-brand-900/55 mt-0.5 truncate">{shortcut.subtitle}</p>
                             </div>
-                            <ArrowUpRight className="w-4 h-4 text-brand-400 group-hover:text-brand-700 transition-colors" />
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </aside>
-
-                  <section className="px-4 md:px-6 py-5 min-h-[320px]">
-                    {!hasTypedQuery && (
-                      <div className="h-full flex flex-col items-center justify-center text-center px-4">
-                        <div className="w-14 h-14 rounded-2xl bg-brand-900 text-white flex items-center justify-center mb-4">
-                          <Sparkles className="w-6 h-6" />
-                        </div>
-                        <h3 className="text-2xl md:text-3xl font-serif text-brand-900 mb-2">Inteligentne wyszukiwanie</h3>
-                        <p className="text-brand-600 max-w-md">
-                          Wpisz minimum 2 znaki, aby przeszukać produkty i szybko przejść do najważniejszych sekcji strony.
-                        </p>
-                        <div className="flex flex-wrap gap-2 mt-5 justify-center">
-                          {["barahonda", "kawa", "oliwa", "koszalin"].map((hint) => (
-                            <button
-                              key={hint}
-                              type="button"
-                              onClick={() => setSearchQuery(hint)}
-                              className="px-3 py-1.5 rounded-full border border-brand-200 bg-white text-xs text-brand-700 hover:border-brand-400 hover:text-brand-900 transition-colors"
-                            >
-                              {hint}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {hasTypedQuery && isSearchLoading && (
-                      <div className="space-y-3">
-                        {Array.from({ length: 4 }).map((_, i) => (
-                          <div key={i} className="h-20 rounded-2xl border border-brand-100 bg-brand-50/60 animate-pulse" />
+                            <ChevronRight className={cn(
+                              "w-4 h-4 flex-shrink-0 transition-opacity",
+                              searchSelectedIndex === idx ? "opacity-100 text-brand-900" : "opacity-0 group-hover:opacity-60"
+                            )} strokeWidth={1.5} />
+                          </button>
                         ))}
                       </div>
-                    )}
+                    </div>
+                  )}
 
-                    {hasTypedQuery && !isSearchLoading && searchError && (
-                      <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-5 text-red-700 text-sm">
-                        {searchError}
-                      </div>
-                    )}
+                  {/* Typed — loading */}
+                  {hasTypedQuery && isSearchLoading && (
+                    <div className="px-5 md:px-6 py-5 space-y-1.5">
+                      {Array.from({ length: 4 }).map((_, i) => (
+                        <div key={i} className="flex items-center gap-4 px-3 py-3">
+                          <div className="w-12 h-12 rounded-md bg-brand-900/5 animate-pulse" />
+                          <div className="flex-1 space-y-2">
+                            <div className="h-3 w-1/2 rounded bg-brand-900/5 animate-pulse" />
+                            <div className="h-2.5 w-1/3 rounded bg-brand-900/5 animate-pulse" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
-                    {hasTypedQuery && !isSearchLoading && !searchError && searchResults.length === 0 && (
-                      <div className="h-full flex flex-col items-center justify-center text-center px-4">
-                        <p className="text-lg font-medium text-brand-900 mb-2">Brak wyników dla "{searchQuery.trim()}"</p>
-                        <p className="text-brand-600 mb-5">Spróbuj innej frazy albo przejdź do pełnej oferty sklepu.</p>
-                        <button
-                          type="button"
-                          onClick={() => navigateFromSearch("/sklep")}
-                          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-900 text-white text-sm hover:bg-brand-700 transition-colors"
-                        >
-                          Przejdź do sklepu
-                          <ArrowUpRight className="w-4 h-4" />
-                        </button>
-                      </div>
-                    )}
+                  {/* Typed — error */}
+                  {hasTypedQuery && !isSearchLoading && searchError && (
+                    <div className="px-5 md:px-6 py-6">
+                      <p className="text-sm text-red-800/90">{searchError}</p>
+                    </div>
+                  )}
 
-                    {hasTypedQuery && !isSearchLoading && !searchError && searchResults.length > 0 && (
-                      <div>
-                        <p className="text-[11px] uppercase tracking-[0.22em] text-brand-600 mb-3">
-                          Wyniki ({searchResults.length})
-                        </p>
-                        <div className="space-y-2">
-                          {searchResults.map((product) => (
+                  {/* Typed — empty */}
+                  {hasTypedQuery && !isSearchLoading && !searchError && searchResults.length === 0 && (
+                    <div className="px-5 md:px-6 py-10 text-center">
+                      <p className="font-serif text-lg text-brand-950 mb-1">Nic nie znaleziono</p>
+                      <p className="text-sm text-brand-900/55 mb-5">
+                        Żadnych produktów dla <span className="italic">„{q}"</span>.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => navigateFromSearch("/sklep")}
+                        className="inline-flex items-center gap-2 px-5 py-2 rounded-full border border-brand-900/20 text-brand-950 text-xs uppercase tracking-[0.2em] hover:bg-brand-900 hover:text-white hover:border-brand-900 transition-colors"
+                      >
+                        Zobacz cały sklep
+                        <ChevronRight className="w-3.5 h-3.5" strokeWidth={1.75} />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Typed — results */}
+                  {hasTypedQuery && !isSearchLoading && !searchError && searchResults.length > 0 && (
+                    <div className="px-5 md:px-6 py-4">
+                      <p className="text-[10px] uppercase tracking-[0.28em] text-brand-900/45 mb-3">
+                        Produkty · {searchResults.length}
+                      </p>
+                      <div className="space-y-0.5">
+                        {searchResults.map((product, idx) => {
+                          const href = resolveSearchProductHref(product);
+                          const active = searchSelectedIndex === idx;
+                          const catLabel = (typeof product.category === "string" && product.category) || "Premium";
+                          return (
                             <button
                               key={product.sku}
                               type="button"
-                              onClick={() => navigateFromSearch(resolveSearchProductHref(product))}
-                              className="w-full text-left rounded-2xl border border-brand-100 bg-white hover:border-brand-300 hover:shadow-sm px-3 py-3 transition-all"
+                              onMouseEnter={() => setSearchSelectedIndex(idx)}
+                              onClick={() => navigateFromSearch(href)}
+                              className={cn(
+                                "w-full text-left flex items-center gap-4 px-3 py-2.5 rounded-lg transition-colors",
+                                active ? "bg-brand-900/5" : "hover:bg-brand-900/5"
+                              )}
                             >
-                              <div className="flex items-center gap-3">
-                                <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-brand-100 flex-shrink-0">
-                                  <Image
-                                    src={product.imageUrl || product.image || "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=400&q=80"}
-                                    alt={product.name}
-                                    fill
-                                    className="object-cover"
-                                    sizes="56px"
-                                  />
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <p className="text-sm md:text-base font-semibold text-brand-900 truncate">{product.name}</p>
-                                  <p className="text-xs text-brand-600 mt-1 truncate">
-                                    {(typeof product.category === "string" && product.category) || "Produkt premium"}
-                                    {product.origin ? ` • ${product.origin}` : ""}
-                                  </p>
-                                </div>
-                                <div className="text-right ml-2">
-                                  <p className="text-sm font-bold text-brand-900 whitespace-nowrap">{formatSearchPrice(product.price)}</p>
-                                  <p className="text-[11px] text-brand-500">Produkt</p>
+                              <div className="relative w-12 h-12 rounded-md overflow-hidden bg-brand-900/5 flex-shrink-0 ring-1 ring-brand-900/5">
+                                <Image
+                                  src={product.imageUrl || product.image || "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=400&q=80"}
+                                  alt={product.name}
+                                  fill
+                                  className="object-cover"
+                                  sizes="48px"
+                                />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-medium text-brand-950 truncate">{product.name}</p>
+                                <div className="flex items-center gap-2 mt-0.5 text-[11px] text-brand-900/55">
+                                  <span className="uppercase tracking-[0.14em]">{catLabel}</span>
+                                  {product.origin && (
+                                    <>
+                                      <span className="w-0.5 h-0.5 rounded-full bg-brand-900/30" />
+                                      <span className="truncate">{product.origin}</span>
+                                    </>
+                                  )}
                                 </div>
                               </div>
+                              <p className="text-sm font-serif text-brand-950 whitespace-nowrap tabular-nums">
+                                {formatSearchPrice(product.price)}
+                              </p>
+                              <ChevronRight className={cn(
+                                "w-4 h-4 flex-shrink-0 transition-opacity",
+                                active ? "opacity-100 text-brand-900" : "opacity-0"
+                              )} strokeWidth={1.5} />
                             </button>
-                          ))}
-                        </div>
+                          );
+                        })}
                       </div>
-                    )}
-                  </section>
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer */}
+                <div className="flex items-center justify-between gap-4 px-5 md:px-6 py-3 border-t border-brand-900/10 bg-[#f1eadf]/60 text-[11px] text-brand-900/55">
+                  <div className="flex items-center gap-4">
+                    <span className="flex items-center gap-1.5">
+                      <kbd className="px-1.5 py-0.5 rounded border border-brand-900/15 bg-white font-sans text-[10px] text-brand-900/70">↑</kbd>
+                      <kbd className="px-1.5 py-0.5 rounded border border-brand-900/15 bg-white font-sans text-[10px] text-brand-900/70">↓</kbd>
+                      <span>nawigacja</span>
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <kbd className="px-1.5 py-0.5 rounded border border-brand-900/15 bg-white font-sans text-[10px] text-brand-900/70">↵</kbd>
+                      <span>otwórz</span>
+                    </span>
+                  </div>
+                  <span className="flex items-center gap-1.5">
+                    <kbd className="px-1.5 py-0.5 rounded border border-brand-900/15 bg-white font-sans text-[10px] text-brand-900/70">esc</kbd>
+                    <span>zamknij</span>
+                  </span>
                 </div>
               </div>
-
-              <p className="text-center text-white/60 text-xs md:text-sm mt-4">
-                Naciśnij <kbd className="px-2 py-1 bg-white/10 rounded text-white/80">ESC</kbd> aby zamknąć,
-                <span className="mx-2">•</span>
-                <kbd className="px-2 py-1 bg-white/10 rounded text-white/80">ENTER</kbd> aby otworzyć pierwszy wynik
-              </p>
             </motion.div>
+              );
+            })()}
           </motion.div>
         )}
       </AnimatePresence>

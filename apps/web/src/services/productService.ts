@@ -554,10 +554,53 @@ export const productService = {
   },
 
   /**
-   * Search products
+   * Search products — multi-token: splits by whitespace, each token must match
+   * at least one searchable field (name, description, origin, country, region, grape).
    */
   async search(query: string): Promise<Product[]> {
-    return this.getAll({ search: query });
+    const trimmed = query.trim();
+    if (!trimmed) return [];
+
+    const tokens = trimmed.split(/\s+/).filter((t) => t.length >= 2).slice(0, 6);
+    if (tokens.length === 0) return this.getAll({ search: trimmed });
+
+    try {
+      const conditions: SQL[] = [eq(products.isActive, true)];
+      for (const token of tokens) {
+        const pattern = `%${token}%`;
+        conditions.push(
+          or(
+            ilike(products.name, pattern),
+            ilike(products.description, pattern),
+            ilike(products.origin, pattern),
+            ilike(products.originCountry, pattern),
+            ilike(products.originRegion, pattern),
+            ilike(products.grapeVariety, pattern),
+            ilike(products.sku, pattern),
+          )!
+        );
+      }
+
+      const rows = await db
+        .select({ product: products, categorySlug: categories.slug })
+        .from(products)
+        .leftJoin(categories, eq(products.categoryId, categories.id))
+        .where(and(...conditions))
+        .orderBy(desc(products.stock), asc(products.name))
+        .limit(20);
+
+      const nameLower = trimmed.toLowerCase();
+      return rows
+        .map(({ product, categorySlug }) => mapDbProductToProduct(product as DbProduct, categorySlug || undefined))
+        .sort((a, b) => {
+          const aStarts = a.name.toLowerCase().startsWith(nameLower) ? 0 : 1;
+          const bStarts = b.name.toLowerCase().startsWith(nameLower) ? 0 : 1;
+          return aStarts - bStarts;
+        });
+    } catch (error) {
+      logDbError('[productService.search]', error);
+      return [];
+    }
   },
 
   /**
