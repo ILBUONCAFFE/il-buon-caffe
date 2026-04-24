@@ -231,7 +231,7 @@ export const metadata: Metadata = {
     default: "Il Buon Caffe – Włoska Kawiarnia i Sklep Online w Koszalinie",
     template: "%s | Il Buon Caffe",
   },
-  description: "Prawdziwa włoska kawiarnia w Koszalinie. Zapraszamy na doskonałe espresso, świeżo palone kawy specialty i włoskie wypieki. Sklep online z włoskimi delikatesami — kawa, wino, oliwy. Il Buon Caffe – ul. Biskupa Czesława Domina 3/6.",
+  description: "Włoska kawiarnia i sklep online w Koszalinie. Espresso, kawy specialty, wina, oliwy i słodycze. Zamów z dostawą do całej Polski — Il Buon Caffe.",
   metadataBase: new URL("https://ilbuoncaffe.pl"),
   icons: {
     icon: [{ url: "/assets/logo.png" }],
