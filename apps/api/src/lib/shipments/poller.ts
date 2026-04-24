@@ -228,47 +228,53 @@ export async function applyPollResult(
 
   const stateChanged = newState !== previousState
   const nextCheckAt  = computeNextCheckAt(newState, now)
+  const autoDeliver  = newState === 'delivered' && !ORDER_STATUSES_BLOCKING_AUTO_DELIVER.has(order.status)
 
-  await db.update(orders).set({
-    shipmentState:            newState,
-    shipmentLastCheckedAt:    now,
-    shipmentNextCheckAt:      nextCheckAt,
-    shipmentCheckAttempts:    0,
-    shipmentStateChangedAt:   stateChanged ? now : order.shipmentStateChangedAt,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    allegroShipmentsSnapshot: shipments as any, // Drizzle jsonb requires cast
-    updatedAt:                now,
-  }).where(eq(orders.id, order.id))
-
-  if (stateChanged) {
-    await db.insert(orderStatusHistory).values({
-      orderId:       order.id,
-      category:      'tracking',
-      previousValue: previousState ?? null,
-      newValue:      newState,
-      source:        'allegro_sync',
-      occurredAt:    now,
-    })
-  }
-
-  // Keep business status aligned with terminal shipment state.
-  // Without this, orders can stay "shipped" forever after carrier confirms delivery.
-  if (newState === 'delivered' && !ORDER_STATUSES_BLOCKING_AUTO_DELIVER.has(order.status)) {
-    await db.update(orders).set({
-      status:      'delivered',
-      deliveredAt: now,
-      updatedAt:   now,
+  // Atomic: shipment update + history insert + business status alignment must commit together.
+  // Without transaction, a Worker CPU/subrequest limit hit mid-way leaves order inconsistent
+  // (e.g. shipmentState=delivered but status=shipped, or status change without history row).
+  await db.transaction(async (tx) => {
+    await tx.update(orders).set({
+      shipmentState:            newState,
+      shipmentLastCheckedAt:    now,
+      shipmentNextCheckAt:      nextCheckAt,
+      shipmentCheckAttempts:    0,
+      shipmentStateChangedAt:   stateChanged ? now : order.shipmentStateChangedAt,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      allegroShipmentsSnapshot: shipments as any, // Drizzle jsonb requires cast
+      updatedAt:                now,
     }).where(eq(orders.id, order.id))
 
-    await db.insert(orderStatusHistory).values({
-      orderId:       order.id,
-      category:      'status',
-      previousValue: order.status,
-      newValue:      'delivered',
-      source:        'carrier_sync',
-      occurredAt:    now,
-    })
-  }
+    if (stateChanged) {
+      await tx.insert(orderStatusHistory).values({
+        orderId:       order.id,
+        category:      'tracking',
+        previousValue: previousState ?? null,
+        newValue:      newState,
+        source:        'allegro_sync',
+        occurredAt:    now,
+      })
+    }
+
+    // Keep business status aligned with terminal shipment state.
+    // Without this, orders can stay "shipped" forever after carrier confirms delivery.
+    if (autoDeliver) {
+      await tx.update(orders).set({
+        status:      'delivered',
+        deliveredAt: now,
+        updatedAt:   now,
+      }).where(eq(orders.id, order.id))
+
+      await tx.insert(orderStatusHistory).values({
+        orderId:       order.id,
+        category:      'status',
+        previousValue: order.status,
+        newValue:      'delivered',
+        source:        'carrier_sync',
+        occurredAt:    now,
+      })
+    }
+  })
 
   return { orderId: order.id, previousState, newState, stateChanged, snapshot: shipments }
 }
@@ -285,22 +291,24 @@ export async function applyBackoff(
   const attempts = order.shipmentCheckAttempts + 1
 
   if (attempts >= MAX_BACKOFF_ATTEMPTS) {
-    await db.update(orders).set({
-      shipmentState:          'exception',
-      shipmentStateChangedAt: now,
-      shipmentLastCheckedAt:  now,
-      shipmentNextCheckAt:    computeNextCheckAt('exception', now),
-      shipmentCheckAttempts:  0,
-      updatedAt:              now,
-    }).where(eq(orders.id, order.id))
+    await db.transaction(async (tx) => {
+      await tx.update(orders).set({
+        shipmentState:          'exception',
+        shipmentStateChangedAt: now,
+        shipmentLastCheckedAt:  now,
+        shipmentNextCheckAt:    computeNextCheckAt('exception', now),
+        shipmentCheckAttempts:  0,
+        updatedAt:              now,
+      }).where(eq(orders.id, order.id))
 
-    await db.insert(orderStatusHistory).values({
-      orderId:       order.id,
-      category:      'tracking',
-      previousValue: order.shipmentState,
-      newValue:      'exception',
-      source:        'allegro_sync',
-      occurredAt:    now,
+      await tx.insert(orderStatusHistory).values({
+        orderId:       order.id,
+        category:      'tracking',
+        previousValue: order.shipmentState,
+        newValue:      'exception',
+        source:        'allegro_sync',
+        occurredAt:    now,
+      })
     })
     return
   }

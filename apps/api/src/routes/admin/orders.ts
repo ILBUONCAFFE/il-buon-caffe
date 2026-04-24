@@ -20,6 +20,23 @@ type ShipmentFreshness = 'fresh' | 'stale' | 'unknown'
 const TRACKING_STALE_MS = 60 * 60 * 1000
 const TRACKING_DELIVERED_STALE_MS = 24 * 60 * 60 * 1000
 
+// ── Canonical shipment state → display status mapping ──────────────────────
+// `shipment_state` (new tracking layer) is the source of truth.
+// Legacy tracking_* columns are used only as fallback when shipment_state is null.
+function mapShipmentStateToDisplay(state: string | null | undefined, orderStatus: string): ShipmentDisplayStatus {
+  if (orderStatus === 'cancelled' || orderStatus === 'refunded') return 'none'
+  switch (state) {
+    case 'delivered':         return 'delivered'
+    case 'out_for_delivery':  return 'out_for_delivery'
+    case 'in_transit':        return 'in_transit'
+    case 'label_created':     return 'label_created'
+    case 'awaiting_handover': return 'label_created'
+    case 'exception':         return 'issue'
+    case 'stale':             return 'issue'
+    default:                  return 'unknown'
+  }
+}
+
 function normalizeTrackingCode(value: string | null | undefined): string | null {
   if (!value) return null
   const norm = value.trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '')
@@ -163,15 +180,27 @@ function buildTrackingSnapshot(order: {
   trackingStatusCode: string | null
   trackingStatusUpdatedAt: Date | string | null
   trackingLastEventAt: Date | string | null
-  allegroShipmentsSnapshot?: { waybill: string; carrierId: string; statusCode: string; statusLabel: string | null; occurredAt: string | null; isSelected: boolean }[] | null
+  shipmentState?: string | null
+  shipmentLastCheckedAt?: Date | string | null
+  shipmentStateChangedAt?: Date | string | null
+  allegroShipmentsSnapshot?: unknown
 }) {
   const trackingStatusCode = normalizeTrackingCode(order.trackingStatusCode)
-  const shipmentDisplayStatus = mapShipmentDisplayStatus({
-    orderStatus: order.status,
-    trackingNumber: order.trackingNumber,
-    trackingStatus: order.trackingStatus,
-    trackingStatusCode,
-  })
+
+  // Source of truth: new shipment_state (cron-managed). Fallback to legacy tracking_*.
+  const hasNewState = !!order.shipmentState
+  const shipmentDisplayStatus: ShipmentDisplayStatus = hasNewState
+    ? mapShipmentStateToDisplay(order.shipmentState, order.status)
+    : mapShipmentDisplayStatus({
+        orderStatus: order.status,
+        trackingNumber: order.trackingNumber,
+        trackingStatus: order.trackingStatus,
+        trackingStatusCode,
+      })
+
+  // Freshness: prefer shipmentLastCheckedAt (authoritative), fall back to legacy.
+  const freshnessSource = order.shipmentLastCheckedAt ?? order.trackingStatusUpdatedAt
+  const shipmentFreshness = getShipmentFreshness(order.status, freshnessSource)
 
   return {
     id: order.id,
@@ -181,8 +210,12 @@ function buildTrackingSnapshot(order: {
     trackingStatusCode,
     trackingStatusUpdatedAt: toIsoOrNull(order.trackingStatusUpdatedAt),
     trackingLastEventAt: toIsoOrNull(order.trackingLastEventAt),
+    // Expose raw shipmentState so UI can show richer state badges
+    shipmentState: order.shipmentState ?? null,
+    shipmentLastCheckedAt: toIsoOrNull(order.shipmentLastCheckedAt),
+    shipmentStateChangedAt: toIsoOrNull(order.shipmentStateChangedAt),
     shipmentDisplayStatus,
-    shipmentFreshness: getShipmentFreshness(order.status, order.trackingStatusUpdatedAt),
+    shipmentFreshness,
     allShipments: order.allegroShipmentsSnapshot ?? null,
   }
 }
@@ -335,6 +368,9 @@ adminOrdersRouter.get('/', auditLogMiddleware('view_order'), async (c) => {
         trackingStatusCode: o.trackingStatusCode ?? null,
         trackingStatusUpdatedAt: o.trackingStatusUpdatedAt ?? null,
         trackingLastEventAt: o.trackingLastEventAt ?? null,
+        shipmentState: o.shipmentState ?? null,
+        shipmentLastCheckedAt: o.shipmentLastCheckedAt ?? null,
+        shipmentStateChangedAt: o.shipmentStateChangedAt ?? null,
         allegroShipmentsSnapshot: o.allegroShipmentsSnapshot ?? null,
       }),
     }))
@@ -386,6 +422,9 @@ adminOrdersRouter.get('/:id', auditLogMiddleware('view_order'), async (c) => {
           trackingStatusCode: order.trackingStatusCode ?? null,
           trackingStatusUpdatedAt: order.trackingStatusUpdatedAt ?? null,
           trackingLastEventAt: order.trackingLastEventAt ?? null,
+          shipmentState: order.shipmentState ?? null,
+          shipmentLastCheckedAt: order.shipmentLastCheckedAt ?? null,
+          shipmentStateChangedAt: order.shipmentStateChangedAt ?? null,
           allegroShipmentsSnapshot: order.allegroShipmentsSnapshot ?? null,
         }),
       },
