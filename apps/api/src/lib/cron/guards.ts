@@ -79,11 +79,6 @@ export async function closeCircuit(
 
 // ── Pre-configured key sets ──────────────────────────────────────────────────
 
-export const SHIPMENTS_GUARD_KEYS: CronGuardKeys = {
-  nextDueAt:   'shipments:next_due_at',
-  circuitOpen: 'shipments:circuit_open',
-}
-
 export const RETURNS_GUARD_KEYS: CronGuardKeys = {
   nextDueAt:   'returns:next_due_at',
   circuitOpen: 'returns:circuit_open',

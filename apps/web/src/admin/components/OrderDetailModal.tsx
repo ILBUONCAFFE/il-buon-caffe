@@ -1,87 +1,17 @@
 'use client'
 
-import { useEffect, useState, useCallback, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 import { resolveShipmentStatus } from '../lib/shipmentStatus'
 import { OrderStatusBadge } from './OrderStatusBadge'
 import { ShipmentLabelPickerModal } from './ShipmentLabelPickerModal'
 import { OrderTimeline } from './OrderTimeline'
-import { adminApi } from '../lib/adminApiClient'
 import type { AdminOrder, AllegroShipmentEntry } from '../types/admin-api'
-
-const SHIPMENT_STATE_LABELS: Record<string, { label: string; tone: string }> = {
-  awaiting_handover: { label: 'Oczekuje na nadanie',  tone: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' },
-  label_created:     { label: 'Etykieta utworzona',   tone: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' },
-  in_transit:        { label: 'W drodze',             tone: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300' },
-  out_for_delivery:  { label: 'W dor\u0119czeniu',   tone: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' },
-  delivered:         { label: 'Dostarczone',          tone: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300' },
-  exception:         { label: 'Problem',              tone: 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300' },
-  stale:             { label: 'Brak aktualizacji',    tone: 'bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-400' },
-}
-
-function formatRelative(dateStr: string | null | undefined): string {
-  if (!dateStr) return '\u2014'
-  const diff = new Date(dateStr).getTime() - Date.now()
-  const abs  = Math.abs(diff)
-  const mins = Math.round(abs / 60_000)
-  if (mins < 60) return diff < 0 ? `${mins} min temu` : `za ${mins} min`
-  const hrs = Math.round(mins / 60)
-  return diff < 0 ? `${hrs}h temu` : `za ${hrs}h`
-}
-
-function ShipmentPanel({
-  order,
-  onRefresh,
-  refreshing,
-}: {
-  order: AdminOrder
-  onRefresh: () => void
-  refreshing?: boolean
-}) {
-  const state = order.shipmentState as string
-  const meta  = SHIPMENT_STATE_LABELS[state] ?? { label: state, tone: 'bg-stone-100 text-stone-700' }
-
-  return (
-    <div className="bg-[#F9F9F9] border border-[#E5E4E1] rounded-lg p-3 mt-4 text-xs space-y-2">
-      <div className="flex items-center justify-between">
-        <span className="text-[#1A1A1A] font-semibold flex items-center gap-1.5">
-          Śledzenie automatyczne
-          {order.shipmentCarrier && (
-            <span className="text-[#666] font-normal capitalize">({order.shipmentCarrier})</span>
-          )}
-        </span>
-        <span className={`px-2 py-0.5 rounded text-[10px] font-medium tracking-wide ${meta.tone}`}>
-          {meta.label}
-        </span>
-      </div>
-
-      <div className="flex items-center justify-between text-[#666] pt-1 border-t border-[#E5E4E1]/50">
-        <div className="flex flex-col gap-0.5 text-[11px]">
-          <span>Ost. sprawdz.: {formatRelative(order.shipmentLastCheckedAt)}</span>
-          <span>Nast. sprawdz.: {formatRelative(order.shipmentNextCheckAt)}</span>
-        </div>
-        <button
-          onClick={onRefresh}
-          disabled={refreshing}
-          className="text-[#1A1A1A] hover:underline disabled:opacity-50 font-medium px-2 py-1 bg-white border border-[#E5E4E1] rounded shadow-sm transition-colors hover:bg-gray-50"
-        >
-          {refreshing ? 'Odświeżanie...' : 'Wymuś spr.'}
-        </button>
-      </div>
-      {(order.shipmentCheckAttempts ?? 0) > 0 && (
-        <p className="text-xs text-red-600 mt-1 font-medium bg-red-50 p-1.5 rounded">
-          Nieudane próby: {order.shipmentCheckAttempts} (API Timeout/Error)
-        </p>
-      )}
-    </div>
-  )
-}
 
 interface OrderDetailModalProps {
   order: AdminOrder | null
   isOpen: boolean
   onClose: () => void
-  onShipmentRefreshQueued?: (orderId: number) => void | Promise<void>
   onCreateShipment?: (order: AdminOrder) => void
   onDownloadLabel?: (order: AdminOrder) => void
 }
@@ -214,25 +144,10 @@ export function OrderDetailModal({
   order,
   isOpen,
   onClose,
-  onShipmentRefreshQueued,
   onCreateShipment,
   onDownloadLabel,
 }: OrderDetailModalProps) {
   const [labelPickerOpen, setLabelPickerOpen] = useState(false)
-  const [refreshing, setRefreshing] = useState(false)
-
-  const handleRefreshShipment = useCallback(async () => {
-    if (!order || refreshing) return
-    setRefreshing(true)
-    try {
-      await adminApi.refreshShipment(order.id)
-      await onShipmentRefreshQueued?.(order.id)
-    } catch (err) {
-      console.error('refresh-shipment failed', err)
-    } finally {
-      setRefreshing(false)
-    }
-  }, [onShipmentRefreshQueued, order, refreshing])
 
   useEffect(() => {
     if (!isOpen) setLabelPickerOpen(false)
@@ -270,7 +185,6 @@ export function OrderDetailModal({
     status: order.status,
     shipmentDisplayStatus: effectiveShipmentDisplayStatus,
     allegroFulfillmentStatus: order.allegroFulfillmentStatus,
-    shipmentState: order.shipmentState,
   })
   const shipmentStatusText = effectiveTrackingStatus ?? resolvedShipmentStatus.detail
 
@@ -397,15 +311,7 @@ export function OrderDetailModal({
               <InfoRow label="Oplacono" value={formatDate(order.paidAt)} />
 
               <SectionLabel>Przesylka</SectionLabel>
-              <div className="space-y-3">
-                {shipmentTrackingExpected && !order.shipmentState && (
-                  <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3">
-                    <p className="font-semibold">Brak danych śledzenia</p>
-                    <p>Zamówienie nie zostało jeszcze przekazane do systemu automatycznego monitorowania przesyłek (Scheduler). System wkrótce zaktualizuje status.</p>
-                  </div>
-                )}
-                
-                <div className="bg-white rounded-lg space-y-1">
+              <div className="space-y-3">                <div className="bg-white rounded-lg space-y-1">
                   <InfoRow label="Status" value={resolvedShipmentStatus.label} />
                   {effectiveTrackingNumber && (
                     <InfoRow label="Numer listu" value={<span className="font-mono text-xs font-medium tracking-wide">{effectiveTrackingNumber}</span>} />
@@ -457,11 +363,6 @@ export function OrderDetailModal({
                       ))}
                     </div>
                   </div>
-                )}
-
-                {/* Shipment scheduler panel — shown when state-machine tracking is active */}
-                {order.shipmentState && (
-                  <ShipmentPanel order={order} onRefresh={handleRefreshShipment} refreshing={refreshing} />
                 )}
               </div>
             </div>

@@ -598,28 +598,6 @@ export interface AllegroDeliveryService {
   volumetricDivisor: number | null
 }
 
-// ── Shipment tracking ─────────────────────────────────────────────────────
-export const SHIPMENT_STATES = [
-  'awaiting_handover',
-  'label_created',
-  'in_transit',
-  'out_for_delivery',
-  'delivered',
-  'exception',
-  'stale',
-] as const
-
-export type ShipmentState = typeof SHIPMENT_STATES[number]
-
-export interface ShipmentRefreshInfo {
-  state: ShipmentState | null
-  carrier: string | null
-  lastCheckedAt: string | null
-  nextCheckAt: string | null
-  checkAttempts: number
-  stateChangedAt: string | null
-}
-
 // ============================================
 // RETURNS / REFUNDS / DISPUTES
 // ============================================

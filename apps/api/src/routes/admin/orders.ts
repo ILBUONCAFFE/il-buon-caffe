@@ -4,11 +4,10 @@ import {
   orders, orderItems, products, users, stockChanges,
 } from '@repo/db/schema'
 import { logAdminAction } from '../../lib/audit'
-import { eq, and, desc, sql, gte, lte, inArray, isNotNull } from 'drizzle-orm'
+import { eq, and, desc, sql, gte, lte, inArray } from 'drizzle-orm'
 import { requireAdminOrProxy } from '../../middleware/auth'
 import { auditLogMiddleware } from '../../middleware/auditLog'
 import { recordStatusChange } from '../../lib/record-status-change'
-import { invalidateNextDueKv } from '../../lib/shipments'
 import type { Env } from '../../index'
 import { checkContentLength, parsePagination, getClientIp, serverError } from '../../lib/request'
 
@@ -19,23 +18,6 @@ type ShipmentFreshness = 'fresh' | 'stale' | 'unknown'
 
 const TRACKING_STALE_MS = 60 * 60 * 1000
 const TRACKING_DELIVERED_STALE_MS = 24 * 60 * 60 * 1000
-
-// ── Canonical shipment state → display status mapping ──────────────────────
-// `shipment_state` (new tracking layer) is the source of truth.
-// Legacy tracking_* columns are used only as fallback when shipment_state is null.
-function mapShipmentStateToDisplay(state: string | null | undefined, orderStatus: string): ShipmentDisplayStatus {
-  if (orderStatus === 'cancelled' || orderStatus === 'refunded') return 'none'
-  switch (state) {
-    case 'delivered':         return 'delivered'
-    case 'out_for_delivery':  return 'out_for_delivery'
-    case 'in_transit':        return 'in_transit'
-    case 'label_created':     return 'label_created'
-    case 'awaiting_handover': return 'label_created'
-    case 'exception':         return 'issue'
-    case 'stale':             return 'issue'
-    default:                  return 'unknown'
-  }
-}
 
 function normalizeTrackingCode(value: string | null | undefined): string | null {
   if (!value) return null
@@ -180,27 +162,18 @@ function buildTrackingSnapshot(order: {
   trackingStatusCode: string | null
   trackingStatusUpdatedAt: Date | string | null
   trackingLastEventAt: Date | string | null
-  shipmentState?: string | null
-  shipmentLastCheckedAt?: Date | string | null
-  shipmentStateChangedAt?: Date | string | null
   allegroShipmentsSnapshot?: unknown
 }) {
   const trackingStatusCode = normalizeTrackingCode(order.trackingStatusCode)
 
-  // Source of truth: new shipment_state (cron-managed). Fallback to legacy tracking_*.
-  const hasNewState = !!order.shipmentState
-  const shipmentDisplayStatus: ShipmentDisplayStatus = hasNewState
-    ? mapShipmentStateToDisplay(order.shipmentState, order.status)
-    : mapShipmentDisplayStatus({
-        orderStatus: order.status,
-        trackingNumber: order.trackingNumber,
-        trackingStatus: order.trackingStatus,
-        trackingStatusCode,
-      })
+  const shipmentDisplayStatus: ShipmentDisplayStatus = mapShipmentDisplayStatus({
+    orderStatus: order.status,
+    trackingNumber: order.trackingNumber,
+    trackingStatus: order.trackingStatus,
+    trackingStatusCode,
+  })
 
-  // Freshness: prefer shipmentLastCheckedAt (authoritative), fall back to legacy.
-  const freshnessSource = order.shipmentLastCheckedAt ?? order.trackingStatusUpdatedAt
-  const shipmentFreshness = getShipmentFreshness(order.status, freshnessSource)
+  const shipmentFreshness = getShipmentFreshness(order.status, order.trackingStatusUpdatedAt)
 
   return {
     id: order.id,
@@ -210,10 +183,6 @@ function buildTrackingSnapshot(order: {
     trackingStatusCode,
     trackingStatusUpdatedAt: toIsoOrNull(order.trackingStatusUpdatedAt),
     trackingLastEventAt: toIsoOrNull(order.trackingLastEventAt),
-    // Expose raw shipmentState so UI can show richer state badges
-    shipmentState: order.shipmentState ?? null,
-    shipmentLastCheckedAt: toIsoOrNull(order.shipmentLastCheckedAt),
-    shipmentStateChangedAt: toIsoOrNull(order.shipmentStateChangedAt),
     shipmentDisplayStatus,
     shipmentFreshness,
     allShipments: order.allegroShipmentsSnapshot ?? null,
@@ -328,9 +297,6 @@ adminOrdersRouter.get('/', auditLogMiddleware('view_order'), async (c) => {
           trackingNumber: true, trackingStatus: true,
           trackingStatusCode: true, trackingStatusUpdatedAt: true,
           trackingLastEventAt: true,
-          shipmentState: true, shipmentCarrier: true,
-          shipmentLastCheckedAt: true, shipmentNextCheckAt: true,
-          shipmentCheckAttempts: true, shipmentStateChangedAt: true,
           allegroShipmentId: true, allegroFulfillmentStatus: true,
           allegroShipmentsSnapshot: true,
           paidAt: true, shippedAt: true, createdAt: true,
@@ -368,9 +334,6 @@ adminOrdersRouter.get('/', auditLogMiddleware('view_order'), async (c) => {
         trackingStatusCode: o.trackingStatusCode ?? null,
         trackingStatusUpdatedAt: o.trackingStatusUpdatedAt ?? null,
         trackingLastEventAt: o.trackingLastEventAt ?? null,
-        shipmentState: o.shipmentState ?? null,
-        shipmentLastCheckedAt: o.shipmentLastCheckedAt ?? null,
-        shipmentStateChangedAt: o.shipmentStateChangedAt ?? null,
         allegroShipmentsSnapshot: o.allegroShipmentsSnapshot ?? null,
       }),
     }))
@@ -422,9 +385,6 @@ adminOrdersRouter.get('/:id', auditLogMiddleware('view_order'), async (c) => {
           trackingStatusCode: order.trackingStatusCode ?? null,
           trackingStatusUpdatedAt: order.trackingStatusUpdatedAt ?? null,
           trackingLastEventAt: order.trackingLastEventAt ?? null,
-          shipmentState: order.shipmentState ?? null,
-          shipmentLastCheckedAt: order.shipmentLastCheckedAt ?? null,
-          shipmentStateChangedAt: order.shipmentStateChangedAt ?? null,
           allegroShipmentsSnapshot: order.allegroShipmentsSnapshot ?? null,
         }),
       },
@@ -603,43 +563,3 @@ adminOrdersRouter.get('/:id/history', async (c) => {
   }
 })
 
-// ============================================
-// POST /admin/orders/:id/refresh-shipment  🛡️
-// Wymuszenie natychmiastowego odświeżenia statusu przesyłki
-// ============================================
-adminOrdersRouter.post('/:id/refresh-shipment', async (c) => {
-  try {
-    const id = Number(c.req.param('id'))
-    if (!Number.isFinite(id) || id <= 0) {
-      return c.json({ error: { code: 'BAD_ID', message: 'Invalid order id' } }, 400)
-    }
-
-    const db  = c.get('db') as ReturnType<typeof createDb>
-    const now = new Date()
-
-    const res = await db
-      .update(orders)
-      .set({
-        shipmentNextCheckAt:   now,
-        shipmentCheckAttempts: 0,
-        updatedAt:             now,
-      })
-      .where(
-        and(
-          eq(orders.id, id),
-          isNotNull(orders.shipmentState),
-        )
-      )
-      .returning({ id: orders.id })
-
-    if (res.length === 0) {
-      return c.json({ error: { code: 'NOT_FOUND', message: 'Order not found or not enrolled in shipment tracking' } }, 404)
-    }
-
-    await invalidateNextDueKv(c.env.ALLEGRO_KV).catch(() => {})
-
-    return c.json({ data: { id, queuedAt: now.toISOString() } })
-  } catch (err) {
-    return serverError(c, 'POST /admin/orders/:id/refresh-shipment', err)
-  }
-})

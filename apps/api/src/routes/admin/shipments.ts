@@ -9,7 +9,6 @@ import { logAdminAction } from '../../lib/audit'
 import { allegroHeaders, sleep } from '../../lib/allegro-orders/helpers'
 import { getActiveAllegroToken } from '../../lib/allegro-tokens'
 import { recordStatusChange } from '../../lib/record-status-change'
-import { computeNextCheckAt } from '../../lib/shipments/state-machine'
 
 export const adminShipmentsRouter = new Hono<{ Bindings: Env }>()
 
@@ -390,23 +389,9 @@ adminShipmentsRouter.post('/orders/:id/fulfillment', async (c) => {
           }
         : {}),
       ...(body.status === 'PICKED_UP'
-        ? {
-            shipmentState: 'delivered',
-            shipmentStateChangedAt: now,
-            shipmentLastCheckedAt: now,
-            shipmentNextCheckAt: computeNextCheckAt('delivered', now),
-            shipmentCheckAttempts: 0,
-            deliveredAt: now,
-          }
-        : body.status === 'SENT'
-          ? {
-              shipmentState: 'in_transit',
-              shipmentStateChangedAt: now,
-              shipmentLastCheckedAt: now,
-              shipmentNextCheckAt: computeNextCheckAt('in_transit', now),
-              shipmentCheckAttempts: 0,
-              ...(nextStatus === 'shipped' ? { shippedAt: now } : {}),
-            }
+        ? { deliveredAt: now }
+        : body.status === 'SENT' && nextStatus === 'shipped'
+          ? { shippedAt: now }
           : {}),
       updatedAt: now,
     }).where(eq(orders.id, orderId))

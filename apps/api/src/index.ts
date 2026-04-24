@@ -20,7 +20,6 @@ import { refreshAllegroToken, getAllegroOAuthConfig, KV_KEYS, type AllegroEnviro
 import { syncAllegroOrders } from './lib/allegro-orders'
 import { preWarmAllegroQualityCache } from './routes/allegro'
 import { backfillExchangeRates } from './lib/allegro-orders/backfill-rates'
-import { refreshShipments, backfillShipmentEnrollment } from './lib/shipments'
 import { returnsReconcileTick, issuesReconcileTick, type SchedulerEnv } from './lib/allegro-returns/scheduler'
 import { encryptText, decryptText } from './lib/crypto'
 import { securityHeaders, corsConfig, secFetchGuard } from './middleware/security'
@@ -158,7 +157,6 @@ const NIGHT_THINNING_START_HOUR = 22
 const NIGHT_THINNING_END_HOUR = 7
 const NIGHT_SYNC_INTERVAL_MINUTES = 60
 const ORDER_SYNC_CRON = '*/10 * * * *'
-const SHIPMENT_REFRESH_CRON = '*/5 * * * *'
 const QUALITY_PREWARM_WINDOW_START_HOUR = 1
 const QUALITY_PREWARM_WINDOW_END_HOUR = 5
 
@@ -351,12 +349,10 @@ export default {
     setHttpMode(true, env.DATABASE_URL)
 
     // "0 * * * *"   — hourly token refresh + daily retention cleanup (+ quality prewarm in PL-night window)
-    // "*/5 * * * *"  — every 5 min shipment status refresh (KV-guarded, skips when no active shipments)
     // "*/2 * * * *"  — every 2 min returns reconcile (KV-guarded)
-    // "*/5 * * * *"  — every 5 min shipment status refresh (KV-guarded, skips when no active shipments)
     // "*/6 * * * *"  — every 6 min issues reconcile (KV-guarded)
     // "*/10 * * * *" — every 10 min Allegro order polling; in Poland night (22:00-06:59) thinned to every 60 min
-    // "0 3 * * *"   — daily at 04:00 CET / 05:00 CEST (03:00 UTC) — backfill exchange rates + shipment enrollment
+    // "0 3 * * *"   — daily at 04:00 CET / 05:00 CEST (03:00 UTC) — backfill exchange rates
     const cronExpr = normalizeCronExpression(event.cron)
 
     if (cronExpr === '0 */2 * * *') {
@@ -370,13 +366,6 @@ export default {
       ctx.waitUntil(
         issuesReconcileTick(env as unknown as SchedulerEnv).catch((err) => {
           console.error('[Issues] cron failed', err instanceof Error ? err.message : String(err))
-        })
-      )
-      return
-    } else if (normalizeCronExpression(event.cron) === normalizeCronExpression(SHIPMENT_REFRESH_CRON)) {
-      ctx.waitUntil(
-        refreshShipments(env).catch((err) => {
-          console.error('[Shipments] cycle failed', err instanceof Error ? err.message : String(err))
         })
       )
       return
@@ -400,20 +389,6 @@ export default {
     } else if (cronExpr === '0 3 * * *') {
       // Daily at 04:00 CET (03:00 UTC) — backfill exchange rates for foreign currency orders
       ctx.waitUntil(backfillExchangeRates(env))
-      // Nightly shipment enrollment backfill — enroll orders missing shipment tracking
-      ctx.waitUntil(
-        (async () => {
-          const { db, end } = createDbWithPool(env.DATABASE_URL)
-          try {
-            const r = await backfillShipmentEnrollment(db, env.ALLEGRO_KV)
-            if (r.enrolled > 0) console.log(`[Shipments] nightly backfill enrolled ${r.enrolled} orders`)
-          } finally {
-            await end()
-          }
-        })().catch((err) => {
-          console.error('[Shipments] nightly backfill failed', err instanceof Error ? err.message : String(err))
-        })
-      )
     } else if (cronExpr === '0 * * * *') {
       // Hourly: token refresh + data retention (once/day)
       ctx.waitUntil(autoRefreshAllegroToken(env))

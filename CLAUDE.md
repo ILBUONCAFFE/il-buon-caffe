@@ -239,15 +239,6 @@ Patrzeć na wykres Neon Rows → jeśli regularne spiki bez realnego ruchu → c
 - **Uważaj na env leakage przy deployu weba**: build OpenNext uruchomiony z lokalnymi wartościami (`NEXT_PUBLIC_API_URL=http://127.0.0.1:8787`) może wypchnąć localhost do bundle i generować błędy CSP/assetów na produkcji.
 - **Praktyka deployowa**: dla `apps/web` upewnij się, że podczas `cf:build` używane są produkcyjne API/site URL (`https://api.ilbuoncaffe.pl`, `https://ilbuoncaffe.pl`) albo buduj w czystym środowisku CI.
 
-### Shipment tracking layer (2026-04)
-- Own `shipment_state` enum (varchar) decoupled from `order_status`: `awaiting_handover`, `label_created`, `in_transit`, `out_for_delivery`, `delivered`, `exception`, `stale`. Cadence rules and Allegro status mapping in `apps/api/src/lib/shipments/state-machine.ts`.
-- Cron `*/5 * * * *` → KV idle-guard (`shipments:next_due_at`) → KV circuit breaker (`shipments:circuit_open`) → SELECT batch of 10 due orders → poll Allegro `/order/checkout-forms/{id}/shipments` → update + log to `orderStatusHistory`.
-- Exponential backoff per order: `2^attempts × 5min`, capped at 4h. After 8 failures → escalate to `exception`.
-- Circuit breaker: opens on 429 or >50% failure rate in a cycle, TTL-based auto-reset via KV.
-- Enrollment: eager in `handleReadyForProcessing` (`.catch()` isolated), lazy backfill in nightly `0 3 * * *` cron (scoped to last 30 days).
-- Multi-parcel: `deriveWorstState()` — worst-of-all across parcels. Delivered only when ALL parcels delivered.
-- Admin force-refresh: `POST /admin/orders/:id/refresh-shipment` sets `shipmentNextCheckAt=now`, invalidates KV guard.
-
 ## Project Status
 
 - Phase 1 (Foundation, DB, Auth, Products, Admin): complete
