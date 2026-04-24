@@ -163,7 +163,7 @@ export const Navbar = () => {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [pillStyle, setPillStyle] = useState({ left: 0, width: 0 });
   const [isDarkTheme, setIsDarkTheme] = useState(false);
-  const [isSystemDark, setIsSystemDark] = useState(false);
+  const [isBgDark, setIsBgDark] = useState(false);
   const navContainerRef = useRef<HTMLDivElement>(null);
   const linkRefs = useRef<(HTMLDivElement | null)[]>([]);
   const pathname = usePathname();
@@ -200,17 +200,95 @@ export const Navbar = () => {
     return () => observer.disconnect();
   }, [pathname]);
 
-  // Detect system dark mode
+  // Sample actual background color under the navbar to decide light/dark treatment.
+  // Works regardless of OS preference — reflects what the user actually sees.
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      setIsSystemDark(mediaQuery.matches);
-      
-      const handler = (e: MediaQueryListEvent) => setIsSystemDark(e.matches);
-      mediaQuery.addEventListener('change', handler);
-      return () => mediaQuery.removeEventListener('change', handler);
-    }
-  }, []);
+    if (typeof window === 'undefined') return;
+
+    const parseRgb = (value: string): [number, number, number, number] | null => {
+      const m = value.match(/rgba?\(([^)]+)\)/i);
+      if (!m) return null;
+      const parts = m[1].split(',').map((p) => parseFloat(p.trim()));
+      if (parts.length < 3 || parts.some((n) => Number.isNaN(n))) return null;
+      return [parts[0], parts[1], parts[2], parts[3] ?? 1];
+    };
+
+    const luminance = (r: number, g: number, b: number) => {
+      const a = [r, g, b].map((v) => {
+        const s = v / 255;
+        return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+      });
+      return 0.2126 * a[0] + 0.7152 * a[1] + 0.0722 * a[2];
+    };
+
+    const sampleBackground = () => {
+      const navHeight = 80;
+      const points: Array<[number, number]> = [
+        [window.innerWidth * 0.15, navHeight + 20],
+        [window.innerWidth * 0.5, navHeight + 20],
+        [window.innerWidth * 0.85, navHeight + 20],
+      ];
+
+      let totalLum = 0;
+      let counted = 0;
+
+      for (const [x, y] of points) {
+        const stack = document.elementsFromPoint(x, y);
+        for (const el of stack) {
+          if (!(el instanceof HTMLElement)) continue;
+          if (el.closest('header')) continue; // skip the navbar itself
+          const bg = getComputedStyle(el).backgroundColor;
+          const rgba = parseRgb(bg);
+          if (!rgba) continue;
+          const [r, g, b, a] = rgba;
+          if (a < 0.5) continue; // transparent — keep walking
+          totalLum += luminance(r, g, b);
+          counted += 1;
+          break;
+        }
+      }
+
+      if (counted === 0) {
+        // Fallback to body background
+        const bodyBg = getComputedStyle(document.body).backgroundColor;
+        const rgba = parseRgb(bodyBg);
+        if (rgba) {
+          const [r, g, b] = rgba;
+          setIsBgDark(luminance(r, g, b) < 0.4);
+        } else {
+          setIsBgDark(false);
+        }
+        return;
+      }
+
+      setIsBgDark(totalLum / counted < 0.4);
+    };
+
+    // Initial + retries to catch late-mounting hero images/gradients
+    sampleBackground();
+    const t1 = window.setTimeout(sampleBackground, 150);
+    const t2 = window.setTimeout(sampleBackground, 500);
+
+    let frame = 0;
+    const onScroll = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(() => {
+        frame = 0;
+        sampleBackground();
+      });
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', sampleBackground);
+
+    return () => {
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+      if (frame) window.cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', sampleBackground);
+    };
+  }, [pathname]);
 
   // Track scroll position and progress
   useEffect(() => {
@@ -338,10 +416,10 @@ export const Navbar = () => {
   const isShopRootOrCategory = pathSegmentsArray[0] === 'sklep';
   const isEncyclopedia = pathname?.startsWith("/encyklopedia");
   
-  // Effective dark theme considers data-theme AND system preference, but excludes Shop where light is forced
-  const isEffectiveDark = isDarkTheme || (isSystemDark && !isShopRootOrCategory);
-  
-  // Include isEffectiveDark for pages that set data-theme="wine-dark" or "dark" or have system dark
+  // Effective dark theme: explicit data-theme override wins, otherwise sample the real background.
+  // System preference is intentionally ignored — what matters is the actual page we render.
+  const isEffectiveDark = isDarkTheme || (isBgDark && !isShopRootOrCategory);
+
   const isDarkHeroPage = isEffectiveDark || isEncyclopedia || pathname === "/auth";
   const isDarkText = !isMobileMenuOpen && (isScrolled || !isDarkHeroPage);
   const accountHref = ACCOUNTS_ENABLED ? '/account' : '/auth';
