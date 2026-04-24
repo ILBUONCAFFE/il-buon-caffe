@@ -518,9 +518,7 @@ export const Navbar = () => {
                       ? (isEffectiveDark
                           ? "bg-brand-950/80 backdrop-blur-xl shadow-lg shadow-black/[0.2] border border-white/[0.08] pl-1.5 pr-4 py-1.5"
                           : "bg-white/95  backdrop-blur-xl shadow-lg shadow-black/[0.08] border border-black/[0.04]  pl-1.5 pr-4 py-1.5")
-                      : isDarkHeroPage
-                        ? "bg-white/[0.01] backdrop-blur-xl border border-white/[0.12] pl-1.5 pr-4 py-1.5 hover:bg-white/[0.12]"
-                        : "bg-white/80  backdrop-blur-xl shadow-sm border border-black/[0.04]  pl-1.5 pr-4 py-1.5 hover:bg-white/95 :bg-brand-900/90"
+                      : "bg-transparent border border-transparent pl-1.5 pr-4 py-1.5"
                   )}
                 >
                   {/* Logo with glow */}
@@ -618,9 +616,7 @@ export const Navbar = () => {
                       ? (isEffectiveDark
                           ? "bg-brand-950/80 backdrop-blur-xl shadow-lg shadow-black/[0.2] border border-white/[0.08]"
                           : "bg-white/95  backdrop-blur-xl shadow-lg shadow-black/[0.08] border border-black/[0.04] ") 
-                      : (isDarkHeroPage 
-                          ? "bg-white/[0.08] backdrop-blur-xl border border-white/[0.12]" 
-                          : "bg-white/80 backdrop-blur-xl shadow-sm border border-black/[0.04]")
+                      : "bg-transparent border border-transparent"
                   )}>
                   {/* Animated background pill */}
                   {highlightIndex !== -1 && pillStyle.width > 0 && (
@@ -707,9 +703,7 @@ export const Navbar = () => {
                       ? (isEffectiveDark
                           ? "bg-brand-950/80 backdrop-blur-xl shadow-lg shadow-black/[0.2] border border-white/[0.08] px-2 py-1.5"
                           : "bg-white/95  backdrop-blur-xl shadow-lg shadow-black/[0.08] border border-black/[0.04]  px-2 py-1.5") 
-                      : (isDarkHeroPage 
-                          ? "bg-white/[0.08] backdrop-blur-xl border border-white/[0.12] px-2 py-1.5" 
-                          : "bg-white/80  backdrop-blur-xl shadow-sm border border-black/[0.04]  px-2 py-1.5")
+                      : "bg-transparent border border-transparent px-2 py-1.5"
                   )}
                 >
               {/* Search */}
