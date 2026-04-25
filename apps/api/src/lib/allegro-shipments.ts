@@ -1,12 +1,14 @@
 /**
  * Allegro Shipments — on-demand fetch + 5min KV cache.
  *
- * Two-step pull per Allegro docs:
- *   1. GET /order/checkout-forms/{id}/shipments → waybill + carrierId list
- *   2. GET /order/carriers/{carrierId}/tracking?waybill=... → chronological events
+ * Realne źródła statusu w Allegro REST API:
+ *   1. GET /order/checkout-forms/{id}/shipments
+ *      → lista paczek: { id, waybill, carrierId, carrierName }
+ *   2. GET /shipment-management/shipments/{shipmentId}
+ *      → status + statusHistory, ale tylko dla "Wysyłam z Allegro" (gdy mamy `id`)
  *
- * Snapshot persisted to allegro_shipments_snapshot, latest event appended to
- * order_status_history (category='tracking') with dedup vs latest.
+ * Dla ręcznych numerów listów (seller wkleja tracking) Allegro nie udostępnia
+ * historii zdarzeń kurierskich publicznym API — pokazujemy "Nadana" + waybill.
  */
 
 import { eq } from 'drizzle-orm'
@@ -37,9 +39,6 @@ interface AllegroShipmentRow {
   trackingNumber?: string
   carrierId?: string
   carrierName?: string
-  status?: string
-  statusLabel?: string
-  occurredAt?: string
   createdAt?: string
 }
 
@@ -47,25 +46,30 @@ interface AllegroShipmentsResponse {
   shipments?: AllegroShipmentRow[]
 }
 
-interface AllegroTrackingEvent {
-  code?: string
+interface AllegroSmStatusEntry {
   status?: string
-  description?: string
   occurredAt?: string
-  date?: string
+  description?: string
 }
 
-interface AllegroTrackingResponse {
-  trackingHistory?: Array<{ waybill?: string; events?: AllegroTrackingEvent[] }>
-  events?: AllegroTrackingEvent[]
-  history?: AllegroTrackingEvent[]
+interface AllegroSmShipmentResponse {
+  id?: string
+  status?: string
+  statusHistory?: AllegroSmStatusEntry[]
+  history?: AllegroSmStatusEntry[]
+  waybill?: string
+  carrier?: { id?: string; name?: string }
+  createdAt?: string
+  updatedAt?: string
 }
 
 const STATUS_LABEL_PL: Record<string, string> = {
+  NEW: 'Nowa',
   CREATED: 'Etykieta utworzona',
   LABEL_CREATED: 'Etykieta utworzona',
   LABEL_PRINTED: 'Etykieta wydrukowana',
-  INFO_RECEIVED: 'Informacja przyjęta',
+  PRINTED: 'Etykieta wydrukowana',
+  READY: 'Gotowa do nadania',
   REGISTERED: 'Zarejestrowana',
   SENT: 'Nadana',
   PICKED_UP: 'Odebrana przez kuriera',
@@ -84,6 +88,7 @@ const STATUS_LABEL_PL: Record<string, string> = {
   HOLD: 'Wstrzymana',
   FAILED: 'Niepowodzenie doręczenia',
   UNDELIVERED: 'Nie doręczono',
+  ERROR: 'Błąd przesyłki',
 }
 
 function labelFor(code: string | null | undefined): string | null {
@@ -91,41 +96,36 @@ function labelFor(code: string | null | undefined): string | null {
   return STATUS_LABEL_PL[code.toUpperCase()] ?? code
 }
 
-function normalizeEvent(e: AllegroTrackingEvent): { code: string; label: string | null; occurredAt: string | null } | null {
-  const code = (e.code ?? e.status ?? '').trim().toUpperCase()
+function normalizeEvent(e: AllegroSmStatusEntry): { code: string; label: string | null; occurredAt: string | null } | null {
+  const code = (e.status ?? '').trim().toUpperCase()
   if (!code) return null
   return {
     code,
     label: e.description?.trim() || labelFor(code),
-    occurredAt: e.occurredAt ?? e.date ?? null,
+    occurredAt: e.occurredAt ?? null,
   }
 }
 
-async function fetchTrackingHistory(
+async function fetchSmShipment(
   apiBase: string,
   accessToken: string,
-  carrierId: string,
-  waybill: string,
-): Promise<AllegroTrackingEvent[]> {
-  if (!carrierId || !waybill) return []
+  shipmentId: string,
+): Promise<AllegroSmShipmentResponse | null> {
   try {
-    const url = `${apiBase}/order/carriers/${encodeURIComponent(carrierId)}/tracking?waybill=${encodeURIComponent(waybill)}`
-    const resp = await fetch(url, {
+    const resp = await fetch(`${apiBase}/shipment-management/shipments/${encodeURIComponent(shipmentId)}`, {
       signal: AbortSignal.timeout(8_000),
       headers: { ...allegroHeaders(accessToken), 'Accept-Language': 'pl-PL' },
     })
     if (!resp.ok) {
       if (resp.status !== 404) {
-        console.warn(`[Shipments] tracking ${carrierId}/${waybill} → ${resp.status}`)
+        console.warn(`[Shipments] SM GET ${shipmentId} → ${resp.status}`)
       }
-      return []
+      return null
     }
-    const data = (await resp.json()) as AllegroTrackingResponse
-    const fromHistory = data.trackingHistory?.find((h) => !h.waybill || h.waybill === waybill)?.events ?? []
-    return [...fromHistory, ...(data.events ?? []), ...(data.history ?? [])]
+    return (await resp.json()) as AllegroSmShipmentResponse
   } catch (err) {
-    console.warn(`[Shipments] tracking fetch failed ${carrierId}/${waybill}`, err)
-    return []
+    console.warn(`[Shipments] SM GET ${shipmentId} failed`, err)
+    return null
   }
 }
 
@@ -148,35 +148,46 @@ export async function fetchAllegroShipments(env: Env, externalId: string): Promi
   const rows = data.shipments ?? []
   if (rows.length === 0) return []
 
-  // Build base entries (waybill + carrier) then enrich with tracking history.
   const enriched = await Promise.all(
     rows.map(async (row): Promise<ShipmentSnapshotEntry | null> => {
       const waybill = (row.waybill ?? row.trackingNumber ?? '').trim()
       if (!waybill) return null
       const carrierId = row.carrierId ?? 'UNKNOWN'
 
-      const rawEvents = await fetchTrackingHistory(token.apiBase, token.accessToken, carrierId, waybill)
-      const events = rawEvents
-        .map(normalizeEvent)
-        .filter((e): e is NonNullable<ReturnType<typeof normalizeEvent>> => e !== null)
-        .sort((a, b) => {
-          const ta = a.occurredAt ? Date.parse(a.occurredAt) : 0
-          const tb = b.occurredAt ? Date.parse(b.occurredAt) : 0
-          return ta - tb
-        })
+      // Wysyłam z Allegro: pobierz statusHistory.
+      let events: Array<{ code: string; label: string | null; occurredAt: string | null }> = []
+      let smStatus: string | null = null
+      let smOccurredAt: string | null = null
 
-      // Dedup consecutive identical codes
-      const dedup: typeof events = []
-      for (const e of events) {
-        const prev = dedup[dedup.length - 1]
-        if (!prev || prev.code !== e.code) dedup.push(e)
+      if (row.id) {
+        const sm = await fetchSmShipment(token.apiBase, token.accessToken, row.id)
+        if (sm) {
+          smStatus = sm.status?.trim().toUpperCase() ?? null
+          const rawHistory = sm.statusHistory ?? sm.history ?? []
+          events = rawHistory
+            .map(normalizeEvent)
+            .filter((e): e is NonNullable<ReturnType<typeof normalizeEvent>> => e !== null)
+            .sort((a, b) => {
+              const ta = a.occurredAt ? Date.parse(a.occurredAt) : 0
+              const tb = b.occurredAt ? Date.parse(b.occurredAt) : 0
+              return ta - tb
+            })
+          // dedup consecutive
+          const dedup: typeof events = []
+          for (const e of events) {
+            const prev = dedup[dedup.length - 1]
+            if (!prev || prev.code !== e.code) dedup.push(e)
+          }
+          events = dedup
+          smOccurredAt = sm.updatedAt ?? sm.createdAt ?? null
+        }
       }
 
-      const latest = dedup[dedup.length - 1]
-      const fallbackCode = row.status ? row.status.toUpperCase() : 'CREATED'
-      const statusCode = latest?.code ?? fallbackCode
-      const statusLabel = latest?.label ?? row.statusLabel ?? labelFor(statusCode)
-      const occurredAt = latest?.occurredAt ?? row.occurredAt ?? row.createdAt ?? null
+      const latest = events[events.length - 1]
+      // Priorytet: ostatnie zdarzenie z historii > top-level status SM > 'SENT' (waybill istnieje w Allegro).
+      const statusCode = latest?.code ?? smStatus ?? 'SENT'
+      const statusLabel = latest?.label ?? labelFor(statusCode)
+      const occurredAt = latest?.occurredAt ?? smOccurredAt ?? row.createdAt ?? null
 
       return {
         waybill,
@@ -186,7 +197,7 @@ export async function fetchAllegroShipments(env: Env, externalId: string): Promi
         statusLabel,
         occurredAt,
         isSelected: false,
-        events: dedup.length > 0 ? dedup : undefined,
+        events: events.length > 0 ? events : undefined,
       }
     }),
   )
@@ -194,7 +205,6 @@ export async function fetchAllegroShipments(env: Env, externalId: string): Promi
   const mapped = enriched.filter((s): s is ShipmentSnapshotEntry => s !== null)
   if (mapped.length === 0) return []
 
-  // Selected = first non-cancelled/non-returned, latest activity.
   const sortedIdx = mapped
     .map((s, i) => ({ s, i }))
     .sort((a, b) => {

@@ -47,7 +47,7 @@ function mapStatusCodeToDisplay(rawCode: string | null, orderStatus: string): Sh
   if (
     code === 'EXCEPTION' || code === 'HOLD' || code === 'FAILED' ||
     code === 'UNDELIVERED' || code === 'REFUSED' || code === 'CANCELLED' ||
-    code === 'RETURNED' || code === 'RETURN_TO_SENDER'
+    code === 'RETURNED' || code === 'RETURN_TO_SENDER' || code === 'ERROR'
   ) return 'issue'
 
   // Terminal delivered states
@@ -66,7 +66,8 @@ function mapStatusCodeToDisplay(rawCode: string | null, orderStatus: string): Sh
 
   // Pre-handover — label exists or carrier acknowledged manifest
   if (
-    code === 'LABEL_CREATED' || code === 'LABEL_PRINTED' || code === 'CREATED' ||
+    code === 'LABEL_CREATED' || code === 'LABEL_PRINTED' || code === 'PRINTED' ||
+    code === 'CREATED' || code === 'NEW' || code === 'READY' ||
     code === 'REGISTERED' || code === 'INFO_RECEIVED'
   ) return 'label_created'
 
