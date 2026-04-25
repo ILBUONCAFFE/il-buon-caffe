@@ -619,6 +619,7 @@ export const OrdersView = () => {
           setShipmentOrder(order)
         }}
         onDownloadLabel={handleDownloadLabel}
+        onShipmentRefreshed={(orderId) => { void refreshOrderSnapshot(orderId) }}
       />
 
       {shipmentOrder && (

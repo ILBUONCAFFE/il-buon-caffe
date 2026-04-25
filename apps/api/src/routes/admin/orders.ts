@@ -8,6 +8,7 @@ import { eq, and, desc, sql, gte, lte, inArray } from 'drizzle-orm'
 import { requireAdminOrProxy } from '../../middleware/auth'
 import { auditLogMiddleware } from '../../middleware/auditLog'
 import { recordStatusChange } from '../../lib/record-status-change'
+import { refreshOrderShipments, type ShipmentSnapshotEntry } from '../../lib/allegro-shipments'
 import type { Env } from '../../index'
 import { checkContentLength, parsePagination, getClientIp, serverError } from '../../lib/request'
 
@@ -19,7 +20,7 @@ type ShipmentFreshness = 'fresh' | 'stale' | 'unknown'
 const TRACKING_STALE_MS = 60 * 60 * 1000
 const TRACKING_DELIVERED_STALE_MS = 24 * 60 * 60 * 1000
 
-function normalizeTrackingCode(value: string | null | undefined): string | null {
+function normalizeCode(value: string | null | undefined): string | null {
   if (!value) return null
   const norm = value.trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '')
   return norm || null
@@ -37,119 +38,24 @@ function toIsoOrNull(value: Date | string | null | undefined): string | null {
   return d ? d.toISOString() : null
 }
 
-function mapShipmentDisplayStatus(input: {
-  orderStatus: string
-  trackingNumber: string | null
-  trackingStatusCode: string | null
-  trackingStatus: string | null
-}): ShipmentDisplayStatus {
-  const status = input.orderStatus
-  const code = normalizeTrackingCode(input.trackingStatusCode)
-  const statusText = (input.trackingStatus ?? '').toLowerCase()
-
-  // Cancelled/refunded orders have no active shipment regardless of stale tracking data
-  if (status === 'cancelled' || status === 'refunded') return 'none'
-
-  if (!input.trackingNumber) {
-    const code = normalizeTrackingCode(input.trackingStatusCode)
-    if (!code) return 'none'
-    if (
-      code.includes('DELIVERED') ||
-      code.includes('PICKED_UP') ||
-      code.includes('PICKUP') ||
-      code.includes('RECEIVED')
-    ) return 'delivered'
-    if (
-      code.includes('OUT_FOR_DELIVERY') ||
-      code.includes('COURIER')
-    ) return 'out_for_delivery'
-    if (
-      code.includes('IN_TRANSIT') ||
-      code.includes('TRANSIT') ||
-      code.includes('SENT') ||
-      code.includes('SHIPPED')
-    ) return 'in_transit'
-    if (
-      code.includes('LABEL_CREATED') ||
-      code.includes('CREATED') ||
-      code.includes('REGISTERED')
-    ) return 'label_created'
-    if (
-      code.includes('EXCEPTION') ||
-      code.includes('FAILED') ||
-      code.includes('RETURN') ||
-      code.includes('UNDELIVERED') ||
-      code.includes('REFUSED')
-    ) return 'issue'
-    return 'none'
-  }
-
-  if (status === 'delivered') return 'delivered'
-
-  if (!code) return 'label_created'
-
-  if (
-    code.includes('DELIVERED') ||
-    code.includes('PICKED_UP') ||
-    code.includes('PICKUP') ||
-    code.includes('RECEIVED')
-  ) {
-    return 'delivered'
-  }
-
-  if (
-    code.includes('OUT_FOR_DELIVERY') ||
-    code.includes('COURIER') ||
-    statusText.includes('dor')
-  ) {
-    return 'out_for_delivery'
-  }
-
-  if (
-    code === 'LABEL_CREATED' ||
-    code.includes('CREATED') ||
-    code.includes('REGISTERED')
-  ) {
-    return 'label_created'
-  }
-
-  if (
-    code.includes('EXCEPTION') ||
-    code.includes('FAILED') ||
-    code.includes('RETURN') ||
-    code.includes('UNDELIVERED') ||
-    code.includes('REFUSED') ||
-    code.includes('CANCELLED') ||
-    statusText.includes('problem') ||
-    statusText.includes('blad') ||
-    statusText.includes('error')
-  ) {
-    return 'issue'
-  }
-
-  if (
-    code.includes('IN_TRANSIT') ||
-    code.includes('TRANSIT') ||
-    code.includes('SORT') ||
-    code.includes('SHIPPED') ||
-    code.includes('SENT') ||
-    statusText.includes('tranzyt') ||
-    statusText.includes('w drodze')
-  ) {
-    return 'in_transit'
-  }
-
+function mapStatusCodeToDisplay(rawCode: string | null, orderStatus: string): ShipmentDisplayStatus {
+  if (orderStatus === 'cancelled' || orderStatus === 'refunded') return 'none'
+  const code = normalizeCode(rawCode)
+  if (!code) return orderStatus === 'shipped' ? 'in_transit' : 'none'
+  if (code.includes('DELIVERED') || code.includes('PICKED_UP') || code.includes('PICKUP') || code.includes('RECEIVED')) return 'delivered'
+  if (code.includes('OUT_FOR_DELIVERY') || code.includes('COURIER')) return 'out_for_delivery'
+  if (code.includes('IN_TRANSIT') || code.includes('TRANSIT') || code.includes('SORT') || code.includes('SENT') || code.includes('SHIPPED')) return 'in_transit'
+  if (code === 'LABEL_CREATED' || code.includes('CREATED') || code.includes('REGISTERED')) return 'label_created'
+  if (code.includes('EXCEPTION') || code.includes('FAILED') || code.includes('RETURN') || code.includes('UNDELIVERED') || code.includes('REFUSED') || code.includes('CANCELLED')) return 'issue'
   return 'unknown'
 }
 
-function getShipmentFreshness(orderStatus: string, trackingStatusUpdatedAt: Date | string | null | undefined): ShipmentFreshness {
+function getShipmentFreshness(orderStatus: string, occurredAt: string | null): ShipmentFreshness {
   if (!['shipped', 'delivered'].includes(orderStatus)) return 'unknown'
-  const updatedAt = toDateOrNull(trackingStatusUpdatedAt)
+  const updatedAt = toDateOrNull(occurredAt)
   if (!updatedAt) return 'unknown'
-
   const ageMs = Date.now() - updatedAt.getTime()
   if (!Number.isFinite(ageMs) || ageMs < 0) return 'unknown'
-
   const threshold = orderStatus === 'delivered' ? TRACKING_DELIVERED_STALE_MS : TRACKING_STALE_MS
   return ageMs <= threshold ? 'fresh' : 'stale'
 }
@@ -158,34 +64,28 @@ function buildTrackingSnapshot(order: {
   id: number
   status: string
   trackingNumber: string | null
-  trackingStatus: string | null
-  trackingStatusCode: string | null
-  trackingStatusUpdatedAt: Date | string | null
-  trackingLastEventAt: Date | string | null
-  allegroShipmentsSnapshot?: unknown
+  allegroShipmentsSnapshot?: ShipmentSnapshotEntry[] | null
 }) {
-  const trackingStatusCode = normalizeTrackingCode(order.trackingStatusCode)
+  const all = (order.allegroShipmentsSnapshot ?? []) as ShipmentSnapshotEntry[]
+  const selected = all.find((s) => s.isSelected) ?? all[0] ?? null
 
-  const shipmentDisplayStatus: ShipmentDisplayStatus = mapShipmentDisplayStatus({
-    orderStatus: order.status,
-    trackingNumber: order.trackingNumber,
-    trackingStatus: order.trackingStatus,
-    trackingStatusCode,
-  })
+  const statusCode = selected?.statusCode ?? null
+  const statusLabel = selected?.statusLabel ?? null
+  const occurredAt = selected?.occurredAt ?? null
 
-  const shipmentFreshness = getShipmentFreshness(order.status, order.trackingStatusUpdatedAt)
+  const shipmentDisplayStatus = mapStatusCodeToDisplay(statusCode, order.status)
+  const shipmentFreshness = getShipmentFreshness(order.status, occurredAt)
 
   return {
     id: order.id,
     status: order.status,
     trackingNumber: order.trackingNumber,
-    trackingStatus: order.trackingStatus,
-    trackingStatusCode,
-    trackingStatusUpdatedAt: toIsoOrNull(order.trackingStatusUpdatedAt),
-    trackingLastEventAt: toIsoOrNull(order.trackingLastEventAt),
+    trackingStatus: statusLabel,
+    trackingStatusCode: normalizeCode(statusCode),
+    trackingStatusUpdatedAt: occurredAt,
     shipmentDisplayStatus,
     shipmentFreshness,
-    allShipments: order.allegroShipmentsSnapshot ?? null,
+    allShipments: all.length > 0 ? all : null,
   }
 }
 
@@ -294,9 +194,7 @@ adminOrdersRouter.get('/', auditLogMiddleware('view_order'), async (c) => {
           status: true, total: true, subtotal: true, shippingCost: true,
           currency: true, totalPln: true,
           customerData: true, paymentMethod: true, shippingMethod: true,
-          trackingNumber: true, trackingStatus: true,
-          trackingStatusCode: true, trackingStatusUpdatedAt: true,
-          trackingLastEventAt: true,
+          trackingNumber: true,
           allegroShipmentId: true, allegroFulfillmentStatus: true,
           allegroShipmentsSnapshot: true,
           paidAt: true, shippedAt: true, createdAt: true,
@@ -330,10 +228,6 @@ adminOrdersRouter.get('/', auditLogMiddleware('view_order'), async (c) => {
         id: o.id,
         status: o.status,
         trackingNumber: o.trackingNumber ?? null,
-        trackingStatus: o.trackingStatus ?? null,
-        trackingStatusCode: o.trackingStatusCode ?? null,
-        trackingStatusUpdatedAt: o.trackingStatusUpdatedAt ?? null,
-        trackingLastEventAt: o.trackingLastEventAt ?? null,
         allegroShipmentsSnapshot: o.allegroShipmentsSnapshot ?? null,
       }),
     }))
@@ -381,10 +275,6 @@ adminOrdersRouter.get('/:id', auditLogMiddleware('view_order'), async (c) => {
           id: order.id,
           status: order.status,
           trackingNumber: order.trackingNumber ?? null,
-          trackingStatus: order.trackingStatus ?? null,
-          trackingStatusCode: order.trackingStatusCode ?? null,
-          trackingStatusUpdatedAt: order.trackingStatusUpdatedAt ?? null,
-          trackingLastEventAt: order.trackingLastEventAt ?? null,
           allegroShipmentsSnapshot: order.allegroShipmentsSnapshot ?? null,
         }),
       },
@@ -560,6 +450,23 @@ adminOrdersRouter.get('/:id/history', async (c) => {
     return c.json({ data: result.rows })
   } catch (err) {
     return serverError(c, 'GET /admin/orders/:id/history', err)
+  }
+})
+
+// ── POST /:id/refresh-shipment ────────────────────────────────────────────
+// On-demand fetch from Allegro. KV cache 5 min — `?force=1` bypasses cache.
+adminOrdersRouter.post('/:id/refresh-shipment', async (c) => {
+  try {
+    const db = createDb(c.env.DATABASE_URL)
+    const orderId = Number(c.req.param('id'))
+    if (!Number.isFinite(orderId)) {
+      return c.json({ error: { code: 'BAD_REQUEST', message: 'Nieprawidłowe ID zamówienia' } }, 400)
+    }
+    const force = c.req.query('force') === '1'
+    const result = await refreshOrderShipments(db, c.env, orderId, { force })
+    return c.json({ data: result })
+  } catch (err) {
+    return serverError(c, 'POST /admin/orders/:id/refresh-shipment', err)
   }
 })
 

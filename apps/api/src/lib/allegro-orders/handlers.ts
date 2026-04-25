@@ -491,18 +491,6 @@ export async function reconcileOrder(
   const isPickedUp = fulfillmentStatus === 'PICKED_UP'
   const isSent = fulfillmentStatus === 'SENT'
 
-  const trackingSnapshotCode = isCancelled
-    ? 'CANCELLED'
-    : (isPickedUp || isSent)
-      ? (isPickedUp ? 'PICKED_UP' : 'SENT')
-      : null
-
-  const trackingSnapshotLabel = isCancelled
-    ? 'Przesylka anulowana'
-    : (isPickedUp || isSent)
-      ? (isPickedUp ? 'Przesylka dostarczona' : 'Przesylka w drodze')
-      : null
-
   let newLocalStatus: 'cancelled' | 'shipped' | 'delivered' | null = null
 
   if (isCancelled && existing.status !== 'cancelled') {
@@ -538,16 +526,6 @@ export async function reconcileOrder(
       allegroRevision:          form.revision ?? null,
       allegroFulfillmentStatus: fulfillmentStatus,
       ...(!existing.trackingNumber && waybill && { trackingNumber: waybill.slice(0, 100) }),
-      ...(trackingSnapshotCode && {
-        trackingStatusCode: trackingSnapshotCode,
-        trackingStatus: trackingSnapshotLabel,
-        // Reset trackingStatusUpdatedAt to null when isSent so the cron picks it up immediately
-        // on the next run (via IS NULL branch in selectTrackingRefreshCandidates), even if the
-        // field was already set by a previous backfill or TrackingSync run.
-        // For cancelled orders, stamp the current time (no further tracking expected).
-        ...(isSent      && { trackingStatusUpdatedAt: null }),
-        ...(isCancelled && { trackingStatusUpdatedAt: new Date() }),
-      }),
       updatedAt: new Date(),
     })
     .where(eq(orders.externalId, form.id))

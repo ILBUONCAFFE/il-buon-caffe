@@ -126,6 +126,12 @@ export const adminApi = {
   getOrderHistory: (id: number) =>
     request<{ data: OrderStatusHistoryEntry[] }>(`/api/admin/orders/${id}/history`),
 
+  refreshOrderShipment: (id: number, opts?: { force?: boolean }) =>
+    request<{ data: { refreshed: boolean; cached: boolean; snapshot: import('../types/admin-api').AllegroShipmentEntry[] | null } }>(
+      `/api/admin/orders/${id}/refresh-shipment${opts?.force ? '?force=1' : ''}`,
+      { method: 'POST' },
+    ),
+
   // ── Shipment management ────────────────────────────────────────────────
   getDeliveryServices: () =>
     request<DeliveryServicesResponse>('/api/admin/shipment/delivery-services'),

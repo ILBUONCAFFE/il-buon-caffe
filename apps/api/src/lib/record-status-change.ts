@@ -69,31 +69,28 @@ export async function recordStatusChange(
       SELECT EXISTS (SELECT 1 FROM ins) AS recorded
     `);
   } else {
+    // Tracking history: append only when new_value differs from the latest tracking entry.
+    // Source of truth for current tracking status is allegro_shipments_snapshot, not an
+    // orders column — so we look up "previous" from order_status_history itself.
     result = await db.execute(sql`
       WITH prev AS (
-        SELECT tracking_status_code AS v FROM orders WHERE id = ${orderId}
-      ),
-      upd AS (
-        UPDATE orders
-        SET    tracking_status_code       = ${newValue},
-               tracking_status_updated_at = now(),
-               updated_at                = now()
-        WHERE  id                    = ${orderId}
-          AND  tracking_status_code IS DISTINCT FROM ${newValue}
-        RETURNING 1
+        SELECT new_value AS v
+        FROM   order_status_history
+        WHERE  order_id = ${orderId} AND category = 'tracking'
+        ORDER  BY occurred_at DESC
+        LIMIT  1
       ),
       ins AS (
         INSERT INTO order_status_history
                (order_id, category, previous_value, new_value, source, source_ref, metadata)
         SELECT ${orderId},
                'tracking',
-               prev.v,
+               (SELECT v FROM prev),
                ${newValue},
                ${source}::status_source,
                ${sourceRef},
                ${metadataJson}::jsonb
-        FROM   prev
-        WHERE  EXISTS (SELECT 1 FROM upd)
+        WHERE  COALESCE((SELECT v FROM prev), '') IS DISTINCT FROM ${newValue}
         RETURNING 1
       )
       SELECT EXISTS (SELECT 1 FROM ins) AS recorded

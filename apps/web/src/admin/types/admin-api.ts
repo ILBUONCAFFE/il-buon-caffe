@@ -106,6 +106,12 @@ export interface CustomerData {
   allegroLogin?: string
 }
 
+export interface ShipmentEvent {
+  code: string
+  label: string | null
+  occurredAt: string | null
+}
+
 export interface AllegroShipmentEntry {
   waybill: string
   carrierId: string
@@ -113,6 +119,7 @@ export interface AllegroShipmentEntry {
   statusLabel: string | null
   occurredAt: string | null
   isSelected: boolean
+  events?: ShipmentEvent[]
 }
 
 export interface AdminOrder {
@@ -133,10 +140,9 @@ export interface AdminOrder {
   paymentMethod?: string
   shippingMethod?: string | null
   trackingNumber?: string | null
-  trackingStatus?: string | null
-  trackingStatusCode?: string | null
-  trackingStatusUpdatedAt?: string | null
-  trackingLastEventAt?: string | null
+  trackingStatus?: string | null              // derived: snapshot[selected].statusLabel
+  trackingStatusCode?: string | null          // derived: snapshot[selected].statusCode (normalized)
+  trackingStatusUpdatedAt?: string | null     // derived: snapshot[selected].occurredAt
   allegroShipmentId?: string | null
   allegroFulfillmentStatus?: string | null
   shipmentDisplayStatus?: ShipmentDisplayStatus

@@ -860,30 +860,17 @@ allegroRouter.get('/orders/:id/tracking', requireAdminOrProxy(), async (c) => {
     const latestOccurredAt = latestOccurredRaw ? new Date(String(latestOccurredRaw)) : null
     const latestOccurredAtSafe = latestOccurredAt && !Number.isNaN(latestOccurredAt.getTime()) ? latestOccurredAt : null
 
-    // 4. Update tracking number in local DB
+    // 4. Sync trackingNumber if changed (full status now lives in allegro_shipments_snapshot via /admin/orders/:id/refresh-shipment)
     if (waybill) {
       const db = createDb(c.env.DATABASE_URL)
-      const latestDescription = latest?.description ?? null
       await db.update(orders)
-        .set({
-          trackingNumber: waybill,
-          trackingStatus: latestDescription,
-          trackingStatusCode: latestCode,
-          trackingStatusUpdatedAt: new Date(),
-          trackingLastEventAt: latestOccurredAtSafe,
-          updatedAt: new Date(),
-        })
+        .set({ trackingNumber: waybill, updatedAt: new Date() })
         .where(and(
           eq(orders.externalId, checkoutFormId!),
-          sql`(
-            ${orders.trackingNumber} IS DISTINCT FROM ${waybill}
-            OR ${orders.trackingStatus} IS DISTINCT FROM ${latestDescription}
-            OR ${orders.trackingStatusCode} IS DISTINCT FROM ${latestCode}
-            OR ${orders.trackingLastEventAt} IS DISTINCT FROM ${latestOccurredAtSafe}
-            OR ${orders.trackingStatusUpdatedAt} IS NULL
-          )`,
+          sql`${orders.trackingNumber} IS DISTINCT FROM ${waybill}`,
         ))
     }
+    void latestCode; void latestOccurredAtSafe;
 
     return c.json({
       success: true,

@@ -488,13 +488,10 @@ export const orders = pgTable('orders', {
   // ===== Wysyłka =====
   shippingMethod: varchar('shipping_method', { length: 255 }),
   trackingNumber: varchar('tracking_number', { length: 100 }),
-  trackingStatus: varchar('tracking_status', { length: 255 }),
-  trackingStatusCode: varchar('tracking_status_code', { length: 50 }),
-  trackingStatusUpdatedAt: timestamp('tracking_status_updated_at', { withTimezone: true }),
-  trackingLastEventAt: timestamp('tracking_last_event_at', { withTimezone: true }),
   allegroShipmentId: varchar('allegro_shipment_id', { length: 36 }),
-  // Snapshot of all Allegro shipments (multi-parcel / duplicate label support).
-  // Array of { waybill, carrierId, statusCode, statusLabel, occurredAt, isSelected }.
+  // Snapshot of all Allegro shipments. Source of truth for shipment status display.
+  // Refreshed on-demand via /admin/orders/:id/refresh-shipment (5min KV cache).
+  // events[] = full status history per parcel (also written to order_status_history on change).
   allegroShipmentsSnapshot: jsonb('allegro_shipments_snapshot').$type<{
     waybill: string
     carrierId: string
@@ -502,6 +499,7 @@ export const orders = pgTable('orders', {
     statusLabel: string | null
     occurredAt: string | null
     isSelected: boolean
+    events?: Array<{ code: string; label: string | null; occurredAt: string | null }>
   }[]>(),
 
   shippedAt: timestamp('shipped_at', { withTimezone: true }),

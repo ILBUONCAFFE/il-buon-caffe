@@ -1,12 +1,13 @@
 'use client'
 
 import { useEffect, useState, type ReactNode } from 'react'
-import { X } from 'lucide-react'
+import { X, RefreshCw } from 'lucide-react'
 import { resolveShipmentStatus } from '../lib/shipmentStatus'
 import { OrderStatusBadge } from './OrderStatusBadge'
 import { ShipmentLabelPickerModal } from './ShipmentLabelPickerModal'
 import { OrderTimeline } from './OrderTimeline'
-import type { AdminOrder, AllegroShipmentEntry } from '../types/admin-api'
+import { adminApi } from '../lib/adminApiClient'
+import type { AdminOrder, AllegroShipmentEntry, ShipmentEvent } from '../types/admin-api'
 
 interface OrderDetailModalProps {
   order: AdminOrder | null
@@ -14,6 +15,7 @@ interface OrderDetailModalProps {
   onClose: () => void
   onCreateShipment?: (order: AdminOrder) => void
   onDownloadLabel?: (order: AdminOrder) => void
+  onShipmentRefreshed?: (orderId: number, snapshot: AllegroShipmentEntry[] | null) => void
 }
 
 function formatDate(iso: string | null | undefined): string {
@@ -140,14 +142,34 @@ function SectionLabel({ children }: { children: ReactNode }) {
   )
 }
 
+function ShipmentEventsList({ events }: { events: ShipmentEvent[] }) {
+  if (events.length === 0) return null
+  return (
+    <ul className="mt-2 space-y-1">
+      {events.slice().reverse().map((e, i) => (
+        <li key={`${e.code}-${e.occurredAt ?? i}`} className="flex items-start gap-2 text-[11px] leading-relaxed">
+          <span className="mt-1 w-1.5 h-1.5 rounded-full bg-[#1A1A1A] shrink-0" />
+          <span className="text-[#1A1A1A] font-medium">{e.label ?? e.code}</span>
+          {e.occurredAt && (
+            <span className="text-[#A3A3A3] ml-auto tabular-nums">{formatDate(e.occurredAt)}</span>
+          )}
+        </li>
+      ))}
+    </ul>
+  )
+}
+
 export function OrderDetailModal({
   order,
   isOpen,
   onClose,
   onCreateShipment,
   onDownloadLabel,
+  onShipmentRefreshed,
 }: OrderDetailModalProps) {
   const [labelPickerOpen, setLabelPickerOpen] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
+  const [refreshError, setRefreshError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!isOpen) setLabelPickerOpen(false)
@@ -310,8 +332,36 @@ export function OrderDetailModal({
               <InfoRow label="Metoda" value={order.paymentMethod ?? '-'} />
               <InfoRow label="Oplacono" value={formatDate(order.paidAt)} />
 
-              <SectionLabel>Przesylka</SectionLabel>
-              <div className="space-y-3">                <div className="bg-white rounded-lg space-y-1">
+              <div className="flex items-center justify-between mb-2 mt-5">
+                <h3 className="text-xs font-semibold text-[#A3A3A3] uppercase tracking-wider">
+                  Przesylka
+                </h3>
+                {order.source === 'allegro' && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (refreshing) return
+                      setRefreshing(true)
+                      setRefreshError(null)
+                      try {
+                        const res = await adminApi.refreshOrderShipment(order.id, { force: true })
+                        onShipmentRefreshed?.(order.id, res.data.snapshot ?? null)
+                      } catch (err) {
+                        setRefreshError(err instanceof Error ? err.message : 'Błąd odświeżania')
+                      } finally {
+                        setRefreshing(false)
+                      }
+                    }}
+                    disabled={refreshing}
+                    className="inline-flex items-center gap-1.5 text-[11px] text-[#666] hover:text-[#1A1A1A] disabled:opacity-50 transition-colors"
+                  >
+                    <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} />
+                    {refreshing ? 'Odświeżanie...' : 'Odśwież z Allegro'}
+                  </button>
+                )}
+              </div>
+              <div className="space-y-3">
+                <div className="bg-white rounded-lg space-y-1">
                   <InfoRow label="Status" value={resolvedShipmentStatus.label} />
                   {effectiveTrackingNumber && (
                     <InfoRow label="Numer listu" value={<span className="font-mono text-xs font-medium tracking-wide">{effectiveTrackingNumber}</span>} />
@@ -321,6 +371,12 @@ export function OrderDetailModal({
                   )}
                 </div>
 
+                {refreshError && (
+                  <div className="text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-1.5">
+                    {refreshError}
+                  </div>
+                )}
+
                 <ShipmentTimeline
                   activeStep={resolvedShipmentStatus.step}
                   isIssue={resolvedShipmentStatus.isIssue}
@@ -329,36 +385,48 @@ export function OrderDetailModal({
                   updatedAt={effectiveTrackingStatusUpdatedAt}
                 />
 
-                {/* Multi-shipment list — shown when order has >1 parcel or duplicate labels */}
-                {order.allShipments && order.allShipments.length > 1 && (
-                  <div className="pt-2 mt-4 border-t border-[#E5E4E1]">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-semibold text-[#1A1A1A]">Paczki w zamówieniu</span>
-                      <span className="text-[10px] bg-[#E5E4E1] text-[#666] px-1.5 py-0.5 rounded font-medium">{order.allShipments.length}</span>
+                {/* Per-parcel events history (from Allegro snapshot.events) */}
+                {order.allShipments && order.allShipments.length > 0 && (
+                  <div className="pt-2 mt-4 border-t border-[#E5E4E1] space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-[#1A1A1A]">
+                        {order.allShipments.length > 1 ? 'Paczki w zamówieniu' : 'Historia statusów'}
+                      </span>
+                      {order.allShipments.length > 1 && (
+                        <span className="text-[10px] bg-[#E5E4E1] text-[#666] px-1.5 py-0.5 rounded font-medium">{order.allShipments.length}</span>
+                      )}
                     </div>
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       {order.allShipments.map((s) => (
                         <div
                           key={s.waybill}
-                          className={`flex items-center justify-between gap-3 px-3 py-2 rounded-md text-xs transition-colors ${
+                          className={`px-3 py-2 rounded-md text-xs transition-colors ${
                             s.isSelected
                               ? 'bg-blue-50 border border-blue-100'
                               : 'bg-[#F9F9F9] border border-transparent'
                           }`}
                         >
-                          <span className={`font-mono text-xs truncate ${s.isSelected ? 'text-blue-900 font-medium' : 'text-[#666]'}`}>
-                            {s.waybill}
-                          </span>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span className={`text-[10px] ${s.isSelected ? 'text-blue-800' : 'text-[#A3A3A3]'}`}>
-                              {s.statusLabel ?? s.statusCode}
+                          <div className="flex items-center justify-between gap-3">
+                            <span className={`font-mono text-xs truncate ${s.isSelected ? 'text-blue-900 font-medium' : 'text-[#666]'}`}>
+                              {s.waybill}
                             </span>
-                            {s.isSelected && (
-                              <span className="text-[9px] font-bold bg-blue-600 text-white px-1.5 py-0.5 rounded-sm uppercase tracking-wide">
-                                Główna
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className={`text-[10px] ${s.isSelected ? 'text-blue-800' : 'text-[#A3A3A3]'}`}>
+                                {s.statusLabel ?? s.statusCode}
                               </span>
-                            )}
+                              {s.isSelected && (
+                                <span className="text-[9px] font-bold bg-blue-600 text-white px-1.5 py-0.5 rounded-sm uppercase tracking-wide">
+                                  Główna
+                                </span>
+                              )}
+                            </div>
                           </div>
+                          {s.carrierId && s.carrierId !== 'UNKNOWN' && (
+                            <div className="text-[10px] text-[#A3A3A3] mt-0.5">{s.carrierId}</div>
+                          )}
+                          {s.events && s.events.length > 0 && (
+                            <ShipmentEventsList events={s.events} />
+                          )}
                         </div>
                       ))}
                     </div>

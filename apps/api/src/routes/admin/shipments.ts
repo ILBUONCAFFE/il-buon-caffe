@@ -227,11 +227,18 @@ adminShipmentsRouter.post('/orders/:id/shipment', async (c) => {
       status: 'shipped',
       shippedAt: now,
       trackingNumber: trackingNumber || null,
-      trackingStatus: trackingNumber ? 'Etykieta wygenerowana' : null,
-      trackingStatusCode: trackingNumber ? 'LABEL_CREATED' : null,
-      trackingStatusUpdatedAt: trackingNumber ? now : null,
       allegroShipmentId: shipmentId,
       allegroFulfillmentStatus: fulfillmentResp.ok ? 'SENT' : null,
+      ...(trackingNumber && {
+        allegroShipmentsSnapshot: [{
+          waybill: trackingNumber,
+          carrierId: 'UNKNOWN',
+          statusCode: 'LABEL_CREATED',
+          statusLabel: 'Etykieta wygenerowana',
+          occurredAt: now.toISOString(),
+          isSelected: true,
+        }],
+      }),
       updatedAt: now,
     }).where(eq(orders.id, orderId))
 
@@ -381,13 +388,6 @@ adminShipmentsRouter.post('/orders/:id/fulfillment', async (c) => {
 
     await db.update(orders).set({
       allegroFulfillmentStatus: body.status,
-      ...(body.status === 'SENT' || body.status === 'PICKED_UP'
-        ? {
-            trackingStatusCode: body.status,
-            trackingStatus: body.status === 'PICKED_UP' ? 'Przesylka dostarczona' : 'Przesylka nadana',
-            trackingStatusUpdatedAt: now,
-          }
-        : {}),
       ...(body.status === 'PICKED_UP'
         ? { deliveredAt: now }
         : body.status === 'SENT' && nextStatus === 'shipped'
