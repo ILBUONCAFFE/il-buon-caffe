@@ -118,6 +118,32 @@ function normalizeEvent(e: AllegroSmStatusEntry): { code: string; label: string 
   }
 }
 
+async function findSmShipmentIdByWaybill(
+  apiBase: string,
+  accessToken: string,
+  waybill: string,
+): Promise<string | null> {
+  if (!waybill) return null
+  try {
+    const url = `${apiBase}/shipment-management/shipments?waybill=${encodeURIComponent(waybill)}&limit=5`
+    const resp = await fetch(url, {
+      signal: AbortSignal.timeout(8_000),
+      headers: { ...allegroHeaders(accessToken), 'Accept-Language': 'pl-PL' },
+    })
+    if (!resp.ok) {
+      if (resp.status !== 404) console.warn(`[Shipments] SM list ${waybill} → ${resp.status}`)
+      return null
+    }
+    const data = (await resp.json()) as { shipments?: Array<{ id?: string; waybill?: string }> }
+    const list = data.shipments ?? []
+    const match = list.find((s) => (s.waybill ?? '').trim() === waybill) ?? list[0]
+    return match?.id ?? null
+  } catch (err) {
+    console.warn(`[Shipments] SM list lookup failed ${waybill}`, err)
+    return null
+  }
+}
+
 async function fetchSmShipment(
   apiBase: string,
   accessToken: string,
@@ -254,6 +280,8 @@ export async function fetchAllegroShipments(env: Env, externalId: string): Promi
 
   const data = (await shipmentsResp.json()) as AllegroShipmentsResponse
   const rows = data.shipments ?? []
+  // Debug: pokaż surową odpowiedź z Allegro żeby zweryfikować czy id jest dostępne.
+  console.log(`[Shipments][debug] /shipments raw (allegro id: ${externalId}):`, JSON.stringify(data))
   if (rows.length === 0) return { shipments: [], fulfillmentStatus }
 
   const fulfillmentDerivedCode = fulfillmentStatus
@@ -279,8 +307,17 @@ export async function fetchAllegroShipments(env: Env, externalId: string): Promi
         events = carrierEvents
       }
 
-      if (events.length === 0 && row.id) {
-        const sm = await fetchSmShipment(token.apiBase, token.accessToken, row.id)
+      // SM lookup: użyj row.id jeśli jest, inaczej spróbuj znaleźć po waybill.
+      let smShipmentId = row.id ?? null
+      if (events.length === 0 && !smShipmentId) {
+        smShipmentId = await findSmShipmentIdByWaybill(token.apiBase, token.accessToken, waybill)
+        if (smShipmentId) {
+          console.log(`[Shipments][debug] SM id resolved by waybill ${waybill} → ${smShipmentId}`)
+        }
+      }
+
+      if (events.length === 0 && smShipmentId) {
+        const sm = await fetchSmShipment(token.apiBase, token.accessToken, smShipmentId)
         if (sm) {
           smStatus = sm.status?.trim().toUpperCase() ?? null
           const rawHistory = sm.statusHistory ?? sm.history ?? []
