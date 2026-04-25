@@ -76,7 +76,7 @@ function OrderCard({
     allegroFulfillmentStatus: order.allegroFulfillmentStatus,
   })
   const shipmentBadgeClass = getShipmentBadgeClass(shipment.step, shipment.isIssue, shipment.isCancelled)
-  const showStaleHint = ['shipped', 'delivered'].includes(order.status) && order.shipmentFreshness === 'stale'
+  const showStaleHint = false
 
   return (
     <div
@@ -453,9 +453,7 @@ export const OrdersView = () => {
                       shipment.isIssue,
                       shipment.isCancelled,
                     )
-                                      const showStaleHint =
-                      ['shipped', 'delivered'].includes(order.status) &&
-                      order.shipmentFreshness === 'stale'
+                    const showStaleHint = false
 
                     return (
                       <tr

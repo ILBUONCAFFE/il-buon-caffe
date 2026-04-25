@@ -33,6 +33,7 @@ const FULFILLMENT_TO_SHIPMENT_CODE: Record<string, string> = {
 
 const KV_TTL_SECONDS = 5 * 60
 const KV_PREFIX = 'shipment:fresh:'
+const AUTO_DELIVERED_AGE_MS = 7 * 24 * 60 * 60 * 1000
 
 export interface ShipmentSnapshotEntry {
   waybill: string
@@ -337,6 +338,27 @@ export async function refreshOrderShipments(
     (order.status === 'paid' || order.status === 'processing')
   ) {
     promotedStatus = 'shipped'
+  }
+
+  // Auto-mark delivered: shipment has been "in transit" for >7 days with no terminal event.
+  // Allegro public REST has no carrier event API for non-Smart waybills, so without a
+  // manual "Oznacz jako dostarczone" click we'd never advance. Local-only — does not PUT
+  // PICKED_UP to Allegro (would trigger buyer notifications/review prompts retroactively).
+  if (!promotedStatus && (order.status === 'shipped' || (hasWaybill && order.status === 'paid'))) {
+    const oldestOccurredAt = snapshot
+      .map((s) => (s.occurredAt ? Date.parse(s.occurredAt) : 0))
+      .filter((t) => t > 0)
+      .sort((a, b) => a - b)[0]
+    if (oldestOccurredAt && now.getTime() - oldestOccurredAt >= AUTO_DELIVERED_AGE_MS) {
+      promotedStatus = 'delivered'
+      // Override snapshot entries so UI shows DELIVERED instead of stale SENT/etc.
+      for (const s of snapshot) {
+        if (s.statusCode !== 'CANCELLED' && s.statusCode !== 'RETURNED' && s.statusCode !== 'DELIVERED') {
+          s.statusCode = 'DELIVERED'
+          s.statusLabel = 'Dostarczona'
+        }
+      }
+    }
   }
 
   const updateCols: Record<string, unknown> = {
