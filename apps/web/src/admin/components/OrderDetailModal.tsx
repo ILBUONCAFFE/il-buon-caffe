@@ -1,13 +1,12 @@
 'use client'
 
 import { useEffect, useState, type ReactNode } from 'react'
-import { X, RefreshCw } from 'lucide-react'
+import { X, RefreshCw, Package, Truck, CheckCircle2, AlertTriangle, XCircle, Clock } from 'lucide-react'
 import { resolveShipmentStatus } from '../lib/shipmentStatus'
 import { OrderStatusBadge } from './OrderStatusBadge'
 import { ShipmentLabelPickerModal } from './ShipmentLabelPickerModal'
-import { OrderTimeline } from './OrderTimeline'
 import { adminApi } from '../lib/adminApiClient'
-import type { AdminOrder, AllegroShipmentEntry, ShipmentEvent } from '../types/admin-api'
+import type { AdminOrder, AllegroShipmentEntry } from '../types/admin-api'
 
 interface OrderDetailModalProps {
   order: AdminOrder | null
@@ -47,6 +46,38 @@ const SHIPMENT_STEPS = [
   { key: 'shipped', label: 'Wyslane' },
   { key: 'delivered', label: 'Dostarczone' },
 ] as const
+
+type ShipmentVisual = {
+  Icon: typeof Package
+  bg: string
+  ring: string
+  iconBg: string
+  iconColor: string
+  text: string
+}
+
+function shipmentVisual(args: {
+  isCancelled: boolean
+  isIssue: boolean
+  step: number
+}): ShipmentVisual {
+  if (args.isCancelled) {
+    return { Icon: XCircle, bg: 'bg-[#F5F4F1]', ring: 'border-[#E5E4E1]', iconBg: 'bg-[#E5E4E1]', iconColor: 'text-[#666]', text: 'text-[#666]' }
+  }
+  if (args.isIssue) {
+    return { Icon: AlertTriangle, bg: 'bg-red-50', ring: 'border-red-200', iconBg: 'bg-red-100', iconColor: 'text-red-600', text: 'text-red-900' }
+  }
+  if (args.step >= 3) {
+    return { Icon: CheckCircle2, bg: 'bg-emerald-50', ring: 'border-emerald-200', iconBg: 'bg-emerald-100', iconColor: 'text-emerald-600', text: 'text-emerald-900' }
+  }
+  if (args.step === 2) {
+    return { Icon: Truck, bg: 'bg-blue-50', ring: 'border-blue-200', iconBg: 'bg-blue-100', iconColor: 'text-blue-600', text: 'text-blue-900' }
+  }
+  if (args.step === 1) {
+    return { Icon: Package, bg: 'bg-amber-50', ring: 'border-amber-200', iconBg: 'bg-amber-100', iconColor: 'text-amber-700', text: 'text-amber-900' }
+  }
+  return { Icon: Clock, bg: 'bg-[#F5F4F1]', ring: 'border-[#E5E4E1]', iconBg: 'bg-white', iconColor: 'text-[#666]', text: 'text-[#1A1A1A]' }
+}
 
 function ShipmentTimeline({
   activeStep,
@@ -142,33 +173,105 @@ function SectionLabel({ children }: { children: ReactNode }) {
   )
 }
 
-function ShipmentEventsList({ events }: { events: ShipmentEvent[] }) {
-  const [expanded, setExpanded] = useState(false)
-  if (events.length === 0) return null
-  const reversed = events.slice().reverse()
-  const visible = expanded ? reversed : reversed.slice(0, 3)
-  const hidden = reversed.length - visible.length
+function ShipmentHeroCard({
+  resolved,
+  detail,
+  updatedAt,
+  trackingNumber,
+  carrier,
+}: {
+  resolved: { label: string; detail: string | null; step: number; isIssue: boolean; isCancelled: boolean }
+  detail: string | null
+  updatedAt: string | null
+  trackingNumber: string | null
+  carrier: string | null
+}) {
+  const v = shipmentVisual({ isCancelled: resolved.isCancelled, isIssue: resolved.isIssue, step: resolved.step })
+  const Icon = v.Icon
   return (
-    <div className="mt-2">
-      <ul className="space-y-1">
-        {visible.map((e, i) => (
-          <li key={`${e.code}-${e.occurredAt ?? i}`} className="flex items-start gap-2 text-[11px] leading-relaxed">
-            <span className="mt-1 w-1.5 h-1.5 rounded-full bg-[#1A1A1A] shrink-0" />
-            <span className="text-[#1A1A1A] font-medium">{e.label ?? e.code}</span>
-            {e.occurredAt && (
-              <span className="text-[#A3A3A3] ml-auto tabular-nums">{formatDate(e.occurredAt)}</span>
-            )}
-          </li>
-        ))}
-      </ul>
-      {hidden > 0 && (
-        <button
-          type="button"
-          onClick={() => setExpanded(true)}
-          className="mt-1.5 text-[10px] text-[#666] hover:text-[#1A1A1A]"
-        >
-          Pokaż więcej ({hidden})
-        </button>
+    <div className={`rounded-xl border ${v.ring} ${v.bg} px-4 py-3.5`}>
+      <div className="flex items-start gap-3">
+        <div className={`shrink-0 w-10 h-10 rounded-full ${v.iconBg} ${v.iconColor} flex items-center justify-center`}>
+          <Icon size={20} strokeWidth={2.2} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className={`text-sm font-semibold ${v.text}`}>{resolved.label}</div>
+          {detail && detail !== resolved.label && (
+            <div className={`text-xs mt-0.5 ${v.text} opacity-80 leading-relaxed`}>{detail}</div>
+          )}
+          {(trackingNumber || carrier || updatedAt) && (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-[11px]">
+              {trackingNumber && (
+                <span className={`font-mono tabular-nums ${v.text} opacity-90`}>
+                  {trackingNumber}
+                </span>
+              )}
+              {carrier && (
+                <span className={`${v.text} opacity-70`}>· {carrier}</span>
+              )}
+              {updatedAt && (
+                <span className={`${v.text} opacity-60 ml-auto tabular-nums`}>{formatDate(updatedAt)}</span>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ParcelCard({ parcel, index }: { parcel: AllegroShipmentEntry; index: number }) {
+  const [eventsOpen, setEventsOpen] = useState(false)
+  const events = parcel.events ?? []
+  const carrierLabel = parcel.carrierName ?? (parcel.carrierId && parcel.carrierId !== 'UNKNOWN' ? parcel.carrierId : null)
+  return (
+    <div
+      className={`rounded-lg border px-3 py-2.5 transition-colors ${
+        parcel.isSelected ? 'border-[#1A1A1A] bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)]' : 'border-[#E5E4E1] bg-[#FAFAF8]'
+      }`}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-[10px] font-bold text-[#A3A3A3] tabular-nums">#{index + 1}</span>
+          <span className="font-mono text-xs font-medium text-[#1A1A1A] truncate tracking-wide">{parcel.waybill}</span>
+          {parcel.isSelected && (
+            <span className="text-[9px] font-bold bg-[#1A1A1A] text-white px-1.5 py-0.5 rounded uppercase tracking-wide shrink-0">
+              Główna
+            </span>
+          )}
+        </div>
+        <span className="text-[10px] font-medium text-[#666] bg-[#F0EFEC] px-2 py-0.5 rounded shrink-0">
+          {parcel.statusLabel ?? parcel.statusCode}
+        </span>
+      </div>
+      {(carrierLabel || parcel.occurredAt) && (
+        <div className="flex items-center gap-2 mt-1 text-[10px] text-[#A3A3A3]">
+          {carrierLabel && <span>{carrierLabel}</span>}
+          {carrierLabel && parcel.occurredAt && <span>·</span>}
+          {parcel.occurredAt && <span className="tabular-nums">{formatDate(parcel.occurredAt)}</span>}
+        </div>
+      )}
+      {events.length > 0 && (
+        <div className="mt-2">
+          <button
+            type="button"
+            onClick={() => setEventsOpen((v) => !v)}
+            className="text-[10px] text-[#666] hover:text-[#1A1A1A] font-medium"
+          >
+            {eventsOpen ? 'Ukryj zdarzenia' : `Zdarzenia kuriera (${events.length})`}
+          </button>
+          {eventsOpen && (
+            <ul className="mt-1.5 space-y-1 pl-1">
+              {events.slice().reverse().map((e, i) => (
+                <li key={`${e.code}-${e.occurredAt ?? i}`} className="flex items-start gap-2 text-[11px] leading-relaxed">
+                  <span className="mt-1 w-1 h-1 rounded-full bg-[#666] shrink-0" />
+                  <span className="text-[#1A1A1A]">{e.label ?? e.code}</span>
+                  {e.occurredAt && <span className="text-[#A3A3A3] ml-auto tabular-nums">{formatDate(e.occurredAt)}</span>}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
     </div>
   )
@@ -387,15 +490,13 @@ export function OrderDetailModal({
                 )}
               </div>
               <div className="space-y-3">
-                <div className="bg-white rounded-lg space-y-1">
-                  <InfoRow label="Status" value={resolvedShipmentStatus.label} />
-                  {effectiveTrackingNumber && (
-                    <InfoRow label="Numer listu" value={<span className="font-mono text-xs font-medium tracking-wide">{effectiveTrackingNumber}</span>} />
-                  )}
-                  {order.shippingMethod && (
-                    <InfoRow label="Przewoźnik" value={order.shippingMethod} />
-                  )}
-                </div>
+                <ShipmentHeroCard
+                  resolved={resolvedShipmentStatus}
+                  detail={shipmentStatusText}
+                  updatedAt={effectiveTrackingStatusUpdatedAt}
+                  trackingNumber={effectiveTrackingNumber}
+                  carrier={order.shippingMethod ?? null}
+                />
 
                 {refreshError && (
                   <div className="text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-1.5">
@@ -407,53 +508,21 @@ export function OrderDetailModal({
                   activeStep={resolvedShipmentStatus.step}
                   isIssue={resolvedShipmentStatus.isIssue}
                   isCancelled={resolvedShipmentStatus.isCancelled}
-                  trackingStatus={shipmentStatusText}
-                  updatedAt={effectiveTrackingStatusUpdatedAt}
+                  trackingStatus={null}
+                  updatedAt={null}
                 />
 
-                {/* Per-parcel events history (from Allegro snapshot.events) */}
+                {/* Per-parcel cards (from Allegro snapshot) */}
                 {order.allShipments && order.allShipments.length > 0 && (
-                  <div className="pt-2 mt-4 border-t border-[#E5E4E1] space-y-3">
+                  <div className="pt-3 mt-3 border-t border-[#F0EFEC] space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-[#1A1A1A]">
-                        {order.allShipments.length > 1 ? 'Paczki w zamówieniu' : 'Historia statusów'}
+                      <span className="text-[11px] font-semibold text-[#A3A3A3] uppercase tracking-wider">
+                        {order.allShipments.length > 1 ? `Paczki (${order.allShipments.length})` : 'Paczka'}
                       </span>
-                      {order.allShipments.length > 1 && (
-                        <span className="text-[10px] bg-[#E5E4E1] text-[#666] px-1.5 py-0.5 rounded font-medium">{order.allShipments.length}</span>
-                      )}
                     </div>
-                    <div className="space-y-2">
-                      {order.allShipments.map((s) => (
-                        <div
-                          key={s.waybill}
-                          className={`px-3 py-2 rounded-md text-xs transition-colors ${
-                            s.isSelected
-                              ? 'bg-blue-50 border border-blue-100'
-                              : 'bg-[#F9F9F9] border border-transparent'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between gap-3">
-                            <span className={`font-mono text-xs truncate ${s.isSelected ? 'text-blue-900 font-medium' : 'text-[#666]'}`}>
-                              {s.waybill}
-                            </span>
-                            <div className="flex items-center gap-2 shrink-0">
-                              <span className={`text-[10px] ${s.isSelected ? 'text-blue-800' : 'text-[#A3A3A3]'}`}>
-                                {s.statusLabel ?? s.statusCode}
-                              </span>
-                              {s.isSelected && (
-                                <span className="text-[9px] font-bold bg-blue-600 text-white px-1.5 py-0.5 rounded-sm uppercase tracking-wide">
-                                  Główna
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          {s.carrierId && s.carrierId !== 'UNKNOWN' && (
-                            <div className="text-[10px] text-[#A3A3A3] mt-0.5">{s.carrierId}</div>
-                          )}
-                          {s.events && s.events.length > 0 && (
-                            <ShipmentEventsList events={s.events} />
-                          )}
-                        </div>
+                    <div className={order.allShipments.length > 1 ? 'grid grid-cols-1 gap-2' : 'space-y-2'}>
+                      {order.allShipments.map((s, idx) => (
+                        <ParcelCard key={s.waybill || idx} parcel={s} index={idx} />
                       ))}
                     </div>
                   </div>
@@ -461,14 +530,6 @@ export function OrderDetailModal({
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Historia zmian statusów */}
-        <div className="px-4 md:px-6 pb-4">
-          <h3 className="text-xs font-semibold text-[#A3A3A3] uppercase tracking-wider mb-3 mt-2">
-            Historia zmian
-          </h3>
-          <OrderTimeline orderId={order.id} />
         </div>
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 px-4 md:px-6 py-4 border-t border-[#F0EFEC] shrink-0">
