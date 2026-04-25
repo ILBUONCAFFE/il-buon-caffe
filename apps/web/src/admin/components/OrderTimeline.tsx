@@ -56,9 +56,12 @@ interface Props {
   orderId: number
 }
 
+const COLLAPSED_LIMIT = 8
+
 export function OrderTimeline({ orderId }: Props) {
   const [entries, setEntries] = useState<OrderStatusHistoryEntry[] | null>(null)
   const [error, setError]     = useState<string | null>(null)
+  const [expanded, setExpanded] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -94,9 +97,15 @@ export function OrderTimeline({ orderId }: Props) {
     )
   }
 
+  // Show newest first; collapse to last 8 by default.
+  const sorted = entries.slice().sort((a, b) => Date.parse(b.occurred_at) - Date.parse(a.occurred_at))
+  const visible = expanded ? sorted : sorted.slice(0, COLLAPSED_LIMIT)
+  const hidden = sorted.length - visible.length
+
   return (
+    <>
     <ol className="relative border-l border-[#F0EFEC] pl-4 space-y-4">
-      {entries.map((entry) => (
+      {visible.map((entry) => (
         <li key={entry.id} className="relative">
           {/* Dot */}
           <span
@@ -125,5 +134,15 @@ export function OrderTimeline({ orderId }: Props) {
         </li>
       ))}
     </ol>
+    {hidden > 0 && (
+      <button
+        type="button"
+        onClick={() => setExpanded(true)}
+        className="mt-3 text-[11px] text-[#666] hover:text-[#1A1A1A]"
+      >
+        Pokaż starsze ({hidden})
+      </button>
+    )}
+    </>
   )
 }

@@ -143,19 +143,34 @@ function SectionLabel({ children }: { children: ReactNode }) {
 }
 
 function ShipmentEventsList({ events }: { events: ShipmentEvent[] }) {
+  const [expanded, setExpanded] = useState(false)
   if (events.length === 0) return null
+  const reversed = events.slice().reverse()
+  const visible = expanded ? reversed : reversed.slice(0, 3)
+  const hidden = reversed.length - visible.length
   return (
-    <ul className="mt-2 space-y-1">
-      {events.slice().reverse().map((e, i) => (
-        <li key={`${e.code}-${e.occurredAt ?? i}`} className="flex items-start gap-2 text-[11px] leading-relaxed">
-          <span className="mt-1 w-1.5 h-1.5 rounded-full bg-[#1A1A1A] shrink-0" />
-          <span className="text-[#1A1A1A] font-medium">{e.label ?? e.code}</span>
-          {e.occurredAt && (
-            <span className="text-[#A3A3A3] ml-auto tabular-nums">{formatDate(e.occurredAt)}</span>
-          )}
-        </li>
-      ))}
-    </ul>
+    <div className="mt-2">
+      <ul className="space-y-1">
+        {visible.map((e, i) => (
+          <li key={`${e.code}-${e.occurredAt ?? i}`} className="flex items-start gap-2 text-[11px] leading-relaxed">
+            <span className="mt-1 w-1.5 h-1.5 rounded-full bg-[#1A1A1A] shrink-0" />
+            <span className="text-[#1A1A1A] font-medium">{e.label ?? e.code}</span>
+            {e.occurredAt && (
+              <span className="text-[#A3A3A3] ml-auto tabular-nums">{formatDate(e.occurredAt)}</span>
+            )}
+          </li>
+        ))}
+      </ul>
+      {hidden > 0 && (
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="mt-1.5 text-[10px] text-[#666] hover:text-[#1A1A1A]"
+        >
+          Pokaż więcej ({hidden})
+        </button>
+      )}
+    </div>
   )
 }
 
