@@ -312,10 +312,16 @@ export async function refreshOrderShipments(
   const { shipments: snapshot, fulfillmentStatus } = result
   const selected = snapshot.find((s) => s.isSelected) ?? snapshot[0] ?? null
 
-  // Promote local order status from Allegro fulfillment to keep delivered/shipped in sync
-  // even when shipment cron has not run. Mirrors logic in allegro-orders/handlers.ts.
+  // Promote local order status. Sources of truth (in priority):
+  //   1. Allegro fulfillment.status PICKED_UP → delivered
+  //   2. Allegro fulfillment.status SENT → shipped
+  //   3. Shipment row with waybill present → at least 'shipped'
+  //      (sprzedawca często dodaje tracking lokalnie, ale w panelu Allegro
+  //      nigdy nie klika "Wysłałem" → fulfillment.status laguje na PROCESSING.
+  //      Sama obecność waybilla = paczka nadana.)
   let promotedStatus: 'shipped' | 'delivered' | null = null
   const now = new Date()
+  const hasWaybill = snapshot.some((s) => s.waybill && s.statusCode !== 'CANCELLED')
   if (
     fulfillmentStatus === 'PICKED_UP' &&
     order.status !== 'delivered' &&
@@ -327,7 +333,7 @@ export async function refreshOrderShipments(
   ) {
     promotedStatus = 'delivered'
   } else if (
-    fulfillmentStatus === 'SENT' &&
+    (fulfillmentStatus === 'SENT' || hasWaybill) &&
     (order.status === 'paid' || order.status === 'processing')
   ) {
     promotedStatus = 'shipped'

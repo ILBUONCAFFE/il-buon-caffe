@@ -132,6 +132,12 @@ export const adminApi = {
       { method: 'POST' },
     ),
 
+  setOrderFulfillment: (id: number, status: 'NEW' | 'PROCESSING' | 'READY_FOR_SHIPMENT' | 'SENT' | 'PICKED_UP' | 'CANCELLED' | 'SUSPENDED') =>
+    request<{ success: boolean }>(`/api/admin/orders/${id}/fulfillment`, {
+      method: 'POST',
+      body: JSON.stringify({ status }),
+    }),
+
   // ── Shipment management ────────────────────────────────────────────────
   getDeliveryServices: () =>
     request<DeliveryServicesResponse>('/api/admin/shipment/delivery-services'),

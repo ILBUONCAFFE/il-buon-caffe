@@ -288,6 +288,23 @@ export function OrderDetailModal({
   const [labelPickerOpen, setLabelPickerOpen] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [refreshError, setRefreshError] = useState<string | null>(null)
+  const [markingDelivered, setMarkingDelivered] = useState(false)
+  const [markError, setMarkError] = useState<string | null>(null)
+
+  const markDelivered = async () => {
+    if (!order || markingDelivered) return
+    if (!confirm('Oznaczyć paczkę jako dostarczoną? Status w Allegro zostanie zmieniony na PICKED_UP.')) return
+    setMarkingDelivered(true)
+    setMarkError(null)
+    try {
+      await adminApi.setOrderFulfillment(order.id, 'PICKED_UP')
+      await refreshShipment(true)
+    } catch (err) {
+      setMarkError(err instanceof Error ? err.message : 'Błąd oznaczania')
+    } finally {
+      setMarkingDelivered(false)
+    }
+  }
 
   const refreshShipment = async (force: boolean) => {
     if (!order || refreshing) return
@@ -541,7 +558,18 @@ export function OrderDetailModal({
             )}
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            {order.source === 'allegro' &&
+              ['shipped', 'paid', 'processing'].includes(order.status) &&
+              (order.trackingNumber || (order.allShipments?.length ?? 0) > 0) && (
+              <button
+                className="text-sm font-medium px-3 py-1.5 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 disabled:opacity-50 transition-colors"
+                onClick={() => void markDelivered()}
+                disabled={markingDelivered}
+              >
+                {markingDelivered ? 'Zapisywanie...' : 'Oznacz jako dostarczone'}
+              </button>
+            )}
             {order.allegroShipmentId && onDownloadLabel ? (
               (order.allShipments?.length ?? 0) > 1 ? (
                 <button className="btn-primary text-sm" onClick={() => setLabelPickerOpen(true)}>
@@ -559,6 +587,11 @@ export function OrderDetailModal({
             ) : null}
           </div>
         </div>
+        {markError && (
+          <div className="px-4 md:px-6 pb-3 text-[11px] text-red-700">
+            {markError}
+          </div>
+        )}
       </div>
     </div>
       {labelPickerOpen && (
