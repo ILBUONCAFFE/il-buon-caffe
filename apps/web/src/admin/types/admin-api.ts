@@ -115,6 +115,7 @@ export interface ShipmentEvent {
 export interface AllegroShipmentEntry {
   waybill: string
   carrierId: string
+  carrierName?: string | null
   statusCode: string
   statusLabel: string | null
   occurredAt: string | null

@@ -1,9 +1,12 @@
 /**
  * Allegro Shipments — on-demand fetch + 5min KV cache.
  *
- * No cron. Admin presses "refresh" or opens an order modal → we hit
- * GET /order/checkout-forms/{id}/shipments, persist to allegro_shipments_snapshot,
- * and append any new statusCode to order_status_history (category='tracking').
+ * Two-step pull per Allegro docs:
+ *   1. GET /order/checkout-forms/{id}/shipments → waybill + carrierId list
+ *   2. GET /order/carriers/{carrierId}/tracking?waybill=... → chronological events
+ *
+ * Snapshot persisted to allegro_shipments_snapshot, latest event appended to
+ * order_status_history (category='tracking') with dedup vs latest.
  */
 
 import { eq } from 'drizzle-orm'
@@ -20,6 +23,7 @@ const KV_PREFIX = 'shipment:fresh:'
 export interface ShipmentSnapshotEntry {
   waybill: string
   carrierId: string
+  carrierName?: string | null
   statusCode: string
   statusLabel: string | null
   occurredAt: string | null
@@ -27,41 +31,57 @@ export interface ShipmentSnapshotEntry {
   events?: Array<{ code: string; label: string | null; occurredAt: string | null }>
 }
 
-interface AllegroShipmentEvent {
-  status?: string
-  occurredAt?: string
-  description?: string
-}
-
 interface AllegroShipmentRow {
   id?: string
   waybill?: string
   trackingNumber?: string
   carrierId?: string
+  carrierName?: string
   status?: string
   statusLabel?: string
   occurredAt?: string
   createdAt?: string
-  events?: AllegroShipmentEvent[]
-  history?: AllegroShipmentEvent[]
 }
 
 interface AllegroShipmentsResponse {
   shipments?: AllegroShipmentRow[]
 }
 
+interface AllegroTrackingEvent {
+  code?: string
+  status?: string
+  description?: string
+  occurredAt?: string
+  date?: string
+}
+
+interface AllegroTrackingResponse {
+  trackingHistory?: Array<{ waybill?: string; events?: AllegroTrackingEvent[] }>
+  events?: AllegroTrackingEvent[]
+  history?: AllegroTrackingEvent[]
+}
+
 const STATUS_LABEL_PL: Record<string, string> = {
   CREATED: 'Etykieta utworzona',
   LABEL_CREATED: 'Etykieta utworzona',
+  LABEL_PRINTED: 'Etykieta wydrukowana',
+  INFO_RECEIVED: 'Informacja przyjęta',
   REGISTERED: 'Zarejestrowana',
   SENT: 'Nadana',
+  PICKED_UP: 'Odebrana przez kuriera',
   IN_TRANSIT: 'W drodze',
+  ARRIVED_CARRIER_FACILITY: 'W sortowni',
+  DEPARTED_CARRIER_FACILITY: 'Opuściła sortownię',
   OUT_FOR_DELIVERY: 'W doręczeniu',
   DELIVERED: 'Dostarczona',
-  PICKED_UP: 'Odebrana',
+  READY_FOR_PICKUP: 'Gotowa do odbioru',
+  PICKUP_READY: 'Gotowa do odbioru',
+  AVAILABLE_FOR_PICKUP: 'Czeka w punkcie',
   RETURNED: 'Zwrócona',
+  RETURN_TO_SENDER: 'Zwrot do nadawcy',
   CANCELLED: 'Anulowana',
   EXCEPTION: 'Problem z doręczeniem',
+  HOLD: 'Wstrzymana',
   FAILED: 'Niepowodzenie doręczenia',
   UNDELIVERED: 'Nie doręczono',
 }
@@ -71,39 +91,41 @@ function labelFor(code: string | null | undefined): string | null {
   return STATUS_LABEL_PL[code.toUpperCase()] ?? code
 }
 
-function normalizeEvent(e: AllegroShipmentEvent): { code: string; label: string | null; occurredAt: string | null } | null {
-  const code = e.status?.trim()
+function normalizeEvent(e: AllegroTrackingEvent): { code: string; label: string | null; occurredAt: string | null } | null {
+  const code = (e.code ?? e.status ?? '').trim().toUpperCase()
   if (!code) return null
   return {
     code,
     label: e.description?.trim() || labelFor(code),
-    occurredAt: e.occurredAt ?? null,
+    occurredAt: e.occurredAt ?? e.date ?? null,
   }
 }
 
-function mapShipment(row: AllegroShipmentRow, isSelected: boolean): ShipmentSnapshotEntry | null {
-  const waybill = (row.waybill ?? row.trackingNumber ?? '').trim()
-  if (!waybill) return null
-  const events = [...(row.events ?? []), ...(row.history ?? [])]
-    .map(normalizeEvent)
-    .filter((e): e is NonNullable<ReturnType<typeof normalizeEvent>> => e !== null)
-    .sort((a, b) => {
-      const ta = a.occurredAt ? Date.parse(a.occurredAt) : 0
-      const tb = b.occurredAt ? Date.parse(b.occurredAt) : 0
-      return ta - tb
+async function fetchTrackingHistory(
+  apiBase: string,
+  accessToken: string,
+  carrierId: string,
+  waybill: string,
+): Promise<AllegroTrackingEvent[]> {
+  if (!carrierId || !waybill) return []
+  try {
+    const url = `${apiBase}/order/carriers/${encodeURIComponent(carrierId)}/tracking?waybill=${encodeURIComponent(waybill)}`
+    const resp = await fetch(url, {
+      signal: AbortSignal.timeout(8_000),
+      headers: { ...allegroHeaders(accessToken), 'Accept-Language': 'pl-PL' },
     })
-  const latest = events[events.length - 1]
-  const statusCode = latest?.code ?? row.status ?? 'UNKNOWN'
-  const statusLabel = latest?.label ?? row.statusLabel ?? labelFor(row.status ?? null)
-  const occurredAt = latest?.occurredAt ?? row.occurredAt ?? row.createdAt ?? null
-  return {
-    waybill,
-    carrierId: row.carrierId ?? 'UNKNOWN',
-    statusCode,
-    statusLabel,
-    occurredAt,
-    isSelected,
-    events: events.length > 0 ? events : undefined,
+    if (!resp.ok) {
+      if (resp.status !== 404) {
+        console.warn(`[Shipments] tracking ${carrierId}/${waybill} → ${resp.status}`)
+      }
+      return []
+    }
+    const data = (await resp.json()) as AllegroTrackingResponse
+    const fromHistory = data.trackingHistory?.find((h) => !h.waybill || h.waybill === waybill)?.events ?? []
+    return [...fromHistory, ...(data.events ?? []), ...(data.history ?? [])]
+  } catch (err) {
+    console.warn(`[Shipments] tracking fetch failed ${carrierId}/${waybill}`, err)
+    return []
   }
 }
 
@@ -126,26 +148,64 @@ export async function fetchAllegroShipments(env: Env, externalId: string): Promi
   const rows = data.shipments ?? []
   if (rows.length === 0) return []
 
-  // Selected = first non-cancelled, latest occurredAt; fallback first row.
-  const mapped: ShipmentSnapshotEntry[] = []
-  for (let i = 0; i < rows.length; i++) {
-    const m = mapShipment(rows[i], false)
-    if (m) mapped.push(m)
-  }
+  // Build base entries (waybill + carrier) then enrich with tracking history.
+  const enriched = await Promise.all(
+    rows.map(async (row): Promise<ShipmentSnapshotEntry | null> => {
+      const waybill = (row.waybill ?? row.trackingNumber ?? '').trim()
+      if (!waybill) return null
+      const carrierId = row.carrierId ?? 'UNKNOWN'
+
+      const rawEvents = await fetchTrackingHistory(token.apiBase, token.accessToken, carrierId, waybill)
+      const events = rawEvents
+        .map(normalizeEvent)
+        .filter((e): e is NonNullable<ReturnType<typeof normalizeEvent>> => e !== null)
+        .sort((a, b) => {
+          const ta = a.occurredAt ? Date.parse(a.occurredAt) : 0
+          const tb = b.occurredAt ? Date.parse(b.occurredAt) : 0
+          return ta - tb
+        })
+
+      // Dedup consecutive identical codes
+      const dedup: typeof events = []
+      for (const e of events) {
+        const prev = dedup[dedup.length - 1]
+        if (!prev || prev.code !== e.code) dedup.push(e)
+      }
+
+      const latest = dedup[dedup.length - 1]
+      const fallbackCode = row.status ? row.status.toUpperCase() : 'CREATED'
+      const statusCode = latest?.code ?? fallbackCode
+      const statusLabel = latest?.label ?? row.statusLabel ?? labelFor(statusCode)
+      const occurredAt = latest?.occurredAt ?? row.occurredAt ?? row.createdAt ?? null
+
+      return {
+        waybill,
+        carrierId,
+        carrierName: row.carrierName ?? null,
+        statusCode,
+        statusLabel,
+        occurredAt,
+        isSelected: false,
+        events: dedup.length > 0 ? dedup : undefined,
+      }
+    }),
+  )
+
+  const mapped = enriched.filter((s): s is ShipmentSnapshotEntry => s !== null)
   if (mapped.length === 0) return []
 
+  // Selected = first non-cancelled/non-returned, latest activity.
   const sortedIdx = mapped
     .map((s, i) => ({ s, i }))
     .sort((a, b) => {
-      const aCancel = a.s.statusCode === 'CANCELLED' ? 1 : 0
-      const bCancel = b.s.statusCode === 'CANCELLED' ? 1 : 0
-      if (aCancel !== bCancel) return aCancel - bCancel
+      const aDead = a.s.statusCode === 'CANCELLED' || a.s.statusCode === 'RETURNED' ? 1 : 0
+      const bDead = b.s.statusCode === 'CANCELLED' || b.s.statusCode === 'RETURNED' ? 1 : 0
+      if (aDead !== bDead) return aDead - bDead
       const ta = a.s.occurredAt ? Date.parse(a.s.occurredAt) : 0
       const tb = b.s.occurredAt ? Date.parse(b.s.occurredAt) : 0
       return tb - ta
     })
-  const selectedIdx = sortedIdx[0].i
-  mapped[selectedIdx].isSelected = true
+  mapped[sortedIdx[0].i].isSelected = true
 
   return mapped
 }
@@ -183,7 +243,6 @@ export async function refreshOrderShipments(
     return { refreshed: false, cached: false, snapshot: order.snapshot ?? null }
   }
 
-  // Persist snapshot + sync trackingNumber to selected waybill.
   const selected = snapshot.find((s) => s.isSelected) ?? snapshot[0] ?? null
   await db
     .update(orders)
@@ -196,8 +255,7 @@ export async function refreshOrderShipments(
     })
     .where(eq(orders.id, orderId))
 
-  // Append new tracking event to history (dedup vs latest history entry).
-  if (selected?.statusCode) {
+  if (selected?.statusCode && selected.statusCode !== 'UNKNOWN') {
     await recordStatusChange(db, {
       orderId,
       category: 'tracking',

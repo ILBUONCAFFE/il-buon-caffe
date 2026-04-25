@@ -42,11 +42,34 @@ function mapStatusCodeToDisplay(rawCode: string | null, orderStatus: string): Sh
   if (orderStatus === 'cancelled' || orderStatus === 'refunded') return 'none'
   const code = normalizeCode(rawCode)
   if (!code) return orderStatus === 'shipped' ? 'in_transit' : 'none'
-  if (code.includes('DELIVERED') || code.includes('PICKED_UP') || code.includes('PICKUP') || code.includes('RECEIVED')) return 'delivered'
-  if (code.includes('OUT_FOR_DELIVERY') || code.includes('COURIER')) return 'out_for_delivery'
-  if (code.includes('IN_TRANSIT') || code.includes('TRANSIT') || code.includes('SORT') || code.includes('SENT') || code.includes('SHIPPED')) return 'in_transit'
-  if (code === 'LABEL_CREATED' || code.includes('CREATED') || code.includes('REGISTERED')) return 'label_created'
-  if (code.includes('EXCEPTION') || code.includes('FAILED') || code.includes('RETURN') || code.includes('UNDELIVERED') || code.includes('REFUSED') || code.includes('CANCELLED')) return 'issue'
+
+  // Issues first — RETURN_TO_SENDER must beat any PICKUP/DELIVERED match
+  if (
+    code === 'EXCEPTION' || code === 'HOLD' || code === 'FAILED' ||
+    code === 'UNDELIVERED' || code === 'REFUSED' || code === 'CANCELLED' ||
+    code === 'RETURNED' || code === 'RETURN_TO_SENDER'
+  ) return 'issue'
+
+  // Terminal delivered states
+  if (code === 'DELIVERED' || code === 'PICKED_UP') return 'delivered'
+
+  // Awaiting customer pickup — counted as out-for-delivery semantically
+  if (code === 'READY_FOR_PICKUP' || code === 'PICKUP_READY' || code === 'AVAILABLE_FOR_PICKUP') return 'out_for_delivery'
+  if (code === 'OUT_FOR_DELIVERY' || code.includes('COURIER')) return 'out_for_delivery'
+
+  // In-transit family (carrier facility scans, sorted, sent, shipped)
+  if (
+    code === 'IN_TRANSIT' || code === 'SENT' || code === 'SHIPPED' ||
+    code === 'ARRIVED_CARRIER_FACILITY' || code === 'DEPARTED_CARRIER_FACILITY' ||
+    code.includes('TRANSIT') || code.includes('SORT') || code.includes('FACILITY')
+  ) return 'in_transit'
+
+  // Pre-handover — label exists or carrier acknowledged manifest
+  if (
+    code === 'LABEL_CREATED' || code === 'LABEL_PRINTED' || code === 'CREATED' ||
+    code === 'REGISTERED' || code === 'INFO_RECEIVED'
+  ) return 'label_created'
+
   return 'unknown'
 }
 
