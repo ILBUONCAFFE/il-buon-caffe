@@ -19,6 +19,18 @@ import { allegroHeaders } from './allegro-orders/helpers'
 import { recordStatusChange } from './record-status-change'
 import type { Env } from '../index'
 
+const FULFILLMENT_TO_SHIPMENT_CODE: Record<string, string> = {
+  PICKED_UP: 'DELIVERED',
+  SENT: 'SENT',
+  CANCELLED: 'CANCELLED',
+  RETURNED: 'RETURNED',
+  READY_FOR_SHIPMENT: 'READY',
+  READY_FOR_PICKUP: 'READY_FOR_PICKUP',
+  PROCESSING: 'NEW',
+  NEW: 'NEW',
+  SUSPENDED: 'HOLD',
+}
+
 const KV_TTL_SECONDS = 5 * 60
 const KV_PREFIX = 'shipment:fresh:'
 
@@ -129,24 +141,59 @@ async function fetchSmShipment(
   }
 }
 
-export async function fetchAllegroShipments(env: Env, externalId: string): Promise<ShipmentSnapshotEntry[] | null> {
+async function fetchFulfillmentStatus(
+  apiBase: string,
+  accessToken: string,
+  externalId: string,
+): Promise<string | null> {
+  try {
+    const resp = await fetch(`${apiBase}/order/checkout-forms/${externalId}`, {
+      signal: AbortSignal.timeout(8_000),
+      headers: { ...allegroHeaders(accessToken), 'Accept-Language': 'pl-PL' },
+    })
+    if (!resp.ok) {
+      if (resp.status !== 404) console.warn(`[Shipments] GET checkout-form ${externalId} → ${resp.status}`)
+      return null
+    }
+    const data = (await resp.json()) as { fulfillment?: { status?: string } }
+    const raw = data.fulfillment?.status?.trim().toUpperCase()
+    return raw || null
+  } catch (err) {
+    console.warn(`[Shipments] GET checkout-form ${externalId} failed`, err)
+    return null
+  }
+}
+
+export interface FetchShipmentsResult {
+  shipments: ShipmentSnapshotEntry[]
+  fulfillmentStatus: string | null
+}
+
+export async function fetchAllegroShipments(env: Env, externalId: string): Promise<FetchShipmentsResult | null> {
   const token = await getActiveAllegroToken(env)
   if (!token) return null
 
-  const resp = await fetch(`${token.apiBase}/order/checkout-forms/${externalId}/shipments`, {
-    signal: AbortSignal.timeout(10_000),
-    headers: { ...allegroHeaders(token.accessToken), 'Accept-Language': 'pl-PL' },
-  })
+  const [shipmentsResp, fulfillmentStatus] = await Promise.all([
+    fetch(`${token.apiBase}/order/checkout-forms/${externalId}/shipments`, {
+      signal: AbortSignal.timeout(10_000),
+      headers: { ...allegroHeaders(token.accessToken), 'Accept-Language': 'pl-PL' },
+    }),
+    fetchFulfillmentStatus(token.apiBase, token.accessToken, externalId),
+  ])
 
-  if (!resp.ok) {
-    if (resp.status === 404) return []
-    console.warn(`[Shipments] GET shipments → ${resp.status} (allegro id: ${externalId})`)
+  if (!shipmentsResp.ok) {
+    if (shipmentsResp.status === 404) return { shipments: [], fulfillmentStatus }
+    console.warn(`[Shipments] GET shipments → ${shipmentsResp.status} (allegro id: ${externalId})`)
     return null
   }
 
-  const data = (await resp.json()) as AllegroShipmentsResponse
+  const data = (await shipmentsResp.json()) as AllegroShipmentsResponse
   const rows = data.shipments ?? []
-  if (rows.length === 0) return []
+  if (rows.length === 0) return { shipments: [], fulfillmentStatus }
+
+  const fulfillmentDerivedCode = fulfillmentStatus
+    ? FULFILLMENT_TO_SHIPMENT_CODE[fulfillmentStatus] ?? null
+    : null
 
   const enriched = await Promise.all(
     rows.map(async (row): Promise<ShipmentSnapshotEntry | null> => {
@@ -184,8 +231,9 @@ export async function fetchAllegroShipments(env: Env, externalId: string): Promi
       }
 
       const latest = events[events.length - 1]
-      // Priorytet: ostatnie zdarzenie z historii > top-level status SM > 'SENT' (waybill istnieje w Allegro).
-      const statusCode = latest?.code ?? smStatus ?? 'SENT'
+      // Priorytet: ostatnie zdarzenie z historii > top-level status SM > fulfillment.status mapowany > 'SENT'.
+      // Dla manualnych waybilli SM nie istnieje, więc fulfillment (PICKED_UP/SENT/CANCELLED) jest jedynym źródłem prawdy o dostarczeniu.
+      const statusCode = latest?.code ?? smStatus ?? fulfillmentDerivedCode ?? 'SENT'
       const statusLabel = latest?.label ?? labelFor(statusCode)
       const occurredAt = latest?.occurredAt ?? smOccurredAt ?? row.createdAt ?? null
 
@@ -203,7 +251,7 @@ export async function fetchAllegroShipments(env: Env, externalId: string): Promi
   )
 
   const mapped = enriched.filter((s): s is ShipmentSnapshotEntry => s !== null)
-  if (mapped.length === 0) return []
+  if (mapped.length === 0) return { shipments: [], fulfillmentStatus }
 
   const sortedIdx = mapped
     .map((s, i) => ({ s, i }))
@@ -217,7 +265,7 @@ export async function fetchAllegroShipments(env: Env, externalId: string): Promi
     })
   mapped[sortedIdx[0].i].isSelected = true
 
-  return mapped
+  return { shipments: mapped, fulfillmentStatus }
 }
 
 export interface RefreshShipmentResult {
@@ -233,7 +281,15 @@ export async function refreshOrderShipments(
   options: { force?: boolean } = {},
 ): Promise<RefreshShipmentResult> {
   const [order] = await db
-    .select({ id: orders.id, externalId: orders.externalId, source: orders.source, snapshot: orders.allegroShipmentsSnapshot, trackingNumber: orders.trackingNumber })
+    .select({
+      id: orders.id,
+      externalId: orders.externalId,
+      source: orders.source,
+      status: orders.status,
+      snapshot: orders.allegroShipmentsSnapshot,
+      trackingNumber: orders.trackingNumber,
+      allegroFulfillmentStatus: orders.allegroFulfillmentStatus,
+    })
     .from(orders)
     .where(eq(orders.id, orderId))
     .limit(1)
@@ -248,22 +304,61 @@ export async function refreshOrderShipments(
     if (cached) return { refreshed: false, cached: true, snapshot: order.snapshot ?? null }
   }
 
-  const snapshot = await fetchAllegroShipments(env, order.externalId)
-  if (snapshot === null) {
+  const result = await fetchAllegroShipments(env, order.externalId)
+  if (result === null) {
     return { refreshed: false, cached: false, snapshot: order.snapshot ?? null }
   }
 
+  const { shipments: snapshot, fulfillmentStatus } = result
   const selected = snapshot.find((s) => s.isSelected) ?? snapshot[0] ?? null
-  await db
-    .update(orders)
-    .set({
-      allegroShipmentsSnapshot: snapshot,
-      ...(selected?.waybill && selected.waybill !== order.trackingNumber
-        ? { trackingNumber: selected.waybill.slice(0, 100) }
-        : {}),
-      updatedAt: new Date(),
-    })
-    .where(eq(orders.id, orderId))
+
+  // Promote local order status from Allegro fulfillment to keep delivered/shipped in sync
+  // even when shipment cron has not run. Mirrors logic in allegro-orders/handlers.ts.
+  let promotedStatus: 'shipped' | 'delivered' | null = null
+  const now = new Date()
+  if (
+    fulfillmentStatus === 'PICKED_UP' &&
+    order.status !== 'delivered' &&
+    order.status !== 'cancelled' &&
+    order.status !== 'refunded' &&
+    order.status !== 'return_in_transit' &&
+    order.status !== 'return_received' &&
+    order.status !== 'return_requested'
+  ) {
+    promotedStatus = 'delivered'
+  } else if (
+    fulfillmentStatus === 'SENT' &&
+    (order.status === 'paid' || order.status === 'processing')
+  ) {
+    promotedStatus = 'shipped'
+  }
+
+  const updateCols: Record<string, unknown> = {
+    allegroShipmentsSnapshot: snapshot,
+    updatedAt: now,
+  }
+  if (selected?.waybill && selected.waybill !== order.trackingNumber) {
+    updateCols.trackingNumber = selected.waybill.slice(0, 100)
+  }
+  if (fulfillmentStatus && fulfillmentStatus !== order.allegroFulfillmentStatus) {
+    updateCols.allegroFulfillmentStatus = fulfillmentStatus
+  }
+  if (promotedStatus === 'delivered') updateCols.deliveredAt = now
+
+  await db.update(orders).set(updateCols).where(eq(orders.id, orderId))
+
+  if (promotedStatus) {
+    // recordStatusChange (category 'status') does the orders.status UPDATE atomically
+    // and appends to order_status_history.
+    await recordStatusChange(db, {
+      orderId,
+      category: 'status',
+      newValue: promotedStatus,
+      source: 'allegro_sync',
+      sourceRef: order.externalId,
+      metadata: { fulfillmentStatus, via: 'shipments-refresh' },
+    }).catch((err) => console.warn('[Shipments] order status promotion history failed', err))
+  }
 
   if (selected?.statusCode && selected.statusCode !== 'UNKNOWN') {
     await recordStatusChange(db, {
