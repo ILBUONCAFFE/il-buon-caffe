@@ -232,6 +232,19 @@ adminOrdersRouter.get('/', auditLogMiddleware('view_order'), async (c) => {
       }),
     }))
 
+    // Background refresh of visible Allegro shipments (KV-throttled 5min per order — Neon-safe).
+    const refreshable = rows
+      .filter((o) => o.source === 'allegro' && ['paid', 'processing', 'shipped'].includes(o.status) && o.externalId)
+      .map((o) => o.id)
+    if (refreshable.length > 0) {
+      c.executionCtx.waitUntil((async () => {
+        const bgDb = createDb(c.env.DATABASE_URL)
+        for (const id of refreshable) {
+          try { await refreshOrderShipments(bgDb, c.env, id, { force: false }) } catch {}
+        }
+      })())
+    }
+
     return c.json({ success: true, data, meta: { total, page, limit, totalPages } })
   } catch (err) {
     return serverError(c, 'GET /admin/orders', err)

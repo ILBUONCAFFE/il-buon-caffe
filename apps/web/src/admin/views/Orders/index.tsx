@@ -52,7 +52,7 @@ const STATUS_TABS = [
 ]
 
 const LIMIT = 50
-const ALLEGRO_QUEUE_REFRESH_MS = 3 * 60 * 1000
+const AUTO_REFRESH_MS = 2 * 60 * 1000
 
 // Mobile card for a single order
 function OrderCard({
@@ -220,17 +220,15 @@ export const OrdersView = () => {
     fetchOrders()
   }, [fetchOrders])
 
+  // Auto-refresh orders list every 2 min so shipment statuses update without manual reload.
+  // Backend kicks off background Allegro fetch (KV-throttled 5min per order) on every GET /admin/orders.
   useEffect(() => {
-    const isQueueView = statusFilter === 'fulfillment' || statusFilter === 'awaiting_payment'
-    if (!isQueueView) return
-    const intervalMs = ALLEGRO_QUEUE_REFRESH_MS
-
     const timer = setInterval(() => {
+      if (document.visibilityState !== 'visible') return
       void fetchOrders()
-    }, intervalMs)
-
+    }, AUTO_REFRESH_MS)
     return () => clearInterval(timer)
-  }, [fetchOrders, orders, statusFilter])
+  }, [fetchOrders])
 
   useEffect(() => {
     return () => {
