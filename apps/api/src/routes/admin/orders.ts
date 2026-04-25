@@ -40,6 +40,9 @@ function toIsoOrNull(value: Date | string | null | undefined): string | null {
 
 function mapStatusCodeToDisplay(rawCode: string | null, orderStatus: string): ShipmentDisplayStatus {
   if (orderStatus === 'cancelled' || orderStatus === 'refunded') return 'none'
+  // Local order state authoritative for terminal delivery — Allegro fulfillment PICKED_UP
+  // sets status='delivered', but shipment snapshot may stay stale at SENT for manual trackings.
+  if (orderStatus === 'delivered') return 'delivered'
   const code = normalizeCode(rawCode)
   if (!code) return orderStatus === 'shipped' ? 'in_transit' : 'none'
 
