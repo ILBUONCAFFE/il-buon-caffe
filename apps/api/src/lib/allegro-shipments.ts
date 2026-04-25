@@ -33,7 +33,6 @@ const FULFILLMENT_TO_SHIPMENT_CODE: Record<string, string> = {
 
 const KV_TTL_SECONDS = 5 * 60
 const KV_PREFIX = 'shipment:fresh:'
-const AUTO_DELIVERED_AGE_MS = 7 * 24 * 60 * 60 * 1000
 
 export interface ShipmentSnapshotEntry {
   waybill: string
@@ -142,6 +141,71 @@ async function fetchSmShipment(
   }
 }
 
+interface AllegroCarrierTrackingEvent {
+  code?: string
+  status?: string
+  description?: string
+  occurredAt?: string
+  date?: string
+}
+
+interface AllegroCarrierTrackingResponse {
+  trackingHistory?: Array<{ waybill?: string; events?: AllegroCarrierTrackingEvent[] }>
+  events?: AllegroCarrierTrackingEvent[]
+  history?: AllegroCarrierTrackingEvent[]
+  status?: string
+}
+
+function normalizeCarrierEvent(e: AllegroCarrierTrackingEvent): { code: string; label: string | null; occurredAt: string | null } | null {
+  const code = (e.code ?? e.status ?? '').trim().toUpperCase()
+  if (!code) return null
+  return {
+    code,
+    label: e.description?.trim() || labelFor(code),
+    occurredAt: e.occurredAt ?? e.date ?? null,
+  }
+}
+
+async function fetchCarrierTracking(
+  apiBase: string,
+  accessToken: string,
+  carrierId: string,
+  waybill: string,
+): Promise<Array<{ code: string; label: string | null; occurredAt: string | null }>> {
+  if (!carrierId || !waybill || carrierId === 'UNKNOWN') return []
+  try {
+    const url = `${apiBase}/order/carriers/${encodeURIComponent(carrierId)}/tracking?waybill=${encodeURIComponent(waybill)}`
+    const resp = await fetch(url, {
+      signal: AbortSignal.timeout(8_000),
+      headers: { ...allegroHeaders(accessToken), 'Accept-Language': 'pl-PL' },
+    })
+    if (!resp.ok) {
+      if (resp.status !== 404) console.warn(`[Shipments] tracking ${carrierId}/${waybill} → ${resp.status}`)
+      return []
+    }
+    const data = (await resp.json()) as AllegroCarrierTrackingResponse
+    const fromHistory = data.trackingHistory?.find((h) => !h.waybill || h.waybill === waybill)?.events ?? []
+    const raw = [...fromHistory, ...(data.events ?? []), ...(data.history ?? [])]
+    const normalized = raw
+      .map(normalizeCarrierEvent)
+      .filter((e): e is NonNullable<ReturnType<typeof normalizeCarrierEvent>> => e !== null)
+      .sort((a, b) => {
+        const ta = a.occurredAt ? Date.parse(a.occurredAt) : 0
+        const tb = b.occurredAt ? Date.parse(b.occurredAt) : 0
+        return ta - tb
+      })
+    const dedup: typeof normalized = []
+    for (const e of normalized) {
+      const prev = dedup[dedup.length - 1]
+      if (!prev || prev.code !== e.code) dedup.push(e)
+    }
+    return dedup
+  } catch (err) {
+    console.warn(`[Shipments] tracking fetch failed ${carrierId}/${waybill}`, err)
+    return []
+  }
+}
+
 async function fetchFulfillmentStatus(
   apiBase: string,
   accessToken: string,
@@ -202,17 +266,25 @@ export async function fetchAllegroShipments(env: Env, externalId: string): Promi
       if (!waybill) return null
       const carrierId = row.carrierId ?? 'UNKNOWN'
 
-      // Wysyłam z Allegro: pobierz statusHistory.
+      // Źródła w kolejności priorytetu:
+      //   1. /order/carriers/{carrierId}/tracking?waybill= — realne zdarzenia kuriera
+      //   2. /shipment-management/shipments/{id} — tylko Wysyłam z Allegro
+      //   3. fulfillment.status — fallback (PICKED_UP, SENT, etc.)
       let events: Array<{ code: string; label: string | null; occurredAt: string | null }> = []
       let smStatus: string | null = null
       let smOccurredAt: string | null = null
 
-      if (row.id) {
+      const carrierEvents = await fetchCarrierTracking(token.apiBase, token.accessToken, carrierId, waybill)
+      if (carrierEvents.length > 0) {
+        events = carrierEvents
+      }
+
+      if (events.length === 0 && row.id) {
         const sm = await fetchSmShipment(token.apiBase, token.accessToken, row.id)
         if (sm) {
           smStatus = sm.status?.trim().toUpperCase() ?? null
           const rawHistory = sm.statusHistory ?? sm.history ?? []
-          events = rawHistory
+          const smEvents = rawHistory
             .map(normalizeEvent)
             .filter((e): e is NonNullable<ReturnType<typeof normalizeEvent>> => e !== null)
             .sort((a, b) => {
@@ -220,9 +292,8 @@ export async function fetchAllegroShipments(env: Env, externalId: string): Promi
               const tb = b.occurredAt ? Date.parse(b.occurredAt) : 0
               return ta - tb
             })
-          // dedup consecutive
-          const dedup: typeof events = []
-          for (const e of events) {
+          const dedup: typeof smEvents = []
+          for (const e of smEvents) {
             const prev = dedup[dedup.length - 1]
             if (!prev || prev.code !== e.code) dedup.push(e)
           }
@@ -340,25 +411,18 @@ export async function refreshOrderShipments(
     promotedStatus = 'shipped'
   }
 
-  // Auto-mark delivered: shipment has been "in transit" for >7 days with no terminal event.
-  // Allegro public REST has no carrier event API for non-Smart waybills, so without a
-  // manual "Oznacz jako dostarczone" click we'd never advance. Local-only — does not PUT
-  // PICKED_UP to Allegro (would trigger buyer notifications/review prompts retroactively).
-  if (!promotedStatus && (order.status === 'shipped' || (hasWaybill && order.status === 'paid'))) {
-    const oldestOccurredAt = snapshot
-      .map((s) => (s.occurredAt ? Date.parse(s.occurredAt) : 0))
-      .filter((t) => t > 0)
-      .sort((a, b) => a - b)[0]
-    if (oldestOccurredAt && now.getTime() - oldestOccurredAt >= AUTO_DELIVERED_AGE_MS) {
-      promotedStatus = 'delivered'
-      // Override snapshot entries so UI shows DELIVERED instead of stale SENT/etc.
-      for (const s of snapshot) {
-        if (s.statusCode !== 'CANCELLED' && s.statusCode !== 'RETURNED' && s.statusCode !== 'DELIVERED') {
-          s.statusCode = 'DELIVERED'
-          s.statusLabel = 'Dostarczona'
-        }
-      }
-    }
+  // Carrier tracking event DELIVERED (real Allegro source) → promote even gdy fulfillment laguje.
+  if (
+    !promotedStatus &&
+    snapshot.some((s) => s.statusCode === 'DELIVERED' || s.statusCode === 'PICKED_UP') &&
+    order.status !== 'delivered' &&
+    order.status !== 'cancelled' &&
+    order.status !== 'refunded' &&
+    order.status !== 'return_in_transit' &&
+    order.status !== 'return_received' &&
+    order.status !== 'return_requested'
+  ) {
+    promotedStatus = 'delivered'
   }
 
   const updateCols: Record<string, unknown> = {
