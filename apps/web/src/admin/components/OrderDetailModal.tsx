@@ -171,9 +171,32 @@ export function OrderDetailModal({
   const [refreshing, setRefreshing] = useState(false)
   const [refreshError, setRefreshError] = useState<string | null>(null)
 
+  const refreshShipment = async (force: boolean) => {
+    if (!order || refreshing) return
+    setRefreshing(true)
+    setRefreshError(null)
+    try {
+      const res = await adminApi.refreshOrderShipment(order.id, { force })
+      onShipmentRefreshed?.(order.id, res.data.snapshot ?? null)
+    } catch (err) {
+      setRefreshError(err instanceof Error ? err.message : 'Błąd odświeżania')
+    } finally {
+      setRefreshing(false)
+    }
+  }
+
   useEffect(() => {
     if (!isOpen) setLabelPickerOpen(false)
   }, [isOpen])
+
+  // Auto-refresh on modal open for Allegro orders that haven't been refreshed yet.
+  // KV cache (5min) throttles repeat opens — backend returns snapshot from DB if cached.
+  useEffect(() => {
+    if (!isOpen || !order || order.source !== 'allegro') return
+    if (!['paid', 'processing', 'shipped', 'delivered'].includes(order.status)) return
+    void refreshShipment(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, order?.id])
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -339,21 +362,9 @@ export function OrderDetailModal({
                 {order.source === 'allegro' && (
                   <button
                     type="button"
-                    onClick={async () => {
-                      if (refreshing) return
-                      setRefreshing(true)
-                      setRefreshError(null)
-                      try {
-                        const res = await adminApi.refreshOrderShipment(order.id, { force: true })
-                        onShipmentRefreshed?.(order.id, res.data.snapshot ?? null)
-                      } catch (err) {
-                        setRefreshError(err instanceof Error ? err.message : 'Błąd odświeżania')
-                      } finally {
-                        setRefreshing(false)
-                      }
-                    }}
+                    onClick={() => void refreshShipment(true)}
                     disabled={refreshing}
-                    className="inline-flex items-center gap-1.5 text-[11px] text-[#666] hover:text-[#1A1A1A] disabled:opacity-50 transition-colors"
+                    className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[#1A1A1A] bg-[#F5F4F1] hover:bg-[#E5E4E1] disabled:opacity-50 px-2.5 py-1 rounded-md border border-[#E5E4E1] transition-colors"
                   >
                     <RefreshCw size={12} className={refreshing ? 'animate-spin' : ''} />
                     {refreshing ? 'Odświeżanie...' : 'Odśwież z Allegro'}
