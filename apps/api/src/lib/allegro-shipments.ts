@@ -19,16 +19,16 @@ import { allegroHeaders } from './allegro-orders/helpers'
 import { recordStatusChange } from './record-status-change'
 import type { Env } from '../index'
 
+// Tylko stany "wyższe" niż 'nadane' (paczka istnieje, więc waybill = nadane).
+// Nie mapujemy READY_FOR_SHIPMENT/PROCESSING/NEW — Allegro fulfillment często
+// laguje za rzeczywistym stanem paczki, a obecność wpisu w /shipments oznacza
+// że paczka została już nadana → minimum 'SENT'.
 const FULFILLMENT_TO_SHIPMENT_CODE: Record<string, string> = {
   PICKED_UP: 'DELIVERED',
   SENT: 'SENT',
   CANCELLED: 'CANCELLED',
   RETURNED: 'RETURNED',
-  READY_FOR_SHIPMENT: 'READY',
   READY_FOR_PICKUP: 'READY_FOR_PICKUP',
-  PROCESSING: 'NEW',
-  NEW: 'NEW',
-  SUSPENDED: 'HOLD',
 }
 
 const KV_TTL_SECONDS = 5 * 60
