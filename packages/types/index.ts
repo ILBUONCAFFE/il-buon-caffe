@@ -93,12 +93,38 @@ export interface RegisterRequest {
  * 
  * Oba to OSOBNE produkty (nie warianty jednego produktu)
  */
+export interface WineDetails {
+  grape?: string;
+  vintage?: number;
+  region?: string;
+  appellation?: string;
+  alcohol?: number;
+  style?: string;
+  color?: string;
+  pairing?: string[];
+  producer?: string;
+  servingTemp?: string;
+  aging?: string;
+  awards?: string[];
+}
+
+export interface CoffeeDetails {
+  origin?: string;
+  region?: string;
+  process?: string;
+  roast?: string;
+  variety?: string;
+  altitude?: string;
+  flavorNotes?: string[];
+  brewMethods?: string[];
+  producer?: string;
+}
+
 export interface Product {
   sku: string;                    // ⭐ Primary Key
   slug: string;
   name: string;
   description?: string;
-  longDescription?: string;
   price: number;
   compareAtPrice?: number;
   stock: number;
@@ -112,6 +138,8 @@ export interface Product {
   isActive: boolean;
   isNew?: boolean;
   isFeatured?: boolean;
+  wineDetails?: WineDetails;
+  coffeeDetails?: CoffeeDetails;
   allegroOfferId?: string;        // Mapowanie 1:1 z Allegro
   createdAt: string;
   updatedAt: string;
