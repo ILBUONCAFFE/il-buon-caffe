@@ -19,6 +19,7 @@
 		"NEXT_PUBLIC_API_URL": "https://api.ilbuoncaffe.pl",
 		"NEXT_PUBLIC_SITE_URL": "https://ilbuoncaffe.pl",
 		"NEXT_PUBLIC_R2_MEDIA_URL": "https://media.ilbuoncaffe.pl",
-		"NEXT_PUBLIC_CLARITY_PROJECT_ID": "w8jxvqums4"
+		"NEXT_PUBLIC_CLARITY_PROJECT_ID": "w8jxvqums4",
+		"BREVO_LIST_IDS": "11,13"
 	}
 }
