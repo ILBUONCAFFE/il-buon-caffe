@@ -8,10 +8,8 @@ type FormState = "idle" | "loading" | "success" | "error";
 /**
  * ShopNotifyBanner
  *
- * Wyświetla banner z formularzem zapisu na powiadomienie o nowościach w sklepie.
+ * Formularz zapisu na powiadomienie o uruchomieniu sklepu online.
  * Zapisuje kontakt do listy Brevo #8 przez /api/notify.
- *
- * Użycie: wstaw gdziekolwiek w ShopClient, np. na dole strony sklepu.
  */
 export const ShopNotifyBanner = () => {
   const [email, setEmail] = useState("");
@@ -56,9 +54,9 @@ export const ShopNotifyBanner = () => {
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
             <CheckCircle2 className="w-6 h-6 text-emerald-600 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="font-serif text-xl text-brand-900">Gotowe — powiadomimy Cię!</p>
+              <p className="font-serif text-xl text-brand-900">Gotowe — damy Ci znać przy starcie!</p>
               <p className="text-sm text-brand-500 mt-1">
-                Sprawdź swoją skrzynkę. Wiadomość może trafić do folderu Oferty.
+                Sprawdź swoją skrzynkę — poinformujemy Cię, gdy sklep zostanie uruchomiony.
               </p>
             </div>
           </div>
@@ -69,15 +67,15 @@ export const ShopNotifyBanner = () => {
               <div className="flex items-center gap-3 mb-4">
                 <Bell className="w-4 h-4 text-brand-400" strokeWidth={1.5} />
                 <span className="text-[11px] uppercase tracking-[0.2em] text-brand-400 font-medium">
-                  Powiadomienia
+                  Już wkrótce
                 </span>
               </div>
               <h2 className="text-2xl md:text-3xl font-serif text-brand-900 leading-tight tracking-tight">
                 Powiadom mnie<br />
-                <span className="italic text-brand-600">o nowościach</span>
+                <span className="italic text-brand-600">gdy sklep ruszy</span>
               </h2>
               <p className="mt-3 text-sm text-brand-500 max-w-xs leading-relaxed">
-                Nowe produkty, dostawy i wyjątkowe rarytasy — jako pierwszy dowiesz się, gdy coś trafi do sklepu.
+                Pracujemy nad sklepem online. Zostaw e-mail — jako pierwszy dostaniesz znać, gdy będzie gotowy.
               </p>
             </div>
 
@@ -120,7 +118,7 @@ export const ShopNotifyBanner = () => {
                       </>
                     ) : (
                       <>
-                        <span>Zapisz mnie</span>
+                        <span>Powiadom mnie</span>
                         <ArrowRight
                           className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1"
                           strokeWidth={2}
