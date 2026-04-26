@@ -114,42 +114,106 @@ productsRouter.get('/', async (c) => {
 // ============================================
 // GET /api/products/:slug
 // Szczegóły produktu z obrazami
+// Layer 1: Cloudflare Cache API (edge, 5 min)
+// Layer 2: KV static cache (global, 24h) — avoids full Neon query on edge-cache miss
 // ============================================
 productsRouter.get('/:slug', async (c) => {
   try {
-    // ── Edge cache — 5 min TTL ──
+    // ── Layer 1: Edge cache — 5 min TTL ──
     const cache    = caches.default
     const cacheKey = new Request(c.req.url)
-    const cached   = await cache.match(cacheKey)
-    if (cached) return cached
+    const edgeCached = await cache.match(cacheKey)
+    if (edgeCached) return edgeCached
 
     const db   = c.get('db')
     const slug = c.req.param('slug')
 
-    const product = await db.query.products.findFirst({
-      where: and(eq(products.slug, slug), eq(products.isActive, true)),
-      with: {
-        category: { columns: { id: true, name: true, slug: true } },
-        images: {
-          columns: { id: true, url: true, altText: true, sortOrder: true, isPrimary: true },
-          orderBy: asc(productImages.sortOrder),
+    // ── Layer 2: KV static cache ──
+    const kvKey      = `product:static:${slug}`
+    const kvStatic   = c.env.ALLEGRO_KV ? await c.env.ALLEGRO_KV.get(kvKey, 'json') as Record<string, unknown> | null : null
+
+    let data: Record<string, unknown>
+
+    if (kvStatic) {
+      // KV hit — only fetch dynamic fields from Neon
+      const row = await db.query.products.findFirst({
+        columns: {
+          price: true, compareAtPrice: true, stock: true, reserved: true,
+          year: true, allegroOfferId: true, isActive: true, updatedAt: true,
         },
-      },
-    })
+        where: and(eq(products.slug, slug), eq(products.isActive, true)),
+      })
+      if (!row) return c.json({ success: false, error: 'Produkt nie znaleziony' }, 404)
 
-    if (!product) {
-      return c.json({ success: false, error: 'Produkt nie znaleziony' }, 404)
-    }
+      data = {
+        ...kvStatic,
+        price:          Number(row.price),
+        compareAtPrice: row.compareAtPrice ? Number(row.compareAtPrice) : null,
+        stock:          row.stock,
+        reserved:       row.reserved,
+        available:      Math.max(0, row.stock - row.reserved),
+        year:           row.year,
+        allegroOfferId: row.allegroOfferId,
+        isActive:       row.isActive,
+        updatedAt:      row.updatedAt,
+      }
+    } else {
+      // KV miss — full Neon query
+      const product = await db.query.products.findFirst({
+        where: and(eq(products.slug, slug), eq(products.isActive, true)),
+        with: {
+          category: { columns: { id: true, name: true, slug: true } },
+          images: {
+            columns: { id: true, url: true, altText: true, sortOrder: true, isPrimary: true },
+            orderBy: asc(productImages.sortOrder),
+          },
+        },
+      })
+      if (!product) return c.json({ success: false, error: 'Produkt nie znaleziony' }, 404)
 
-    const body     = JSON.stringify({
-      success: true,
-      data: {
-        ...product,
+      const staticData = {
+        sku:             product.sku,
+        slug:            product.slug,
+        name:            product.name,
+        description:     product.description,
+        imageUrl:        product.imageUrl,
+        images:          product.images,
+        category:        product.category,
+        origin:          product.origin,
+        weight:          product.weight,
+        originCountry:   product.originCountry,
+        originRegion:    product.originRegion,
+        grapeVariety:    product.grapeVariety,
+        isNew:           product.isNew,
+        isFeatured:      product.isFeatured,
+        wineDetails:     product.wineDetails,
+        coffeeDetails:   product.coffeeDetails,
+        metaTitle:       product.metaTitle,
+        metaDescription: product.metaDescription,
+        createdAt:       product.createdAt,
+      }
+
+      if (c.env.ALLEGRO_KV) {
+        c.executionCtx.waitUntil(
+          c.env.ALLEGRO_KV.put(kvKey, JSON.stringify(staticData), { expirationTtl: 86400 })
+        )
+      }
+
+      data = {
+        ...staticData,
         price:          Number(product.price),
         compareAtPrice: product.compareAtPrice ? Number(product.compareAtPrice) : null,
+        stock:          product.stock,
+        reserved:       product.reserved,
         available:      Math.max(0, product.stock - product.reserved),
-      },
-    })
+        year:           product.year,
+        allegroOfferId: product.allegroOfferId,
+        isActive:       product.isActive,
+        updatedAt:      product.updatedAt,
+      }
+    }
+
+    const body     = JSON.stringify({ success: true, data })
     const response = new Response(body, {
       status: 200,
       headers: {
