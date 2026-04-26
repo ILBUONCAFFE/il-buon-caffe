@@ -485,4 +485,9 @@ export type {
   AllegroOffer,
   AllegroOffersResponse,
   LinkAllegroOfferPayload,
+  PushStockResponse,
+  StockHistoryEntry,
+  StockHistoryResponse,
+  LowStockProduct,
+  LowStockResponse,
 } from '../types/admin-api'
