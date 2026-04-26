@@ -2,20 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 
 const BREVO_API_URL = "https://api.brevo.com/v3/contacts";
 
-// Obsługuje wiele list — oddziel ID przecinkami: BREVO_LIST_IDS="2,5"
-// Fallback: pojedyncze BREVO_LIST_ID (wsteczna kompatybilność)
+// Odczytuje listę ID z BREVO_LIST_IDS="11,13" (przecinek jako separator)
+// Fallback: BREVO_LIST_ID (pojedyncze ID)
 function parseListIds(): number[] {
   const multi = process.env.BREVO_LIST_IDS;
   if (multi) {
-    return multi
+    const ids = multi
       .split(",")
       .map((s) => parseInt(s.trim(), 10))
       .filter((n) => !isNaN(n) && n > 0);
+    return ids;
   }
   const single = process.env.BREVO_LIST_ID
     ? parseInt(process.env.BREVO_LIST_ID, 10)
-    : 2;
-  return [single];
+    : 0;
+  return single > 0 ? [single] : [];
 }
 
 const BREVO_LIST_IDS = parseListIds();
@@ -23,8 +24,19 @@ const BREVO_LIST_IDS = parseListIds();
 export async function POST(req: NextRequest) {
   const apiKey = process.env.BREVO_API_KEY;
 
+  // Loguj konfigurację przy każdym żądaniu (widać w terminalu / CF Logs)
+  console.log("[Newsletter] list IDs:", BREVO_LIST_IDS, "| has key:", !!apiKey);
+
   if (!apiKey) {
     console.error("[Newsletter] Brak BREVO_API_KEY w środowisku.");
+    return NextResponse.json(
+      { error: "Błąd konfiguracji serwera." },
+      { status: 500 }
+    );
+  }
+
+  if (BREVO_LIST_IDS.length === 0) {
+    console.error("[Newsletter] Brak BREVO_LIST_IDS / BREVO_LIST_ID w środowisku.");
     return NextResponse.json(
       { error: "Błąd konfiguracji serwera." },
       { status: 500 }
@@ -51,23 +63,22 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const payload: Record<string, unknown> = {
-      email,
-      listIds: BREVO_LIST_IDS,
-      updateEnabled: true, // jeśli kontakt istnieje — aktualizuj, nie zwracaj błędu
-      // Tagi widoczne w Brevo → Contacts → Tags (nie wymagają konfiguracji)
-      tags: ["newsletter", "ilbuoncaffe.pl"],
-    };
-
-    // Atrybuty kontaktu — SOURCE wymaga wcześniejszego utworzenia w Brevo:
-    // Contacts → Configuration → Contact attributes → Add attribute (typ: Text, nazwa: SOURCE)
-    const attributes: Record<string, string> = {
-      SOURCE: "newsletter-website",
-    };
+    // Atrybuty — tylko FIRSTNAME, bo SOURCE wymaga ręcznego utworzenia w Brevo
+    // (Contacts → Configuration → Contact attributes → Add attribute)
+    const attributes: Record<string, string> = {};
     if (name?.trim()) {
       attributes.FIRSTNAME = name.trim();
     }
-    payload.attributes = attributes;
+
+    const payload: Record<string, unknown> = {
+      email,
+      listIds: BREVO_LIST_IDS,
+      updateEnabled: true, // kontakt już istnieje → aktualizuj zamiast błędu
+      tags: ["newsletter", "ilbuoncaffe.pl"],
+      ...(Object.keys(attributes).length > 0 && { attributes }),
+    };
+
+    console.log("[Newsletter] →", JSON.stringify(payload));
 
     const response = await fetch(BREVO_API_URL, {
       method: "POST",
@@ -79,16 +90,21 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify(payload),
     });
 
-    if (response.status === 204 || response.status === 201 || response.status === 200) {
+    const responseText = await response.text();
+    console.log("[Newsletter] ←", response.status, responseText);
+
+    if ([200, 201, 204].includes(response.status)) {
       return NextResponse.json({ success: true }, { status: 200 });
     }
 
-    const data = await response.json().catch(() => ({}));
+    let errorMessage = "Nie udało się zapisać. Spróbuj ponownie.";
+    try {
+      const data = JSON.parse(responseText);
+      errorMessage = data?.message ?? errorMessage;
+    } catch { /* ignore */ }
 
-    // Brevo zwraca 400 gdy kontakt już istnieje bez updateEnabled — obsłużone wyżej
-    console.error("[Newsletter] Brevo error:", response.status, data);
     return NextResponse.json(
-      { error: data?.message ?? "Nie udało się zapisać. Spróbuj ponownie." },
+      { error: errorMessage },
       { status: response.status >= 500 ? 502 : 400 }
     );
   } catch (err) {
