@@ -466,4 +466,12 @@ export type {
   ComplaintsResponse,
   ComplaintStatus,
   ComplaintMessage,
+  AllegroOffer,
+  AllegroOffersResponse,
+  LinkAllegroOfferPayload,
+  PushStockResponse,
+  StockHistoryEntry,
+  StockHistoryResponse,
+  LowStockProduct,
+  LowStockResponse,
 } from '../types/admin-api'
