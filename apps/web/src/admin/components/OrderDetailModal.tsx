@@ -1,12 +1,12 @@
 'use client'
 
 import { useEffect, useState, type ReactNode } from 'react'
-import { X, RefreshCw, Package, Truck, CheckCircle2, AlertTriangle, XCircle, Clock } from 'lucide-react'
+import { X, RefreshCw, Package, Truck, CheckCircle2, AlertTriangle, XCircle, Clock, MapPin } from 'lucide-react'
 import { resolveShipmentStatus } from '../lib/shipmentStatus'
 import { OrderStatusBadge } from './OrderStatusBadge'
 import { ShipmentLabelPickerModal } from './ShipmentLabelPickerModal'
 import { adminApi } from '../lib/adminApiClient'
-import type { AdminOrder, AllegroShipmentEntry } from '../types/admin-api'
+import type { AdminOrder, AllegroShipmentEntry, AllegroTrackingData, AllegroTrackingStatusEntry } from '../types/admin-api'
 
 interface OrderDetailModalProps {
   order: AdminOrder | null
@@ -277,6 +277,74 @@ function ParcelCard({ parcel, index }: { parcel: AllegroShipmentEntry; index: nu
   )
 }
 
+/** Map well-known carrier status codes → Polish label */
+const STATUS_CODE_LABELS: Record<string, string> = {
+  DELIVERED:               'Doręczono',
+  PARCEL_LOCKER_DELIVERED: 'Dostarczone do paczkomatu',
+  OUT_FOR_DELIVERY:        'W doręczeniu',
+  IN_TRANSIT:              'W transporcie',
+  ARRIVED_AT_SORTING_CENTER: 'W centrum sortowania',
+  ARRIVED:                 'Dotarła do oddziału',
+  DEPARTED:                'Wyjechała z oddziału',
+  LABEL_CREATED:           'Etykieta wygenerowana',
+  CREATED:                 'Przesyłka utworzona',
+  READY_FOR_PICKUP:        'Gotowa do odbioru',
+  PICKUP_READY:            'Gotowa do odbioru',
+  PICKUP_ATTEMPTED:        'Próba doręczenia nieudana',
+  RETURN_TO_SENDER:        'Zwrot do nadawcy',
+  LOST:                    'Zagubiona',
+  EXCEPTION:               'Problem z doręczeniem',
+  CANCELLED:               'Anulowana',
+  CUSTOMS:                 'Kontrola celna',
+}
+
+function resolveStatusLabel(code: string | null | undefined): string {
+  if (!code) return '—'
+  const upper = code.trim().toUpperCase()
+  return STATUS_CODE_LABELS[upper] ?? upper.replace(/_/g, ' ')
+}
+
+function TrackingHistoryList({ statuses }: { statuses: AllegroTrackingStatusEntry[] }) {
+  if (statuses.length === 0) return null
+  return (
+    <div className="mt-3 border-t border-[#F0EFEC] pt-3">
+      <div className="flex items-center gap-1.5 mb-2.5">
+        <MapPin size={11} className="text-[#A3A3A3]" />
+        <span className="text-[11px] font-semibold text-[#A3A3A3] uppercase tracking-wider">Historia przesyłki</span>
+      </div>
+      <ol className="relative space-y-0 pl-4 border-l-2 border-[#E5E4E1]">
+        {statuses.map((entry, i) => {
+          const isFirst = i === 0
+          const label = resolveStatusLabel(entry.status)
+          return (
+            <li key={`${entry.status}-${entry.occurredAt ?? i}`} className="relative pb-3 last:pb-0">
+              {/* dot */}
+              <span
+                className={`absolute -left-[13px] top-0.5 w-2.5 h-2.5 rounded-full border-2 flex-shrink-0 ${
+                  isFirst
+                    ? 'border-[#1A1A1A] bg-[#1A1A1A]'
+                    : 'border-[#D4D3D0] bg-white'
+                }`}
+              />
+              <div className="pl-2">
+                <p className={`text-[12px] leading-snug ${isFirst ? 'font-semibold text-[#1A1A1A]' : 'text-[#525252]'}`}>
+                  {label}
+                </p>
+                {entry.description && entry.description !== entry.status && (
+                  <p className="text-[11px] text-[#A3A3A3] mt-0.5 leading-snug">{entry.description}</p>
+                )}
+                {entry.occurredAt && (
+                  <p className="text-[10px] text-[#A3A3A3] mt-0.5 tabular-nums">{formatDate(entry.occurredAt)}</p>
+                )}
+              </div>
+            </li>
+          )
+        })}
+      </ol>
+    </div>
+  )
+}
+
 export function OrderDetailModal({
   order,
   isOpen,
@@ -290,6 +358,22 @@ export function OrderDetailModal({
   const [refreshError, setRefreshError] = useState<string | null>(null)
   const [markingDelivered, setMarkingDelivered] = useState(false)
   const [markError, setMarkError] = useState<string | null>(null)
+
+  // Allegro carrier tracking — fetched from GET /orders/:externalId/tracking
+  const [trackingData, setTrackingData] = useState<AllegroTrackingData | null>(null)
+  const [trackingLoading, setTrackingLoading] = useState(false)
+
+  const fetchTracking = async (externalId: string) => {
+    setTrackingLoading(true)
+    try {
+      const res = await adminApi.getAllegroOrderTracking(externalId)
+      if (res.success) setTrackingData(res.data)
+    } catch {
+      // silent — tracking is supplementary info; don't block UI on failure
+    } finally {
+      setTrackingLoading(false)
+    }
+  }
 
   const markDelivered = async () => {
     if (!order || markingDelivered) return
@@ -313,6 +397,10 @@ export function OrderDetailModal({
     try {
       const res = await adminApi.refreshOrderShipment(order.id, { force })
       onShipmentRefreshed?.(order.id, res.data.snapshot ?? null)
+      // Also refresh carrier tracking after snapshot update
+      if (order.externalId) {
+        void fetchTracking(order.externalId)
+      }
     } catch (err) {
       setRefreshError(err instanceof Error ? err.message : 'Błąd odświeżania')
     } finally {
@@ -321,7 +409,10 @@ export function OrderDetailModal({
   }
 
   useEffect(() => {
-    if (!isOpen) setLabelPickerOpen(false)
+    if (!isOpen) {
+      setLabelPickerOpen(false)
+      setTrackingData(null)
+    }
   }, [isOpen])
 
   // Auto-refresh on modal open for Allegro orders that haven't been refreshed yet.
@@ -330,6 +421,10 @@ export function OrderDetailModal({
     if (!isOpen || !order || order.source !== 'allegro') return
     if (!['paid', 'processing', 'shipped', 'delivered'].includes(order.status)) return
     void refreshShipment(false)
+    // Also fetch carrier tracking if externalId is available
+    if (order.externalId) {
+      void fetchTracking(order.externalId)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, order?.id])
 
@@ -544,6 +639,26 @@ export function OrderDetailModal({
                     </div>
                   </div>
                 )}
+
+                {/* Carrier tracking history from Allegro API */}
+                {order.source === 'allegro' && order.externalId && (
+                  trackingLoading ? (
+                    <div className="mt-3 border-t border-[#F0EFEC] pt-3 space-y-2 animate-pulse">
+                      <div className="h-3 bg-[#F5F4F1] rounded w-32" />
+                      <div className="h-3 bg-[#F5F4F1] rounded w-full" />
+                      <div className="h-3 bg-[#F5F4F1] rounded w-3/4" />
+                    </div>
+                  ) : trackingData && (trackingData.allStatuses?.length ?? 0) > 0 ? (
+                    <TrackingHistoryList statuses={trackingData.allStatuses} />
+                  ) : trackingData && !trackingData.status ? null : (
+                    trackingData?.waybill ? (
+                      <div className="mt-3 border-t border-[#F0EFEC] pt-3 text-[11px] text-[#A3A3A3]">
+                        Brak historii śledzenia dla {trackingData.waybill}
+                      </div>
+                    ) : null
+                  )
+                )}
+
               </div>
             </div>
           </div>

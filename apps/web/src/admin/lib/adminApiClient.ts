@@ -397,6 +397,7 @@ export type {
   AllegroEnvironment,
   AllegroOrderDetails,
   AllegroTrackingData,
+  AllegroTrackingStatusEntry,
   DeliveryServicesResponse,
   DeliveryServiceInfo,
   CreateShipmentPayload,

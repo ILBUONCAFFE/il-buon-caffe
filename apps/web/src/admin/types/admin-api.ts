@@ -322,17 +322,19 @@ export interface AllegroOrderDetails {
   }
 }
 
+export interface AllegroTrackingStatusEntry {
+  status: string
+  description: string | null
+  occurredAt: string | null
+}
+
 export interface AllegroTrackingData {
   carrier: string | null
   waybill: string | null
   status: string | null
   statusDescription: string | null
   updatedAt: string | null
-  allStatuses: Array<{
-    status: string
-    description: string | null
-    occurredAt: string | null
-  }>
+  allStatuses: AllegroTrackingStatusEntry[]
 }
 
 // ── Shipment Management ──────────────────────────────────────────────────────

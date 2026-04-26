@@ -36,7 +36,7 @@ const FeaturedProducts = dynamic(
 );
 
 const HomeClient = () => (
-  <main className="w-full overflow-x-hidden min-h-screen">
+  <div className="w-full overflow-x-hidden">
     <Hero />
     <CategoriesGrid />
     <Suspense>
@@ -45,7 +45,7 @@ const HomeClient = () => (
     <WhyUs />
     <Newsletter />
     <CTA />
-  </main>
+  </div>
 );
 
 export default HomeClient;
