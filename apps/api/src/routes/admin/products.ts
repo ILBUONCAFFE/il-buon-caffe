@@ -332,6 +332,36 @@ adminProductsRouter.put('/:sku/stock', async (c) => {
 })
 
 // ============================================
+// GET /admin/products/:sku/stock-history  🛡️
+// Historia zmian stanu magazynowego
+// ============================================
+adminProductsRouter.get('/:sku/stock-history', async (c) => {
+  try {
+    const db  = createDb(c.env.DATABASE_URL)
+    const sku = sanitize(c.req.param('sku'), 50)
+    const { page, limit } = parsePagination(c, { maxLimit: 100 })
+
+    const [countResult, rows] = await Promise.all([
+      db.select({ count: count() }).from(stockChanges).where(eq(stockChanges.productSku, sku)),
+      db.select().from(stockChanges)
+        .where(eq(stockChanges.productSku, sku))
+        .orderBy(desc(stockChanges.createdAt))
+        .limit(limit)
+        .offset((page - 1) * limit),
+    ])
+
+    const total = Number(countResult[0]?.count ?? 0)
+    return c.json({
+      success: true,
+      data: rows,
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+    })
+  } catch (err) {
+    return serverError(c, 'GET /admin/products/:sku/stock-history', err)
+  }
+})
+
+// ============================================
 // DELETE /admin/products/:sku  🛡️
 // Soft delete — deactivate product
 // ============================================
