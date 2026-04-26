@@ -68,6 +68,39 @@ adminProductsRouter.get('/', async (c) => {
 })
 
 // ============================================
+// GET /admin/products/low-stock  🛡️
+// Produkty z niskim stanem (stock - reserved <= threshold)
+// ============================================
+adminProductsRouter.get('/low-stock', async (c) => {
+  try {
+    const db        = createDb(c.env.DATABASE_URL)
+    const threshold = Math.max(0, Math.min(100, Number(c.req.query('threshold') ?? '5')))
+
+    const rows = await db.query.products.findMany({
+      columns: { sku: true, name: true, stock: true, reserved: true, isActive: true, allegroOfferId: true },
+      with: { category: { columns: { name: true } } },
+      where: and(
+        eq(products.isActive, true),
+        sql`${products.stock} - ${products.reserved} <= ${threshold}`,
+      ),
+      orderBy: asc(sql`${products.stock} - ${products.reserved}`),
+      limit: 200,
+    })
+
+    return c.json({
+      success: true,
+      data: rows.map(p => ({
+        ...p,
+        available: Math.max(0, p.stock - p.reserved),
+      })),
+      meta: { threshold, total: rows.length },
+    })
+  } catch (err) {
+    return serverError(c, 'GET /admin/products/low-stock', err)
+  }
+})
+
+// ============================================
 // GET /admin/products/:sku  🛡️
 // Szczegóły produktu (admin view — wszystkie pola)
 // ============================================
