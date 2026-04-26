@@ -5,6 +5,8 @@ import dynamic from "next/dynamic";
 import { Hero } from "./Hero";
 import { WhyUs } from "./WhyUs";
 import { CategoriesGrid } from "./CategoriesGrid";
+import { Newsletter } from "./Newsletter";
+import { CTA } from "./CTA";
 
 const FeaturedProducts = dynamic(
   () => import("./FeaturedProducts").then(m => ({ default: m.FeaturedProducts })),
@@ -41,6 +43,8 @@ const HomeClient = () => (
       <FeaturedProducts />
     </Suspense>
     <WhyUs />
+    <Newsletter />
+    <CTA />
   </main>
 );
 
