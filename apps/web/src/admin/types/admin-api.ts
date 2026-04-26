@@ -599,3 +599,70 @@ export interface OrderStatusHistoryEntry {
   metadata: Record<string, unknown> | null
   occurred_at: string
 }
+
+// ── Allegro Products ──────────────────────────────────────────────────────────
+
+export interface AllegroOffer {
+  id: string
+  name: string
+  status: string       // ACTIVE | INACTIVE | ENDED | etc.
+  stock: number | null
+  price: number | null
+  linkedSku: string | null
+}
+
+export interface AllegroOffersResponse {
+  success: boolean
+  data: AllegroOffer[]
+  meta: { total: number; limit: number; offset: number }
+}
+
+export interface LinkAllegroOfferPayload {
+  sku: string
+  offerId: string
+}
+
+export interface PushStockResponse {
+  success: boolean
+  data: { sku: string; allegroOfferId: string; pushed: number }
+}
+
+// ── Stock History ─────────────────────────────────────────────────────────────
+
+export interface StockHistoryEntry {
+  id: number
+  productSku: string
+  previousStock: number
+  newStock: number
+  change: number
+  reason: string
+  orderId: number | null
+  adminId: number | null
+  notes: string | null
+  createdAt: string
+}
+
+export interface StockHistoryResponse {
+  success: boolean
+  data: StockHistoryEntry[]
+  meta: ApiListMeta
+}
+
+// ── Low Stock ─────────────────────────────────────────────────────────────────
+
+export interface LowStockProduct {
+  sku: string
+  name: string
+  stock: number
+  reserved: number
+  available: number
+  isActive: boolean
+  allegroOfferId: string | null
+  category: { name: string } | null
+}
+
+export interface LowStockResponse {
+  success: boolean
+  data: LowStockProduct[]
+  meta: { threshold: number; total: number }
+}
