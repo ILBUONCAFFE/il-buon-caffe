@@ -144,7 +144,7 @@ adminProductsRouter.post('/', async (c) => {
 
     const db   = createDb(c.env.DATABASE_URL)
     const body = await c.req.json<{
-      sku: string; name: string; description?: string; longDescription?: string
+      sku: string; name: string; description?: string
       categoryId?: number; price: number; compareAtPrice?: number | null
       stock?: number; imageUrl?: string; origin?: string; year?: string
       weight?: number; isActive?: boolean; isNew?: boolean; isFeatured?: boolean
@@ -173,7 +173,6 @@ adminProductsRouter.post('/', async (c) => {
       slug,
       name,
       description:     sanitize(body.description || '', 2000)  || null,
-      longDescription: sanitize(body.longDescription || '', 50000) || null,
       categoryId:      body.categoryId ?? null,
       price:           body.price.toString(),
       compareAtPrice:  body.compareAtPrice != null ? body.compareAtPrice.toString() : null,
@@ -227,7 +226,7 @@ adminProductsRouter.put('/:sku', async (c) => {
     if (!existing) return c.json({ error: 'Produkt nie znaleziony' }, 404)
 
     const body = await c.req.json<Partial<{
-      name: string; description: string; longDescription: string
+      name: string; description: string
       categoryId: number | null; price: number; compareAtPrice: number | null
       imageUrl: string | null; origin: string; year: string; weight: number | null
       isActive: boolean; isNew: boolean; isFeatured: boolean
@@ -238,7 +237,6 @@ adminProductsRouter.put('/:sku', async (c) => {
 
     if (body.name !== undefined)            setCols.name           = sanitize(body.name, 255)
     if (body.description !== undefined)     setCols.description    = sanitize(body.description, 2000) || null
-    if (body.longDescription !== undefined) setCols.longDescription = sanitize(body.longDescription, 50000) || null
     if (body.categoryId !== undefined)      setCols.categoryId     = body.categoryId
     if (body.price !== undefined)           setCols.price          = body.price.toString()
     if (body.compareAtPrice !== undefined)  setCols.compareAtPrice = body.compareAtPrice != null ? body.compareAtPrice.toString() : null
