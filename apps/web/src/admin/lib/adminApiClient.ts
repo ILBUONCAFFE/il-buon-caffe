@@ -33,6 +33,11 @@ import type {
   UpdateProductStockResponse,
   UploadProductImageResponse,
   OrderStatusHistoryEntry,
+  AllegroOffersResponse,
+  LinkAllegroOfferPayload,
+  PushStockResponse,
+  StockHistoryResponse,
+  LowStockResponse,
 } from '../types/admin-api'
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
@@ -213,22 +218,6 @@ export const adminApi = {
       method: 'DELETE',
     }),
 
-  getAllegroOffers: (params?: { search?: string; limit?: number; offset?: number }) => {
-    const qs = new URLSearchParams()
-    if (params?.search) qs.set('search', params.search)
-    if (params?.limit) qs.set('limit', String(params.limit))
-    if (params?.offset) qs.set('offset', String(params.offset))
-    return allegroRequest<import('../types/admin-api').AllegroOffersResponse>(
-      `/api/admin/allegro/offers${qs.toString() ? `?${qs}` : ''}`,
-    )
-  },
-
-  linkAllegroOffer: (payload: import('../types/admin-api').LinkAllegroOfferPayload) =>
-    allegroRequest<{ success: boolean }>('/api/admin/allegro/offers/link', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }),
-
   getCategories: () =>
     request<AdminCategoriesResponse>('/api/admin/categories'),
 
@@ -259,6 +248,46 @@ export const adminApi = {
 
     return res.json() as Promise<UploadProductImageResponse>
   },
+
+  // ── Products: stock history & low-stock ───────────────────────────────────
+  getProductStockHistory: (sku: string, params?: { page?: number; limit?: number }) => {
+    const qs = new URLSearchParams()
+    if (params?.page)  qs.set('page',  String(params.page))
+    if (params?.limit) qs.set('limit', String(params.limit))
+    return request<StockHistoryResponse>(
+      `/api/admin/products/${encodeURIComponent(sku)}/stock-history?${qs}`
+    )
+  },
+
+  getLowStockProducts: (threshold = 5) =>
+    request<LowStockResponse>(`/api/admin/products/low-stock?threshold=${threshold}`),
+
+  // ── Allegro Products ──────────────────────────────────────────────────────
+  getAllegroOffers: (params?: { search?: string; limit?: number; offset?: number }) => {
+    const qs = new URLSearchParams()
+    if (params?.search) qs.set('search', params.search)
+    if (params?.limit)  qs.set('limit',  String(params.limit))
+    if (params?.offset) qs.set('offset', String(params.offset))
+    return request<AllegroOffersResponse>(`/api/admin/allegro-products/offers?${qs}`)
+  },
+
+  linkAllegroOffer: (payload: LinkAllegroOfferPayload) =>
+    request<{ success: boolean; data: { sku: string; allegroOfferId: string } }>(
+      '/api/admin/allegro-products/link',
+      { method: 'POST', body: JSON.stringify(payload) }
+    ),
+
+  unlinkAllegroOffer: (sku: string) =>
+    request<{ success: boolean }>(
+      `/api/admin/allegro-products/link/${encodeURIComponent(sku)}`,
+      { method: 'DELETE' }
+    ),
+
+  pushStockToAllegro: (sku: string) =>
+    request<PushStockResponse>(
+      `/api/admin/allegro-products/${encodeURIComponent(sku)}/push-stock`,
+      { method: 'POST' }
+    ),
 
   // ── Activity feed ──────────────────────────────────────────────────────────
   getActivityFeed: (limit = 10) =>
@@ -440,4 +469,9 @@ export type {
   AllegroOffer,
   AllegroOffersResponse,
   LinkAllegroOfferPayload,
+  PushStockResponse,
+  StockHistoryEntry,
+  StockHistoryResponse,
+  LowStockProduct,
+  LowStockResponse,
 } from '../types/admin-api'
