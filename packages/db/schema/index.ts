@@ -376,7 +376,6 @@ export const products = pgTable('products', {
 
   name: varchar('name', { length: 255 }).notNull(),
   description: text('description'),
-  longDescription: text('long_description'),
   categoryId: integer('category_id').references(() => categories.id),
 
   // ===== Ceny =====
