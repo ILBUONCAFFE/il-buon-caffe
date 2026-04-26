@@ -341,6 +341,13 @@ adminProductsRouter.get('/:sku/stock-history', async (c) => {
     const sku = sanitize(c.req.param('sku'), 50)
     const { page, limit } = parsePagination(c, { maxLimit: 100 })
 
+    // Check product exists
+    const product = await db.query.products.findFirst({
+      columns: { sku: true },
+      where: eq(products.sku, sku),
+    })
+    if (!product) return c.json({ error: 'Produkt nie znaleziony' }, 404)
+
     const [countResult, rows] = await Promise.all([
       db.select({ count: count() }).from(stockChanges).where(eq(stockChanges.productSku, sku)),
       db.select().from(stockChanges)
