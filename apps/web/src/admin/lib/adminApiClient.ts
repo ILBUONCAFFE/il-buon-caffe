@@ -218,22 +218,6 @@ export const adminApi = {
       method: 'DELETE',
     }),
 
-  getAllegroOffers: (params?: { search?: string; limit?: number; offset?: number }) => {
-    const qs = new URLSearchParams()
-    if (params?.search) qs.set('search', params.search)
-    if (params?.limit) qs.set('limit', String(params.limit))
-    if (params?.offset) qs.set('offset', String(params.offset))
-    return allegroRequest<import('../types/admin-api').AllegroOffersResponse>(
-      `/api/admin/allegro/offers${qs.toString() ? `?${qs}` : ''}`,
-    )
-  },
-
-  linkAllegroOffer: (payload: import('../types/admin-api').LinkAllegroOfferPayload) =>
-    allegroRequest<{ success: boolean }>('/api/admin/allegro/offers/link', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }),
-
   getCategories: () =>
     request<AdminCategoriesResponse>('/api/admin/categories'),
 

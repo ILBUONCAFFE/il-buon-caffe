@@ -645,7 +645,7 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
 
       {/* Modals */}
       {showHistory && product ? (
-        <StockHistoryModal product={product} onClose={() => setShowHistory(false)} />
+        <StockHistoryModal sku={product.sku} productName={product.name || ''} onClose={() => setShowHistory(false)} />
       ) : null}
 
       {showAllegroLink && product ? (
