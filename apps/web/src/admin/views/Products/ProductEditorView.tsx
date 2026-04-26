@@ -28,7 +28,6 @@ type ProductFormState = {
   stock: string
   imageUrl: string
   description: string
-  longDescription: string
   origin: string
   year: string
   weight: string
@@ -47,7 +46,6 @@ const DEFAULT_FORM: ProductFormState = {
   stock: '0',
   imageUrl: '',
   description: '',
-  longDescription: '',
   origin: '',
   year: '',
   weight: '',
@@ -95,7 +93,6 @@ function mapProductToForm(product: AdminProduct): ProductFormState {
     stock: String(product.stock),
     imageUrl: product.imageUrl || '',
     description: product.description || '',
-    longDescription: product.longDescription || '',
     origin: product.origin || '',
     year: product.year || '',
     weight: product.weight != null ? String(product.weight) : '',
@@ -132,6 +129,7 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
 
   const [showHistory, setShowHistory] = useState(false)
   const [showAllegroLink, setShowAllegroLink] = useState(false)
+  const [isClearingCache, setIsClearingCache] = useState(false)
 
   const loadCategories = useCallback(async () => {
     try {
@@ -215,7 +213,6 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
           stock: stockResult.value,
           imageUrl: trimTo(form.imageUrl, 500),
           description: trimTo(form.description, 2000),
-          longDescription: trimTo(form.longDescription, 50000),
           origin: trimTo(form.origin, 255),
           year: trimTo(form.year, 10),
           weight: weightResult.value,
@@ -245,7 +242,6 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
         compareAtPrice: compareAtResult.value,
         imageUrl: trimTo(form.imageUrl, 500),
         description: trimTo(form.description, 2000),
-        longDescription: trimTo(form.longDescription, 50000),
         origin: trimTo(form.origin, 255),
         year: trimTo(form.year, 10),
         weight: weightResult.value,
@@ -301,6 +297,20 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
     }
   }
 
+  const handleClearCache = async () => {
+    if (!product?.sku) return
+    setIsClearingCache(true)
+    setError(null)
+    try {
+      await adminApi.clearProductCache(product.sku)
+      setMessage('Cache produktu wyczyszczony')
+    } catch {
+      setError('Blad czyszczenia cache')
+    } finally {
+      setIsClearingCache(false)
+    }
+  }
+
   const pushStockToAllegro = async () => {
     if (!form.allegroOfferId) return
     setPushingStock(true)
@@ -340,6 +350,16 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
         </div>
 
         <div className="flex items-center gap-2">
+          {!isCreateMode && product?.sku && (
+            <button
+              type="button"
+              onClick={() => void handleClearCache()}
+              disabled={isClearingCache}
+              className="px-3 py-1.5 text-sm text-zinc-400 border border-zinc-700 rounded-lg hover:border-zinc-500 hover:text-zinc-300 transition-colors disabled:opacity-50"
+            >
+              {isClearingCache ? 'Czyszczenie...' : 'Wyczysc cache'}
+            </button>
+          )}
           <Link href="/admin/products" className="btn-secondary text-sm">Wroc</Link>
           <button
             className="btn-primary text-sm disabled:opacity-40"
@@ -421,14 +441,6 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
               />
             </div>
 
-            <div className="md:col-span-2">
-              <label className="block text-xs uppercase tracking-wider text-[#737373] mb-1">Opis dlugi</label>
-              <textarea
-                className="admin-input w-full min-h-[160px]"
-                value={form.longDescription}
-                onChange={(e) => handleFieldChange('longDescription', e.target.value)}
-              />
-            </div>
           </div>
 
           <div className="flex flex-wrap gap-4 pt-1">
