@@ -24,7 +24,7 @@ const navItems = [
     id: 'inventory', icon: Package, label: 'Magazyn', destination: 'Stan magazynowy',
     children: [
       { id: 'inventory-products', path: '/admin/products', label: 'Produkty', icon: Archive },
-      { id: 'inventory-connections', path: '/admin/inventory/connections', label: 'Połączenia', icon: Link }
+      { id: 'inventory-connections', path: '/admin/inventory/connections', label: 'Połączenia Allegro', icon: Link }
     ]
   },
   { id: 'customers', path: '/admin/customers', icon: Users, label: 'Klienci', destination: 'Baza klientów' },

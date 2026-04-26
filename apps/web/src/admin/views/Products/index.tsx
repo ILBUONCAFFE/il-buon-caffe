@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { adminApi, type AdminCategory, type AdminProduct, type AdminProductsQueryParams } from '../../lib/adminApiClient'
 import { MoreVertical, ChevronLeft, ChevronRight as ChevronRightIcon } from 'lucide-react'
+import { StockAdjustModal } from './StockAdjustModal'
 
 const PAGE_LIMIT = 50
 
@@ -22,6 +23,7 @@ export const ProductsView = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [busySku, setBusySku] = useState<string | null>(null)
+  const [adjustTarget, setAdjustTarget] = useState<AdminProduct | null>(null)
 
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
@@ -170,7 +172,9 @@ export const ProductsView = () => {
               <th className="text-left px-4 py-3 font-medium">Kategoria</th>
               <th className="text-right px-4 py-3 font-medium">Cena</th>
               <th className="text-right px-4 py-3 font-medium">Dostępne</th>
+              <th className="text-left px-4 py-3 font-medium">Allegro</th>
               <th className="text-left px-4 py-3 font-medium">Status</th>
+              <th className="text-right px-4 py-3 font-medium">Stan</th>
               <th className="text-right px-4 py-3 font-medium">Akcje</th>
             </tr>
           </thead>
@@ -179,14 +183,14 @@ export const ProductsView = () => {
             {loading ? (
               Array.from({ length: 8 }).map((_, i) => (
                 <tr key={i} className="border-b border-[#F0EFEC] last:border-0">
-                  <td colSpan={7} className="px-4 py-4">
+                  <td colSpan={9} className="px-4 py-4">
                     <div className="h-4 bg-[#F5F4F1] rounded animate-pulse" />
                   </td>
                 </tr>
               ))
             ) : products.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-12 text-center text-[#A3A3A3]">
+                <td colSpan={9} className="px-4 py-12 text-center text-[#A3A3A3]">
                   Brak produktów dla wybranych filtrów
                 </td>
               </tr>
@@ -194,14 +198,32 @@ export const ProductsView = () => {
               products.map((product) => (
                 <tr
                   key={product.sku}
-                  className="border-b border-[#F0EFEC] last:border-0 hover:bg-[#FAFAF9] cursor-pointer"
+                  className={`border-b border-[#F0EFEC] last:border-0 cursor-pointer transition-colors ${
+                    product.available <= 2
+                      ? 'bg-[#FFFBEB] hover:bg-[#FEF9C3]'
+                      : 'hover:bg-[#FAFAF9]'
+                  }`}
                   onClick={() => router.push(`/admin/products/${encodeURIComponent(product.sku)}`)}
                 >
                   <td className="px-4 py-3 font-mono text-xs text-[#525252]">{product.sku}</td>
                   <td className="px-4 py-3 text-[#1A1A1A]">{product.name}</td>
                   <td className="px-4 py-3 text-[#525252]">{product.category?.name || '-'}</td>
                   <td className="px-4 py-3 text-right tabular-nums text-[#1A1A1A]">{formatPrice(product.price)}</td>
-                  <td className="px-4 py-3 text-right tabular-nums text-[#1A1A1A]">{product.available}</td>
+                  <td className={`px-4 py-3 text-right tabular-nums font-medium ${
+                    product.available <= 2 ? 'text-[#D97706]' : 'text-[#1A1A1A]'
+                  }`}>
+                    {product.available}
+                    {product.available <= 2 && <span className="ml-1 text-xs">⚠</span>}
+                  </td>
+                  <td className="px-4 py-3">
+                    {product.allegroOfferId ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#EEF4FF] text-[#0066CC] text-xs font-mono">
+                        {product.allegroOfferId.slice(0, 8)}…
+                      </span>
+                    ) : (
+                      <span className="text-[#A3A3A3] text-xs">–</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     <span
                       className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
@@ -210,6 +232,15 @@ export const ProductsView = () => {
                     >
                       {product.isActive ? 'Aktywny' : 'Nieaktywny'}
                     </span>
+                  </td>
+                  <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => setAdjustTarget(product)}
+                      className="px-2 py-1 text-xs rounded-lg border border-[#E5E4E1] text-[#525252] hover:bg-[#F5F4F1] transition-colors"
+                      title="Koryguj stan"
+                    >
+                      Stan
+                    </button>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
@@ -310,6 +341,14 @@ export const ProductsView = () => {
           </button>
         </div>
       </div>
+
+      {adjustTarget && (
+        <StockAdjustModal
+          product={adjustTarget}
+          onClose={() => setAdjustTarget(null)}
+          onSaved={() => { setAdjustTarget(null); void fetchProducts() }}
+        />
+      )}
     </div>
   )
 }
