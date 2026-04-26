@@ -22,6 +22,7 @@ import { FilterChip } from "./FilterChip";
 import { ProductCard } from "./ProductCard";
 import { SortDropdown } from "./SortDropdown";
 import { FilterContent } from "./FilterContent";
+import { ShopNotifyBanner } from "./ShopNotifyBanner";
 
 // ============================================
 // MAIN COMPONENT
@@ -620,6 +621,9 @@ export const ShopClient = ({ initialData }: ShopClientProps) => {
                 </div>
               )}
             </div>
+
+            {/* Notify banner — always visible at the bottom of the shop */}
+            <ShopNotifyBanner />
           </main>
         </div>
       </div>

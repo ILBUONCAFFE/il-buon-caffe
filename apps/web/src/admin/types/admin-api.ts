@@ -297,6 +297,27 @@ export interface UploadProductImageResponse {
   type: string
 }
 
+// ── Allegro Products (linking offers to SKUs) ────────────────────────────────
+export interface AllegroOffer {
+  id: string
+  name: string
+  status: string       // ACTIVE | INACTIVE | ENDED | etc.
+  stock: number | null
+  price: number | null
+  linkedSku: string | null
+}
+
+export interface AllegroOffersResponse {
+  success: boolean
+  data: AllegroOffer[]
+  meta: { total: number; limit: number; offset: number }
+}
+
+export interface LinkAllegroOfferPayload {
+  sku: string
+  offerId: string
+}
+
 // ── Allegro Order Details (fetched live from Allegro REST API) ────────────────
 export interface AllegroOrderDetails {
   status: string | null

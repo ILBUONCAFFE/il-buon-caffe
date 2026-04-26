@@ -10,6 +10,7 @@ import CartSidebar from "./CartSidebar";
 import { NotificationProvider } from "../Notification/NotificationProvider";
 import { AgeVerificationModal } from "../ui/AgeVerificationModal";
 import { ConsentBanner } from "../ui/ConsentBanner";
+import { Newsletter } from "../Home/Newsletter";
 
 export const Shell = ({ children }: { children: React.ReactNode }) => {
 
@@ -37,6 +38,7 @@ export const Shell = ({ children }: { children: React.ReactNode }) => {
           <main id="main-content" className="flex-grow pt-0 min-h-screen">
             {children}
           </main>
+          {!isAdminPath && !isCatalogPath && <Newsletter />}
           {!isAdminPath && !isCatalogPath && <Footer />}
           {!isCatalogPath && <CartSidebar />}
           {!isCatalogPath && <AgeVerificationModal />}

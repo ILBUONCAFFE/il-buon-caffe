@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { motion } from "motion/react";
 import { 
   MapPin, 
   Clock, 
@@ -11,7 +10,6 @@ import {
   Mail,
   Instagram,
   Facebook,
-  Send,
   ChevronRight
 } from "lucide-react";
 
@@ -35,91 +33,8 @@ const footerLinks = {
 };
 
 export const Footer = () => {
-  const [email, setEmail] = useState("");
-  const [isSubscribed, setIsSubscribed] = useState(false);
-  const [emailError, setEmailError] = useState("");
-
-  const handleSubscribe = (e: React.FormEvent) => {
-    e.preventDefault();
-    setEmailError("");
-    if (!email.trim()) {
-      setEmailError("Adres email jest wymagany");
-      document.getElementById("footer-newsletter-email")?.focus();
-      return;
-    }
-    if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
-      setEmailError("Podaj poprawny adres email (np. kontakt@ilbuoncaffe.pl)");
-      document.getElementById("footer-newsletter-email")?.focus();
-      return;
-    }
-    setIsSubscribed(true);
-    setEmail("");
-    setTimeout(() => setIsSubscribed(false), 3000);
-  };
-
   return (
     <footer className="bg-brand-900 text-white">
-      {/* Newsletter Section */}
-      <div className="border-b border-white/10">
-        <div className="container mx-auto px-6 lg:px-12 py-16 md:py-20">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-10">
-            <div className="max-w-lg">
-              <h3 className="text-3xl md:text-4xl font-serif mb-4">
-                Bądź na bieżąco
-              </h3>
-              <p className="text-white/60 leading-relaxed">
-                Zapisz się do newslettera i otrzymuj informacje o nowościach, 
-                promocjach oraz inspiracje ze świata kawy i delikatesów.
-              </p>
-            </div>
-
-            <form onSubmit={handleSubscribe} className="flex-1 max-w-sm" noValidate>
-              <div className="relative">
-                <input
-                  id="footer-newsletter-email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    if (emailError) setEmailError("");
-                  }}
-                  placeholder="Twój adres email"
-                  aria-label="Adres email do newslettera"
-                  aria-invalid={!!emailError}
-                  aria-describedby={emailError ? "footer-email-error" : undefined}
-                  className={`w-full bg-white/10 border rounded-full py-4 pl-6 pr-14 text-white placeholder:text-white/40 focus:outline-none focus:bg-white/15 transition-all ${
-                    emailError ? "border-red-400 focus:border-red-400" : "border-white/20 focus:border-brand-400"
-                  }`}
-                />
-                <button
-                  type="submit"
-                  aria-label="Zapisz się do newslettera"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-brand-700 hover:bg-brand-400 rounded-full flex items-center justify-center transition-colors"
-                >
-                  <Send className="w-4 h-4" aria-hidden="true" />
-                </button>
-              </div>
-              {emailError && (
-                <p id="footer-email-error" role="alert" className="flex items-center gap-1.5 mt-2 px-1 text-red-400 text-sm">
-                  <span aria-hidden="true">⚠</span> {emailError}
-                </p>
-              )}
-              {isSubscribed && (
-                <motion.p
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  role="status"
-                  aria-live="polite"
-                  className="text-brand-400 text-sm mt-3"
-                >
-                  Dziękujemy za zapis!
-                </motion.p>
-              )}
-            </form>
-          </div>
-        </div>
-      </div>
-
       {/* Main Footer Content */}
       <div>
         <div className="container mx-auto px-6 lg:px-12 py-16 md:py-20">
