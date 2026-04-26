@@ -218,6 +218,11 @@ export const adminApi = {
       method: 'DELETE',
     }),
 
+  clearProductCache: (sku: string) =>
+    request<{ cleared: boolean }>(`/api/admin/products/${encodeURIComponent(sku)}/cache`, {
+      method: 'DELETE',
+    }),
+
   getCategories: () =>
     request<AdminCategoriesResponse>('/api/admin/categories'),
 

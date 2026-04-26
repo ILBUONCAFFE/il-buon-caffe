@@ -200,7 +200,6 @@ export interface AdminProduct {
   slug: string
   name: string
   description: string | null
-  longDescription: string | null
   categoryId: number | null
   category?: {
     id: number
@@ -254,7 +253,6 @@ export interface CreateAdminProductPayload {
   sku: string
   name: string
   description?: string
-  longDescription?: string
   categoryId?: number | null
   price: number
   compareAtPrice?: number | null
