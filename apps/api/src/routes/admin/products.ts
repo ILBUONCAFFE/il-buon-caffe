@@ -266,6 +266,16 @@ adminProductsRouter.put('/:sku', async (c) => {
       void notifyIndexNow([productUrl(updated.slug)], c.env.INDEXNOW_KEY)
     }
 
+    // Invalidate KV static cache (slug may have changed if name was updated)
+    if (c.env.ALLEGRO_KV) {
+      c.executionCtx.waitUntil(
+        Promise.all([
+          c.env.ALLEGRO_KV.delete(`product:static:${sku.toLowerCase()}`),
+          c.env.ALLEGRO_KV.delete(`product:static:${updated.slug}`),
+        ])
+      )
+    }
+
     return c.json({
       success: true,
       data: {
@@ -437,9 +447,45 @@ adminProductsRouter.delete('/:sku', async (c) => {
       void notifyIndexNow([productUrl(deactivated.slug)], c.env.INDEXNOW_KEY)
     }
 
+    // Invalidate KV static cache
+    if (c.env.ALLEGRO_KV && deactivated?.slug) {
+      c.executionCtx.waitUntil(
+        c.env.ALLEGRO_KV.delete(`product:static:${deactivated.slug}`)
+      )
+    }
+
     return c.json({ success: true, message: `Produkt '${sku}' został zdezaktywowany` })
   } catch (err) {
     return serverError(c, 'DELETE /admin/products/:sku', err)
+  }
+})
+
+// ============================================
+// DELETE /admin/products/:sku/cache  🛡️
+// Czyści KV static cache dla produktu
+// ============================================
+adminProductsRouter.delete('/:sku/cache', async (c) => {
+  try {
+    const sku = sanitize(c.req.param('sku'), 50).toUpperCase()
+
+    if (!c.env.ALLEGRO_KV) {
+      return c.json({ success: true, data: { cleared: false, reason: 'no_kv' } })
+    }
+
+    const db      = createDb(c.env.DATABASE_URL)
+    const product = await db.query.products.findFirst({
+      columns: { slug: true },
+      where: eq(products.sku, sku),
+    })
+
+    await Promise.all([
+      c.env.ALLEGRO_KV.delete(`product:static:${sku.toLowerCase()}`),
+      product ? c.env.ALLEGRO_KV.delete(`product:static:${product.slug}`) : Promise.resolve(),
+    ])
+
+    return c.json({ success: true, data: { cleared: true } })
+  } catch (err) {
+    return serverError(c, 'DELETE /admin/products/:sku/cache', err)
   }
 })
 
