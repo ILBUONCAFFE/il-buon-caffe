@@ -809,3 +809,86 @@ export interface PostIssueMessageRequest {
   text: string
   attachmentIds?: string[]
 }
+
+// ============================================
+// RICH CONTENT (D1) TYPES
+// ============================================
+
+export type FlavorProfile = Record<string, number>   // dimension → 0-100
+export type SensoryNotes = Record<string, string>    // dimension → markdown
+
+export interface Award {
+  name: string
+  year: number
+  rank?: string
+}
+
+export interface Pairing {
+  dish: string
+  note?: string
+}
+
+export interface ProductRichContent {
+  sku: string
+  category: string
+  producerSlug: string | null
+  awards: Award[]
+  pairing: Pairing[]
+  ritual: string | null
+  servingTemp: string | null
+  profile: FlavorProfile
+  sensory: SensoryNotes
+  extended: Record<string, unknown>
+  hasAwards: boolean
+  isPublished: boolean
+  updatedAt: number
+  version: number
+}
+
+export interface ProducerEstateInfo {
+  name: string
+  // wine
+  hectares?: number
+  soil?: string
+  // coffee
+  altitude?: number
+  variety?: string
+}
+
+export interface ProducerImage {
+  url: string
+  caption?: string
+}
+
+export interface ProducerContent {
+  slug: string
+  category: string
+  name: string
+  region: string
+  country: string
+  founded: number | null
+  shortStory: string | null
+  story: string | null
+  philosophy: string | null
+  estateInfo: ProducerEstateInfo[]
+  images: ProducerImage[]
+  website: string | null
+  updatedAt: number
+  version: number
+}
+
+export interface ContentHistoryEntry {
+  id: number
+  sku: string
+  payload: ProductRichContent
+  changedBy: number | null
+  createdAt: number
+}
+
+export interface ProducerHistoryEntry {
+  id: number
+  slug: string
+  payload: ProducerContent
+  changedBy: number | null
+  createdAt: number
+}
