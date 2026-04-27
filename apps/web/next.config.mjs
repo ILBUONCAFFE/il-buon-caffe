@@ -5,6 +5,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const API_ORIGIN = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8787'
 const R2_MEDIA_URL = process.env.NEXT_PUBLIC_R2_MEDIA_URL
+const MEDIA_ORIGIN = (
+  process.env.NEXT_PUBLIC_MEDIA_PUBLIC_URL ||
+  process.env.NEXT_PUBLIC_R2_MEDIA_URL ||
+  'https://media.ilbuoncaffe.pl'
+).replace(/\/+$/, '')
 
 const parseRemotePatternFromUrl = (urlValue) => {
   if (!urlValue) {
@@ -194,6 +199,12 @@ const nextConfig = {
 
     return {
       afterFiles: [
+        // Read-only image requests should go straight to the media domain.
+        // This avoids coupling storefront image rendering to API proxy availability.
+        {
+          source: '/api/uploads/image/:path*',
+          destination: `${MEDIA_ORIGIN}/:path*`,
+        },
         // Forward public CF Worker routes
         ...CF_ROUTES.map(prefix => ({
           source: `${prefix}/:path*`,

@@ -357,10 +357,16 @@ function toString(value: unknown, fallback: string): string {
 }
 
 function normalizeUploadImageUrl(value: string): string {
-  if (!value.startsWith('/api/uploads/')) return value;
+  if (!value.startsWith('/api/uploads/image/')) return value;
 
-  const apiOrigin = (process.env.NEXT_PUBLIC_API_URL || 'https://api.ilbuoncaffe.pl').replace(/\/+$/, '');
-  return `${apiOrigin}${value}`;
+  const key = value.replace(/^\/api\/uploads\/image\//, '');
+  const mediaOrigin = (
+    process.env.NEXT_PUBLIC_MEDIA_PUBLIC_URL ||
+    process.env.NEXT_PUBLIC_R2_MEDIA_URL ||
+    'https://media.ilbuoncaffe.pl'
+  ).replace(/\/+$/, '');
+
+  return `${mediaOrigin}/${key}`;
 }
 
 function normalizeWineDetails(details: WineDetails): WineDetails {

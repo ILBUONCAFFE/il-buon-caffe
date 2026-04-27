@@ -128,13 +128,13 @@ function getAdminImagePreviewCandidates(raw: string): string[] {
 
   if (input.startsWith('/api/uploads/image/')) {
     const key = decodeUrlPath(input.replace(/^\/api\/uploads\/image\//, ''))
-    return uniqueNonEmpty([input, toPublicMediaUrl(key)])
+    return uniqueNonEmpty([toPublicMediaUrl(key), input])
   }
 
   if (input.startsWith('api/uploads/image/')) {
     const normalizedInput = `/${input}`
     const key = decodeUrlPath(input.replace(/^api\/uploads\/image\//, ''))
-    return uniqueNonEmpty([normalizedInput, toPublicMediaUrl(key)])
+    return uniqueNonEmpty([toPublicMediaUrl(key), normalizedInput])
   }
 
   if (/^https?:\/\//i.test(input)) {
@@ -156,7 +156,7 @@ function getAdminImagePreviewCandidates(raw: string): string[] {
   }
 
   // Legacy values sometimes store only the raw R2 key (e.g. "products/sku/main.webp").
-  return uniqueNonEmpty([toUploadProxyUrl(input), toPublicMediaUrl(input)])
+  return uniqueNonEmpty([toPublicMediaUrl(input), toUploadProxyUrl(input)])
 }
 
 function PreviewImage({

@@ -52,6 +52,16 @@ function normalizeProductImageUrl(imageUrl?: string | null): string | undefined 
   if (!imageUrl) return undefined;
   if (/^https?:\/\//i.test(imageUrl)) return normalizeUnsplashImageUrl(imageUrl);
 
+  if (imageUrl.startsWith('/api/uploads/image/')) {
+    const key = imageUrl.replace(/^\/api\/uploads\/image\//, '');
+    const mediaOrigin = (
+      process.env.NEXT_PUBLIC_MEDIA_PUBLIC_URL ||
+      process.env.NEXT_PUBLIC_R2_MEDIA_URL ||
+      'https://media.ilbuoncaffe.pl'
+    ).replace(/\/+$/, '');
+    return `${mediaOrigin}/${key}`;
+  }
+
   if (imageUrl.startsWith('/api/uploads/')) {
     const apiOrigin = (
       process.env.NEXT_PUBLIC_API_URL ||
