@@ -1,10 +1,11 @@
 export const CATEGORY_CONTENT_CONFIG = {
   wine: {
-    profileDimensions: ['body', 'sweetness', 'acidity', 'tannin', 'alcohol'] as const,
+    profileDimensions: ['body', 'sweetness', 'acidity', 'tannin'] as const,
     sensoryDimensions: ['eye', 'nose', 'palate'] as const,
     producerLabel: 'Winnica',
     producerSlug: 'winiarnie',
     ritualLabel: 'Serwowanie',
+    alcoholField: true, // separate % field stored in extended.alcohol
   },
   coffee: {
     profileDimensions: ['acidity', 'body', 'sweetness', 'roast', 'bitterness'] as const,
