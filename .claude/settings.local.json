@@ -20,7 +20,12 @@
       "Bash(rmdir \"C:/Users/User/Documents/1PROJEKTY/Il Buon Caffe/apps/web/src/app/sklep/[category]/[slug]\")",
       "Bash(rmdir \"C:/Users/User/Documents/1PROJEKTY/Il Buon Caffe/apps/web/src/app/sklep/[category]\")",
       "mcp__plugin_context-mode_context-mode__ctx_batch_execute",
-      "mcp__Neon__list_projects"
+      "mcp__Neon__list_projects",
+      "mcp__Neon__prepare_database_migration",
+      "mcp__Neon__complete_database_migration",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)"
     ]
   }
 }

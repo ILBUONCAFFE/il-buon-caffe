@@ -13,6 +13,7 @@ import { adminShipmentsRouter } from './shipments'
 import { adminReturnsRouter } from './returns'
 import { adminIssuesRouter } from './issues'
 import { adminAllegroProductsRouter } from './allegro-products'
+import { adminContentRouter } from './content'
 import type { Env } from '../../index'
 
 // ── Polish timezone helpers ───────────────────────────────────────────────────
@@ -76,6 +77,7 @@ adminRouter.route('/categories', adminCategoriesRouter)
 adminRouter.route('/returns',    adminReturnsRouter)
 adminRouter.route('/issues',           adminIssuesRouter)
 adminRouter.route('/allegro-products', adminAllegroProductsRouter)
+adminRouter.route('/content',          adminContentRouter)
 
 // ============================================
 // GET /admin/dashboard  🛡️

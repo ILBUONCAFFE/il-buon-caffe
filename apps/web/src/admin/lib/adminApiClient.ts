@@ -38,6 +38,12 @@ import type {
   PushStockResponse,
   StockHistoryResponse,
   LowStockResponse,
+  ProductRichContentResponse,
+  UpsertProductRichContentPayload,
+  ContentHistoryResponse,
+  ProducersListResponse,
+  ProducerContentResponse,
+  UpsertProducerPayload,
 } from '../types/admin-api'
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
@@ -424,6 +430,47 @@ export const adminApi = {
 
   getComplaintDetail: (id: number) =>
     request<{ data: AdminComplaintDetail }>(`/api/admin/issues/${id}`),
+
+  // ── Rich Content (D1) ────────────────────────────────────────────────────────
+  getProductRichContent: (sku: string) =>
+    request<ProductRichContentResponse>(`/api/admin/content/product/${encodeURIComponent(sku)}`),
+
+  upsertProductRichContent: (sku: string, payload: UpsertProductRichContentPayload) =>
+    request<ProductRichContentResponse>(`/api/admin/content/product/${encodeURIComponent(sku)}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+
+  deleteProductRichContent: (sku: string) =>
+    request<{ data: { deleted: boolean } }>(`/api/admin/content/product/${encodeURIComponent(sku)}`, {
+      method: 'DELETE',
+    }),
+
+  getProductRichContentHistory: (sku: string, limit = 20) =>
+    request<ContentHistoryResponse>(`/api/admin/content/product/${encodeURIComponent(sku)}/history?limit=${limit}`),
+
+  restoreProductRichContent: (sku: string, historyId: number) =>
+    request<ProductRichContentResponse>(
+      `/api/admin/content/product/${encodeURIComponent(sku)}/restore/${historyId}`,
+      { method: 'POST' }
+    ),
+
+  listProducers: (params?: { category?: string; region?: string; country?: string }) => {
+    const qs = new URLSearchParams()
+    if (params?.category) qs.set('category', params.category)
+    if (params?.region)   qs.set('region',   params.region)
+    if (params?.country)  qs.set('country',  params.country)
+    return request<ProducersListResponse>(`/api/admin/content/producers?${qs}`)
+  },
+
+  getProducer: (slug: string) =>
+    request<ProducerContentResponse>(`/api/admin/content/producer/${encodeURIComponent(slug)}`),
+
+  upsertProducer: (slug: string, payload: UpsertProducerPayload) =>
+    request<ProducerContentResponse>(`/api/admin/content/producer/${encodeURIComponent(slug)}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
 }
 
 // ── Re-export types so components can import from one place ──────────────────
@@ -479,4 +526,15 @@ export type {
   StockHistoryResponse,
   LowStockProduct,
   LowStockResponse,
+  ProductRichContent,
+  ProductRichContentResponse,
+  UpsertProductRichContentPayload,
+  ProducerContent,
+  ProducerContentResponse,
+  ProducersListResponse,
+  UpsertProducerPayload,
+  ContentHistoryEntry,
+  ContentHistoryResponse,
+  RichContentAward,
+  RichContentPairing,
 } from '../types/admin-api'

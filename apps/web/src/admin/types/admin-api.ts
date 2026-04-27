@@ -643,3 +643,114 @@ export interface LowStockResponse {
   data: LowStockProduct[]
   meta: { threshold: number; total: number }
 }
+
+// ── Rich Content (D1) ─────────────────────────────────────────────────────────
+
+export interface RichContentAward {
+  name: string
+  year: number
+  rank?: string
+}
+
+export interface RichContentPairing {
+  dish: string
+  note?: string
+}
+
+export interface ProductRichContent {
+  sku: string
+  category: string
+  producerSlug: string | null
+  awards: RichContentAward[]
+  pairing: RichContentPairing[]
+  ritual: string | null
+  servingTemp: string | null
+  profile: Record<string, number>
+  sensory: Record<string, string>
+  extended: Record<string, unknown>
+  hasAwards: boolean
+  isPublished: boolean
+  updatedAt: number
+  version: number
+}
+
+export interface ProductRichContentResponse {
+  data: ProductRichContent
+}
+
+export interface UpsertProductRichContentPayload {
+  category: string
+  producerSlug?: string | null
+  awards?: RichContentAward[]
+  pairing?: RichContentPairing[]
+  ritual?: string | null
+  servingTemp?: string | null
+  profile?: Record<string, number>
+  sensory?: Record<string, string>
+  extended?: Record<string, unknown>
+  isPublished?: boolean
+}
+
+export interface ProducerEstateInfo {
+  name: string
+  hectares?: number
+  soil?: string
+  altitude?: number
+  variety?: string
+}
+
+export interface ProducerImage {
+  url: string
+  caption?: string
+}
+
+export interface ProducerContent {
+  slug: string
+  category: string
+  name: string
+  region: string
+  country: string
+  founded: number | null
+  shortStory: string | null
+  story: string | null
+  philosophy: string | null
+  estateInfo: ProducerEstateInfo[]
+  images: ProducerImage[]
+  website: string | null
+  updatedAt: number
+  version: number
+}
+
+export interface ProducerContentResponse {
+  data: ProducerContent
+}
+
+export interface ProducersListResponse {
+  data: ProducerContent[]
+}
+
+export interface UpsertProducerPayload {
+  category: string
+  name: string
+  region: string
+  country: string
+  founded?: number | null
+  shortStory?: string | null
+  story?: string | null
+  philosophy?: string | null
+  estateInfo?: ProducerEstateInfo[]
+  images?: ProducerImage[]
+  website?: string | null
+}
+
+export interface ContentHistoryEntry {
+  id: number
+  sku: string
+  payload: ProductRichContent
+  changedBy: number | null
+  createdAt: number
+}
+
+export interface ContentHistoryResponse {
+  data: ContentHistoryEntry[]
+}

@@ -12,12 +12,13 @@ import {
 } from '../../lib/adminApiClient'
 import { StockHistoryModal } from './StockHistoryModal'
 import { AllegroLinkModal } from './AllegroLinkModal'
+import { RichContentEditor } from './RichContentEditor'
 
 type ProductEditorViewProps = {
   sku: string
 }
 
-type Tab = 'podstawowe' | 'ceny' | 'allegro' | 'media'
+type Tab = 'podstawowe' | 'ceny' | 'allegro' | 'media' | 'tresc'
 
 type ProductFormState = {
   sku: string
@@ -108,6 +109,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'ceny',       label: 'Ceny & Magazyn' },
   { id: 'allegro',    label: 'Allegro' },
   { id: 'media',      label: 'Media & SEO' },
+  { id: 'tresc',      label: 'Tresc premium' },
 ]
 
 export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
@@ -652,6 +654,16 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
               W trybie tworzenia upload uruchomi sie automatycznie po utworzeniu produktu.
             </p>
           )}
+        </div>
+      )}
+
+      {/* Tab: Tresc premium */}
+      {activeTab === 'tresc' && !isCreateMode && product && (
+        <RichContentEditor sku={sku} category={product.category?.slug ?? 'wine'} />
+      )}
+      {activeTab === 'tresc' && isCreateMode && (
+        <div className="bg-white rounded-xl border border-[#E5E4E1] p-5">
+          <p className="text-sm text-[#737373]">Najpierw utworz produkt, aby edytowac tresc premium.</p>
         </div>
       )}
 

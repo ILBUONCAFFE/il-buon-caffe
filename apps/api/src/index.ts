@@ -12,6 +12,7 @@ import { legalRouter } from './routes/legal'
 import { paymentsRouter } from './routes/payments'
 import { webhooksRouter } from './routes/webhooks'
 import { catalogsRouter } from './routes/catalogs'
+import { contentRouter } from './routes/content'
 import { adminRouter } from './routes/admin/index'
 import { createDbWithPool } from '@repo/db/client'
 import { allegroCredentials, allegroSyncLog, auditLog } from '@repo/db/schema'
@@ -75,6 +76,9 @@ export interface Env {
   RL_PASSWORD_RESET?: { limit(opts: { key: string }): Promise<{ success: boolean }> }
   RL_HEALTH?:         { limit(opts: { key: string }): Promise<{ success: boolean }> }
   RL_USER_EXPORT?:    { limit(opts: { key: string }): Promise<{ success: boolean }> }
+
+  // D1 — rich content (producers, tasting notes, awards, pairing)
+  CONTENT_DB: D1Database
 }
 
 // ── App ───────────────────────────────────────────────────────────────────
@@ -133,6 +137,9 @@ app.route('/api/webhooks', webhooksRouter)
 
 // ── Catalogs (public — secret UUID slug) ──────────────────────────────────
 app.route('/api/catalogs', catalogsRouter)
+
+// ── Rich content (D1)
+app.route('/api/content', contentRouter)
 
 // ── Admin API ─────────────────────────────────────────────────────────────
 app.route('/admin',             adminRouter)
