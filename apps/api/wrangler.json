@@ -24,6 +24,13 @@
 			"preview_bucket_name": "il-buon-caffe-media-dev"
 		}
 	],
+	"d1_databases": [
+		{
+			"binding": "CONTENT_DB",
+			"database_name": "il-buon-caffe-content",
+			"database_id": "18dbaa4f-5bc4-41f2-861f-7de55c30deb2"
+		}
+	],
 	"kv_namespaces": [
 		{
 			"binding": "ALLEGRO_KV",
