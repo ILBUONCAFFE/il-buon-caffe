@@ -64,6 +64,12 @@ const MEDIA_ORIGINS = [
   .filter((value): value is string => Boolean(value))
   .map((value) => value.replace(/\/+$/, '').toLowerCase())
 
+const MEDIA_PUBLIC_BASE_URL = (
+  process.env.NEXT_PUBLIC_MEDIA_PUBLIC_URL ||
+  process.env.NEXT_PUBLIC_R2_MEDIA_URL ||
+  'https://media.ilbuoncaffe.pl'
+).replace(/\/+$/, '')
+
 function trimTo(raw: string, max: number): string { return raw.trim().slice(0, max) }
 
 function encodeR2KeyForUrl(key: string): string {
@@ -94,20 +100,41 @@ function toUploadProxyUrl(key: string): string {
   return `/api/uploads/image/${encodeR2KeyForUrl(cleanKey)}`
 }
 
-function normalizeImageUrlForAdminPreview(raw: string): string {
+function toPublicMediaUrl(key: string): string {
+  const cleanKey = key.replace(/^\/+/, '').trim()
+  if (!cleanKey) return ''
+  return `${MEDIA_PUBLIC_BASE_URL}/${encodeR2KeyForUrl(cleanKey)}`
+}
+
+function uniqueNonEmpty(values: string[]): string[] {
+  const out: string[] = []
+  const seen = new Set<string>()
+  for (const value of values) {
+    const normalized = value.trim()
+    if (!normalized || seen.has(normalized)) continue
+    seen.add(normalized)
+    out.push(normalized)
+  }
+  return out
+}
+
+function getAdminImagePreviewCandidates(raw: string): string[] {
   const input = raw.trim()
-  if (!input) return ''
+  if (!input) return []
 
   if (input.startsWith('blob:') || input.startsWith('data:')) {
-    return input
+    return [input]
   }
 
   if (input.startsWith('/api/uploads/image/')) {
-    return input
+    const key = decodeUrlPath(input.replace(/^\/api\/uploads\/image\//, ''))
+    return uniqueNonEmpty([input, toPublicMediaUrl(key)])
   }
 
   if (input.startsWith('api/uploads/image/')) {
-    return `/${input}`
+    const normalizedInput = `/${input}`
+    const key = decodeUrlPath(input.replace(/^api\/uploads\/image\//, ''))
+    return uniqueNonEmpty([normalizedInput, toPublicMediaUrl(key)])
   }
 
   if (/^https?:\/\//i.test(input)) {
@@ -115,20 +142,47 @@ function normalizeImageUrlForAdminPreview(raw: string): string {
       const parsed = new URL(input)
       const origin = `${parsed.protocol}//${parsed.host}`.toLowerCase()
       if (MEDIA_ORIGINS.includes(origin)) {
-        return toUploadProxyUrl(decodeUrlPath(parsed.pathname))
+        const key = decodeUrlPath(parsed.pathname)
+        return uniqueNonEmpty([input, toUploadProxyUrl(key)])
       }
     } catch {
-      return input
+      return [input]
     }
-    return input
+    return [input]
   }
 
   if (input.startsWith('/')) {
-    return input
+    return [input]
   }
 
   // Legacy values sometimes store only the raw R2 key (e.g. "products/sku/main.webp").
-  return toUploadProxyUrl(input)
+  return uniqueNonEmpty([toUploadProxyUrl(input), toPublicMediaUrl(input)])
+}
+
+function PreviewImage({
+  srcCandidates,
+  className,
+}: {
+  srcCandidates: string[]
+  className: string
+}) {
+  const [idx, setIdx] = useState(0)
+
+  useEffect(() => {
+    setIdx(0)
+  }, [srcCandidates])
+
+  const src = srcCandidates[idx]
+  if (!src) return null
+
+  return (
+    <img
+      src={src}
+      alt=""
+      className={className}
+      onError={() => setIdx((prev) => (prev < srcCandidates.length - 1 ? prev + 1 : prev))}
+    />
+  )
 }
 
 function parseNonNegativeNumber(raw: string, fieldLabel: string): { ok: true; value: number } | { ok: false; error: string } {
@@ -267,7 +321,10 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
     return () => URL.revokeObjectURL(url)
   }, [selectedImage])
 
-  const displayedImage = previewUrl || normalizeImageUrlForAdminPreview(form.imageUrl)
+  const displayedImageCandidates = useMemo(
+    () => (previewUrl ? [previewUrl] : getAdminImagePreviewCandidates(form.imageUrl)),
+    [previewUrl, form.imageUrl],
+  )
 
   const handleFieldChange = <K extends keyof ProductFormState>(field: K, value: ProductFormState[K]) => {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -475,8 +532,8 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
           {/* Preview card */}
           <div className="bg-white rounded-xl border border-[#E5E4E1] p-4 shadow-sm">
             <div className="aspect-square w-full rounded-lg overflow-hidden bg-[#FAFAF9] border border-[#F0EFEC] flex items-center justify-center">
-              {displayedImage ? (
-                <img src={displayedImage} alt="" className="w-full h-full object-contain" />
+              {displayedImageCandidates.length > 0 ? (
+                <PreviewImage srcCandidates={displayedImageCandidates} className="w-full h-full object-contain" />
               ) : (
                 <ImageIcon size={28} className="text-[#D4D3D0]" />
               )}
@@ -720,8 +777,8 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
                 <div>
                   <p className="text-xs font-medium uppercase tracking-wider text-[#737373] mb-1.5">Zapisane</p>
                   <div className="aspect-square rounded-lg border border-[#E5E4E1] bg-[#FAFAF9] flex items-center justify-center overflow-hidden">
-                    {displayedImage ? (
-                      <img src={displayedImage} alt="" className="w-full h-full object-contain" />
+                    {displayedImageCandidates.length > 0 ? (
+                      <PreviewImage srcCandidates={displayedImageCandidates} className="w-full h-full object-contain" />
                     ) : (
                       <ImageIcon size={32} className="text-[#D4D3D0]" />
                     )}
