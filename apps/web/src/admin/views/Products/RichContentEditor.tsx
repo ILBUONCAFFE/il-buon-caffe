@@ -61,23 +61,44 @@ function emptyContent(category: string): UpsertProductRichContentPayload {
 
 type Props = { sku: string; category: string }
 
-function Card({ icon: Icon, title, description, action, children }: { icon: typeof Sparkles; title: string; description?: string; action?: React.ReactNode; children: React.ReactNode }) {
+function Card({ icon: Icon, title, action, children }: { icon: typeof Sparkles; title: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
     <section className="bg-white rounded-xl border border-[#E5E4E1] shadow-sm overflow-hidden">
-      <header className="flex items-start justify-between gap-3 px-5 pt-5 pb-3 border-b border-[#F0EFEC]">
-        <div className="flex items-start gap-3">
-          <span className="mt-0.5 p-1.5 rounded-lg bg-[#FAFAF9] text-[#525252]">
+      <header className="flex items-center justify-between gap-3 px-5 pt-5 pb-3 border-b border-[#F0EFEC]">
+        <div className="flex items-center gap-3">
+          <span className="p-1.5 rounded-lg bg-[#FAFAF9] text-[#525252]">
             <Icon size={16} />
           </span>
-          <div>
-            <h3 className="text-base font-semibold text-[#1A1A1A]">{title}</h3>
-            {description && <p className="text-sm text-[#737373] mt-0.5">{description}</p>}
-          </div>
+          <h3 className="text-base font-semibold text-[#1A1A1A]">{title}</h3>
         </div>
         {action}
       </header>
       <div className="p-5 space-y-4">{children}</div>
     </section>
+  )
+}
+
+function PrettySlider({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  return (
+    <div className="relative h-6 flex items-center group">
+      <div className="absolute inset-x-0 h-1.5 rounded-full bg-[#E5E4E1]" />
+      <div
+        className="absolute h-1.5 rounded-full bg-gradient-to-r from-[#1A1A1A] to-[#525252]"
+        style={{ width: `${value}%` }}
+      />
+      <div
+        className="absolute w-4 h-4 rounded-full bg-white border-2 border-[#1A1A1A] shadow-sm pointer-events-none transition-transform group-hover:scale-110"
+        style={{ left: `calc(${value}% - 8px)` }}
+      />
+      <input
+        type="range"
+        min={0}
+        max={100}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+      />
+    </div>
   )
 }
 
@@ -175,7 +196,7 @@ export function RichContentEditor({ sku, category }: Props) {
               <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isPublished ? 'translate-x-4' : 'translate-x-0.5'}`} />
             </span>
             <span className="text-sm font-medium text-[#1A1A1A]">
-              {isPublished ? 'Opublikowana' : 'Szkic — niewidoczna'}
+              {isPublished ? 'Opublikowana' : 'Szkic'}
             </span>
           </button>
         </div>
@@ -188,7 +209,7 @@ export function RichContentEditor({ sku, category }: Props) {
         </button>
       </div>
 
-      <Card icon={Wine} title="Podstawowe" description="Producent i parametry serwowania">
+      <Card icon={Wine} title="Podstawowe">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-[#737373] mb-1.5">
@@ -198,23 +219,21 @@ export function RichContentEditor({ sku, category }: Props) {
               className="admin-input w-full"
               value={content.servingTemp ?? ''}
               onChange={(e) => setContent((p) => ({ ...p, servingTemp: e.target.value || null }))}
-              placeholder="np. 16–18°C"
             />
           </div>
           <div>
             <label className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-[#737373] mb-1.5">
-              <User size={12} /> Slug producenta ({cfg.producerLabel})
+              <User size={12} /> {cfg.producerLabel} (slug)
             </label>
             <input
               className="admin-input w-full font-mono"
               value={content.producerSlug ?? ''}
               onChange={(e) => setContent((p) => ({ ...p, producerSlug: e.target.value || null }))}
-              placeholder="np. antinori"
             />
           </div>
           {cfg.alcoholField && (
             <div>
-              <label className="block text-xs font-medium uppercase tracking-wider text-[#737373] mb-1.5">Alkohol (%)</label>
+              <label className="block text-xs font-medium uppercase tracking-wider text-[#737373] mb-1.5">Alkohol</label>
               <div className="relative">
                 <input
                   type="number"
@@ -227,7 +246,6 @@ export function RichContentEditor({ sku, category }: Props) {
                     ...p,
                     extended: { ...(p.extended ?? {}), alcohol: e.target.value ? Number(e.target.value) : undefined },
                   }))}
-                  placeholder="13.5"
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#A3A3A3]">%</span>
               </div>
@@ -236,26 +254,19 @@ export function RichContentEditor({ sku, category }: Props) {
         </div>
       </Card>
 
-      <Card icon={Sparkles} title="Profil smaku" description="Suwaki 0–100, widoczne na karcie produktu">
+      <Card icon={Sparkles} title="Profil smaku">
         <div className="space-y-5">
           {cfg.profile.map((dim) => {
             const val = (content.profile ?? {})[dim] ?? 50
             const [low, high] = PROFILE_SCALE[dim] ?? ['', '']
             return (
               <div key={dim}>
-                <div className="flex items-baseline justify-between mb-1.5">
+                <div className="flex items-baseline justify-between mb-2">
                   <span className="text-sm font-medium text-[#1A1A1A]">{PROFILE_LABELS[dim] ?? dim}</span>
-                  <span className="font-mono text-xs text-[#737373]">{val}</span>
+                  <span className="font-mono text-xs text-[#737373] tabular-nums">{val}</span>
                 </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  value={val}
-                  onChange={(e) => setProfile(dim, Number(e.target.value))}
-                  className="w-full accent-[#1A1A1A]"
-                />
-                <div className="flex justify-between text-[11px] text-[#A3A3A3] mt-0.5">
+                <PrettySlider value={val} onChange={(v) => setProfile(dim, v)} />
+                <div className="flex justify-between text-[11px] text-[#A3A3A3] mt-1.5">
                   <span>{low}</span>
                   <span>{high}</span>
                 </div>
@@ -265,7 +276,7 @@ export function RichContentEditor({ sku, category }: Props) {
         </div>
       </Card>
 
-      <Card icon={Sparkles} title="Nuty sensoryczne" description="Opisy każdego wymiaru">
+      <Card icon={Sparkles} title="Nuty sensoryczne">
         <div className="space-y-3">
           {cfg.sensory.map((dim) => (
             <div key={dim}>
@@ -276,26 +287,23 @@ export function RichContentEditor({ sku, category }: Props) {
                 className="admin-input w-full min-h-[80px] resize-y"
                 value={(content.sensory ?? {})[dim] ?? ''}
                 onChange={(e) => setSensory(dim, e.target.value)}
-                placeholder={`Opis wymiaru: ${SENSORY_LABELS[dim]?.toLowerCase() ?? dim}…`}
               />
             </div>
           ))}
         </div>
       </Card>
 
-      <Card icon={Wine} title={cfg.ritual} description="Wskazówki dla klienta">
+      <Card icon={Wine} title={cfg.ritual}>
         <textarea
           className="admin-input w-full min-h-[120px] resize-y"
           value={content.ritual ?? ''}
           onChange={(e) => setContent((p) => ({ ...p, ritual: e.target.value || null }))}
-          placeholder={`Wskazówki dotyczące: ${cfg.ritual.toLowerCase()}…`}
         />
       </Card>
 
       <Card
         icon={Award}
         title="Nagrody"
-        description="Punktacje, medale, wyróżnienia"
         action={
           <button
             type="button"
@@ -307,7 +315,7 @@ export function RichContentEditor({ sku, category }: Props) {
         }
       >
         {awards.length === 0 ? (
-          <p className="text-sm text-[#A3A3A3] text-center py-6">Brak nagród. Kliknij „Dodaj", aby dopisać pierwszą.</p>
+          <p className="text-sm text-[#A3A3A3] text-center py-6">Brak nagród</p>
         ) : (
           <div className="space-y-2">
             {awards.map((award, i) => (
@@ -317,7 +325,7 @@ export function RichContentEditor({ sku, category }: Props) {
                     className="admin-input col-span-12 md:col-span-5"
                     value={award.name}
                     onChange={(e) => updateAward(i, 'name', e.target.value)}
-                    placeholder="Nazwa nagrody (np. Wine Spectator)"
+                    placeholder="Nazwa"
                   />
                   <input
                     type="number"
@@ -330,7 +338,7 @@ export function RichContentEditor({ sku, category }: Props) {
                     className="admin-input col-span-7 md:col-span-4"
                     value={award.rank ?? ''}
                     onChange={(e) => updateAward(i, 'rank', e.target.value)}
-                    placeholder="Wyróżnienie (np. 95 pkt)"
+                    placeholder="Punkty / wyróżnienie"
                   />
                   <button
                     type="button"
@@ -350,7 +358,6 @@ export function RichContentEditor({ sku, category }: Props) {
       <Card
         icon={Utensils}
         title="Pairing"
-        description="Sugerowane dania / połączenia smakowe"
         action={
           <button
             type="button"
@@ -362,7 +369,7 @@ export function RichContentEditor({ sku, category }: Props) {
         }
       >
         {pairing.length === 0 ? (
-          <p className="text-sm text-[#A3A3A3] text-center py-6">Brak pairingu. Dodaj pierwszy zestaw.</p>
+          <p className="text-sm text-[#A3A3A3] text-center py-6">Brak pairingu</p>
         ) : (
           <div className="space-y-2">
             {pairing.map((pair, i) => (
@@ -372,13 +379,13 @@ export function RichContentEditor({ sku, category }: Props) {
                     className="admin-input col-span-12 md:col-span-4"
                     value={pair.dish}
                     onChange={(e) => updatePairing(i, 'dish', e.target.value)}
-                    placeholder="Danie (np. Bistecca alla Fiorentina)"
+                    placeholder="Danie"
                   />
                   <input
                     className="admin-input col-span-11 md:col-span-7"
                     value={pair.note ?? ''}
                     onChange={(e) => updatePairing(i, 'note', e.target.value)}
-                    placeholder="Opis parowania (opcjonalne)"
+                    placeholder="Opis"
                   />
                   <button
                     type="button"

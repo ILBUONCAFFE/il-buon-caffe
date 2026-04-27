@@ -96,50 +96,43 @@ function mapProductToForm(p: AdminProduct): ProductFormState {
   }
 }
 
-const TABS: { id: Tab; label: string; icon: typeof Package; hint: string }[] = [
-  { id: 'podstawowe', label: 'Podstawowe',     icon: Package,      hint: 'Nazwa, kategoria, opis' },
-  { id: 'ceny',       label: 'Ceny i magazyn', icon: DollarSign,   hint: 'PLN, stan, waga' },
-  { id: 'allegro',    label: 'Allegro',        icon: ShoppingCart, hint: 'Powiązanie oferty' },
-  { id: 'media',      label: 'Media',          icon: ImageIcon,    hint: 'Zdjęcie główne' },
-  { id: 'tresc',      label: 'Treść premium',  icon: Sparkles,     hint: 'Profil, sensoryka, nagrody' },
+const TABS: { id: Tab; label: string; icon: typeof Package }[] = [
+  { id: 'podstawowe', label: 'Podstawowe',     icon: Package      },
+  { id: 'ceny',       label: 'Ceny i magazyn', icon: DollarSign   },
+  { id: 'allegro',    label: 'Allegro',        icon: ShoppingCart },
+  { id: 'media',      label: 'Media',          icon: ImageIcon    },
+  { id: 'tresc',      label: 'Treść premium',  icon: Sparkles     },
 ]
 
-function Toggle({ checked, onChange, label, hint }: { checked: boolean; onChange: (v: boolean) => void; label: string; hint?: string }) {
+function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
   return (
     <button
       type="button"
       onClick={() => onChange(!checked)}
-      className="flex items-start gap-3 text-left w-full p-3 rounded-lg border border-[#E5E4E1] bg-white hover:border-[#D4D3D0] transition-colors"
+      className="flex items-center gap-3 text-left w-full px-3 py-2.5 rounded-lg border border-[#E5E4E1] bg-white hover:border-[#D4D3D0] transition-colors"
     >
       <span className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${checked ? 'bg-[#1A1A1A]' : 'bg-[#D4D3D0]'}`}>
         <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${checked ? 'translate-x-4' : 'translate-x-0.5'}`} />
       </span>
-      <span className="flex-1">
-        <span className="block text-sm font-medium text-[#1A1A1A]">{label}</span>
-        {hint && <span className="block text-xs text-[#737373] mt-0.5">{hint}</span>}
-      </span>
+      <span className="text-sm font-medium text-[#1A1A1A]">{label}</span>
     </button>
   )
 }
 
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
       <label className="block text-xs font-medium uppercase tracking-wider text-[#737373] mb-1.5">{label}</label>
       {children}
-      {hint && <p className="text-xs text-[#A3A3A3] mt-1">{hint}</p>}
     </div>
   )
 }
 
-function SectionCard({ title, description, children, action }: { title: string; description?: string; children: React.ReactNode; action?: React.ReactNode }) {
+function SectionCard({ title, children, action }: { title: string; children: React.ReactNode; action?: React.ReactNode }) {
   return (
     <section className="bg-white rounded-xl border border-[#E5E4E1] shadow-sm overflow-hidden">
-      <header className="flex items-start justify-between gap-3 px-5 pt-5 pb-3 border-b border-[#F0EFEC]">
-        <div>
-          <h2 className="text-base font-semibold text-[#1A1A1A]">{title}</h2>
-          {description && <p className="text-sm text-[#737373] mt-0.5">{description}</p>}
-        </div>
+      <header className="flex items-center justify-between gap-3 px-5 pt-5 pb-3 border-b border-[#F0EFEC]">
+        <h2 className="text-base font-semibold text-[#1A1A1A]">{title}</h2>
         {action}
       </header>
       <div className="p-5 space-y-4">{children}</div>
@@ -192,6 +185,16 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
     if (isCreateMode) { setForm(DEFAULT_FORM); setProduct(null); setLoading(false); return }
     void loadProduct()
   }, [isCreateMode, loadProduct])
+
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  useEffect(() => {
+    if (!selectedImage) { setPreviewUrl(null); return }
+    const url = URL.createObjectURL(selectedImage)
+    setPreviewUrl(url)
+    return () => URL.revokeObjectURL(url)
+  }, [selectedImage])
+
+  const displayedImage = previewUrl || form.imageUrl
 
   const handleFieldChange = <K extends keyof ProductFormState>(field: K, value: ProductFormState[K]) => {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -399,8 +402,8 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
           {/* Preview card */}
           <div className="bg-white rounded-xl border border-[#E5E4E1] p-4 shadow-sm">
             <div className="aspect-square w-full rounded-lg overflow-hidden bg-[#FAFAF9] border border-[#F0EFEC] flex items-center justify-center">
-              {form.imageUrl ? (
-                <img src={form.imageUrl} alt="" className="w-full h-full object-contain" />
+              {displayedImage ? (
+                <img src={displayedImage} alt="" className="w-full h-full object-contain" />
               ) : (
                 <ImageIcon size={28} className="text-[#D4D3D0]" />
               )}
@@ -431,15 +434,12 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
                 <button
                   key={t.id}
                   onClick={() => setActiveTab(t.id)}
-                  className={`w-full flex items-start gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors ${
                     active ? 'bg-[#1A1A1A] text-white' : 'text-[#525252] hover:bg-[#F5F4F1]'
                   }`}
                 >
-                  <Icon size={16} className={`mt-0.5 ${active ? 'text-white' : 'text-[#737373]'}`} />
-                  <span className="flex-1 min-w-0">
-                    <span className="block text-sm font-medium">{t.label}</span>
-                    <span className={`block text-xs truncate ${active ? 'text-white/60' : 'text-[#A3A3A3]'}`}>{t.hint}</span>
-                  </span>
+                  <Icon size={16} className={active ? 'text-white' : 'text-[#737373]'} />
+                  <span className="text-sm font-medium">{t.label}</span>
                 </button>
               )
             })}
@@ -450,15 +450,14 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
         <div className="space-y-5 min-w-0">
           {activeTab === 'podstawowe' && (
             <>
-              <SectionCard title="Identyfikacja" description="SKU, nazwa, kategoria">
+              <SectionCard title="Identyfikacja">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Field label="SKU" hint={isCreateMode ? 'Stały identyfikator (max 50 znaków)' : 'SKU nie można zmieniać po utworzeniu'}>
+                  <Field label="SKU">
                     <input
                       className="admin-input w-full font-mono"
                       value={form.sku}
                       onChange={(e) => handleFieldChange('sku', e.target.value)}
                       disabled={!isCreateMode}
-                      placeholder="np. WINE-001"
                     />
                   </Field>
                   <Field label="Kategoria">
@@ -479,28 +478,27 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
                         className="admin-input w-full"
                         value={form.name}
                         onChange={(e) => handleFieldChange('name', e.target.value)}
-                        placeholder="np. Brunello di Montalcino 2018"
                       />
                     </Field>
                   </div>
                   <div className="md:col-span-2">
-                    <Field label="Krótki opis" hint={`${form.description.length} / 2000 znaków`}>
+                    <Field label="Krótki opis">
                       <textarea
                         className="admin-input w-full min-h-[100px] resize-y"
                         value={form.description}
                         onChange={(e) => handleFieldChange('description', e.target.value)}
-                        placeholder="Tekst widoczny w katalogu i kartach produktu…"
                       />
+                      <p className="text-[11px] text-[#A3A3A3] mt-1 text-right">{form.description.length} / 2000</p>
                     </Field>
                   </div>
                 </div>
               </SectionCard>
 
-              <SectionCard title="Widoczność" description="Status i wyróżnienia w katalogu">
+              <SectionCard title="Widoczność">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <Toggle checked={form.isActive}   onChange={(v) => handleFieldChange('isActive', v)}   label="Aktywny"     hint="Widoczny w katalogu" />
-                  <Toggle checked={form.isNew}      onChange={(v) => handleFieldChange('isNew', v)}      label="Nowość"      hint="Plakietka NEW" />
-                  <Toggle checked={form.isFeatured} onChange={(v) => handleFieldChange('isFeatured', v)} label="Wyróżniony" hint="Polecane na home" />
+                  <Toggle checked={form.isActive}   onChange={(v) => handleFieldChange('isActive', v)}   label="Aktywny" />
+                  <Toggle checked={form.isNew}      onChange={(v) => handleFieldChange('isNew', v)}      label="Nowość" />
+                  <Toggle checked={form.isFeatured} onChange={(v) => handleFieldChange('isFeatured', v)} label="Wyróżniony" />
                 </div>
 
                 {!isCreateMode && product?.isActive && (
@@ -529,7 +527,7 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
 
           {activeTab === 'ceny' && (
             <>
-              <SectionCard title="Cennik" description="Wszystkie kwoty w PLN brutto">
+              <SectionCard title="Cennik">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Field label="Cena sprzedaży">
                     <div className="relative">
@@ -537,18 +535,16 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
                         className="admin-input w-full pr-12"
                         value={form.price}
                         onChange={(e) => handleFieldChange('price', e.target.value)}
-                        placeholder="0.00"
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#A3A3A3]">zł</span>
                     </div>
                   </Field>
-                  <Field label="Cena przekreślona" hint="Pokazuje promocję, opcjonalne">
+                  <Field label="Cena przekreślona">
                     <div className="relative">
                       <input
                         className="admin-input w-full pr-12"
                         value={form.compareAtPrice}
                         onChange={(e) => handleFieldChange('compareAtPrice', e.target.value)}
-                        placeholder="0.00"
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#A3A3A3]">zł</span>
                     </div>
@@ -558,7 +554,6 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
 
               <SectionCard
                 title="Magazyn"
-                description="Aktualny stan i historia zmian"
                 action={!isCreateMode ? (
                   <button
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-[#E5E4E1] text-[#525252] hover:bg-[#F5F4F1]"
@@ -569,7 +564,7 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
                 ) : null}
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Field label="Stan magazynowy" hint="Liczba sztuk na stanie">
+                  <Field label="Stan magazynowy">
                     <input
                       className="admin-input w-full"
                       value={form.stock}
@@ -582,7 +577,6 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
                         className="admin-input w-full pr-10"
                         value={form.weight}
                         onChange={(e) => handleFieldChange('weight', e.target.value)}
-                        placeholder="0"
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#A3A3A3]">g</span>
                     </div>
@@ -590,14 +584,13 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
                 </div>
               </SectionCard>
 
-              <SectionCard title="Pochodzenie" description="Dane uzupełniające">
+              <SectionCard title="Pochodzenie">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Field label="Pochodzenie" hint="Region / kraj / apelacja">
+                  <Field label="Pochodzenie">
                     <input
                       className="admin-input w-full"
                       value={form.origin}
                       onChange={(e) => handleFieldChange('origin', e.target.value)}
-                      placeholder="np. Toskania, Włochy"
                     />
                   </Field>
                   <Field label="Rocznik">
@@ -605,7 +598,6 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
                       className="admin-input w-full"
                       value={form.year}
                       onChange={(e) => handleFieldChange('year', e.target.value)}
-                      placeholder="np. 2018"
                     />
                   </Field>
                 </div>
@@ -614,7 +606,7 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
           )}
 
           {activeTab === 'allegro' && (
-            <SectionCard title="Integracja Allegro" description="Powiązanie SKU z ofertą Allegro">
+            <SectionCard title="Integracja Allegro">
               {isCreateMode ? (
                 <p className="text-sm text-[#737373]">Połączenie Allegro dostępne po utworzeniu produktu.</p>
               ) : (
@@ -643,73 +635,95 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
                       {pushingStock ? 'Wysyłanie…' : 'Wypchnij stan na Allegro'}
                     </button>
                   )}
-
-                  <div className="rounded-lg border border-[#E5E4E1] bg-white p-3 text-xs text-[#737373] space-y-1">
-                    <p>• Zmiana połączenia aktualizuje <code className="font-mono">allegroOfferId</code> w bazie.</p>
-                    <p>• Wypchnięcie stanu wysyła <code className="font-mono">PATCH</code> do <code className="font-mono">sale/product-offers/{'{id}'}</code>.</p>
-                  </div>
                 </>
               )}
             </SectionCard>
           )}
 
           {activeTab === 'media' && (
-            <SectionCard title="Zdjęcie główne" description="Format webp/avif/png/jpg, R2 storage">
-              <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-4">
-                <div className="aspect-square rounded-lg border border-[#E5E4E1] bg-[#FAFAF9] flex items-center justify-center overflow-hidden">
-                  {form.imageUrl ? (
-                    <img src={form.imageUrl} alt="" className="w-full h-full object-contain" />
-                  ) : (
-                    <div className="text-center text-[#A3A3A3] p-4">
-                      <ImageIcon size={32} className="mx-auto mb-2 text-[#D4D3D0]" />
-                      <p className="text-xs">Brak zdjęcia</p>
-                    </div>
-                  )}
+            <SectionCard title="Zdjęcie główne">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* Left: current saved image */}
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wider text-[#737373] mb-1.5">Zapisane</p>
+                  <div className="aspect-square rounded-lg border border-[#E5E4E1] bg-[#FAFAF9] flex items-center justify-center overflow-hidden">
+                    {form.imageUrl ? (
+                      <img src={form.imageUrl} alt="" className="w-full h-full object-contain" />
+                    ) : (
+                      <ImageIcon size={32} className="text-[#D4D3D0]" />
+                    )}
+                  </div>
                 </div>
 
-                <div className="space-y-3">
-                  <Field label="URL obrazu (manualnie)">
+                {/* Right: upload + live preview */}
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wider text-[#737373] mb-1.5">
+                    {selectedImage ? 'Wybrany plik' : 'Wgraj plik'}
+                  </p>
+                  <label
+                    onDragOver={(e) => { e.preventDefault() }}
+                    onDrop={(e) => {
+                      e.preventDefault()
+                      const f = e.dataTransfer.files?.[0]
+                      if (f && f.type.startsWith('image/')) setSelectedImage(f)
+                    }}
+                    className="aspect-square rounded-lg border-2 border-dashed border-[#D4D3D0] bg-[#FAFAF9] hover:border-[#1A1A1A] transition-colors cursor-pointer flex items-center justify-center overflow-hidden relative group"
+                  >
+                    {previewUrl ? (
+                      <>
+                        <img src={previewUrl} alt="" className="w-full h-full object-contain" />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                          <span className="text-white text-sm font-medium">Zmień plik</span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-center px-4">
+                        <Upload size={24} className="mx-auto text-[#737373] mb-2" />
+                        <p className="text-sm text-[#525252]">Przeciągnij lub kliknij</p>
+                        <p className="text-xs text-[#A3A3A3] mt-1">webp · png · jpg · avif</p>
+                      </div>
+                    )}
                     <input
-                      className="admin-input w-full font-mono text-xs"
-                      value={form.imageUrl}
-                      onChange={(e) => handleFieldChange('imageUrl', e.target.value)}
-                      placeholder="https://media.ilbuoncaffe.pl/…"
+                      type="file"
+                      className="hidden"
+                      accept="image/webp,image/png,image/jpeg,image/avif"
+                      onChange={(e) => setSelectedImage(e.target.files?.[0] ?? null)}
                     />
-                  </Field>
+                  </label>
 
-                  <Field label="Wgraj plik">
-                    <label className="flex flex-col items-center justify-center px-4 py-6 rounded-lg border-2 border-dashed border-[#D4D3D0] bg-[#FAFAF9] cursor-pointer hover:border-[#A3A3A3] transition-colors">
-                      <Upload size={20} className="text-[#737373] mb-2" />
-                      <span className="text-sm text-[#525252]">
-                        {selectedImage ? selectedImage.name : 'Kliknij aby wybrać zdjęcie'}
-                      </span>
-                      <span className="text-xs text-[#A3A3A3] mt-1">webp, png, jpg, avif</span>
-                      <input
-                        type="file"
-                        className="hidden"
-                        accept="image/webp,image/png,image/jpeg,image/avif"
-                        onChange={(e) => setSelectedImage(e.target.files?.[0] ?? null)}
-                      />
-                    </label>
-                  </Field>
-
-                  {!isCreateMode ? (
-                    <div className="flex items-center gap-3">
+                  {selectedImage && (
+                    <div className="mt-2 flex items-center justify-between gap-2 text-xs text-[#737373]">
+                      <span className="truncate font-mono">{selectedImage.name}</span>
                       <button
-                        className="btn-primary text-sm disabled:opacity-40"
-                        disabled={!selectedImage || uploading || saving}
-                        onClick={() => void uploadImageOnly()}
+                        type="button"
+                        onClick={() => setSelectedImage(null)}
+                        className="text-[#A3A3A3] hover:text-red-600 shrink-0"
                       >
-                        {uploading ? 'Wysyłanie…' : 'Wyślij i zapisz'}
+                        Usuń
                       </button>
-                      <p className="text-xs text-[#A3A3A3] flex-1">
-                        R2: <code className="font-mono">products/{form.sku || '<sku>'}/main.*</code>
-                      </p>
                     </div>
-                  ) : (
-                    <p className="text-xs text-[#737373]">W trybie tworzenia upload uruchomi się automatycznie po utworzeniu produktu.</p>
                   )}
                 </div>
+              </div>
+
+              <div className="pt-4 border-t border-[#F0EFEC] space-y-3">
+                <Field label="URL obrazu">
+                  <input
+                    className="admin-input w-full font-mono text-xs"
+                    value={form.imageUrl}
+                    onChange={(e) => handleFieldChange('imageUrl', e.target.value)}
+                  />
+                </Field>
+
+                {!isCreateMode && (
+                  <button
+                    className="btn-primary text-sm disabled:opacity-40"
+                    disabled={!selectedImage || uploading || saving}
+                    onClick={() => void uploadImageOnly()}
+                  >
+                    {uploading ? 'Wysyłanie…' : 'Wyślij i zapisz'}
+                  </button>
+                )}
               </div>
             </SectionCard>
           )}
@@ -719,7 +733,7 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
           )}
           {activeTab === 'tresc' && isCreateMode && (
             <SectionCard title="Treść premium">
-              <p className="text-sm text-[#737373]">Najpierw utwórz produkt, aby edytować treść premium.</p>
+              <p className="text-sm text-[#737373]">Dostępne po utworzeniu produktu.</p>
             </SectionCard>
           )}
         </div>
