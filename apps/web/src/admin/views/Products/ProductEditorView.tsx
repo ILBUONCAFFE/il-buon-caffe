@@ -56,7 +56,80 @@ const DEFAULT_FORM: ProductFormState = {
   isActive: true, isNew: false, isFeatured: false, allegroOfferId: '',
 }
 
+const MEDIA_ORIGINS = [
+  process.env.NEXT_PUBLIC_R2_MEDIA_URL,
+  process.env.NEXT_PUBLIC_MEDIA_PUBLIC_URL,
+  'https://media.ilbuoncaffe.pl',
+]
+  .filter((value): value is string => Boolean(value))
+  .map((value) => value.replace(/\/+$/, '').toLowerCase())
+
 function trimTo(raw: string, max: number): string { return raw.trim().slice(0, max) }
+
+function encodeR2KeyForUrl(key: string): string {
+  return key
+    .split('/')
+    .filter(Boolean)
+    .map((part) => encodeURIComponent(part))
+    .join('/')
+}
+
+function decodeUrlPath(pathname: string): string {
+  return pathname
+    .split('/')
+    .filter(Boolean)
+    .map((part) => {
+      try {
+        return decodeURIComponent(part)
+      } catch {
+        return part
+      }
+    })
+    .join('/')
+}
+
+function toUploadProxyUrl(key: string): string {
+  const cleanKey = key.replace(/^\/+/, '').trim()
+  if (!cleanKey) return ''
+  return `/api/uploads/image/${encodeR2KeyForUrl(cleanKey)}`
+}
+
+function normalizeImageUrlForAdminPreview(raw: string): string {
+  const input = raw.trim()
+  if (!input) return ''
+
+  if (input.startsWith('blob:') || input.startsWith('data:')) {
+    return input
+  }
+
+  if (input.startsWith('/api/uploads/image/')) {
+    return input
+  }
+
+  if (input.startsWith('api/uploads/image/')) {
+    return `/${input}`
+  }
+
+  if (/^https?:\/\//i.test(input)) {
+    try {
+      const parsed = new URL(input)
+      const origin = `${parsed.protocol}//${parsed.host}`.toLowerCase()
+      if (MEDIA_ORIGINS.includes(origin)) {
+        return toUploadProxyUrl(decodeUrlPath(parsed.pathname))
+      }
+    } catch {
+      return input
+    }
+    return input
+  }
+
+  if (input.startsWith('/')) {
+    return input
+  }
+
+  // Legacy values sometimes store only the raw R2 key (e.g. "products/sku/main.webp").
+  return toUploadProxyUrl(input)
+}
 
 function parseNonNegativeNumber(raw: string, fieldLabel: string): { ok: true; value: number } | { ok: false; error: string } {
   const parsed = Number(raw.replace(',', '.').trim())
@@ -194,7 +267,7 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
     return () => URL.revokeObjectURL(url)
   }, [selectedImage])
 
-  const displayedImage = previewUrl || form.imageUrl
+  const displayedImage = previewUrl || normalizeImageUrlForAdminPreview(form.imageUrl)
 
   const handleFieldChange = <K extends keyof ProductFormState>(field: K, value: ProductFormState[K]) => {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -647,8 +720,8 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
                 <div>
                   <p className="text-xs font-medium uppercase tracking-wider text-[#737373] mb-1.5">Zapisane</p>
                   <div className="aspect-square rounded-lg border border-[#E5E4E1] bg-[#FAFAF9] flex items-center justify-center overflow-hidden">
-                    {form.imageUrl ? (
-                      <img src={form.imageUrl} alt="" className="w-full h-full object-contain" />
+                    {displayedImage ? (
+                      <img src={displayedImage} alt="" className="w-full h-full object-contain" />
                     ) : (
                       <ImageIcon size={32} className="text-[#D4D3D0]" />
                     )}
