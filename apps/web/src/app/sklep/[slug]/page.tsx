@@ -1,7 +1,8 @@
 import { ProductClient } from "@/components/Product/ProductClient";
 import { ShopClient } from "@/components/Shop/ShopClient";
 import { ProductRichContentSection, fetchProductRichContent } from "@/components/Product/ProductRichContentSection";
-import { getProductBySlug, getProducts, getFilteredProducts } from "@/actions/products";
+import { getProducts, getFilteredProducts } from "@/actions/products";
+import { getProductBySlug } from "@/lib/productFetchers";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
