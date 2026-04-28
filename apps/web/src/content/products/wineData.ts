@@ -513,11 +513,11 @@ function deepMerge(base: WineDetails, override: Record<string, unknown>): WineDe
  *   Wynik: { bodyValue: 90, tannins: 75, ... }  ← 90 z DB, reszta statyczna
  */
 export function getWineDetailsForProduct(product: {
-  slug?: string;
-  grapeVariety?: string;
-  origin?: string;
-  originCountry?: string;
-  year?: string;
+  slug?: string | null;
+  grapeVariety?: string | null;
+  origin?: string | null;
+  originCountry?: string | null;
+  year?: string | null;
   wineDetails?: Record<string, unknown> | null;
 }): WineDetails {
   // Layer 2: Static catalog (or layer 3 fallback)
