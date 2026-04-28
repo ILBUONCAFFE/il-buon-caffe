@@ -106,6 +106,46 @@ function toPublicMediaUrl(key: string): string {
   return `${MEDIA_PUBLIC_BASE_URL}/${encodeR2KeyForUrl(cleanKey)}`
 }
 
+function normalizeAdminProductImageUrl(raw: string): string {
+  const input = raw.trim()
+  if (!input) return ''
+
+  if (input.startsWith('blob:') || input.startsWith('data:')) {
+    return input
+  }
+
+  if (input.startsWith('/api/uploads/image/')) {
+    const key = decodeUrlPath(input.replace(/^\/api\/uploads\/image\//, ''))
+    return toPublicMediaUrl(key)
+  }
+
+  if (input.startsWith('api/uploads/image/')) {
+    const key = decodeUrlPath(input.replace(/^api\/uploads\/image\//, ''))
+    return toPublicMediaUrl(key)
+  }
+
+  if (/^https?:\/\//i.test(input)) {
+    try {
+      const parsed = new URL(input)
+      const origin = `${parsed.protocol}//${parsed.host}`.toLowerCase()
+      if (MEDIA_ORIGINS.includes(origin)) {
+        const key = decodeUrlPath(parsed.pathname)
+        return toPublicMediaUrl(key)
+      }
+    } catch {
+      return input
+    }
+    return input
+  }
+
+  if (input.startsWith('/')) {
+    return input
+  }
+
+  // Legacy values sometimes store only the raw R2 key (e.g. "products/sku/main.webp").
+  return toPublicMediaUrl(input)
+}
+
 function uniqueNonEmpty(values: string[]): string[] {
   const out: string[] = []
   const seen = new Set<string>()
@@ -119,22 +159,11 @@ function uniqueNonEmpty(values: string[]): string[] {
 }
 
 function getAdminImagePreviewCandidates(raw: string): string[] {
-  const input = raw.trim()
+  const input = normalizeAdminProductImageUrl(raw)
   if (!input) return []
 
   if (input.startsWith('blob:') || input.startsWith('data:')) {
     return [input]
-  }
-
-  if (input.startsWith('/api/uploads/image/')) {
-    const key = decodeUrlPath(input.replace(/^\/api\/uploads\/image\//, ''))
-    return uniqueNonEmpty([toPublicMediaUrl(key), input])
-  }
-
-  if (input.startsWith('api/uploads/image/')) {
-    const normalizedInput = `/${input}`
-    const key = decodeUrlPath(input.replace(/^api\/uploads\/image\//, ''))
-    return uniqueNonEmpty([toPublicMediaUrl(key), normalizedInput])
   }
 
   if (/^https?:\/\//i.test(input)) {
@@ -155,7 +184,6 @@ function getAdminImagePreviewCandidates(raw: string): string[] {
     return [input]
   }
 
-  // Legacy values sometimes store only the raw R2 key (e.g. "products/sku/main.webp").
   return uniqueNonEmpty([toPublicMediaUrl(input), toUploadProxyUrl(input)])
 }
 
@@ -211,7 +239,7 @@ function mapProductToForm(p: AdminProduct): ProductFormState {
     price: String(p.price),
     compareAtPrice: p.compareAtPrice != null ? String(p.compareAtPrice) : '',
     stock: String(p.stock),
-    imageUrl: p.imageUrl || '',
+    imageUrl: normalizeAdminProductImageUrl(p.imageUrl || ''),
     description: p.description || '',
     origin: p.origin || '',
     year: p.year || '',
@@ -349,6 +377,8 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
       setSaving(false); setError('Nieprawidłowa kategoria'); return
     }
 
+    const normalizedImageUrl = normalizeAdminProductImageUrl(trimTo(form.imageUrl, 500))
+
     try {
       if (isCreateMode) {
         const normalizedSku = trimTo(form.sku.toUpperCase(), 50)
@@ -357,7 +387,7 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
         const payload: CreateAdminProductPayload = {
           sku: normalizedSku, name: cleanedName, categoryId,
           price: priceR.value, compareAtPrice: compareR.value, stock: stockR.value,
-          imageUrl: trimTo(form.imageUrl, 500),
+          imageUrl: normalizedImageUrl,
           description: trimTo(form.description, 2000),
           origin: trimTo(form.origin, 255),
           year: trimTo(form.year, 10),
@@ -371,7 +401,7 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
         if (selectedImage) {
           setUploading(true)
           const uploaded = await adminApi.uploadProductMainImage(created.data.sku, selectedImage)
-          setForm((p) => ({ ...p, imageUrl: uploaded.url }))
+          setForm((p) => ({ ...p, imageUrl: normalizeAdminProductImageUrl(uploaded.url) }))
           setUploading(false)
         }
 
@@ -382,7 +412,7 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
       const updatePayload: UpdateAdminProductPayload = {
         name: cleanedName, categoryId,
         price: priceR.value, compareAtPrice: compareR.value,
-        imageUrl: trimTo(form.imageUrl, 500),
+        imageUrl: normalizedImageUrl,
         description: trimTo(form.description, 2000),
         origin: trimTo(form.origin, 255),
         year: trimTo(form.year, 10),
@@ -403,7 +433,7 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
       if (selectedImage) {
         setUploading(true)
         const uploaded = await adminApi.uploadProductMainImage(sku, selectedImage)
-        setForm((p) => ({ ...p, imageUrl: uploaded.url }))
+        setForm((p) => ({ ...p, imageUrl: normalizeAdminProductImageUrl(uploaded.url) }))
         setUploading(false)
       }
 
@@ -422,7 +452,7 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
     setUploading(true); setError(null); setMessage(null)
     try {
       const uploaded = await adminApi.uploadProductMainImage(sku, selectedImage)
-      setForm((p) => ({ ...p, imageUrl: uploaded.url }))
+      setForm((p) => ({ ...p, imageUrl: normalizeAdminProductImageUrl(uploaded.url) }))
       setSelectedImage(null)
       await loadProduct()
       setMessage('Zdjęcie zostało wysłane i zapisane w bazie')
