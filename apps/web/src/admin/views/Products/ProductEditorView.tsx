@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Package,
@@ -297,9 +298,17 @@ function SectionCard({ title, children, action }: { title: string; children: Rea
 
 export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const isCreateMode = useMemo(() => sku.toLowerCase() === 'new', [sku])
 
-  const [activeTab, setActiveTab] = useState<Tab>('podstawowe')
+  const initialTab = useMemo<Tab>(() => {
+    const requested = searchParams.get('tab')
+    return requested === 'ceny' || requested === 'allegro' || requested === 'media' || requested === 'tresc'
+      ? requested
+      : 'podstawowe'
+  }, [searchParams])
+
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab)
   const [form, setForm] = useState<ProductFormState>(DEFAULT_FORM)
   const [categories, setCategories] = useState<AdminCategory[]>([])
   const [product, setProduct] = useState<AdminProduct | null>(null)
@@ -586,15 +595,6 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
               </div>
             </div>
 
-            {isWineCategory && !isCreateMode && (
-              <button
-                type="button"
-                onClick={() => router.push(`/admin/products/${encodeURIComponent(form.sku)}/wine`)}
-                className="mt-3 w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-[#1A1A1A] bg-[#1A1A1A] text-white text-sm font-medium hover:opacity-90 transition-opacity"
-              >
-                <Sparkles size={14} /> Edytuj wine design
-              </button>
-            )}
           </div>
 
           {/* Section nav */}
@@ -901,7 +901,7 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
           )}
 
           {activeTab === 'tresc' && !isCreateMode && product && (
-            <RichContentEditor sku={sku} category={product.category?.slug ?? 'wine'} />
+            <RichContentEditor sku={sku} category={product.category?.slug ?? 'wine'} product={product} />
           )}
           {activeTab === 'tresc' && isCreateMode && (
             <SectionCard title="Treść premium">

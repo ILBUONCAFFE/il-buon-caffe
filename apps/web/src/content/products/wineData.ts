@@ -391,13 +391,13 @@ function normalizeWineDetails(details: WineDetails): WineDetails {
         .filter((item): item is WineAward => {
           return (
             isRecord(item) &&
-            typeof item.year === 'string' &&
+            (typeof item.year === 'string' || typeof item.year === 'number') &&
             typeof item.award === 'string' &&
             typeof item.competition === 'string'
           );
         })
         .map((item) => ({
-          year: item.year,
+          year: String(item.year),
           award: item.award,
           competition: item.competition,
         }))

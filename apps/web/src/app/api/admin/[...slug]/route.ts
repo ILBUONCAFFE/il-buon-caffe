@@ -140,6 +140,9 @@ async function proxyAdminRequest(
     if (route === 'products') {
       revalidateTag('products', { expire: 0 })
     }
+    if (route === 'content' && slugs[1] === 'product' && slugs[2]) {
+      revalidateTag(`product-content:${slugs[2]}`, { expire: 0 })
+    }
     if (route === 'categories') {
       revalidateTag('categories', { expire: 0 })
       revalidateTag('products', { expire: 0 }) // category changes affect product listings

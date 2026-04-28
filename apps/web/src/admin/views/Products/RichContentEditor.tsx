@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { Plus, X, Award, Utensils, Sparkles, Wine, Thermometer, User } from 'lucide-react'
+import { getWineDetailsForProduct } from '@/content/products/wineData'
+import type { AdminProduct } from '../../types/admin-api'
+import { WineDetailsEditor } from './WineDetailsEditor'
 import {
   adminApi,
   ApiError,
@@ -60,7 +63,7 @@ function emptyContent(category: string): UpsertProductRichContentPayload {
   }
 }
 
-type Props = { sku: string; category: string }
+type Props = { sku: string; category: string; product?: AdminProduct | null }
 
 function Card({ icon: Icon, title, action, children }: { icon: typeof Sparkles; title: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
@@ -103,8 +106,9 @@ function PrettySlider({ value, onChange }: { value: number; onChange: (v: number
   )
 }
 
-export function RichContentEditor({ sku, category }: Props) {
+export function RichContentEditor({ sku, category, product }: Props) {
   const cfg = getCategoryConfig(category)
+  const isWineCategory = category === 'wine' || category === 'wino' || category === 'alcohol'
 
   const [content, setContent] = useState<UpsertProductRichContentPayload>(emptyContent(category))
   const [loading, setLoading] = useState(true)
@@ -186,6 +190,20 @@ export function RichContentEditor({ sku, category }: Props) {
     <div className="space-y-5">
       {error && <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
       {message && <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">{message}</div>}
+
+      {isWineCategory && product && (
+        <div className="space-y-5">
+          <div className="rounded-xl border border-[#E5E4E1] bg-[#FAFAF9] p-4 text-sm text-[#525252]">
+            Wino edytujesz tutaj razem z treścią premium. Zmiany z tej zakładki idą do produktu i do sekcji premium na stronie produktu.
+          </div>
+          <WineDetailsEditor
+            sku={sku}
+            product={product}
+            initialWineDetails={getWineDetailsForProduct(product)}
+            embedded
+          />
+        </div>
+      )}
 
       {/* Status & action bar */}
       <div className="bg-white rounded-xl border border-[#E5E4E1] shadow-sm p-4 flex flex-wrap items-center justify-between gap-3">

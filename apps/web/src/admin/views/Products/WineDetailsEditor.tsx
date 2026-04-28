@@ -14,7 +14,6 @@ import {
   Sparkles,
   Trash2,
 } from 'lucide-react'
-import type { Product } from '@/types'
 import {
   adminApi,
 } from '../../lib/adminApiClient'
@@ -66,6 +65,14 @@ type WineFormState = {
   isNatural: boolean
   awards: WineAwardDraft[]
   foodPairing: WinePairingDraft[]
+}
+
+export type WineEditorProductPreview = {
+  name: string
+  description?: string | null
+  year?: string | null
+  imageUrl?: string | null
+  image?: string | null
 }
 
 const EMPTY_AWARD: WineAwardDraft = {
@@ -155,11 +162,11 @@ function toOptionalNumber(value: string, label: string): number | undefined {
 function toPayload(form: WineFormState): Record<string, unknown> {
   const awards = form.awards
     .map((award) => ({
-      year: Number(award.year),
+      year: String(award.year).trim(),
       award: trimText(award.award),
       competition: trimText(award.competition),
     }))
-    .filter((award) => Number.isFinite(award.year) && award.award)
+    .filter((award) => Boolean(award.year) && Boolean(award.award))
 
   const foodPairing = form.foodPairing
     .map((item) => ({
@@ -279,10 +286,12 @@ export function WineDetailsEditor({
   sku,
   product,
   initialWineDetails,
+  embedded = false,
 }: {
   sku: string
-  product: Product
+  product: WineEditorProductPreview
   initialWineDetails: CatalogWineDetails
+  embedded?: boolean
 }) {
   const router = useRouter()
   const [form, setForm] = useState<WineFormState>(() => createDraft(initialWineDetails))
@@ -645,13 +654,15 @@ export function WineDetailsEditor({
       </SectionCard>
 
       <div className="flex flex-wrap items-center justify-end gap-2 pt-2">
-        <button
-          type="button"
-          onClick={() => router.push(`/admin/products/${encodeURIComponent(sku)}`)}
-          className="btn-secondary text-sm inline-flex items-center gap-2"
-        >
-          <ExternalLink size={14} /> Wróć do produktu
-        </button>
+        {!embedded && (
+          <button
+            type="button"
+            onClick={() => router.push(`/admin/products/${encodeURIComponent(sku)}`)}
+            className="btn-secondary text-sm inline-flex items-center gap-2"
+          >
+            <ExternalLink size={14} /> Wróć do produktu
+          </button>
+        )}
         <button
           type="button"
           onClick={() => void handleSave()}
