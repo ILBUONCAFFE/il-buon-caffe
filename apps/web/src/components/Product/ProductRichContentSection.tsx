@@ -1,4 +1,5 @@
 import type { ProductRichContent } from '@repo/types'
+import { getCloudflareContext } from '@opennextjs/cloudflare'
 
 const CATEGORY_CONFIG = {
   wine:       { profile: ['body', 'sweetness', 'acidity', 'tannin', 'alcohol'],    sensory: ['eye', 'nose', 'palate'],       ritual: 'Serwowanie' },
@@ -15,10 +16,25 @@ function getConfig(cat: string) {
 const API_ORIGIN = (process.env.NEXT_PUBLIC_API_URL || 'https://api.ilbuoncaffe.pl').replace(/\/+$/, '')
 
 export async function fetchProductRichContent(sku: string): Promise<ProductRichContent | null> {
+  const path = `/api/content/product/${encodeURIComponent(sku)}`
   try {
-    const res = await fetch(`${API_ORIGIN}/api/content/product/${encodeURIComponent(sku)}`, {
-      next: { revalidate: 600, tags: [`product-content:${sku}`] },
-    })
+    type ApiBinding = { fetch: (input: string, init?: unknown) => Promise<Response> }
+    let apiWorker: ApiBinding | undefined
+    try {
+      const ctx = getCloudflareContext() as unknown as { env?: { API_WORKER?: ApiBinding } }
+      apiWorker = ctx?.env?.API_WORKER
+    } catch {
+      apiWorker = undefined
+    }
+
+    const res = apiWorker
+      ? await apiWorker.fetch(`https://api.ilbuoncaffe.pl${path}`, {
+          cf: { cacheTtl: 600, cacheEverything: true },
+        })
+      : await fetch(`${API_ORIGIN}${path}`, {
+          next: { revalidate: 600, tags: [`product-content:${sku}`] },
+        })
+
     if (!res.ok) return null
     const json = await res.json() as { data: ProductRichContent }
     return json.data ?? null
@@ -29,6 +45,12 @@ export async function fetchProductRichContent(sku: string): Promise<ProductRichC
 
 type Props = {
   content: ProductRichContent
+}
+
+export async function ProductRichContentLoader({ sku }: { sku: string }) {
+  const content = await fetchProductRichContent(sku)
+  if (!content?.isPublished) return null
+  return <ProductRichContentSection content={content} />
 }
 
 export function ProductRichContentSection({ content }: Props) {

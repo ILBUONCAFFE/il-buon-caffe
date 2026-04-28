@@ -14,6 +14,12 @@
 			"service": "il-buon-caffe-api"
 		}
 	],
+	"kv_namespaces": [
+		{
+			"binding": "NEXT_INC_CACHE",
+			"id": "e58cf9cd0545485a99bc94d2e5bc7edc"
+		}
+	],
 	"vars": {
 		"INTERNAL_API_URL": "https://api.ilbuoncaffe.pl",
 		"NEXT_PUBLIC_API_URL": "https://api.ilbuoncaffe.pl",

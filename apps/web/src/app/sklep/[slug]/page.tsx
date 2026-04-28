@@ -1,6 +1,7 @@
+import { Suspense } from "react";
 import { ProductClient } from "@/components/Product/ProductClient";
 import { ShopClient } from "@/components/Shop/ShopClient";
-import { ProductRichContentSection, fetchProductRichContent } from "@/components/Product/ProductRichContentSection";
+import { ProductRichContentLoader } from "@/components/Product/ProductRichContentSection";
 import { getProducts, getFilteredProducts } from "@/actions/products";
 import { getProductBySlug } from "@/lib/productFetchers";
 import type { Metadata } from "next";
@@ -168,8 +169,6 @@ export default async function ShopRoute({ params }: { params: Promise<{ slug: st
     notFound();
   }
 
-  const richContent = product?.sku ? await fetchProductRichContent(product.sku) : null;
-
   const parsedPrice = Number(product.price);
   const safePrice = Number.isFinite(parsedPrice) ? parsedPrice : 0;
   const safeName = typeof product.name === "string" && product.name.trim() ? product.name : "Produkt";
@@ -217,7 +216,9 @@ export default async function ShopRoute({ params }: { params: Promise<{ slug: st
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
       <ProductClient initialProduct={product} />
-      {richContent?.isPublished && <ProductRichContentSection content={richContent} />}
+      <Suspense fallback={null}>
+        <ProductRichContentLoader sku={product.sku} />
+      </Suspense>
     </>
   );
 }
