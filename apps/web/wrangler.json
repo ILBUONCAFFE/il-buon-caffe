@@ -18,6 +18,10 @@
 		{
 			"binding": "NEXT_INC_CACHE",
 			"id": "e58cf9cd0545485a99bc94d2e5bc7edc"
+		},
+		{
+			"binding": "NEXT_INC_CACHE_KV",
+			"id": "e58cf9cd0545485a99bc94d2e5bc7edc"
 		}
 	],
 	"vars": {
