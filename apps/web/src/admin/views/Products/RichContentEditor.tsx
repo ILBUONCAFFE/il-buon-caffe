@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Plus, X, Award, Utensils, Sparkles, Wine, Thermometer, User } from 'lucide-react'
 import {
   adminApi,
+  ApiError,
   type UpsertProductRichContentPayload,
   type RichContentAward,
   type RichContentPairing,
@@ -124,8 +125,10 @@ export function RichContentEditor({ sku, category }: Props) {
         extended: c.extended, isPublished: c.isPublished,
       })
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : ''
-      if (msg.includes('NOT_FOUND') || msg.includes('404')) setContent(emptyContent(category))
+      const isNotFound =
+        (err instanceof ApiError && (err.status === 404 || err.code === 'NOT_FOUND')) ||
+        (err instanceof Error && (err.message.includes('NOT_FOUND') || err.message.includes('404')))
+      if (isNotFound) setContent(emptyContent(category))
       else setError('Nie udało się pobrać treści premium')
     } finally { setLoading(false) }
   }, [sku, category])
