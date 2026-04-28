@@ -488,6 +488,8 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
   }
 
   const categoryName = product?.category?.name || categories.find((c) => String(c.id) === form.categoryId)?.name || 'Brak kategorii'
+  const categorySlug = product?.category?.slug || categories.find((c) => String(c.id) === form.categoryId)?.slug || ''
+  const isWineCategory = categorySlug === 'wino' || categorySlug === 'alcohol'
 
   return (
     <div className="pb-24">
@@ -583,6 +585,16 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
                 <div className="font-medium text-[#1A1A1A]">{form.stock || '0'}</div>
               </div>
             </div>
+
+            {isWineCategory && !isCreateMode && (
+              <button
+                type="button"
+                onClick={() => router.push(`/admin/products/${encodeURIComponent(form.sku)}/wine`)}
+                className="mt-3 w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-[#1A1A1A] bg-[#1A1A1A] text-white text-sm font-medium hover:opacity-90 transition-opacity"
+              >
+                <Sparkles size={14} /> Edytuj wine design
+              </button>
+            )}
           </div>
 
           {/* Section nav */}

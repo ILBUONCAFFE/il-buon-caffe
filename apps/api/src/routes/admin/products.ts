@@ -148,6 +148,7 @@ adminProductsRouter.post('/', async (c) => {
       categoryId?: number; price: number; compareAtPrice?: number | null
       stock?: number; imageUrl?: string; origin?: string; year?: string
       weight?: number; isActive?: boolean; isNew?: boolean; isFeatured?: boolean
+      wineDetails?: Record<string, unknown> | null
       allegroOfferId?: string | null
     }>()
 
@@ -182,6 +183,7 @@ adminProductsRouter.post('/', async (c) => {
       origin:          sanitize(body.origin   || '', 255) || null,
       year:            sanitize(body.year     || '', 10)  || null,
       weight:          body.weight ?? null,
+      wineDetails:     body.wineDetails ?? null,
       isActive:        body.isActive  ?? true,
       isNew:           body.isNew     ?? false,
       isFeatured:      body.isFeatured ?? false,
@@ -230,6 +232,7 @@ adminProductsRouter.put('/:sku', async (c) => {
       categoryId: number | null; price: number; compareAtPrice: number | null
       imageUrl: string | null; origin: string; year: string; weight: number | null
       isActive: boolean; isNew: boolean; isFeatured: boolean
+      wineDetails: Record<string, unknown> | null
       allegroOfferId: string | null
     }>>()
 
@@ -244,6 +247,7 @@ adminProductsRouter.put('/:sku', async (c) => {
     if (body.origin !== undefined)          setCols.origin         = sanitize(body.origin || '', 255) || null
     if (body.year !== undefined)            setCols.year           = sanitize(body.year || '', 10) || null
     if (body.weight !== undefined)          setCols.weight         = body.weight
+    if (body.wineDetails !== undefined)     setCols.wineDetails    = body.wineDetails
     if (body.isActive !== undefined)        setCols.isActive       = body.isActive
     if (body.isNew !== undefined)           setCols.isNew          = body.isNew
     if (body.isFeatured !== undefined)      setCols.isFeatured     = body.isFeatured

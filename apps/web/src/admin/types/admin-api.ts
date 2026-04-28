@@ -214,8 +214,12 @@ export interface AdminProduct {
   available: number
   imageUrl: string | null
   origin: string | null
+  originCountry?: string | null
+  originRegion?: string | null
+  grapeVariety?: string | null
   year: string | null
   weight: number | null
+  wineDetails?: Record<string, unknown> | null
   isActive: boolean
   isNew: boolean
   isFeatured: boolean
@@ -261,6 +265,7 @@ export interface CreateAdminProductPayload {
   origin?: string
   year?: string
   weight?: number | null
+  wineDetails?: Record<string, unknown> | null
   isActive?: boolean
   isNew?: boolean
   isFeatured?: boolean
