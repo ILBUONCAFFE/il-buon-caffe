@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -15,7 +16,10 @@ import { getProductBySku, getProductBySlug } from '@/actions/products';
 import { SHOP_ENABLED } from '@/config/launch';
 import { ComingSoonBanner } from '@/components/ui/ComingSoonBanner';
 
-import { WineProductView } from './WineProductView';
+const WineProductView = dynamic(
+  () => import('./WineProductView').then((m) => m.WineProductView),
+  { ssr: true }
+);
 
 // ... (previous imports)
 
