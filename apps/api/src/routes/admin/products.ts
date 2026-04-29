@@ -409,27 +409,53 @@ adminProductsRouter.get('/:sku/stock-history', async (c) => {
       meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
     })
   } catch (err) {
-    return serverError(c, 'GET /admin/products/:sku/stock-history', err)
-  }
-})
-
-// ============================================
+    return serverError(c, 'GE// ============================================
 // DELETE /admin/products/:sku  🛡️
-// Soft delete — deactivate product
+// ?permanent=true  → hard delete (physical removal from DB)
+// default          → soft delete (deactivate only)
 // ============================================
 adminProductsRouter.delete('/:sku', async (c) => {
   try {
-    const db    = createDb(c.env.DATABASE_URL)
-    const sku   = sanitize(c.req.param('sku'), 50).toUpperCase()
-    const admin   = c.get('user')
-    const adminIp = getClientIp(c)
+    const db        = createDb(c.env.DATABASE_URL)
+    const sku       = sanitize(c.req.param('sku'), 50).toUpperCase()
+    const permanent = c.req.query('permanent') === 'true'
+    const admin     = c.get('user')
+    const adminIp   = getClientIp(c)
 
     const product = await db.query.products.findFirst({
-      columns: { sku: true, name: true, isActive: true },
+      columns: { sku: true, name: true, slug: true, isActive: true },
       where: eq(products.sku, sku),
     })
     if (!product) return c.json({ error: 'Produkt nie znaleziony' }, 404)
 
+    if (permanent) {
+      // Hard delete — physically removes the row (cascades to related tables)
+      await db.delete(products).where(eq(products.sku, sku))
+
+      await logAdminAction(db, {
+        adminSub:  admin.sub,
+        action:    'admin_action',
+        ipAddress: adminIp,
+        details:   { event: 'product_deleted_permanently', sku, productName: product.name },
+      })
+
+      if (product.slug && c.env.INDEXNOW_KEY) {
+        void notifyIndexNow([productUrl(product.slug)], c.env.INDEXNOW_KEY)
+      }
+
+      if (c.env.ALLEGRO_KV && product.slug) {
+        c.executionCtx.waitUntil(
+          Promise.all([
+            c.env.ALLEGRO_KV.delete(`product:static:${sku.toLowerCase()}`),
+            c.env.ALLEGRO_KV.delete(`product:static:${product.slug}`),
+          ])
+        )
+      }
+
+      return c.json({ success: true, message: `Produkt '${sku}' został trwale usunięty`, permanent: true })
+    }
+
+    // Soft delete — deactivate only
     await db.update(products)
       .set({ isActive: false, updatedAt: new Date() })
       .where(eq(products.sku, sku))
@@ -441,26 +467,21 @@ adminProductsRouter.delete('/:sku', async (c) => {
       details:   { event: 'product_deactivated', sku, productName: product.name },
     })
 
-    // Notify Bing that this URL is gone — Bing will recrawl and pick up the 404
-    // Re-query slug since we only fetched sku/name/isActive above
-    const deactivated = await db.query.products.findFirst({
-      columns: { slug: true },
-      where: eq(products.sku, sku),
-    })
-    if (deactivated?.slug && c.env.INDEXNOW_KEY) {
-      void notifyIndexNow([productUrl(deactivated.slug)], c.env.INDEXNOW_KEY)
+    if (product.slug && c.env.INDEXNOW_KEY) {
+      void notifyIndexNow([productUrl(product.slug)], c.env.INDEXNOW_KEY)
     }
 
-    // Invalidate KV static cache
-    if (c.env.ALLEGRO_KV && deactivated?.slug) {
+    if (c.env.ALLEGRO_KV && product.slug) {
       c.executionCtx.waitUntil(
-        c.env.ALLEGRO_KV.delete(`product:static:${deactivated.slug}`)
+        c.env.ALLEGRO_KV.delete(`product:static:${product.slug}`)
       )
     }
 
-    return c.json({ success: true, message: `Produkt '${sku}' został zdezaktywowany` })
+    return c.json({ success: true, message: `Produkt '${sku}' został zdezaktywowany`, permanent: false })
   } catch (err) {
     return serverError(c, 'DELETE /admin/products/:sku', err)
+  }
+})return serverError(c, 'DELETE /admin/products/:sku', err)
   }
 })
 
