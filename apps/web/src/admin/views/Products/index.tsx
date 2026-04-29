@@ -102,6 +102,22 @@ export const ProductsView = () => {
     }
   }
 
+  const handleDeletePermanently = async (sku: string) => {
+    const typed = window.prompt(`Trwałe usunięcie jest nieodwracalne.\n\nWpisz SKU produktu (${sku}) aby potwierdzić:`)
+    if (typed?.trim().toUpperCase() !== sku.toUpperCase()) return
+
+    setBusySku(sku)
+    setError(null)
+    try {
+      await adminApi.deleteProductPermanently(sku)
+      await fetchProducts()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Nie udalo sie usunac produktu')
+    } finally {
+      setBusySku(null)
+    }
+  }
+
   const totalPages = Math.max(1, Math.ceil(total / PAGE_LIMIT))
 
   return (
@@ -259,7 +275,15 @@ export const ProductsView = () => {
                         >
                           {busySku === product.sku ? '...' : 'Dezaktywuj'}
                         </button>
-                      ) : null}
+                      ) : (
+                        <button
+                          className="px-2 py-1 text-xs rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-40"
+                          disabled={busySku === product.sku}
+                          onClick={() => void handleDeletePermanently(product.sku)}
+                        >
+                          {busySku === product.sku ? '...' : 'Usuń'}
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -301,9 +325,17 @@ export const ProductsView = () => {
                 </span>
                 
                 <div className="flex gap-2">
-                  {product.isActive && (
+                  {product.isActive ? (
                     <button className="btn-secondary text-xs" disabled={busySku === product.sku} onClick={() => void handleDeactivate(product.sku)}>
                       {busySku === product.sku ? '...' : 'Dezaktywuj'}
+                    </button>
+                  ) : (
+                    <button
+                      className="px-2 py-1 text-xs rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-40"
+                      disabled={busySku === product.sku}
+                      onClick={() => void handleDeletePermanently(product.sku)}
+                    >
+                      {busySku === product.sku ? '...' : 'Usuń'}
                     </button>
                   )}
                   <button className="btn-secondary text-xs" onClick={() => router.push(`/admin/products/${encodeURIComponent(product.sku)}`)}>

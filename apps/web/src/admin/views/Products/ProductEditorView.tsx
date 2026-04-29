@@ -673,24 +673,44 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
                   <Toggle checked={form.isFeatured} onChange={(v) => handleFieldChange('isFeatured', v)} label="Wyróżniony" />
                 </div>
 
-                {!isCreateMode && product?.isActive && (
-                  <div className="pt-3 border-t border-[#F0EFEC]">
-                    <button
-                      className="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-40"
-                      disabled={saving || uploading}
-                      onClick={async () => {
-                        if (!window.confirm(`Zdezaktywować produkt ${sku}?`)) return
-                        try {
-                          await adminApi.deactivateProduct(sku)
-                          setMessage('Produkt zdezaktywowany')
-                          await loadProduct()
-                        } catch (err) {
-                          setError(err instanceof Error ? err.message : 'Nie udało się zdezaktywować produktu')
-                        }
-                      }}
-                    >
-                      <Trash2 size={14} /> Dezaktywuj produkt
-                    </button>
+                {!isCreateMode && (
+                  <div className="pt-3 border-t border-[#F0EFEC] flex flex-wrap gap-2">
+                    {product?.isActive && (
+                      <button
+                        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-40"
+                        disabled={saving || uploading}
+                        onClick={async () => {
+                          if (!window.confirm(`Zdezaktywować produkt ${sku}?`)) return
+                          try {
+                            await adminApi.deactivateProduct(sku)
+                            setMessage('Produkt zdezaktywowany')
+                            await loadProduct()
+                          } catch (err) {
+                            setError(err instanceof Error ? err.message : 'Nie udało się zdezaktywować produktu')
+                          }
+                        }}
+                      >
+                        <Trash2 size={14} /> Dezaktywuj produkt
+                      </button>
+                    )}
+                    {!product?.isActive && (
+                      <button
+                        className="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-red-300 bg-red-50 text-red-700 hover:bg-red-100 transition-colors disabled:opacity-40"
+                        disabled={saving || uploading}
+                        onClick={async () => {
+                          const typed = window.prompt(`Trwałe usunięcie produktu jest nieodwracalne.\n\nWpisz SKU produktu (${sku}) aby potwierdzić:`)
+                          if (typed?.trim().toUpperCase() !== sku.toUpperCase()) return
+                          try {
+                            await adminApi.deleteProductPermanently(sku)
+                            router.replace('/admin/products')
+                          } catch (err) {
+                            setError(err instanceof Error ? err.message : 'Nie udało się usunąć produktu')
+                          }
+                        }}
+                      >
+                        <Trash2 size={14} /> Usuń trwale
+                      </button>
+                    )}
                   </div>
                 )}
               </SectionCard>
@@ -817,20 +837,20 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {/* Left: current saved image */}
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-wider text-[#737373] mb-1.5">Zapisane</p>
+                  <p className="text-xs font-medium uppercase tracking-wider text-[#737373] mb-1.5">Aktualne</p>
                   <div className="aspect-square rounded-lg border border-[#E5E4E1] bg-[#FAFAF9] flex items-center justify-center overflow-hidden">
-                    {displayedImageCandidates.length > 0 ? (
-                      <PreviewImage srcCandidates={displayedImageCandidates} className="w-full h-full object-contain" />
+                    {form.imageUrl ? (
+                      <PreviewImage srcCandidates={getAdminImagePreviewCandidates(form.imageUrl)} className="w-full h-full object-contain" />
                     ) : (
                       <ImageIcon size={32} className="text-[#D4D3D0]" />
                     )}
                   </div>
                 </div>
 
-                {/* Right: upload + live preview */}
+                {/* Right: replace upload + live preview */}
                 <div>
                   <p className="text-xs font-medium uppercase tracking-wider text-[#737373] mb-1.5">
-                    {selectedImage ? 'Wybrany plik' : 'Wgraj plik'}
+                    {selectedImage ? 'Nowe zdjęcie (podgląd)' : form.imageUrl ? 'Zastąp zdjęcie' : 'Wgraj zdjęcie'}
                   </p>
                   <label
                     onDragOver={(e) => { e.preventDefault() }}
@@ -871,31 +891,31 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
                         onClick={() => setSelectedImage(null)}
                         className="text-[#A3A3A3] hover:text-red-600 shrink-0"
                       >
-                        Usuń
+                        Anuluj
                       </button>
                     </div>
+                  )}
+
+                  {!isCreateMode && selectedImage && (
+                    <button
+                      className="mt-3 w-full btn-primary text-sm disabled:opacity-40"
+                      disabled={uploading || saving}
+                      onClick={() => void uploadImageOnly()}
+                    >
+                      {uploading ? 'Wysyłanie…' : form.imageUrl ? 'Nadpisz zdjęcie' : 'Wyślij zdjęcie'}
+                    </button>
                   )}
                 </div>
               </div>
 
               <div className="pt-4 border-t border-[#F0EFEC] space-y-3">
-                <Field label="URL obrazu">
+                <Field label="URL obrazu (ręcznie)">
                   <input
                     className="admin-input w-full font-mono text-xs"
                     value={form.imageUrl}
                     onChange={(e) => handleFieldChange('imageUrl', e.target.value)}
                   />
                 </Field>
-
-                {!isCreateMode && (
-                  <button
-                    className="btn-primary text-sm disabled:opacity-40"
-                    disabled={!selectedImage || uploading || saving}
-                    onClick={() => void uploadImageOnly()}
-                  >
-                    {uploading ? 'Wysyłanie…' : 'Wyślij i zapisz'}
-                  </button>
-                )}
               </div>
             </SectionCard>
           )}

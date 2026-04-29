@@ -224,6 +224,11 @@ export const adminApi = {
       method: 'DELETE',
     }),
 
+  deleteProductPermanently: (sku: string) =>
+    request<{ success: boolean; message: string; permanent: true }>(`/api/admin/products/${encodeURIComponent(sku)}?permanent=true`, {
+      method: 'DELETE',
+    }),
+
   clearProductCache: (sku: string) =>
     request<{ cleared: boolean }>(`/api/admin/products/${encodeURIComponent(sku)}/cache`, {
       method: 'DELETE',
