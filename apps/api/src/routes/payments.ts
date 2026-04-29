@@ -61,6 +61,24 @@ function basicAuth(merchantId: string, apiKey: string): string {
   return 'Basic ' + btoa(`${merchantId}:${apiKey}`)
 }
 
+function resolveReturnUrl(rawReturnUrl: string | undefined, frontendUrl: string): string | null {
+  const fallback = `${frontendUrl.replace(/\/+$/, '')}/zamowienie/potwierdzenie`
+  if (!rawReturnUrl) return fallback
+
+  if (rawReturnUrl.startsWith('/')) {
+    if (rawReturnUrl.startsWith('//')) return null
+    return `${frontendUrl.replace(/\/+$/, '')}${rawReturnUrl}`
+  }
+
+  try {
+    const parsed = new URL(rawReturnUrl)
+    if (parsed.origin !== new URL(frontendUrl).origin) return null
+    return parsed.toString()
+  } catch {
+    return null
+  }
+}
+
 // ──────────────────────────────────────────────────────────────────────────
 export const paymentsRouter = new Hono<{ Bindings: EnvWithP24 }>()
 
@@ -82,7 +100,10 @@ paymentsRouter.post('/p24/initiate', requireAuth(), async (c) => {
 
     const orderId   = body.orderId
     const language  = body.language === 'en' ? 'en' : 'pl'
-    const returnUrl = body.returnUrl || `${c.env.FRONTEND_URL}/zamowienie/potwierdzenie`
+    const returnUrl = resolveReturnUrl(body.returnUrl, c.env.FRONTEND_URL)
+    if (!returnUrl) {
+      return c.json({ error: 'Nieprawidłowy adres powrotu' }, 400)
+    }
 
     if (!orderId || isNaN(orderId)) {
       return c.json({ error: 'Nieprawidłowe ID zamówienia' }, 400)
@@ -194,7 +215,7 @@ paymentsRouter.get('/p24/status/:orderId', requireAuth(), async (c) => {
   try {
     const payload = c.get('user')
     const userId  = parseInt(payload.sub)
-    const orderId = parseInt(c.req.param('') as string)
+    const orderId = parseInt(c.req.param('orderId') as string)
     const db      = createDb(c.env.DATABASE_URL)
 
     if (isNaN(orderId)) return c.json({ error: 'Nieprawidłowe ID zamówienia' }, 400)

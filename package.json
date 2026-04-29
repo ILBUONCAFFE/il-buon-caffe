@@ -27,6 +27,7 @@
     "packages/*"
   ],
   "overrides": {
+    "postcss": "8.5.10",
     "@aws-sdk/xml-builder": {
       "fast-xml-parser": "5.5.8"
     }
@@ -36,6 +37,6 @@
     "@neondatabase/serverless": "^1.0.2",
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.2.3",
-    "drizzle-orm": "^0.45.1"
+    "drizzle-orm": "^0.45.2"
   }
 }

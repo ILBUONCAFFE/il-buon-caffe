@@ -295,9 +295,10 @@ authRouter.post('/login', loginRateLimiter, async (c) => {
     
     // Generate tokens
     const accessExpiresIn = rememberMe ? '24h' : (user.role === 'admin' ? '2h' : '24h')
+    const sessionId = crypto.randomUUID()
     const { accessToken, refreshToken } = await generateTokenPair(
       { id: user.id.toString(), email: user.email, role: user.role },
-      crypto.randomUUID(),
+      sessionId,
       c.env.JWT_ACCESS_SECRET,
       c.env.JWT_REFRESH_SECRET,
       accessExpiresIn,
@@ -308,6 +309,7 @@ authRouter.post('/login', loginRateLimiter, async (c) => {
     const refreshTokenHash = await hashToken(refreshToken)
     
     await db.insert(sessions).values({
+      id: sessionId,
       userId: user.id,
       refreshTokenHash,
       ipAddress,
@@ -422,10 +424,11 @@ authRouter.post('/refresh', async (c) => {
     // Generate new tokens
     const ipAddress = c.req.header('CF-Connecting-IP') || c.req.header('X-Real-IP') || 'unknown'
     const userAgent = sanitize(c.req.header('User-Agent'), 500) || 'unknown'
+    const newSessionId = crypto.randomUUID()
     
     const { accessToken, refreshToken: newRefreshToken } = await generateTokenPair(
       { id: session.user.id.toString(), email: session.user.email, role: session.user.role },
-      crypto.randomUUID(),
+      newSessionId,
       c.env.JWT_ACCESS_SECRET,
       c.env.JWT_REFRESH_SECRET,
       session.user.role === 'admin' ? '2h' : '24h',
@@ -436,6 +439,7 @@ authRouter.post('/refresh', async (c) => {
     const newRefreshTokenHash = await hashToken(newRefreshToken)
     
     await db.insert(sessions).values({
+      id: newSessionId,
       userId: session.userId,
       refreshTokenHash: newRefreshTokenHash,
       ipAddress,
@@ -643,7 +647,7 @@ authRouter.post('/forgot-password', passwordResetRateLimiter, async (c) => {
 // ============================================
 // POST /api/auth/reset-password
 // ============================================
-authRouter.post('/reset-password', async (c) => {
+authRouter.post('/reset-password', passwordResetRateLimiter, async (c) => {
   try {
     const rawBody = await c.req.text()
     if (rawBody.length > MAX_REQUEST_BODY_SIZE) {
@@ -657,7 +661,11 @@ authRouter.post('/reset-password', async (c) => {
     if (!token || !newPassword) {
       return c.json({ error: 'Token i nowe hasło są wymagane' }, 400)
     }
-    
+
+    const tokenHash = await hashToken(token)
+    const tokenRateLimit = await checkRateLimitByKey(c, `reset:token:${tokenHash}`)
+    if (tokenRateLimit) return tokenRateLimit
+
     // Validate password strength
     const passwordCheck = isPasswordStrong(newPassword)
     if (!passwordCheck.isStrong) {
@@ -665,7 +673,6 @@ authRouter.post('/reset-password', async (c) => {
     }
     
     const db = c.get('db')
-    const tokenHash = await hashToken(token)
     
     // Find token
     const resetRecord = await db.query.passwordResetTokens.findFirst({

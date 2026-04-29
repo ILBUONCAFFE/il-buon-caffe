@@ -2,7 +2,7 @@ import type { Context, Next } from 'hono'
 import { verifyAccessToken, TokenPayload } from '../lib/jwt'
 import { getAccessTokenFromCookie } from '../lib/cookies'
 import { createDb } from '@repo/db/client'
-import { users } from '@repo/db/schema'
+import { sessions, users } from '@repo/db/schema'
 import { eq } from 'drizzle-orm'
 
 function formatDbError(err: unknown): string {
@@ -19,6 +19,40 @@ function formatDbError(err: unknown): string {
   }
 
   return err.message
+}
+
+async function validateAccessSession(c: Context, payload: TokenPayload): Promise<Response | null> {
+  const userId = parseInt(payload.sub, 10)
+  if (!payload.sessionId || isNaN(userId)) {
+    return c.json({ error: 'Nieprawidłowy token' }, 401)
+  }
+
+  const db = c.get('db')
+  const session = await db.query.sessions.findFirst({
+    where: eq(sessions.id, payload.sessionId),
+    with: { user: true },
+  })
+
+  if (!session || session.userId !== userId || !session.isActive) {
+    return c.json({ error: 'Sesja wygasła lub została unieważniona' }, 401)
+  }
+
+  if (new Date(session.expiresAt) < new Date()) {
+    await db.update(sessions)
+      .set({ isActive: false })
+      .where(eq(sessions.id, session.id))
+    return c.json({ error: 'Sesja wygasła' }, 401)
+  }
+
+  if (!session.user || session.user.role !== payload.role || session.user.anonymized) {
+    return c.json({ error: 'Nieautoryzowany dostęp' }, 401)
+  }
+
+  if (session.user.lockedUntil && new Date(session.user.lockedUntil) > new Date()) {
+    return c.json({ error: 'Konto zablokowane' }, 403)
+  }
+
+  return null
 }
 
 // Extend Hono context with user
@@ -58,6 +92,9 @@ export function requireAuth(allowedRoles?: ('customer' | 'admin')[]) {
       if (allowedRoles && !allowedRoles.includes(payload.role as 'customer' | 'admin')) {
         return c.json({ error: 'Brak uprawnień do tego zasobu' }, 403)
       }
+
+      const sessionError = await validateAccessSession(c, payload)
+      if (sessionError) return sessionError
       
       // Set user in context
       c.set('user', payload)
@@ -125,10 +162,8 @@ export function requireAdminOrProxy() {
           return c.json({ error: 'Nieautoryzowany dostęp' }, 403)
         }
       } catch (err) {
-        // Allow all methods to continue when DB is transiently unavailable.
-        // Security is guaranteed by INTERNAL_API_SECRET (strong pre-shared secret, ≥32 chars),
-        // which Next.js already verified before forwarding. The DB check is defense-in-depth only.
-        console.warn('[auth] Proxy admin DB verification unavailable — continuing on secret alone:', formatDbError(err))
+        console.error('[auth] Proxy admin DB verification unavailable — failing closed:', formatDbError(err))
+        return c.json({ error: 'Weryfikacja administratora chwilowo niedostępna' }, 503)
       }
 
       c.set('user', {
@@ -166,7 +201,10 @@ export function optionalAuth() {
       try {
         const jwtSecret = (c.env as { JWT_ACCESS_SECRET: string }).JWT_ACCESS_SECRET
         const payload = await verifyAccessToken(token, jwtSecret)
-        c.set('user', payload)
+        const sessionError = await validateAccessSession(c, payload)
+        if (!sessionError) {
+          c.set('user', payload)
+        }
       } catch {
         // Token invalid, but that's okay - continue without user
       }

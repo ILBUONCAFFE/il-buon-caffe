@@ -250,7 +250,12 @@ async function autoRefreshAllegroToken(env: Env): Promise<void> {
     }
 
     const encKey = env.ALLEGRO_TOKEN_ENCRYPTION_KEY
-    const refreshToken = encKey ? await decryptText(cred.refreshToken, encKey) : cred.refreshToken
+    if (!encKey) {
+      console.error('[Allegro Cron] ALLEGRO_TOKEN_ENCRYPTION_KEY is not set — refusing plaintext token refresh')
+      return
+    }
+
+    const refreshToken = await decryptText(cred.refreshToken, encKey)
     const environment  = cred.environment as AllegroEnvironment
     const oauthConfig = getAllegroOAuthConfig(env, environment)
 
@@ -264,8 +269,8 @@ async function autoRefreshAllegroToken(env: Env): Promise<void> {
     })
 
     const expiresAt  = new Date(Date.now() + tokens.expires_in * 1000)
-    const encAccess  = encKey ? await encryptText(tokens.access_token,  encKey) : tokens.access_token
-    const encRefresh = encKey ? await encryptText(tokens.refresh_token, encKey) : tokens.refresh_token
+    const encAccess  = await encryptText(tokens.access_token,  encKey)
+    const encRefresh = await encryptText(tokens.refresh_token, encKey)
 
     // Deactivate old record, insert fresh one
     await db.update(allegroCredentials)

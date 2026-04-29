@@ -27,6 +27,45 @@ import { getCloudflareContext } from '@opennextjs/cloudflare'
 
 // ── Shared proxy logic ────────────────────────────────────────────────────────
 
+function addOriginWithVariants(value: string | null | undefined, origins: Set<string>): void {
+  if (!value) return
+
+  try {
+    const parsed = value.includes('://') ? new URL(value) : new URL(`https://${value}`)
+    origins.add(parsed.origin)
+
+    if (parsed.hostname.startsWith('www.')) {
+      const bare = parsed.hostname.slice(4)
+      origins.add(`${parsed.protocol}//${bare}${parsed.port ? `:${parsed.port}` : ''}`)
+    } else if (parsed.hostname.includes('.')) {
+      origins.add(`${parsed.protocol}//www.${parsed.hostname}${parsed.port ? `:${parsed.port}` : ''}`)
+    }
+  } catch {
+    // Ignore malformed deployment config.
+  }
+}
+
+function isAllowedMutationOrigin(req: NextRequest, method: string, siteUrl?: string): boolean {
+  if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') return true
+
+  const allowedOrigins = new Set<string>()
+  addOriginWithVariants(siteUrl, allowedOrigins)
+  addOriginWithVariants(req.nextUrl.origin, allowedOrigins)
+
+  const origin = req.headers.get('origin')
+  const referer = req.headers.get('referer')
+  let effectiveOrigin = origin
+  if (!effectiveOrigin && referer) {
+    try {
+      effectiveOrigin = new URL(referer).origin
+    } catch {
+      effectiveOrigin = null
+    }
+  }
+
+  return !!effectiveOrigin && allowedOrigins.has(effectiveOrigin)
+}
+
 async function proxyAdminRequest(
   req: NextRequest,
   slugs: string[],
@@ -35,6 +74,7 @@ async function proxyAdminRequest(
   // Read env vars at request time
   let API_ORIGIN = process.env.INTERNAL_API_URL
   let INTERNAL_SECRET = process.env.INTERNAL_API_SECRET
+  let SITE_URL = process.env.NEXT_PUBLIC_SITE_URL
   let apiWorker: { fetch: typeof fetch } | undefined = undefined
 
   try {
@@ -42,6 +82,7 @@ async function proxyAdminRequest(
     const env = cfCtx?.env as Record<string, any> | undefined
     API_ORIGIN = API_ORIGIN || env?.INTERNAL_API_URL || 'https://il-buon-caffe-api.ilbuoncaffe19.workers.dev'
     INTERNAL_SECRET = INTERNAL_SECRET || env?.INTERNAL_API_SECRET
+    SITE_URL = SITE_URL || env?.NEXT_PUBLIC_SITE_URL
     apiWorker = env?.API_WORKER
   } catch (e) {
     // Local dev or setup issue — API_ORIGIN fallback only; no secret fallback
@@ -73,6 +114,13 @@ async function proxyAdminRequest(
     return NextResponse.json(
       { error: { code: 'MISCONFIGURED', message: 'Internal secret not configured' } },
       { status: 503 },
+    )
+  }
+
+  if (!isAllowedMutationOrigin(req, method, SITE_URL)) {
+    return NextResponse.json(
+      { error: { code: 'CSRF_BLOCKED', message: 'Request origin not allowed' } },
+      { status: 403 },
     )
   }
 

@@ -30,6 +30,7 @@ import { sanitize } from '../lib/sanitize'
 // Dozwolone foldery i typy plików
 const ALLOWED_FOLDERS = ['dishes', 'products', 'banners', 'catalogs'] as const
 const ALLOWED_TYPES = ['image/webp', 'image/jpeg', 'image/png', 'image/avif', 'application/pdf']
+const PUBLIC_READ_PREFIXES = ['products/', 'dishes/', 'banners/'] as const
 const MAX_SIZE_MB = 4
 const MAX_PDF_SIZE_MB = 20
 const DEFAULT_MEDIA_PUBLIC_URL = 'https://media.ilbuoncaffe.pl'
@@ -55,6 +56,10 @@ function buildProxyUrl(key: string): string {
 
 function buildPublicMediaUrl(c: { env: Env }, key: string): string {
   return `${getMediaPublicBaseUrl(c)}/${encodeR2KeyForUrl(key)}`
+}
+
+function isPublicReadableKey(key: string): boolean {
+  return PUBLIC_READ_PREFIXES.some((prefix) => key.startsWith(prefix))
 }
 
 // ─────────────────────────────────────────────────────────
@@ -153,11 +158,14 @@ app.post('/image', requireAdminOrProxy(), async (c) => {
 })
 
 // ─────────────────────────────────────────────────────────
-// GET /api/uploads/image/:key — proxy dowolnego klucza R2
-// Obsługuje: dishes/plik.png  ORAZ  Plik bez folderu.png
+// GET /api/uploads/image/:key — public proxy for explicitly public media keys.
 // ─────────────────────────────────────────────────────────
 app.get('/image/:key{.+}', async (c) => {
   const key = c.req.param('key')   // Hono automatycznie dekoduje %20, %C3%B3 itp.
+
+  if (!isPublicReadableKey(key)) {
+    return c.json({ error: 'Plik nie znaleziony' }, 404)
+  }
 
   // New uploads are in MEDIA_BUCKET. IMAGES_BUCKET is kept as legacy fallback.
   const object = (await c.env.MEDIA_BUCKET.get(key)) || (await c.env.IMAGES_BUCKET.get(key))
