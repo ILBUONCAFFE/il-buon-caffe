@@ -409,7 +409,11 @@ adminProductsRouter.get('/:sku/stock-history', async (c) => {
       meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
     })
   } catch (err) {
-    return serverError(c, 'GE// ============================================
+    return serverError(c, 'GET /admin/products/:sku/stock-history', err)
+  }
+})
+
+// ============================================
 // DELETE /admin/products/:sku  🛡️
 // ?permanent=true  → hard delete (physical removal from DB)
 // default          → soft delete (deactivate only)
@@ -480,8 +484,6 @@ adminProductsRouter.delete('/:sku', async (c) => {
     return c.json({ success: true, message: `Produkt '${sku}' został zdezaktywowany`, permanent: false })
   } catch (err) {
     return serverError(c, 'DELETE /admin/products/:sku', err)
-  }
-})return serverError(c, 'DELETE /admin/products/:sku', err)
   }
 })
 
