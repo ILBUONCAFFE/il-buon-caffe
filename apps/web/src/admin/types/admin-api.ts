@@ -224,6 +224,8 @@ export interface AdminProduct {
   isNew: boolean
   isFeatured: boolean
   allegroOfferId: string | null
+  allegroSyncPrice: boolean
+  allegroSyncStock: boolean
   images?: AdminProductImage[]
   createdAt: string
   updatedAt: string
@@ -254,7 +256,7 @@ export interface AdminCategoriesResponse {
 }
 
 export interface CreateAdminProductPayload {
-  sku: string
+  sku?: string
   name: string
   description?: string
   categoryId?: number | null
@@ -270,6 +272,8 @@ export interface CreateAdminProductPayload {
   isNew?: boolean
   isFeatured?: boolean
   allegroOfferId?: string | null
+  allegroSyncPrice?: boolean
+  allegroSyncStock?: boolean
 }
 
 export type UpdateAdminProductPayload = Partial<Omit<CreateAdminProductPayload, 'sku' | 'stock'>>
@@ -602,11 +606,20 @@ export interface AllegroOffersResponse {
 export interface LinkAllegroOfferPayload {
   sku: string
   offerId: string
+  syncPrice?: boolean
+  syncStock?: boolean
 }
 
 export interface PushStockResponse {
   success: boolean
-  data: { sku: string; allegroOfferId: string; pushed: number }
+  data: {
+    sku: string
+    allegroOfferId: string
+    pushed?: number
+    offerId?: string
+    syncedPrice?: { amount: string; currency: string }
+    syncedStock?: number
+  }
 }
 
 // ── Stock History ─────────────────────────────────────────────────────────────

@@ -9,8 +9,95 @@ import { sanitize } from '../../lib/sanitize'
 import { slugify } from '../../lib/slugify'
 import { checkContentLength, parsePagination, getClientIp, serverError } from '../../lib/request'
 import { notifyIndexNow, productUrl } from '../../lib/indexnow'
+import { patchAllegroOfferFields } from '../../lib/allegro-offer-sync'
 
 const MAX_BODY = 50_000
+
+const SKU_PREFIX_BY_CATEGORY: Record<string, string> = {
+  kawa: 'KAW',
+  coffee: 'KAW',
+  wino: 'WIN',
+  alcohol: 'WIN',
+  slodycze: 'SLO',
+  sweets: 'SLO',
+  spizarnia: 'SPI',
+  pantry: 'SPI',
+}
+
+function normalizeSkuPart(value: string, max = 24): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, max)
+}
+
+async function generateProductSku(
+  db: ReturnType<typeof createDb>,
+  name: string,
+  categoryId?: number | null,
+): Promise<string> {
+  let categorySlug = ''
+  if (categoryId) {
+    const category = await db.query.categories.findFirst({
+      columns: { slug: true },
+      where: eq(categories.id, categoryId),
+    })
+    categorySlug = category?.slug ?? ''
+  }
+
+  const prefix = SKU_PREFIX_BY_CATEGORY[categorySlug] ?? 'IBC'
+  const namePart = normalizeSkuPart(name) || 'PRODUKT'
+  const base = `${prefix}-${namePart}`.slice(0, 42).replace(/-+$/g, '')
+
+  for (let suffix = 1; suffix <= 999; suffix += 1) {
+    const candidate = suffix === 1 ? base : `${base}-${suffix}`.slice(0, 50).replace(/-+$/g, '')
+    const existing = await db.query.products.findFirst({
+      columns: { sku: true },
+      where: eq(products.sku, candidate),
+    })
+    if (!existing) return candidate
+  }
+
+  return `${prefix}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`
+}
+
+function syncProductMutationToAllegro(
+  env: Env,
+  ctx: ExecutionContext,
+  args: {
+    sku: string
+    offerId: string | null
+    syncPrice?: boolean
+    syncStock?: boolean
+    price?: number | string | null
+    currency?: string | null
+    stock?: number | null
+    reserved?: number | null
+  },
+) {
+  if (!args.offerId) return
+  if (!args.syncPrice && !args.syncStock) return
+
+  const available = Math.max(0, (args.stock ?? 0) - (args.reserved ?? 0))
+  ctx.waitUntil(
+    patchAllegroOfferFields(env, {
+      offerId: args.offerId,
+      price: args.syncPrice && args.price != null
+        ? { amount: args.price, currency: args.currency || 'PLN' }
+        : undefined,
+      stock: args.syncStock ? available : undefined,
+    }).catch((err) => {
+      console.error('[products] Allegro sync failed', {
+        sku: args.sku,
+        offerId: args.offerId,
+        message: err instanceof Error ? err.message : String(err),
+      })
+    }),
+  )
+}
 
 export const adminProductsRouter = new Hono<{ Bindings: Env }>()
 adminProductsRouter.use('*', requireAdminOrProxy())
@@ -144,19 +231,23 @@ adminProductsRouter.post('/', async (c) => {
 
     const db   = createDb(c.env.DATABASE_URL)
     const body = await c.req.json<{
-      sku: string; name: string; description?: string
+      sku?: string; name: string; description?: string
       categoryId?: number; price: number; compareAtPrice?: number | null
       stock?: number; imageUrl?: string; origin?: string; year?: string
       weight?: number; isActive?: boolean; isNew?: boolean; isFeatured?: boolean
       wineDetails?: Record<string, unknown> | null
       allegroOfferId?: string | null
+      allegroSyncPrice?: boolean
+      allegroSyncStock?: boolean
     }>()
 
-    const sku  = sanitize(body.sku,  50).toUpperCase()
     const name = sanitize(body.name, 255)
 
-    if (!sku || !name) return c.json({ error: 'SKU i nazwa są wymagane' }, 400)
+    if (!name) return c.json({ error: 'Nazwa jest wymagana' }, 400)
     if (typeof body.price !== 'number' || body.price < 0) return c.json({ error: 'Nieprawidłowa cena' }, 400)
+
+    const requestedSku = sanitize(body.sku || '', 50).toUpperCase()
+    const sku = requestedSku || await generateProductSku(db, name, body.categoryId ?? null)
 
     // Check SKU uniqueness
     const existing = await db.query.products.findFirst({
@@ -188,6 +279,8 @@ adminProductsRouter.post('/', async (c) => {
       isNew:           body.isNew     ?? false,
       isFeatured:      body.isFeatured ?? false,
       allegroOfferId:  sanitize(body.allegroOfferId || '', 50) || null,
+      allegroSyncPrice: body.allegroSyncPrice ?? false,
+      allegroSyncStock: body.allegroSyncStock ?? false,
     }).returning()
 
     await logAdminAction(db, {
@@ -234,6 +327,8 @@ adminProductsRouter.put('/:sku', async (c) => {
       isActive: boolean; isNew: boolean; isFeatured: boolean
       wineDetails: Record<string, unknown> | null
       allegroOfferId: string | null
+      allegroSyncPrice: boolean
+      allegroSyncStock: boolean
     }>>()
 
     const setCols: Record<string, unknown> = { updatedAt: new Date() }
@@ -252,10 +347,24 @@ adminProductsRouter.put('/:sku', async (c) => {
     if (body.isNew !== undefined)           setCols.isNew          = body.isNew
     if (body.isFeatured !== undefined)      setCols.isFeatured     = body.isFeatured
     if (body.allegroOfferId !== undefined)  setCols.allegroOfferId = sanitize(body.allegroOfferId || '', 50) || null
+    if (body.allegroSyncPrice !== undefined) setCols.allegroSyncPrice = body.allegroSyncPrice
+    if (body.allegroSyncStock !== undefined) setCols.allegroSyncStock = body.allegroSyncStock
 
     if (body.name) setCols.slug = slugify(body.name)
 
     const [updated] = await db.update(products).set(setCols as any).where(eq(products.sku, sku)).returning()
+
+    if (body.price !== undefined && updated.allegroSyncPrice) {
+      syncProductMutationToAllegro(c.env, c.executionCtx, {
+        sku,
+        offerId: updated.allegroOfferId,
+        syncPrice: true,
+        price: updated.price,
+        currency: updated.currency,
+        stock: updated.stock,
+        reserved: updated.reserved,
+      })
+    }
 
     const admin   = c.get('user')
     await logAdminAction(db, {
@@ -323,7 +432,14 @@ adminProductsRouter.put('/:sku/stock', async (c) => {
     }
 
     const product = await db.query.products.findFirst({
-      columns: { sku: true, stock: true, reserved: true, name: true },
+      columns: {
+        sku: true,
+        stock: true,
+        reserved: true,
+        name: true,
+        allegroOfferId: true,
+        allegroSyncStock: true,
+      },
       where: eq(products.sku, sku),
     })
     if (!product) return c.json({ error: 'Produkt nie znaleziony' }, 404)
@@ -335,6 +451,14 @@ adminProductsRouter.put('/:sku/stock', async (c) => {
     await db.update(products)
       .set({ stock: newStock, reserved: newReserved, updatedAt: new Date() })
       .where(eq(products.sku, sku))
+
+    syncProductMutationToAllegro(c.env, c.executionCtx, {
+      sku,
+      offerId: product.allegroOfferId,
+      syncStock: product.allegroSyncStock,
+      stock: newStock,
+      reserved: newReserved,
+    })
 
     await db.insert(stockChanges).values({
       productSku:    sku,

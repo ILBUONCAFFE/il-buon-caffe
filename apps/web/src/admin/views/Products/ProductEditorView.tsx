@@ -50,12 +50,15 @@ type ProductFormState = {
   isNew: boolean
   isFeatured: boolean
   allegroOfferId: string
+  allegroSyncPrice: boolean
+  allegroSyncStock: boolean
 }
 
 const DEFAULT_FORM: ProductFormState = {
   sku: '', name: '', categoryId: '', price: '0', compareAtPrice: '', stock: '0',
   imageUrl: '', description: '', origin: '', year: '', weight: '',
   isActive: true, isNew: false, isFeatured: false, allegroOfferId: '',
+  allegroSyncPrice: true, allegroSyncStock: true,
 }
 
 const MEDIA_ORIGINS = [
@@ -265,6 +268,8 @@ function mapProductToForm(p: AdminProduct): ProductFormState {
     isNew: p.isNew,
     isFeatured: p.isFeatured,
     allegroOfferId: p.allegroOfferId || '',
+    allegroSyncPrice: p.allegroSyncPrice ?? false,
+    allegroSyncStock: p.allegroSyncStock ?? false,
   }
 }
 
@@ -409,10 +414,10 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
     try {
       if (isCreateMode) {
         const normalizedSku = trimTo(form.sku.toUpperCase(), 50)
-        if (!normalizedSku) { setError('SKU produktu jest wymagane'); return }
 
         const payload: CreateAdminProductPayload = {
-          sku: normalizedSku, name: cleanedName, categoryId,
+          ...(normalizedSku ? { sku: normalizedSku } : {}),
+          name: cleanedName, categoryId,
           price: priceR.value, compareAtPrice: compareR.value, stock: stockR.value,
           imageUrl: normalizedImageUrl,
           description: trimTo(form.description, 2000),
@@ -421,6 +426,8 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
           weight: weightR.value,
           isActive: form.isActive, isNew: form.isNew, isFeatured: form.isFeatured,
           allegroOfferId: trimTo(form.allegroOfferId, 50) || null,
+          allegroSyncPrice: form.allegroSyncPrice,
+          allegroSyncStock: form.allegroSyncStock,
         }
 
         const created = await adminApi.createProduct(payload)
@@ -446,6 +453,8 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
         weight: weightR.value,
         isActive: form.isActive, isNew: form.isNew, isFeatured: form.isFeatured,
         allegroOfferId: trimTo(form.allegroOfferId, 50) || null,
+        allegroSyncPrice: form.allegroSyncPrice,
+        allegroSyncStock: form.allegroSyncStock,
       }
 
       await adminApi.updateProduct(sku, updatePayload)
@@ -510,11 +519,22 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
     }
   }
 
-  const pushStockToAllegro = async () => {
+  const pushSelectedToAllegro = async () => {
     if (!form.allegroOfferId) return
     setPushingStock(true); setError(null); setMessage(null)
-    try { await adminApi.pushStockToAllegro(sku); setMessage('Stan magazynowy wypchnięty na Allegro') }
-    catch (err) { setError(err instanceof Error ? err.message : 'Nie udało się wypchnąć stanu na Allegro') }
+    try {
+      await adminApi.updateProduct(sku, {
+        allegroSyncPrice: form.allegroSyncPrice,
+        allegroSyncStock: form.allegroSyncStock,
+      })
+      await adminApi.pushAllegroSync(sku)
+      const synced = [
+        form.allegroSyncPrice ? 'cena' : null,
+        form.allegroSyncStock ? 'stan' : null,
+      ].filter(Boolean).join(' i ')
+      setMessage(`${synced || 'Wybrane pola'} wypchnięte na Allegro`)
+    }
+    catch (err) { setError(err instanceof Error ? err.message : 'Nie udało się wypchnąć danych na Allegro') }
     finally { setPushingStock(false) }
   }
 
@@ -531,6 +551,24 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
   const categoryName = product?.category?.name || categories.find((c) => String(c.id) === form.categoryId)?.name || 'Brak kategorii'
   const categorySlug = product?.category?.slug || categories.find((c) => String(c.id) === form.categoryId)?.slug || ''
   const isWineCategory = categorySlug === 'wino' || categorySlug === 'alcohol'
+  const prefixBySlug: Record<string, string> = {
+    kawa: 'KAW',
+    coffee: 'KAW',
+    wino: 'WIN',
+    alcohol: 'WIN',
+    slodycze: 'SLO',
+    sweets: 'SLO',
+    spizarnia: 'SPI',
+    pantry: 'SPI',
+  }
+  const skuPreviewNamePart = form.name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 24) || 'PRODUKT'
+  const skuPreview = `${prefixBySlug[categorySlug] ?? 'IBC'}-${skuPreviewNamePart}`
 
   return (
     <div className="pb-24">
@@ -659,10 +697,13 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
                   <Field label="SKU">
                     <input
                       className="admin-input w-full font-mono"
-                      value={form.sku}
+                      value={isCreateMode ? (form.sku || skuPreview) : form.sku}
                       onChange={(e) => handleFieldChange('sku', e.target.value)}
-                      disabled={!isCreateMode}
+                      disabled
                     />
+                    {isCreateMode && (
+                      <p className="text-[11px] text-[#A3A3A3] mt-1">SKU zostanie utworzone automatycznie przy zapisie.</p>
+                    )}
                   </Field>
                   <Field label="Kategoria">
                     <select
@@ -841,14 +882,28 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
                   </div>
 
                   {form.allegroOfferId && (
-                    <button
-                      className="inline-flex items-center gap-2 btn-secondary text-sm disabled:opacity-40"
-                      disabled={pushingStock}
-                      onClick={() => void pushStockToAllegro()}
-                    >
-                      <Upload size={14} />
-                      {pushingStock ? 'Wysyłanie…' : 'Wypchnij stan na Allegro'}
-                    </button>
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <Toggle
+                          checked={form.allegroSyncPrice}
+                          onChange={(v) => handleFieldChange('allegroSyncPrice', v)}
+                          label="Synchronizuj cenę"
+                        />
+                        <Toggle
+                          checked={form.allegroSyncStock}
+                          onChange={(v) => handleFieldChange('allegroSyncStock', v)}
+                          label="Synchronizuj stan"
+                        />
+                      </div>
+                      <button
+                        className="inline-flex items-center gap-2 btn-secondary text-sm disabled:opacity-40"
+                        disabled={pushingStock || (!form.allegroSyncPrice && !form.allegroSyncStock)}
+                        onClick={() => void pushSelectedToAllegro()}
+                      >
+                        <Upload size={14} />
+                        {pushingStock ? 'Wysyłanie…' : 'Wypchnij wybrane pola na Allegro'}
+                      </button>
+                    </div>
                   )}
                 </>
               )}
@@ -962,8 +1017,15 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
         <AllegroLinkModal
           currentSku={sku}
           currentOfferId={form.allegroOfferId || null}
-          onLinked={(offerId) => {
-            setForm((p) => ({ ...p, allegroOfferId: offerId }))
+          currentSyncPrice={form.allegroSyncPrice}
+          currentSyncStock={form.allegroSyncStock}
+          onLinked={(offerId, options) => {
+            setForm((p) => ({
+              ...p,
+              allegroOfferId: offerId,
+              allegroSyncPrice: options.syncPrice,
+              allegroSyncStock: options.syncStock,
+            }))
             setShowAllegroLink(false)
             setMessage('Oferta Allegro została połączona')
           }}

@@ -416,6 +416,8 @@ export const products = pgTable('products', {
 
   // ===== Allegro (1:1 Mapping) =====
   allegroOfferId: varchar('allegro_offer_id', { length: 50 }).unique(),
+  allegroSyncPrice: boolean('allegro_sync_price').notNull().default(false),
+  allegroSyncStock: boolean('allegro_sync_stock').notNull().default(false),
 
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),

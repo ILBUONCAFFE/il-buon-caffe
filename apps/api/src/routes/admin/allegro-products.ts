@@ -12,6 +12,7 @@ import { requireAdminOrProxy } from '../../middleware/auth'
 import { serverError } from '../../lib/request'
 import { KV_KEYS, getAllegroApiBase } from '../../lib/allegro'
 import { decryptText } from '../../lib/crypto'
+import { patchAllegroOfferFields } from '../../lib/allegro-offer-sync'
 import type { Env } from '../../index'
 
 const ALLEGRO_CONTENT_TYPE = 'application/vnd.allegro.public.v1+json'
@@ -115,8 +116,10 @@ adminAllegroProductsRouter.get('/offers', requireAdminOrProxy(), async (c) => {
 // Podłącz SKU ↔ offerId (1:1)
 // ============================================
 const LinkSchema = z.object({
-  sku:     z.string().min(1),
-  offerId: z.string().min(1),
+  sku:        z.string().min(1),
+  offerId:    z.string().min(1),
+  syncPrice:  z.boolean().optional().default(false),
+  syncStock:  z.boolean().optional().default(false),
 })
 
 adminAllegroProductsRouter.post('/link', requireAdminOrProxy(), async (c) => {
@@ -126,12 +129,18 @@ adminAllegroProductsRouter.post('/link', requireAdminOrProxy(), async (c) => {
       if (!parsed.success) {
         return c.json({ error: { code: 'INVALID_BODY', message: 'Wymagane pola: sku, offerId' } }, 400)
       }
-      const { sku, offerId } = parsed.data
+      const { sku, offerId, syncPrice, syncStock } = parsed.data
       const db = createDb(c.env.DATABASE_URL)
 
       // Check product exists
       const [product] = await db
-        .select({ sku: products.sku })
+        .select({
+          sku:      products.sku,
+          price:    products.price,
+          currency: products.currency,
+          stock:    products.stock,
+          reserved: products.reserved,
+        })
         .from(products)
         .where(eq(products.sku, sku))
         .limit(1)
@@ -140,20 +149,44 @@ adminAllegroProductsRouter.post('/link', requireAdminOrProxy(), async (c) => {
         return c.json({ error: { code: 'PRODUCT_NOT_FOUND', message: `Produkt o SKU "${sku}" nie istnieje` } }, 404)
       }
 
+      let syncResult: Awaited<ReturnType<typeof patchAllegroOfferFields>> | null = null
+      if (syncPrice || syncStock) {
+        syncResult = await patchAllegroOfferFields(c.env, {
+          offerId,
+          price: syncPrice ? { amount: product.price, currency: product.currency } : undefined,
+          stock: syncStock ? Math.max(0, product.stock - product.reserved) : undefined,
+        })
+      }
+
       // Enforce 1:1 — unlink any product currently holding this offerId
       await db
         .update(products)
-        .set({ allegroOfferId: null, updatedAt: new Date() })
+        .set({
+          allegroOfferId: null,
+          allegroSyncPrice: false,
+          allegroSyncStock: false,
+          updatedAt: new Date(),
+        })
         .where(sql`${products.allegroOfferId} = ${offerId}`)
 
       // Link the target product
       const [updated] = await db
         .update(products)
-        .set({ allegroOfferId: offerId, updatedAt: new Date() })
+        .set({
+          allegroOfferId: offerId,
+          allegroSyncPrice: syncPrice,
+          allegroSyncStock: syncStock,
+          updatedAt: new Date(),
+        })
         .where(eq(products.sku, sku))
-        .returning({ sku: products.sku, allegroOfferId: products.allegroOfferId })
+        .returning({
+          sku: products.sku,
+          allegroOfferId: products.allegroOfferId,
+          allegroSyncPrice: products.allegroSyncPrice,
+          allegroSyncStock: products.allegroSyncStock,
+        })
 
-      return c.json({ success: true, data: updated })
+      return c.json({ success: true, data: { ...updated, syncResult } })
     } catch (err) {
       return serverError(c, 'POST /admin/allegro-products/link', err)
     }
@@ -180,7 +213,12 @@ adminAllegroProductsRouter.delete('/link/:sku', requireAdminOrProxy(), async (c)
 
     await db
       .update(products)
-      .set({ allegroOfferId: null, updatedAt: new Date() })
+      .set({
+        allegroOfferId: null,
+        allegroSyncPrice: false,
+        allegroSyncStock: false,
+        updatedAt: new Date(),
+      })
       .where(sql`${products.sku} = ${sku}`)
 
     return c.json({ success: true })
@@ -190,9 +228,68 @@ adminAllegroProductsRouter.delete('/link/:sku', requireAdminOrProxy(), async (c)
 })
 
 // ============================================
-// POST /admin/allegro-products/:sku/push-stock  🛡️
-// Wypchnij stan magazynowy do Allegro
+// POST /admin/allegro-products/:sku/push-sync  🛡️
+// Wypchnij wybrane pola do Allegro
 // ============================================
+adminAllegroProductsRouter.post('/:sku/push-sync', requireAdminOrProxy(), async (c) => {
+  try {
+    const sku = c.req.param('sku') ?? ''
+    const db  = createDb(c.env.DATABASE_URL)
+
+    const [product] = await db
+      .select({
+        sku:            products.sku,
+        allegroOfferId: products.allegroOfferId,
+        allegroSyncPrice: products.allegroSyncPrice,
+        allegroSyncStock: products.allegroSyncStock,
+        price:          products.price,
+        currency:       products.currency,
+        stock:          products.stock,
+        reserved:       products.reserved,
+      })
+      .from(products)
+      .where(sql`${products.sku} = ${sku}`)
+      .limit(1)
+
+    if (!product) {
+      return c.json({ error: { code: 'PRODUCT_NOT_FOUND', message: `Produkt o SKU "${sku}" nie istnieje` } }, 404)
+    }
+
+    if (!product.allegroOfferId) {
+      return c.json(
+        { error: { code: 'NOT_LINKED', message: `Produkt "${sku}" nie jest podłączony do żadnej oferty Allegro` } },
+        400,
+      )
+    }
+
+    if (!product.allegroSyncPrice && !product.allegroSyncStock) {
+      return c.json(
+        { error: { code: 'NO_SYNC_FIELDS', message: 'Nie wybrano pól do synchronizacji z Allegro' } },
+        400,
+      )
+    }
+
+    const available = Math.max(0, (product.stock ?? 0) - (product.reserved ?? 0))
+    const syncResult = await patchAllegroOfferFields(c.env, {
+      offerId: product.allegroOfferId,
+      price: product.allegroSyncPrice ? { amount: product.price, currency: product.currency } : undefined,
+      stock: product.allegroSyncStock ? available : undefined,
+    })
+
+    return c.json({
+      success: true,
+      data: {
+        sku,
+        allegroOfferId: product.allegroOfferId,
+        ...syncResult,
+      },
+    })
+  } catch (err) {
+    return serverError(c, 'POST /admin/allegro-products/:sku/push-sync', err)
+  }
+})
+
+// Backwards-compatible stock-only endpoint used by older UI.
 adminAllegroProductsRouter.post('/:sku/push-stock', requireAdminOrProxy(), async (c) => {
   try {
     const sku = c.req.param('sku') ?? ''
@@ -220,37 +317,11 @@ adminAllegroProductsRouter.post('/:sku/push-stock', requireAdminOrProxy(), async
       )
     }
 
-    const accessToken = await resolveAccessToken(c.env)
-    if (!accessToken) {
-      return c.json({ error: { code: 'ALLEGRO_NOT_CONNECTED', message: 'Allegro nie jest podłączone' } }, 400)
-    }
-
-    const environment = ((await c.env.ALLEGRO_KV.get(KV_KEYS.ENVIRONMENT)) ?? 'sandbox') as 'sandbox' | 'production'
-    const apiBase     = getAllegroApiBase(environment)
-
     const available = Math.max(0, (product.stock ?? 0) - (product.reserved ?? 0))
-
-    const allegroResp = await fetch(
-      `${apiBase}/sale/product-offers/${product.allegroOfferId}`,
-      {
-        method:  'PATCH',
-        signal:  AbortSignal.timeout(15_000),
-        headers: {
-          Authorization:  `Bearer ${accessToken}`,
-          'Content-Type': ALLEGRO_CONTENT_TYPE,
-          Accept:         ALLEGRO_CONTENT_TYPE,
-        },
-        body: JSON.stringify({ stock: { available } }),
-      },
-    )
-
-    if (!allegroResp.ok) {
-      const body = await allegroResp.text().catch(() => '')
-      return c.json(
-        { error: { code: 'ALLEGRO_API_ERROR', message: `Allegro zwróciło ${allegroResp.status}: ${body}` } },
-        502,
-      )
-    }
+    await patchAllegroOfferFields(c.env, {
+      offerId: product.allegroOfferId,
+      stock: available,
+    })
 
     return c.json({
       success: true,

@@ -8,7 +8,9 @@ import type { AllegroOffer } from '../../types/admin-api'
 type Props = {
   currentSku: string
   currentOfferId: string | null
-  onLinked: (offerId: string) => void
+  currentSyncPrice?: boolean
+  currentSyncStock?: boolean
+  onLinked: (offerId: string, options: { syncPrice: boolean; syncStock: boolean }) => void
   onClose: () => void
 }
 
@@ -18,7 +20,14 @@ const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
   ENDED:    { label: 'Zakończona', cls: 'bg-[#FEE2E2] text-[#B91C1C]' },
 }
 
-export function AllegroLinkModal({ currentSku, currentOfferId, onLinked, onClose }: Props) {
+export function AllegroLinkModal({
+  currentSku,
+  currentOfferId,
+  currentSyncPrice = true,
+  currentSyncStock = true,
+  onLinked,
+  onClose,
+}: Props) {
   const [offers,  setOffers]  = useState<AllegroOffer[]>([])
   const [total,   setTotal]   = useState(0)
   const [search,  setSearch]  = useState('')
@@ -26,6 +35,8 @@ export function AllegroLinkModal({ currentSku, currentOfferId, onLinked, onClose
   const [loading, setLoading] = useState(true)
   const [linking, setLinking] = useState<string | null>(null)
   const [error,   setError]   = useState<string | null>(null)
+  const [syncPrice, setSyncPrice] = useState(currentSyncPrice)
+  const [syncStock, setSyncStock] = useState(currentSyncStock)
   const LIMIT = 20
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -55,8 +66,8 @@ export function AllegroLinkModal({ currentSku, currentOfferId, onLinked, onClose
     setLinking(offer.id)
     setError(null)
     try {
-      await adminApi.linkAllegroOffer({ sku: currentSku, offerId: offer.id })
-      onLinked(offer.id)
+      await adminApi.linkAllegroOffer({ sku: currentSku, offerId: offer.id, syncPrice, syncStock })
+      onLinked(offer.id, { syncPrice, syncStock })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Błąd łączenia')
     } finally {
@@ -92,6 +103,32 @@ export function AllegroLinkModal({ currentSku, currentOfferId, onLinked, onClose
               placeholder="Szukaj oferty po tytule…"
               className="w-full pl-9 pr-4 py-2 rounded-xl border border-[#E5E4E1] text-sm text-[#1A1A1A] focus:outline-none focus:ring-2 focus:ring-[#0066CC]/20 focus:border-[#0066CC]"
             />
+          </div>
+          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <label className="flex items-start gap-2 rounded-xl border border-[#E5E4E1] bg-[#FAFAF9] px-3 py-2 text-sm text-[#525252] cursor-pointer">
+              <input
+                type="checkbox"
+                checked={syncPrice}
+                onChange={(event) => setSyncPrice(event.target.checked)}
+                className="mt-0.5 h-4 w-4 accent-[#1A1A1A]"
+              />
+              <span>
+                Synchronizuj cenę
+                <span className="block text-xs text-[#A3A3A3]">Cena sklepu nadpisze Allegro przy łączeniu.</span>
+              </span>
+            </label>
+            <label className="flex items-start gap-2 rounded-xl border border-[#E5E4E1] bg-[#FAFAF9] px-3 py-2 text-sm text-[#525252] cursor-pointer">
+              <input
+                type="checkbox"
+                checked={syncStock}
+                onChange={(event) => setSyncStock(event.target.checked)}
+                className="mt-0.5 h-4 w-4 accent-[#1A1A1A]"
+              />
+              <span>
+                Synchronizuj stan
+                <span className="block text-xs text-[#A3A3A3]">Dostępna ilość sklepu nadpisze Allegro.</span>
+              </span>
+            </label>
           </div>
         </div>
 

@@ -305,6 +305,12 @@ export const adminApi = {
       { method: 'POST' }
     ),
 
+  pushAllegroSync: (sku: string) =>
+    request<PushStockResponse>(
+      `/api/admin/allegro-products/${encodeURIComponent(sku)}/push-sync`,
+      { method: 'POST' }
+    ),
+
   // ── Activity feed ──────────────────────────────────────────────────────────
   getActivityFeed: (limit = 10) =>
     request<ActivityFeedResponse>(`/api/admin/activity?limit=${limit}`),
