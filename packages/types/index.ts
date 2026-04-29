@@ -828,6 +828,29 @@ export interface Pairing {
   note?: string
 }
 
+export interface DishTemplate {
+  id: number
+  category: string
+  name: string
+  note: string | null
+  dishType: string | null
+  tags: string[]
+  isActive: boolean
+  sortOrder: number
+  createdAt: number
+  updatedAt: number
+}
+
+export interface UpsertDishTemplateRequest {
+  category?: string
+  name: string
+  note?: string | null
+  dishType?: string | null
+  tags?: string[]
+  isActive?: boolean
+  sortOrder?: number
+}
+
 export interface ProductRichContent {
   sku: string
   category: string

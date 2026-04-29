@@ -44,6 +44,9 @@ import type {
   ProducersListResponse,
   ProducerContentResponse,
   UpsertProducerPayload,
+  DishTemplatesResponse,
+  DishTemplateResponse,
+  UpsertDishTemplatePayload,
 } from '../types/admin-api'
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
@@ -482,6 +485,32 @@ export const adminApi = {
       method: 'PUT',
       body: JSON.stringify(payload),
     }),
+
+  listDishTemplates: (params?: { category?: string; active?: 'true' | 'false'; search?: string }) => {
+    const qs = new URLSearchParams()
+    if (params?.category) qs.set('category', params.category)
+    if (params?.active)   qs.set('active',   params.active)
+    if (params?.search)   qs.set('search',   params.search)
+    const suffix = qs.toString()
+    return request<DishTemplatesResponse>(`/api/admin/content/dish-templates${suffix ? `?${suffix}` : ''}`)
+  },
+
+  createDishTemplate: (payload: UpsertDishTemplatePayload) =>
+    request<DishTemplateResponse>('/api/admin/content/dish-templates', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+
+  updateDishTemplate: (id: number, payload: UpsertDishTemplatePayload) =>
+    request<DishTemplateResponse>(`/api/admin/content/dish-templates/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+
+  deleteDishTemplate: (id: number) =>
+    request<{ data: { deleted: boolean } }>(`/api/admin/content/dish-templates/${id}`, {
+      method: 'DELETE',
+    }),
 }
 
 // ── Re-export types so components can import from one place ──────────────────
@@ -548,4 +577,8 @@ export type {
   ContentHistoryResponse,
   RichContentAward,
   RichContentPairing,
+  DishTemplate,
+  DishTemplatesResponse,
+  DishTemplateResponse,
+  UpsertDishTemplatePayload,
 } from '../types/admin-api'

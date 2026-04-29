@@ -675,6 +675,37 @@ export interface RichContentPairing {
   note?: string
 }
 
+export interface DishTemplate {
+  id: number
+  category: string
+  name: string
+  note: string | null
+  dishType: string | null
+  tags: string[]
+  isActive: boolean
+  sortOrder: number
+  createdAt: number
+  updatedAt: number
+}
+
+export interface DishTemplatesResponse {
+  data: DishTemplate[]
+}
+
+export interface DishTemplateResponse {
+  data: DishTemplate
+}
+
+export interface UpsertDishTemplatePayload {
+  category?: string
+  name: string
+  note?: string | null
+  dishType?: string | null
+  tags?: string[]
+  isActive?: boolean
+  sortOrder?: number
+}
+
 export interface ProductRichContent {
   sku: string
   category: string

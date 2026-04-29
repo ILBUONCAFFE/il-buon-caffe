@@ -84,6 +84,27 @@ export const productContentHistory = sqliteTable(
   ]
 )
 
+export const dishTemplates = sqliteTable(
+  'dish_templates',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    category: text('category').notNull().default('wine'),
+    name: text('name').notNull(),
+    note: text('note'),
+    dishType: text('dish_type'),
+    tags: text('tags'),
+    isActive: integer('is_active').notNull().default(1),
+    sortOrder: integer('sort_order').notNull().default(0),
+    createdAt: integer('created_at').notNull(),
+    updatedAt: integer('updated_at').notNull(),
+  },
+  (t) => [
+    index('dt_category').on(t.category),
+    index('dt_active').on(t.isActive),
+    index('dt_dish_type').on(t.dishType),
+  ]
+)
+
 export const producersHistory = sqliteTable(
   'producers_history',
   {

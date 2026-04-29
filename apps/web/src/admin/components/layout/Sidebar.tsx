@@ -39,7 +39,7 @@ const navItems = [
     id: 'website', icon: Globe, label: 'Strona internetowa', destination: 'Zarządzanie stroną',
     children: [
       { id: 'website-stats', path: '/admin/website/stats', label: 'Statystyki', icon: LineChart },
-      { id: 'website-cms', path: '/admin/content', label: 'Zmiana CMS', icon: Edit }
+      { id: 'website-cms', path: '/admin/content', label: 'Treści i gotowce', icon: Edit }
     ]
   },
   { id: 'statistics', path: '/admin/statistics', icon: BarChart3, label: 'Statystyka', destination: 'Analizy i statystyki' },

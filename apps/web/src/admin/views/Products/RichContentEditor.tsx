@@ -11,6 +11,7 @@ import {
   type UpsertProductRichContentPayload,
   type RichContentAward,
   type RichContentPairing,
+  type DishTemplate,
 } from '../../lib/adminApiClient'
 
 const CATEGORY_CONFIG = {
@@ -115,6 +116,8 @@ export function RichContentEditor({ sku, category, product }: Props) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const [dishTemplates, setDishTemplates] = useState<DishTemplate[]>([])
+  const [selectedDishTemplateId, setSelectedDishTemplateId] = useState('')
 
   const load = useCallback(async () => {
     setLoading(true); setError(null)
@@ -138,6 +141,18 @@ export function RichContentEditor({ sku, category, product }: Props) {
   }, [sku, category])
 
   useEffect(() => { void load() }, [load])
+
+  useEffect(() => {
+    if (!isWineCategory) {
+      setDishTemplates([])
+      return
+    }
+
+    adminApi
+      .listDishTemplates({ category: 'wine', active: 'true' })
+      .then((res) => setDishTemplates(res.data))
+      .catch(() => setDishTemplates([]))
+  }, [isWineCategory])
 
   const save = async () => {
     setSaving(true); setError(null); setMessage(null)
@@ -179,6 +194,24 @@ export function RichContentEditor({ sku, category, product }: Props) {
 
   const removePairing = (i: number) =>
     setContent((p) => ({ ...p, pairing: (p.pairing ?? []).filter((_, idx) => idx !== i) }))
+
+  const insertDishTemplate = (templateId: string) => {
+    setSelectedDishTemplateId(templateId)
+    const template = dishTemplates.find((item) => String(item.id) === templateId)
+    if (!template) return
+
+    setContent((p) => ({
+      ...p,
+      pairing: [
+        ...(p.pairing ?? []),
+        {
+          dish: template.name,
+          ...(template.note ? { note: template.note } : {}),
+        },
+      ],
+    }))
+    setSelectedDishTemplateId('')
+  }
 
   if (loading) return <div className="h-32 bg-[#F5F4F1] rounded-xl animate-pulse" />
 
@@ -389,6 +422,26 @@ export function RichContentEditor({ sku, category, product }: Props) {
           </button>
         }
       >
+        {isWineCategory && dishTemplates.length > 0 && (
+          <div className="rounded-lg border border-[#E5E4E1] bg-[#FAFAF9] p-3">
+            <label className="block text-xs font-medium uppercase tracking-wider text-[#737373] mb-1.5">
+              Wstaw gotowiec dania
+            </label>
+            <select
+              className="admin-input w-full"
+              value={selectedDishTemplateId}
+              onChange={(e) => insertDishTemplate(e.target.value)}
+            >
+              <option value="">Wybierz gotowiec z bazy</option>
+              {dishTemplates.map((template) => (
+                <option key={template.id} value={template.id}>
+                  {template.name}{template.dishType ? ` · ${template.dishType}` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         {pairing.length === 0 ? (
           <p className="text-sm text-[#A3A3A3] text-center py-6">Brak pairingu</p>
         ) : (
