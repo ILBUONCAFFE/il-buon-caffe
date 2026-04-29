@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { adminApi, type AdminCategory, type AdminProduct, type AdminProductsQueryParams } from '../../lib/adminApiClient'
 import { MoreVertical, ChevronLeft, ChevronRight as ChevronRightIcon } from 'lucide-react'
 import { StockAdjustModal } from './StockAdjustModal'
+import { PermanentDeleteProductModal } from './PermanentDeleteProductModal'
 
 const PAGE_LIMIT = 50
 
@@ -24,6 +25,7 @@ export const ProductsView = () => {
   const [error, setError] = useState<string | null>(null)
   const [busySku, setBusySku] = useState<string | null>(null)
   const [adjustTarget, setAdjustTarget] = useState<AdminProduct | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<AdminProduct | null>(null)
 
   const [searchInput, setSearchInput] = useState('')
   const [search, setSearch] = useState('')
@@ -102,14 +104,14 @@ export const ProductsView = () => {
     }
   }
 
-  const handleDeletePermanently = async (sku: string) => {
-    const typed = window.prompt(`Trwałe usunięcie jest nieodwracalne.\n\nWpisz SKU produktu (${sku}) aby potwierdzić:`)
-    if (typed?.trim().toUpperCase() !== sku.toUpperCase()) return
+  const handleDeletePermanently = async () => {
+    if (!deleteTarget) return
 
-    setBusySku(sku)
+    setBusySku(deleteTarget.sku)
     setError(null)
     try {
-      await adminApi.deleteProductPermanently(sku)
+      await adminApi.deleteProductPermanently(deleteTarget.sku)
+      setDeleteTarget(null)
       await fetchProducts()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Nie udalo sie usunac produktu')
@@ -279,7 +281,7 @@ export const ProductsView = () => {
                         <button
                           className="px-2 py-1 text-xs rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-40"
                           disabled={busySku === product.sku}
-                          onClick={() => void handleDeletePermanently(product.sku)}
+                          onClick={() => setDeleteTarget(product)}
                         >
                           {busySku === product.sku ? '...' : 'Usuń'}
                         </button>
@@ -333,7 +335,7 @@ export const ProductsView = () => {
                     <button
                       className="px-2 py-1 text-xs rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-40"
                       disabled={busySku === product.sku}
-                      onClick={() => void handleDeletePermanently(product.sku)}
+                      onClick={() => setDeleteTarget(product)}
                     >
                       {busySku === product.sku ? '...' : 'Usuń'}
                     </button>
@@ -379,6 +381,14 @@ export const ProductsView = () => {
           product={adjustTarget}
           onClose={() => setAdjustTarget(null)}
           onSaved={() => { setAdjustTarget(null); void fetchProducts() }}
+        />
+      )}
+      {deleteTarget && (
+        <PermanentDeleteProductModal
+          product={deleteTarget}
+          busy={busySku === deleteTarget.sku}
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={() => void handleDeletePermanently()}
         />
       )}
     </div>

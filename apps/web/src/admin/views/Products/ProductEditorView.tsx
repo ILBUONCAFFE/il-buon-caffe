@@ -28,6 +28,7 @@ import {
 import { StockHistoryModal } from './StockHistoryModal'
 import { AllegroLinkModal } from './AllegroLinkModal'
 import { RichContentEditor } from './RichContentEditor'
+import { PermanentDeleteProductModal } from './PermanentDeleteProductModal'
 
 type ProductEditorViewProps = { sku: string }
 
@@ -332,12 +333,14 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
   const [loading, setLoading] = useState(!isCreateMode)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [pushingStock, setPushingStock] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
 
   const [showHistory, setShowHistory] = useState(false)
   const [showAllegroLink, setShowAllegroLink] = useState(false)
+  const [showPermanentDelete, setShowPermanentDelete] = useState(false)
   const [isClearingCache, setIsClearingCache] = useState(false)
 
   const loadCategories = useCallback(async () => {
@@ -491,6 +494,20 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
     try { await adminApi.clearProductCache(product.sku); setMessage('Cache produktu wyczyszczony') }
     catch { setError('Błąd czyszczenia cache') }
     finally { setIsClearingCache(false) }
+  }
+
+  const handlePermanentDelete = async () => {
+    if (!product) return
+    setDeleting(true); setError(null); setMessage(null)
+    try {
+      await adminApi.deleteProductPermanently(product.sku)
+      setShowPermanentDelete(false)
+      router.replace('/admin/products')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Nie udało się usunąć produktu')
+    } finally {
+      setDeleting(false)
+    }
   }
 
   const pushStockToAllegro = async () => {
@@ -711,17 +728,8 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
                     {!product?.isActive && (
                       <button
                         className="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-red-300 bg-red-50 text-red-700 hover:bg-red-100 transition-colors disabled:opacity-40"
-                        disabled={saving || uploading}
-                        onClick={async () => {
-                          const typed = window.prompt(`Trwałe usunięcie produktu jest nieodwracalne.\n\nWpisz SKU produktu (${sku}) aby potwierdzić:`)
-                          if (typed?.trim().toUpperCase() !== sku.toUpperCase()) return
-                          try {
-                            await adminApi.deleteProductPermanently(sku)
-                            router.replace('/admin/products')
-                          } catch (err) {
-                            setError(err instanceof Error ? err.message : 'Nie udało się usunąć produktu')
-                          }
-                        }}
+                        disabled={saving || uploading || deleting}
+                        onClick={() => setShowPermanentDelete(true)}
                       >
                         <Trash2 size={14} /> Usuń trwale
                       </button>
@@ -960,6 +968,14 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
             setMessage('Oferta Allegro została połączona')
           }}
           onClose={() => setShowAllegroLink(false)}
+        />
+      )}
+      {showPermanentDelete && product && (
+        <PermanentDeleteProductModal
+          product={product}
+          busy={deleting}
+          onClose={() => setShowPermanentDelete(false)}
+          onConfirm={() => void handlePermanentDelete()}
         />
       )}
     </div>

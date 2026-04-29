@@ -433,14 +433,34 @@ adminProductsRouter.delete('/:sku', async (c) => {
     if (!product) return c.json({ error: 'Produkt nie znaleziony' }, 404)
 
     if (permanent) {
-      // Hard delete — physically removes the row (cascades to related tables)
+      if (product.isActive) {
+        return c.json({ error: 'Przed trwałym usunięciem produkt musi być zdezaktywowany' }, 409)
+      }
+
+      const [deletedImages, deletedStockChanges] = await Promise.all([
+        db.delete(productImages)
+          .where(eq(productImages.productSku, sku))
+          .returning({ id: productImages.id }),
+        db.delete(stockChanges)
+          .where(eq(stockChanges.productSku, sku))
+          .returning({ id: stockChanges.id }),
+      ])
+
+      // Hard delete — physically removes the product row. Order items keep their product snapshot
+      // and intentionally do not have a FK to products.
       await db.delete(products).where(eq(products.sku, sku))
 
       await logAdminAction(db, {
         adminSub:  admin.sub,
         action:    'admin_action',
         ipAddress: adminIp,
-        details:   { event: 'product_deleted_permanently', sku, productName: product.name },
+        details:   {
+          event: 'product_deleted_permanently',
+          sku,
+          productName: product.name,
+          deletedImages: deletedImages.length,
+          deletedStockChanges: deletedStockChanges.length,
+        },
       })
 
       if (product.slug && c.env.INDEXNOW_KEY) {
