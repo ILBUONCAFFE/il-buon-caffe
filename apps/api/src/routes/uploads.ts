@@ -58,6 +58,11 @@ function buildPublicMediaUrl(c: { env: Env }, key: string): string {
   return `${getMediaPublicBaseUrl(c)}/${encodeR2KeyForUrl(key)}`
 }
 
+function appendVersionQuery(url: string, version: number): string {
+  const separator = url.includes('?') ? '&' : '?'
+  return `${url}${separator}v=${version}`
+}
+
 function isPublicReadableKey(key: string): boolean {
   return PUBLIC_READ_PREFIXES.some((prefix) => key.startsWith(prefix))
 }
@@ -100,12 +105,14 @@ app.post('/image', requireAdminOrProxy(), async (c) => {
     .replace(/[^a-z0-9]+/g, '-')             // znaki specjalne → myślnik
     .replace(/^-+|-+$/g, '')                  // obetnij krawędziowe myślniki
     .slice(0, 60)
-  let key = `${folder}/${Date.now()}-${safeName}.${ext}`
+  const uploadVersion = Date.now()
+  let key = `${folder}/${uploadVersion}-${safeName}.${ext}`
 
   const db = c.get('db')
+  let productSlugForCache: string | null = null
   if (shouldPersistProductUrl) {
     const product = await db.query.products.findFirst({
-      columns: { sku: true },
+      columns: { sku: true, slug: true },
       where: eq(products.sku, productSku),
     })
 
@@ -115,6 +122,7 @@ app.post('/image', requireAdminOrProxy(), async (c) => {
 
     // Stabilny klucz oparty o SKU — zmiana nazwy/slugu produktu nie łamie URL obrazka.
     key = `products/${productSku.toLowerCase()}/main.${ext}`
+    productSlugForCache = product.slug
   }
 
   const uploadBucket = folder === 'catalogs' ? c.env.CATALOGS_BUCKET : c.env.MEDIA_BUCKET
@@ -128,7 +136,8 @@ app.post('/image', requireAdminOrProxy(), async (c) => {
   })
 
   const proxyUrl = buildProxyUrl(key)
-  const url = folder === 'catalogs' ? proxyUrl : buildPublicMediaUrl(c, key)
+  const baseUrl = folder === 'catalogs' ? proxyUrl : buildPublicMediaUrl(c, key)
+  const url = shouldPersistProductUrl ? appendVersionQuery(baseUrl, uploadVersion) : baseUrl
 
   if (shouldPersistProductUrl) {
     try {
@@ -141,6 +150,15 @@ app.post('/image', requireAdminOrProxy(), async (c) => {
       await uploadBucket.delete(key).catch(() => undefined)
       console.error('[uploads] failed to persist imageUrl in DB', error)
       return c.json({ error: 'Nie udało się zapisać URL zdjęcia w bazie' }, 500)
+    }
+
+    if (c.env.ALLEGRO_KV) {
+      c.executionCtx.waitUntil(
+        Promise.all([
+          c.env.ALLEGRO_KV.delete(`product:static:${productSku.toLowerCase()}`),
+          productSlugForCache ? c.env.ALLEGRO_KV.delete(`product:static:${productSlugForCache}`) : Promise.resolve(),
+        ])
+      )
     }
   }
 

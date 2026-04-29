@@ -95,6 +95,18 @@ function decodeUrlPath(pathname: string): string {
     .join('/')
 }
 
+function splitPathAndSuffix(value: string): { path: string; suffix: string } {
+  const queryIdx = value.indexOf('?')
+  const hashIdx = value.indexOf('#')
+  const suffixIdx = [queryIdx, hashIdx].filter((idx) => idx >= 0).sort((a, b) => a - b)[0]
+  if (suffixIdx == null) return { path: value, suffix: '' }
+  return { path: value.slice(0, suffixIdx), suffix: value.slice(suffixIdx) }
+}
+
+function appendUrlSuffix(url: string, suffix: string): string {
+  return suffix ? `${url}${suffix}` : url
+}
+
 function toUploadProxyUrl(key: string): string {
   const cleanKey = key.replace(/^\/+/, '').trim()
   if (!cleanKey) return ''
@@ -116,13 +128,15 @@ function normalizeAdminProductImageUrl(raw: string): string {
   }
 
   if (input.startsWith('/api/uploads/image/')) {
-    const key = decodeUrlPath(input.replace(/^\/api\/uploads\/image\//, ''))
-    return toPublicMediaUrl(key)
+    const { path, suffix } = splitPathAndSuffix(input.replace(/^\/api\/uploads\/image\//, ''))
+    const key = decodeUrlPath(path)
+    return appendUrlSuffix(toPublicMediaUrl(key), suffix)
   }
 
   if (input.startsWith('api/uploads/image/')) {
-    const key = decodeUrlPath(input.replace(/^api\/uploads\/image\//, ''))
-    return toPublicMediaUrl(key)
+    const { path, suffix } = splitPathAndSuffix(input.replace(/^api\/uploads\/image\//, ''))
+    const key = decodeUrlPath(path)
+    return appendUrlSuffix(toPublicMediaUrl(key), suffix)
   }
 
   if (/^https?:\/\//i.test(input)) {
@@ -131,7 +145,7 @@ function normalizeAdminProductImageUrl(raw: string): string {
       const origin = `${parsed.protocol}//${parsed.host}`.toLowerCase()
       if (MEDIA_ORIGINS.includes(origin)) {
         const key = decodeUrlPath(parsed.pathname)
-        return toPublicMediaUrl(key)
+        return appendUrlSuffix(toPublicMediaUrl(key), `${parsed.search}${parsed.hash}`)
       }
     } catch {
       return input
@@ -144,7 +158,8 @@ function normalizeAdminProductImageUrl(raw: string): string {
   }
 
   // Legacy values sometimes store only the raw R2 key (e.g. "products/sku/main.webp").
-  return toPublicMediaUrl(input)
+  const { path, suffix } = splitPathAndSuffix(input)
+  return appendUrlSuffix(toPublicMediaUrl(path), suffix)
 }
 
 function uniqueNonEmpty(values: string[]): string[] {
@@ -173,7 +188,7 @@ function getAdminImagePreviewCandidates(raw: string): string[] {
       const origin = `${parsed.protocol}//${parsed.host}`.toLowerCase()
       if (MEDIA_ORIGINS.includes(origin)) {
         const key = decodeUrlPath(parsed.pathname)
-        return uniqueNonEmpty([input, toUploadProxyUrl(key)])
+        return uniqueNonEmpty([input, appendUrlSuffix(toUploadProxyUrl(key), `${parsed.search}${parsed.hash}`)])
       }
     } catch {
       return [input]
