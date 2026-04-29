@@ -42,6 +42,8 @@ const DishTemplateSchema = z.object({
   name:      z.string().min(1).max(200),
   note:      z.string().max(500).nullable().optional(),
   dishType:  z.string().max(100).nullable().optional(),
+  imageUrl:  z.string().max(500).nullable().optional(),
+  emoji:     z.string().max(20).nullable().optional(),
   tags:      z.array(z.string().min(1).max(50)).max(20).optional(),
   isActive:  z.boolean().optional(),
   sortOrder: z.number().int().min(0).max(10000).optional(),

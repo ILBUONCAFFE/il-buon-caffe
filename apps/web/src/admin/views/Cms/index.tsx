@@ -11,6 +11,8 @@ type DishTemplateForm = {
   name: string
   note: string
   dishType: string
+  imageUrl: string
+  emoji: string
   tagsText: string
   sortOrder: string
   isActive: boolean
@@ -21,6 +23,8 @@ const EMPTY_DISH_FORM: DishTemplateForm = {
   name: '',
   note: '',
   dishType: '',
+  imageUrl: '',
+  emoji: '',
   tagsText: '',
   sortOrder: '0',
   isActive: true,
@@ -39,6 +43,8 @@ function toDishForm(template: DishTemplate): DishTemplateForm {
     name: template.name,
     note: template.note ?? '',
     dishType: template.dishType ?? '',
+    imageUrl: template.imageUrl ?? '',
+    emoji: template.emoji ?? '',
     tagsText: template.tags.join(', '),
     sortOrder: String(template.sortOrder),
     isActive: template.isActive,
@@ -51,6 +57,8 @@ function toPayload(form: DishTemplateForm): UpsertDishTemplatePayload {
     name: form.name.trim(),
     note: form.note.trim() || null,
     dishType: form.dishType.trim() || null,
+    imageUrl: form.imageUrl.trim() || null,
+    emoji: form.emoji.trim() || null,
     tags: parseTags(form.tagsText),
     isActive: form.isActive,
     sortOrder: Number.isFinite(Number(form.sortOrder)) ? Number(form.sortOrder) : 0,
@@ -256,6 +264,20 @@ export const CmsView = () => {
                       min="0"
                     />
                   </div>
+                  <div className="grid grid-cols-1 md:grid-cols-[1fr_90px] gap-2">
+                    <input
+                      className="admin-input w-full"
+                      value={dishForm.imageUrl}
+                      onChange={(e) => setDishForm((prev) => ({ ...prev, imageUrl: e.target.value }))}
+                      placeholder="URL obrazka z daniem"
+                    />
+                    <input
+                      className="admin-input w-full"
+                      value={dishForm.emoji}
+                      onChange={(e) => setDishForm((prev) => ({ ...prev, emoji: e.target.value }))}
+                      placeholder="Emoji"
+                    />
+                  </div>
                   <input
                     className="admin-input w-full"
                     value={dishForm.tagsText}
@@ -403,6 +425,9 @@ export const CmsView = () => {
                         </div>
 
                         {template.note && <p className="text-sm text-[#525252] mt-3 leading-relaxed">{template.note}</p>}
+                        {template.imageUrl && (
+                          <p className="text-xs text-[#A3A3A3] mt-2 font-mono truncate">{template.imageUrl}</p>
+                        )}
                         {template.tags.length > 0 && (
                           <div className="flex flex-wrap gap-1.5 mt-3">
                             {template.tags.map((tag) => (

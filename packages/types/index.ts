@@ -834,6 +834,8 @@ export interface DishTemplate {
   name: string
   note: string | null
   dishType: string | null
+  imageUrl: string | null
+  emoji: string | null
   tags: string[]
   isActive: boolean
   sortOrder: number
@@ -846,6 +848,8 @@ export interface UpsertDishTemplateRequest {
   name: string
   note?: string | null
   dishType?: string | null
+  imageUrl?: string | null
+  emoji?: string | null
   tags?: string[]
   isActive?: boolean
   sortOrder?: number

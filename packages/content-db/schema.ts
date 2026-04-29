@@ -92,6 +92,8 @@ export const dishTemplates = sqliteTable(
     name: text('name').notNull(),
     note: text('note'),
     dishType: text('dish_type'),
+    imageUrl: text('image_url'),
+    emoji: text('emoji'),
     tags: text('tags'),
     isActive: integer('is_active').notNull().default(1),
     sortOrder: integer('sort_order').notNull().default(0),

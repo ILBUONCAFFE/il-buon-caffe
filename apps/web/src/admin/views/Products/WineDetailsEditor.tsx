@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import {
   adminApi,
+  type DishTemplate,
 } from '../../lib/adminApiClient'
 import type {
   WineDetails as CatalogWineDetails,
@@ -298,10 +299,19 @@ export function WineDetailsEditor({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const [dishTemplates, setDishTemplates] = useState<DishTemplate[]>([])
+  const [selectedDishTemplateId, setSelectedDishTemplateId] = useState('')
 
   useEffect(() => {
     setForm(createDraft(initialWineDetails))
   }, [initialWineDetails])
+
+  useEffect(() => {
+    adminApi
+      .listDishTemplates({ category: 'wine', active: 'true' })
+      .then((res) => setDishTemplates(res.data))
+      .catch(() => setDishTemplates([]))
+  }, [])
 
   const productImage = useMemo(
     () => product.imageUrl || product.image || '',
@@ -355,6 +365,27 @@ export function WineDetailsEditor({
       next[index] = { ...next[index], [field]: value }
       return { ...prev, foodPairing: next }
     })
+  }
+
+  const insertDishTemplate = (templateId: string) => {
+    setSelectedDishTemplateId(templateId)
+    const template = dishTemplates.find((item) => String(item.id) === templateId)
+    if (!template) return
+
+    setForm((prev) => ({
+      ...prev,
+      foodPairing: [
+        ...prev.foodPairing,
+        {
+          name: template.name,
+          description: template.note ?? '',
+          emoji: template.emoji ?? '',
+          imageUrl: template.imageUrl ?? '',
+          category: template.dishType ?? '',
+        },
+      ],
+    }))
+    setSelectedDishTemplateId('')
   }
 
   return (
@@ -591,6 +622,26 @@ export function WineDetailsEditor({
         description="Potrawy i menu, które mają prowadzić klienta do zakupu wina."
         action={<ArrayToolbar title="Lista pairingów" onAdd={addPairing} />}
       >
+        {dishTemplates.length > 0 && (
+          <div className="rounded-lg border border-[#E5E4E1] bg-[#FAFAF9] p-3">
+            <label className="block text-xs font-medium uppercase tracking-wider text-[#737373] mb-1.5">
+              Wstaw gotowiec dania
+            </label>
+            <select
+              className="admin-input w-full"
+              value={selectedDishTemplateId}
+              onChange={(e) => insertDishTemplate(e.target.value)}
+            >
+              <option value="">Wybierz gotowiec z bazy</option>
+              {dishTemplates.map((template) => (
+                <option key={template.id} value={template.id}>
+                  {template.name}{template.dishType ? ` · ${template.dishType}` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         {form.foodPairing.length === 0 ? (
           <p className="text-sm text-[#A3A3A3] text-center py-6">Brak pairingów. Dodaj pierwsze danie lub set smakowy.</p>
         ) : (
