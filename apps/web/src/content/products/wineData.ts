@@ -147,115 +147,115 @@ export const wineDataCatalog: Record<string, WineDetails> = {
         name: "Albóndigas",
         description: "Klopsiki w sosie pomidorowym po hiszpańsku — klasyczna tapas, której pikantność świetnie rezonuje z owocowymi nutami Monastrell",
         category: "mięso",
-        imageUrl: "/api/uploads/image/Albóndigas.png",
+        imageUrl: "https://media.ilbuoncaffe.pl/dishes/Albóndigas.png",
       },
       {
         name: "Antrykot wołowy z grilla",
         description: "Soczysty antrykot z grilla z chrupiącą skórką — moce taniny Monastrell doskonale tną tłuszcz, wydobywając dymne nuty mięsa",
         category: "mięso",
-        imageUrl: "/api/uploads/image/Antrykot wołowy z grilla.png",
+        imageUrl: "https://media.ilbuoncaffe.pl/dishes/Antrykot%20wo%C5%82owy%20z%20grilla.png",
       },
       {
         name: "Birria",
         description: "Meksykańskie duszone mięso w pikantnym bulionie — intensywne przyprawy i głęboki smak umami grają z ciemnymi owocami wina",
         category: "mięso",
-        imageUrl: "/api/uploads/image/Birria.png",
+        imageUrl: "https://media.ilbuoncaffe.pl/dishes/Birria.png",
       },
       {
         name: "Chili con carne",
         description: "Wołowina z fasolą i chili — pełna treść tego dania wymaga równie mocnego, taniczniego wina z Yecla",
         category: "mięso",
-        imageUrl: "/api/uploads/image/Chili con carne.png",
+        imageUrl: "https://media.ilbuoncaffe.pl/dishes/Chili%20con%20carne.png",
       },
       {
         name: "Chorizo i fuet – talerz wędlin",
         description: "Talerz z chorizo, fuet i innymi suszonymi wędlinami — korzenne nuty wina i dymna wiśnia tworzą idealne połączenie tapas",
         category: "wędliny",
-        imageUrl: "/api/uploads/image/Chorizo i fuet – talerz wędlin.png",
+        imageUrl: "https://media.ilbuoncaffe.pl/dishes/Chorizo%20i%20fuet%20%E2%80%93%20talerz%20w%C4%99dlin.png",
       },
       {
         name: "Dzik duszony",
         description: "Wolno duszony dzik z ziołami i czerwonym winem — dziczyzna o intensywnym smaku doskonale harmonizuje z Monastrell",
         category: "dziczyzna",
-        imageUrl: "/api/uploads/image/Dzik duszony.png",
+        imageUrl: "https://media.ilbuoncaffe.pl/dishes/Dzik%20duszony.png",
       },
       {
         name: "Escalivada",
         description: "Pieczone warzywa po katalońsku: bakłażan, papryka i cebula — wegańska klasyka podkreślająca owocowy charakter wina",
         category: "warzywa",
-        imageUrl: "/api/uploads/image/Escalivada.png",
+        imageUrl: "https://media.ilbuoncaffe.pl/dishes/Escalivada.png",
       },
       {
         name: "Jagnięcina pieczona z ziołami",
         description: "Udziec jagnięcy pieczony z rozmarynem, tymiankiem i czosnkiem — klasyczne połączenie dla win ze szczepu Monastrell z Yecla",
         category: "mięso",
-        imageUrl: "/api/uploads/image/Jagnięcina pieczona z ziołami.png",
+        imageUrl: "https://media.ilbuoncaffe.pl/dishes/Jagni%C4%99cina%20pieczona%20z%20zio%C5%82ami.png",
       },
       {
         name: "Karkówka z grilla",
         description: "Soczysta karkówka z grilla z marynatą ziołową — delikatny tłuszcz i dym grilla świetnie rezonują z taniczną strukturą Barahondy",
         category: "mięso",
-        imageUrl: "/api/uploads/image/Karkówka z grilla.png",
+        imageUrl: "https://media.ilbuoncaffe.pl/dishes/Kark%C3%B3wka%20z%20grilla.png",
       },
       {
         name: "Manchego z dodatkami",
         description: "Dojrzewający ser Manchego z oliwkami, marynowanymi warzywami i chrupkim pieczywem — idealna tapas do kieliszka Barahondy",
         category: "sery",
-        imageUrl: "/api/uploads/image/Manchego z dodatkami.png",
+        imageUrl: "https://media.ilbuoncaffe.pl/dishes/Manchego%20z%20dodatkami.png",
       },
       {
         name: "Moussaka",
         description: "Grecka zapiekanka z mięsem mielonym, bakłażanem i sosem béchamel — bogata i kremowa struktura dania podkreśla dojrzałość wina",
         category: "mięso",
-        imageUrl: "/api/uploads/image/Moussaka.png",
+        imageUrl: "https://media.ilbuoncaffe.pl/dishes/Moussaka.png",
       },
       {
         name: "Paella z mięsem",
         description: "Tradycyjna paella valenciana z kurczakiem i królikiem — szafranowy ryż i wino z tej samej strefy klimatycznej to naturalne połączenie",
         category: "mięso",
-        imageUrl: "/api/uploads/image/Paella z mięsem.png",
+        imageUrl: "https://media.ilbuoncaffe.pl/dishes/Paella%20z%20mi%C4%99sem.png",
       },
       {
         name: "Parmezan i Pecorino",
         description: "Twarde sery dojrzewające o intensywnym smaku — słony, orzechowy charakter serów podkreśla ciemnoowocowe nuty Monastrell",
         category: "sery",
-        imageUrl: "/api/uploads/image/Parmezan i Pecorino.png",
+        imageUrl: "https://media.ilbuoncaffe.pl/dishes/Parmezan%20i%20Pecorino.png",
       },
       {
         name: "Pieczona kaczka",
         description: "Kaczka pieczona z figami i korzennymi przyprawami — tłuste, aromatyczne mięso drobiowe idealnie balansuje taniny Barahondy",
         category: "drób",
-        imageUrl: "/api/uploads/image/Pieczona kaczka.png",
+        imageUrl: "https://media.ilbuoncaffe.pl/dishes/Pieczona%20kaczka.png",
       },
       {
         name: "Sarnina",
         description: "Pieczeń z sarny lub gulasz z sarniny — szlachetna dziczyzna o lekko słodkawym smaku tworzy eleganckie połączenie z organicznym winem",
         category: "dziczyzna",
-        imageUrl: "/api/uploads/image/Sarnina.png",
+        imageUrl: "https://media.ilbuoncaffe.pl/dishes/Sarnina.png",
       },
       {
         name: "Sery pleśniowe",
         description: "Roquefort, Gorgonzola lub Cabrales — kontrastowe połączenie intensywnej pleśni i dojrzałych, ciemnych owoców wina",
         category: "sery",
-        imageUrl: "/api/uploads/image/Sery pleśniowe.png",
+        imageUrl: "https://media.ilbuoncaffe.pl/dishes/Sery%20ple%C5%9Bniowe.png",
       },
       {
         name: "Souvlaki",
         description: "Greckie szaszłyki z wieprzowiny lub jagnięciny z tzatziki i pitą — dymny grill i śródziemnomorskie zioła grają z charakterem wina",
         category: "mięso",
-        imageUrl: "/api/uploads/image/Souvlaki.png",
+        imageUrl: "https://media.ilbuoncaffe.pl/dishes/Souvlaki.png",
       },
       {
         name: "Żeberka wieprzowe BBQ",
         description: "Wolno pieczone żeberka z sosem BBQ — słodko-dymna glazura i miękkie mięso wymagają pełnego, taniczniego czerwonego wina",
         category: "mięso",
-        imageUrl: "/api/uploads/image/Żeberka wieprzowe BBQ.png",
+        imageUrl: "https://media.ilbuoncaffe.pl/dishes/%C5%BBeberka%20wieprzowe%20BBQ.png",
       },
       {
         name: "Żeberka wołowe duszone",
         description: "Short ribs duszone przez 6 godzin z warzywami korzennymi — intensywne, rozpadające się mięso doskonale harmonizuje z Barahondą",
         category: "mięso",
-        imageUrl: "/api/uploads/image/Żeberka wołowe duszone.png",
+        imageUrl: "https://media.ilbuoncaffe.pl/dishes/%C5%BBeberka%20wo%C5%82owe%20duszone.png",
       },
     ],
     
@@ -359,7 +359,8 @@ function toString(value: unknown, fallback: string): string {
 function normalizeUploadImageUrl(value: string): string {
   if (!value.startsWith('/api/uploads/image/')) return value;
 
-  const key = value.replace(/^\/api\/uploads\/image\//, '');
+  const rawKey = value.replace(/^\/api\/uploads\/image\//, '');
+  const key = rawKey.includes('/') ? rawKey : `dishes/${rawKey}`;
   const mediaOrigin = (
     process.env.NEXT_PUBLIC_MEDIA_PUBLIC_URL ||
     process.env.NEXT_PUBLIC_R2_MEDIA_URL ||
