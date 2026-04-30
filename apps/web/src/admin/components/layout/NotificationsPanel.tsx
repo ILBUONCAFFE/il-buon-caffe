@@ -1,7 +1,7 @@
 'use client'
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { ShoppingCart, CreditCard, AlertTriangle, Bell } from 'lucide-react'
+import { ShoppingCart, CreditCard, AlertTriangle, Bell, MessageSquareWarning } from 'lucide-react'
 import { useNotifications } from '../../hooks/useDashboard'
 import type { AdminNotification } from '../../types/admin-api'
 
@@ -56,6 +56,11 @@ const typeConfig: Record<
     bg: 'bg-[#FFFBEB]',
     color: 'text-[#D97706]',
     icon: <AlertTriangle size={16} />,
+  },
+  complaint: {
+    bg: 'bg-[#FEF2F2]',
+    color: 'text-[#DC2626]',
+    icon: <MessageSquareWarning size={16} />,
   },
 }
 

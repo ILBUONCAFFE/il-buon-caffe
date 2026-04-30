@@ -444,7 +444,7 @@ export interface ActivityFeedResponse {
 }
 
 // ── Notifications ─────────────────────────────────────────────────────────────
-export type NotificationType = 'order' | 'payment' | 'stock'
+export type NotificationType = 'order' | 'payment' | 'stock' | 'complaint'
 
 export interface AdminNotification {
   id: string

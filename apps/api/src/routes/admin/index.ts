@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { createDb } from '@repo/db/client'
-import { orders, users, products } from '@repo/db/schema'
+import { orders, users, products, allegroIssues } from '@repo/db/schema'
 import { eq, and, sql, gte, lt, desc, isNull } from 'drizzle-orm'
 import { requireAdminOrProxy } from '../../middleware/auth'
 import { serverError } from '../../lib/request'
@@ -385,7 +385,7 @@ adminRouter.get('/activity', requireAdminOrProxy(), async (c) => {
 
 // ============================================
 // GET /admin/notifications  🛡️
-// Powiadomienia: nowe zamówienia + niski stan magazynowy
+// Powiadomienia: nowe zamówienia + niski stan magazynowy + reklamacje Allegro
 // ============================================
 adminRouter.get('/notifications', requireAdminOrProxy(), async (c) => {
   try {
@@ -394,7 +394,13 @@ adminRouter.get('/notifications', requireAdminOrProxy(), async (c) => {
     const since24h = new Date(now.getTime() - 24 * 60 * 60 * 1000)
     const since1h  = new Date(now.getTime() - 60 * 60 * 1000)
 
-    const [recentOrders, lowStockItems] = await Promise.all([
+    const openIssueStatuses = [
+      'CLAIM_SUBMITTED',
+      'DISPUTE_ONGOING',
+      'DISPUTE_UNRESOLVED',
+    ]
+
+    const [recentOrders, lowStockItems, activeIssues] = await Promise.all([
       db.select({
         id:           orders.id,
         orderNumber:  orders.orderNumber,
@@ -424,9 +430,31 @@ adminRouter.get('/notifications', requireAdminOrProxy(), async (c) => {
         ))
         .orderBy(sql`${products.stock} - ${products.reserved}`)
         .limit(3),
+
+      db.select({
+        id:             allegroIssues.id,
+        allegroIssueId: allegroIssues.allegroIssueId,
+        status:         allegroIssues.status,
+        subject:        allegroIssues.subject,
+        lastMessageAt:  allegroIssues.lastMessageAt,
+        payload:        allegroIssues.payload,
+        createdAt:      allegroIssues.createdAt,
+        updatedAt:      allegroIssues.updatedAt,
+        orderNumber:    orders.orderNumber,
+      })
+        .from(allegroIssues)
+        .leftJoin(orders, eq(allegroIssues.orderId, orders.id))
+        .where(sql`${allegroIssues.status} IN (${sql.join(openIssueStatuses.map(s => sql`${s}`), sql`, `)})`)
+        .orderBy(
+          sql`CASE WHEN ${allegroIssues.status} = 'CLAIM_SUBMITTED' THEN 0 ELSE 1 END`,
+          desc(allegroIssues.lastMessageAt),
+          desc(allegroIssues.updatedAt),
+        )
+        .limit(8),
     ])
 
     const sym: Record<string, string> = { PLN: 'zł', EUR: '€' }
+    const todayWarsaw = polishDateStr(0)
 
     type Notif = { id: string; type: string; title: string; message: string; createdAt: string; unread: boolean }
     const result: Notif[] = []
@@ -468,6 +496,51 @@ adminRouter.get('/notifications', requireAdminOrProxy(), async (c) => {
         message:   `${p.name} — zostało ${available} szt.`,
         createdAt: now.toISOString(),
         unread:    false,
+      })
+    }
+
+    for (const issue of activeIssues) {
+      const payload = issue.payload as {
+        type?: string
+        referenceNumber?: string | null
+        decisionDueDate?: string | null
+        currentState?: { statusDueDate?: string | null; dueDate?: string | null }
+        buyer?: { login?: string }
+      } | null
+      const dueIso = payload?.decisionDueDate
+        ?? payload?.currentState?.statusDueDate
+        ?? payload?.currentState?.dueDate
+        ?? null
+      const dueDate = dueIso ? new Date(dueIso) : null
+      const hoursToDue = dueDate ? (dueDate.getTime() - now.getTime()) / 3_600_000 : null
+      const dueSoon = issue.status === 'CLAIM_SUBMITTED' && hoursToDue !== null && hoursToDue <= 48
+      const overdue = issue.status === 'CLAIM_SUBMITTED' && hoursToDue !== null && hoursToDue < 0
+      const reference = payload?.referenceNumber ?? issue.subject ?? issue.allegroIssueId
+      const orderRef = issue.orderNumber ? `zam. ${issue.orderNumber}` : `ID ${issue.allegroIssueId}`
+      const createdAt = (issue.lastMessageAt ?? issue.updatedAt ?? issue.createdAt).toISOString()
+      const dueLabel = dueDate
+        ? todayWarsaw === new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Warsaw' }).format(dueDate)
+          ? 'dzisiaj'
+          : dueDate.toLocaleDateString('pl-PL')
+        : '-'
+
+      result.push({
+        id:        `issue-${issue.id}`,
+        type:      'complaint',
+        title:     overdue
+          ? 'Przekroczony termin reklamacji'
+          : dueSoon
+            ? 'Termin reklamacji blisko'
+            : issue.status === 'CLAIM_SUBMITTED'
+              ? 'Reklamacja do rozpatrzenia'
+              : issue.status === 'DISPUTE_UNRESOLVED'
+                ? 'Nierozwiązana dyskusja Allegro'
+                : 'Aktywna dyskusja Allegro',
+        message:   dueSoon || overdue
+          ? `${reference} · ${orderRef} · termin ${dueLabel}`
+          : `${reference} · ${orderRef}`,
+        createdAt,
+        unread:    Boolean(issue.lastMessageAt && issue.lastMessageAt >= since1h) || overdue,
       })
     }
 
