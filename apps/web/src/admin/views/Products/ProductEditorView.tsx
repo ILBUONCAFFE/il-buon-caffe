@@ -24,12 +24,17 @@ import {
   type AdminProduct,
   type CreateAdminProductPayload,
   type UpdateAdminProductPayload,
+  type UpsertProductRichContentPayload,
 } from '../../lib/adminApiClient'
 import { getWineDetailsForProduct } from '@/content/products/wineData'
 import { StockHistoryModal } from './StockHistoryModal'
 import { AllegroLinkModal } from './AllegroLinkModal'
 import { RichContentEditor } from './RichContentEditor'
-import { WineDetailsEditor } from './WineDetailsEditor'
+import {
+  WineDetailsEditor,
+  wineDetailsDraftToPayload,
+  type WineFormState,
+} from './WineDetailsEditor'
 import { PermanentDeleteProductModal } from './PermanentDeleteProductModal'
 
 type ProductEditorViewProps = { sku: string }
@@ -253,6 +258,10 @@ function parseNonNegativeInteger(raw: string, fieldLabel: string): { ok: true; v
   return { ok: true, value: parsed }
 }
 
+function isWineCategorySlug(slug: string): boolean {
+  return slug === 'wino' || slug === 'wine' || slug === 'alcohol'
+}
+
 function mapProductToForm(p: AdminProduct): ProductFormState {
   return {
     sku: p.sku,
@@ -337,6 +346,8 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
   const [categories, setCategories] = useState<AdminCategory[]>([])
   const [product, setProduct] = useState<AdminProduct | null>(null)
   const [selectedImage, setSelectedImage] = useState<File | null>(null)
+  const [wineDetailsDraft, setWineDetailsDraft] = useState<WineFormState | null>(null)
+  const [richContentDraft, setRichContentDraft] = useState<UpsertProductRichContentPayload | null>(null)
 
   const [loading, setLoading] = useState(!isCreateMode)
   const [saving, setSaving] = useState(false)
@@ -364,7 +375,7 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
     setLoading(true); setError(null)
     try {
       const res = await adminApi.getProduct(sku)
-      setProduct(res.data); setForm(mapProductToForm(res.data))
+      setProduct(res.data); setForm(mapProductToForm(res.data)); setWineDetailsDraft(null); setRichContentDraft(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Nie udało się pobrać produktu')
       setProduct(null)
@@ -400,6 +411,14 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
     setForm((prev) => ({ ...prev, [field]: value }))
   }
 
+  const handleWineDetailsDraftChange = useCallback((draft: WineFormState) => {
+    setWineDetailsDraft(draft)
+  }, [])
+
+  const handleRichContentDraftChange = useCallback((draft: UpsertProductRichContentPayload) => {
+    setRichContentDraft(draft)
+  }, [])
+
   const saveProduct = async () => {
     setSaving(true); setError(null); setMessage(null)
     const cleanedName = trimTo(form.name, 255)
@@ -422,6 +441,14 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
     const normalizedImageUrl = normalizeAdminProductImageUrl(trimTo(form.imageUrl, 500))
 
     try {
+      const selectedCategorySlug = categories.find((c) => String(c.id) === form.categoryId)?.slug || product?.category?.slug || ''
+      const wineDetails = !isCreateMode && isWineCategorySlug(selectedCategorySlug) && wineDetailsDraft
+        ? wineDetailsDraftToPayload(wineDetailsDraft)
+        : undefined
+      const richContent = !isCreateMode && !isWineCategorySlug(selectedCategorySlug) && richContentDraft
+        ? richContentDraft
+        : null
+
       if (isCreateMode) {
         const normalizedSku = trimTo(form.sku.toUpperCase(), 50)
 
@@ -465,6 +492,7 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
         allegroOfferId: trimTo(form.allegroOfferId, 50) || null,
         allegroSyncPrice: form.allegroSyncPrice,
         allegroSyncStock: form.allegroSyncStock,
+        ...(wineDetails ? { wineDetails } : {}),
       }
 
       await adminApi.updateProduct(sku, updatePayload)
@@ -483,6 +511,10 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
         setUploading(false)
       }
 
+      if (richContent) {
+        await adminApi.upsertProductRichContent(sku, richContent)
+      }
+
       await loadProduct()
       setSelectedImage(null)
       setMessage('Produkt został zapisany')
@@ -491,20 +523,6 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
     } finally {
       setSaving(false); setUploading(false)
     }
-  }
-
-  const uploadImageOnly = async () => {
-    if (!selectedImage || isCreateMode) return
-    setUploading(true); setError(null); setMessage(null)
-    try {
-      const uploaded = await adminApi.uploadProductMainImage(sku, selectedImage)
-      setForm((p) => ({ ...p, imageUrl: normalizeAdminProductImageUrl(uploaded.url) }))
-      setSelectedImage(null)
-      await loadProduct()
-      setMessage('Zdjęcie zostało wysłane i zapisane w bazie')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Nie udało się wysłać zdjęcia')
-    } finally { setUploading(false) }
   }
 
   const handleClearCache = async () => {
@@ -560,7 +578,7 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
 
   const categoryName = product?.category?.name || categories.find((c) => String(c.id) === form.categoryId)?.name || 'Brak kategorii'
   const categorySlug = product?.category?.slug || categories.find((c) => String(c.id) === form.categoryId)?.slug || ''
-  const isWineCategory = categorySlug === 'wino' || categorySlug === 'wine' || categorySlug === 'alcohol'
+  const isWineCategory = isWineCategorySlug(categorySlug)
   const prefixBySlug: Record<string, string> = {
     kawa: 'KAW',
     coffee: 'KAW',
@@ -996,14 +1014,10 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
                     </div>
                   )}
 
-                  {!isCreateMode && selectedImage && (
-                    <button
-                      className="mt-3 w-full btn-primary text-sm disabled:opacity-40"
-                      disabled={uploading || saving}
-                      onClick={() => void uploadImageOnly()}
-                    >
-                      {uploading ? 'Wysyłanie…' : form.imageUrl ? 'Nadpisz zdjęcie' : 'Wyślij zdjęcie'}
-                    </button>
+                  {selectedImage && (
+                    <p className="mt-3 text-xs text-[#737373]">
+                      Zdjęcie zostanie zapisane razem z produktem przez główny przycisk w nagłówku.
+                    </p>
                   )}
                 </div>
               </div>
@@ -1028,10 +1042,19 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
               product={product}
               initialWineDetails={getWineDetailsForProduct(product)}
               embedded
+              draft={wineDetailsDraft}
+              onDraftChange={handleWineDetailsDraftChange}
             />
           )}
           {activeTab === 'tresc' && !isCreateMode && product && !isWineCategory && (
-            <RichContentEditor sku={sku} category={product.category?.slug ?? 'wine'} product={product} />
+            <RichContentEditor
+              sku={sku}
+              category={product.category?.slug ?? 'wine'}
+              product={product}
+              managedSave
+              draft={richContentDraft}
+              onDraftChange={handleRichContentDraftChange}
+            />
           )}
           {activeTab === 'tresc' && isCreateMode && (
             <SectionCard title="Treść premium">

@@ -38,7 +38,7 @@ type WineAwardDraft = {
   competition: string
 }
 
-type WineFormState = {
+export type WineFormState = {
   grape: string
   alcohol: string
   body: string
@@ -118,7 +118,7 @@ function toPairingDraft(value: CatalogWineFoodPairing): WinePairingDraft {
   }
 }
 
-function createDraft(details: CatalogWineDetails): WineFormState {
+export function createWineDetailsDraft(details: CatalogWineDetails): WineFormState {
   return {
     grape: details.grape ?? '',
     alcohol: details.alcohol ?? '',
@@ -160,7 +160,7 @@ function toOptionalNumber(value: string, label: string): number | undefined {
   return parsed
 }
 
-function toPayload(form: WineFormState): Record<string, unknown> {
+export function wineDetailsDraftToPayload(form: WineFormState): Record<string, unknown> {
   const awards = form.awards
     .map((award) => ({
       year: String(award.year).trim(),
@@ -288,14 +288,18 @@ export function WineDetailsEditor({
   product,
   initialWineDetails,
   embedded = false,
+  draft,
+  onDraftChange,
 }: {
   sku: string
   product: WineEditorProductPreview
   initialWineDetails: CatalogWineDetails
   embedded?: boolean
+  draft?: WineFormState | null
+  onDraftChange?: (draft: WineFormState) => void
 }) {
   const router = useRouter()
-  const [form, setForm] = useState<WineFormState>(() => createDraft(initialWineDetails))
+  const [form, setForm] = useState<WineFormState>(() => draft ?? createWineDetailsDraft(initialWineDetails))
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
@@ -303,8 +307,12 @@ export function WineDetailsEditor({
   const [selectedDishTemplateId, setSelectedDishTemplateId] = useState('')
 
   useEffect(() => {
-    setForm(createDraft(initialWineDetails))
-  }, [initialWineDetails])
+    setForm(draft ?? createWineDetailsDraft(initialWineDetails))
+  }, [draft, initialWineDetails])
+
+  useEffect(() => {
+    onDraftChange?.(form)
+  }, [form, onDraftChange])
 
   useEffect(() => {
     adminApi
@@ -319,7 +327,7 @@ export function WineDetailsEditor({
   )
 
   const resetToInitial = () => {
-    setForm(createDraft(initialWineDetails))
+    setForm(createWineDetailsDraft(initialWineDetails))
     setMessage('Przywrócono bieżące dane z katalogu i overrideów')
     setError(null)
   }
@@ -329,7 +337,7 @@ export function WineDetailsEditor({
     setError(null)
     setMessage(null)
     try {
-      const payload = toPayload(form)
+      const payload = wineDetailsDraftToPayload(form)
       await adminApi.updateProduct(sku, { wineDetails: payload })
       setMessage('Zapisano wine details produktu')
     } catch (err) {
@@ -454,25 +462,7 @@ export function WineDetailsEditor({
         title="Podgląd produktu"
         description="Nazwa, opis krótki i zdjęcie główne edytujesz w standardowym formularzu produktu. Tutaj dopinasz wine design."
         action={
-          embedded ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={resetToInitial}
-                className="btn-secondary text-xs inline-flex items-center gap-1.5"
-              >
-                <RefreshCw size={13} /> Przywróć
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleSave()}
-                disabled={saving}
-                className="btn-primary text-xs disabled:opacity-40 inline-flex items-center gap-1.5"
-              >
-                <Save size={13} /> {saving ? 'Zapisywanie…' : 'Zapisz'}
-              </button>
-            </div>
-          ) : (
+          embedded ? null : (
             <Link
               href={`/admin/products/${encodeURIComponent(sku)}`}
               className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded-lg border border-[#E5E4E1] text-[#525252] hover:bg-[#F5F4F1] transition-colors"
@@ -726,8 +716,8 @@ export function WineDetailsEditor({
         </div>
       </SectionCard>
 
-      <div className="flex flex-wrap items-center justify-end gap-2 pt-2">
-        {!embedded && (
+      {!embedded && (
+        <div className="flex flex-wrap items-center justify-end gap-2 pt-2">
           <button
             type="button"
             onClick={() => router.push(`/admin/products/${encodeURIComponent(sku)}`)}
@@ -735,16 +725,16 @@ export function WineDetailsEditor({
           >
             <ExternalLink size={14} /> Wróć do produktu
           </button>
-        )}
-        <button
-          type="button"
-          onClick={() => void handleSave()}
-          disabled={saving}
-          className="btn-primary text-sm disabled:opacity-40 inline-flex items-center gap-2"
-        >
-          <Save size={14} /> {saving ? 'Zapisywanie…' : 'Zapisz wine details'}
-        </button>
-      </div>
+          <button
+            type="button"
+            onClick={() => void handleSave()}
+            disabled={saving}
+            className="btn-primary text-sm disabled:opacity-40 inline-flex items-center gap-2"
+          >
+            <Save size={14} /> {saving ? 'Zapisywanie…' : 'Zapisz wine details'}
+          </button>
+        </div>
+      )}
     </div>
   )
 }

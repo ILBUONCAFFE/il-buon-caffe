@@ -75,7 +75,14 @@ function emptyContent(category: string): UpsertProductRichContentPayload {
   }
 }
 
-type Props = { sku: string; category: string; product?: AdminProduct | null }
+type Props = {
+  sku: string
+  category: string
+  product?: AdminProduct | null
+  managedSave?: boolean
+  draft?: UpsertProductRichContentPayload | null
+  onDraftChange?: (draft: UpsertProductRichContentPayload) => void
+}
 
 function Card({ icon: Icon, title, action, children }: { icon: typeof Sparkles; title: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
@@ -118,11 +125,11 @@ function PrettySlider({ value, onChange }: { value: number; onChange: (v: number
   )
 }
 
-export function RichContentEditor({ sku, category, product }: Props) {
+export function RichContentEditor({ sku, category, product, managedSave = false, draft, onDraftChange }: Props) {
   const cfg = getCategoryConfig(category)
   const isWineCategory = category === 'wine' || category === 'wino' || category === 'alcohol'
 
-  const [content, setContent] = useState<UpsertProductRichContentPayload>(emptyContent(category))
+  const [content, setContent] = useState<UpsertProductRichContentPayload>(() => draft ?? emptyContent(category))
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -131,6 +138,12 @@ export function RichContentEditor({ sku, category, product }: Props) {
   const [selectedDishTemplateId, setSelectedDishTemplateId] = useState('')
 
   const load = useCallback(async () => {
+    if (draft) {
+      setContent(draft)
+      setLoading(false)
+      return
+    }
+
     setLoading(true); setError(null)
     try {
       const res = await adminApi.getProductRichContent(sku)
@@ -149,9 +162,13 @@ export function RichContentEditor({ sku, category, product }: Props) {
       if (isNotFound) setContent(emptyContent(category))
       else setError('Nie udało się pobrać treści premium')
     } finally { setLoading(false) }
-  }, [sku, category])
+  }, [sku, category, draft])
 
   useEffect(() => { void load() }, [load])
+
+  useEffect(() => {
+    onDraftChange?.(content)
+  }, [content, onDraftChange])
 
   useEffect(() => {
     if (!isWineCategory) {
@@ -265,13 +282,15 @@ export function RichContentEditor({ sku, category, product }: Props) {
             </span>
           </button>
         </div>
-        <button
-          className="btn-primary text-sm disabled:opacity-40"
-          disabled={saving}
-          onClick={() => void save()}
-        >
-          {saving ? 'Zapisywanie…' : 'Zapisz treść premium'}
-        </button>
+        {!managedSave && (
+          <button
+            className="btn-primary text-sm disabled:opacity-40"
+            disabled={saving}
+            onClick={() => void save()}
+          >
+            {saving ? 'Zapisywanie…' : 'Zapisz treść premium'}
+          </button>
+        )}
       </div>
 
       <Card icon={Wine} title="Podstawowe">
