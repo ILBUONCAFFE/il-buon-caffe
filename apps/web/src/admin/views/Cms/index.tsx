@@ -30,6 +30,64 @@ const EMPTY_DISH_FORM: DishTemplateForm = {
   isActive: true,
 }
 
+const MEDIA_PUBLIC_BASE_URL = (
+  process.env.NEXT_PUBLIC_MEDIA_PUBLIC_URL ||
+  process.env.NEXT_PUBLIC_R2_MEDIA_URL ||
+  'https://media.ilbuoncaffe.pl'
+).replace(/\/+$/, '')
+
+function encodeR2KeyForUrl(key: string): string {
+  return key
+    .split('/')
+    .filter(Boolean)
+    .map((part) => encodeURIComponent(part))
+    .join('/')
+}
+
+function decodeUrlPath(pathname: string): string {
+  return pathname
+    .split('/')
+    .filter(Boolean)
+    .map((part) => {
+      try {
+        return decodeURIComponent(part)
+      } catch {
+        return part
+      }
+    })
+    .join('/')
+}
+
+function normalizeDishImageUrl(raw: string): string {
+  const input = raw.trim()
+  if (!input) return ''
+
+  if (input.startsWith('/api/uploads/image/')) {
+    const key = decodeUrlPath(input.replace(/^\/api\/uploads\/image\//, ''))
+    return `${MEDIA_PUBLIC_BASE_URL}/${encodeR2KeyForUrl(key)}`
+  }
+
+  if (input.startsWith('api/uploads/image/')) {
+    const key = decodeUrlPath(input.replace(/^api\/uploads\/image\//, ''))
+    return `${MEDIA_PUBLIC_BASE_URL}/${encodeR2KeyForUrl(key)}`
+  }
+
+  if (/^https?:\/\//i.test(input)) {
+    try {
+      const parsed = new URL(input)
+      if (parsed.hostname.toLowerCase() === 'media.ilbuoncaffe.pl') {
+        const key = decodeUrlPath(parsed.pathname)
+        return `${MEDIA_PUBLIC_BASE_URL}/${encodeR2KeyForUrl(key)}`
+      }
+    } catch {
+      return input
+    }
+    return input
+  }
+
+  return `${MEDIA_PUBLIC_BASE_URL}/${encodeR2KeyForUrl(input.replace(/^\/+/, ''))}`
+}
+
 function parseTags(value: string): string[] {
   return value
     .split(',')
@@ -43,7 +101,7 @@ function toDishForm(template: DishTemplate): DishTemplateForm {
     name: template.name,
     note: template.note ?? '',
     dishType: template.dishType ?? '',
-    imageUrl: template.imageUrl ?? '',
+    imageUrl: template.imageUrl ? normalizeDishImageUrl(template.imageUrl) : '',
     emoji: template.emoji ?? '',
     tagsText: template.tags.join(', '),
     sortOrder: String(template.sortOrder),
@@ -57,7 +115,7 @@ function toPayload(form: DishTemplateForm): UpsertDishTemplatePayload {
     name: form.name.trim(),
     note: form.note.trim() || null,
     dishType: form.dishType.trim() || null,
-    imageUrl: form.imageUrl.trim() || null,
+    imageUrl: form.imageUrl.trim() ? normalizeDishImageUrl(form.imageUrl) : null,
     emoji: form.emoji.trim() || null,
     tags: parseTags(form.tagsText),
     isActive: form.isActive,

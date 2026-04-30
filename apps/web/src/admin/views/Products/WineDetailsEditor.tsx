@@ -90,6 +90,64 @@ const EMPTY_PAIRING: WinePairingDraft = {
   category: '',
 }
 
+const MEDIA_PUBLIC_BASE_URL = (
+  process.env.NEXT_PUBLIC_MEDIA_PUBLIC_URL ||
+  process.env.NEXT_PUBLIC_R2_MEDIA_URL ||
+  'https://media.ilbuoncaffe.pl'
+).replace(/\/+$/, '')
+
+function encodeR2KeyForUrl(key: string): string {
+  return key
+    .split('/')
+    .filter(Boolean)
+    .map((part) => encodeURIComponent(part))
+    .join('/')
+}
+
+function decodeUrlPath(pathname: string): string {
+  return pathname
+    .split('/')
+    .filter(Boolean)
+    .map((part) => {
+      try {
+        return decodeURIComponent(part)
+      } catch {
+        return part
+      }
+    })
+    .join('/')
+}
+
+function normalizeDishImageUrl(raw: string): string {
+  const input = raw.trim()
+  if (!input) return ''
+
+  if (input.startsWith('/api/uploads/image/')) {
+    const key = decodeUrlPath(input.replace(/^\/api\/uploads\/image\//, ''))
+    return `${MEDIA_PUBLIC_BASE_URL}/${encodeR2KeyForUrl(key)}`
+  }
+
+  if (input.startsWith('api/uploads/image/')) {
+    const key = decodeUrlPath(input.replace(/^api\/uploads\/image\//, ''))
+    return `${MEDIA_PUBLIC_BASE_URL}/${encodeR2KeyForUrl(key)}`
+  }
+
+  if (/^https?:\/\//i.test(input)) {
+    try {
+      const parsed = new URL(input)
+      if (parsed.hostname.toLowerCase() === 'media.ilbuoncaffe.pl') {
+        const key = decodeUrlPath(parsed.pathname)
+        return `${MEDIA_PUBLIC_BASE_URL}/${encodeR2KeyForUrl(key)}`
+      }
+    } catch {
+      return input
+    }
+    return input
+  }
+
+  return `${MEDIA_PUBLIC_BASE_URL}/${encodeR2KeyForUrl(input.replace(/^\/+/, ''))}`
+}
+
 function trimText(value: string): string {
   return value.trim()
 }
@@ -113,7 +171,7 @@ function toPairingDraft(value: CatalogWineFoodPairing): WinePairingDraft {
     name: value.name ?? '',
     description: value.description ?? '',
     emoji: value.emoji ?? '',
-    imageUrl: value.imageUrl ?? '',
+    imageUrl: value.imageUrl ? normalizeDishImageUrl(value.imageUrl) : '',
     category: value.category ?? '',
   }
 }
@@ -174,7 +232,7 @@ export function wineDetailsDraftToPayload(form: WineFormState): Record<string, u
       name: trimText(item.name),
       description: trimText(item.description),
       emoji: trimText(item.emoji),
-      imageUrl: trimText(item.imageUrl),
+      imageUrl: item.imageUrl.trim() ? normalizeDishImageUrl(item.imageUrl) : '',
       category: trimText(item.category),
     }))
     .filter((item) => item.name || item.description || item.emoji || item.imageUrl || item.category)
@@ -388,7 +446,7 @@ export function WineDetailsEditor({
           name: template.name,
           description: template.note ?? '',
           emoji: template.emoji ?? '',
-          imageUrl: template.imageUrl ?? '',
+          imageUrl: template.imageUrl ? normalizeDishImageUrl(template.imageUrl) : '',
           category: template.dishType ?? '',
         },
       ],
