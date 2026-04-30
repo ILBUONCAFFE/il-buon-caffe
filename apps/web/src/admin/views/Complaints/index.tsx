@@ -313,6 +313,7 @@ export const ComplaintsView = () => {
         complaint={detail}
         isOpen={!!detail}
         onClose={() => setDetail(null)}
+        onChanged={fetchData}
       />
     </div>
   )

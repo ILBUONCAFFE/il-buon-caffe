@@ -151,17 +151,25 @@ export async function pollIssuesCycle(
             allegroIssueId: issue.id,
             orderId:        null,
             returnId:       null,
-            status:         issue.status,
+            status:         issue.currentState?.status ?? issue.status ?? 'DISPUTE_ONGOING',
             subject:        issue.subject ?? null,
-            lastMessageAt:  issue.lastMessageAt ? new Date(issue.lastMessageAt) : null,
+            lastMessageAt:  issue.chat?.lastMessage?.createdAt
+              ? new Date(issue.chat.lastMessage.createdAt)
+              : issue.lastMessageAt
+                ? new Date(issue.lastMessageAt)
+                : null,
             payload:        issue as unknown as Record<string, unknown>,
           })
           .onConflictDoUpdate({
             target: allegroIssues.allegroIssueId,
             set: {
-              status:        issue.status,
+              status:        issue.currentState?.status ?? issue.status ?? 'DISPUTE_ONGOING',
               subject:       issue.subject ?? null,
-              lastMessageAt: issue.lastMessageAt ? new Date(issue.lastMessageAt) : null,
+              lastMessageAt: issue.chat?.lastMessage?.createdAt
+                ? new Date(issue.chat.lastMessage.createdAt)
+                : issue.lastMessageAt
+                  ? new Date(issue.lastMessageAt)
+                  : null,
               payload:       issue as unknown as Record<string, unknown>,
               updatedAt:     new Date(),
             },

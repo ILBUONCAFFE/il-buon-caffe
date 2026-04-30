@@ -113,10 +113,34 @@ export interface AllegroRefundClaim {
 
 export interface AllegroIssue {
   id: string
-  status: string
+  type?: 'DISPUTE' | 'CLAIM' | string
+  referenceNumber?: string | null
+  decisionDueDate?: string | null
+  openedDate?: string
   subject?: string
   checkoutForm?: { id: string }
+  buyer?: { id?: string; login?: string }
+  currentState?: {
+    status?: string
+    dueDate?: string
+    statusDueDate?: string
+    returnRequired?: string | null
+    chatActive?: boolean | string
+  }
+  chat?: {
+    lastMessage?: { status?: string; createdAt?: string }
+    messagesCount?: number
+    initialMessage?: AllegroIssueMessage
+  }
+  expectations?: Array<Record<string, unknown>>
+  description?: string | null
+  product?: Record<string, unknown> | null
+  offer?: Record<string, unknown> | null
+  reason?: Record<string, unknown> | null
+  right?: string | null
+  attachments?: Array<Record<string, unknown>>
   lastMessageAt?: string
+  status?: string
 }
 
 export interface AllegroIssuesResponse {
@@ -126,9 +150,15 @@ export interface AllegroIssuesResponse {
 export interface AllegroIssueMessage {
   id: string
   text?: string
-  attachments?: Array<{ id: string; fileName?: string }>
+  attachments?: Array<{ id: string; fileName?: string; name?: string; url?: string }>
   author?: { login?: string; role?: string }
   createdAt: string
+}
+
+export interface AllegroIssueStatusBody {
+  status: string
+  message?: string
+  partialRefund?: { amount: string; currency: string }
 }
 
 export type AllegroCustomerReturnRefund = AllegroPaymentRefund
@@ -457,7 +487,7 @@ export async function listIssues(
   if (params.limit != null) qs.set('limit', String(params.limit))
   if (params.offset != null) qs.set('offset', String(params.offset))
 
-  const url = `${apiBase}/sale/user-issues?${qs.toString()}`
+  const url = `${apiBase}/sale/issues?${qs.toString()}`
   let result: unknown
   try {
     result = await allegroFetch(url, { headers: allegroReturnHeaders(accessToken) })
@@ -476,7 +506,7 @@ export async function getIssue(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   db: any,
 ): Promise<AllegroIssue> {
-  const url = `${apiBase}/sale/user-issues/${id}`
+  const url = `${apiBase}/sale/issues/${id}`
   let result: unknown
   try {
     result = await allegroFetch(url, { headers: allegroReturnHeaders(accessToken) })
@@ -495,16 +525,16 @@ export async function listIssueMessages(
   accessToken: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   db: any,
-): Promise<{ messages: AllegroIssueMessage[] }> {
+): Promise<{ chat?: AllegroIssueMessage[]; messages?: AllegroIssueMessage[] }> {
   const qs = new URLSearchParams()
   if (params.limit != null) qs.set('limit', String(params.limit))
 
-  const url = `${apiBase}/sale/user-issues/${id}/messages?${qs.toString()}`
+  const url = `${apiBase}/sale/issues/${id}/chat?${qs.toString()}`
   let result: unknown
   try {
     result = await allegroFetch(url, { headers: allegroReturnHeaders(accessToken) })
     log(db, 'issue_messages_fetch', { id, params }, result)
-    return result as { messages: AllegroIssueMessage[] }
+    return result as { chat?: AllegroIssueMessage[]; messages?: AllegroIssueMessage[] }
   } catch (err) {
     log(db, 'issue_messages_fetch', { id, params }, null, err)
     throw err
@@ -513,13 +543,42 @@ export async function listIssueMessages(
 
 export async function postIssueMessage(
   id: string,
-  body: { text?: string; attachmentIds?: string[] },
+  body: { text?: string; attachments?: Array<{ id: string }>; attachmentIds?: string[]; type?: string },
   apiBase: string,
   accessToken: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   db: any,
 ): Promise<AllegroIssueMessage> {
-  const url = `${apiBase}/sale/user-issues/${id}/messages`
+  const url = `${apiBase}/sale/issues/${id}/message`
+  let result: unknown
+  const payload = {
+    text: body.text,
+    attachments: body.attachments ?? body.attachmentIds?.map(attachmentId => ({ id: attachmentId })) ?? [],
+    type: body.type ?? 'REGULAR',
+  }
+  try {
+    result = await allegroFetch(url, {
+      method: 'POST',
+      headers: allegroReturnHeaders(accessToken, true),
+      body: JSON.stringify(payload),
+    })
+    log(db, 'issue_message_post', { id, body: payload }, result)
+    return result as AllegroIssueMessage
+  } catch (err) {
+    log(db, 'issue_message_post', { id, body: payload }, null, err)
+    throw err
+  }
+}
+
+export async function changeIssueStatus(
+  id: string,
+  body: AllegroIssueStatusBody,
+  apiBase: string,
+  accessToken: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  db: any,
+): Promise<unknown> {
+  const url = `${apiBase}/sale/issues/${id}/status`
   let result: unknown
   try {
     result = await allegroFetch(url, {
@@ -527,10 +586,10 @@ export async function postIssueMessage(
       headers: allegroReturnHeaders(accessToken, true),
       body: JSON.stringify(body),
     })
-    log(db, 'issue_message_post', { id, body }, result)
-    return result as AllegroIssueMessage
+    log(db, 'issue_status_post', { id, body }, result)
+    return result
   } catch (err) {
-    log(db, 'issue_message_post', { id, body }, null, err)
+    log(db, 'issue_status_post', { id, body }, null, err)
     throw err
   }
 }
@@ -543,7 +602,7 @@ export async function uploadIssueAttachment(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   db: any,
 ): Promise<{ id: string }> {
-  const url = `${uploadBase}/sale/user-issues/attachments`
+  const url = `${uploadBase}/sale/issues/attachments`
   let result: unknown
   try {
     const headers = {

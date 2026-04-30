@@ -6,15 +6,149 @@ import {
   allegroIssues,
   allegroIssueMessages,
 } from '@repo/db/schema'
-import { eq, and, desc, sql, gte, lte, inArray } from 'drizzle-orm'
+import { eq, and, desc, sql, gte, lte } from 'drizzle-orm'
 import { requireAdminOrProxy } from '../../middleware/auth'
 import { auditLogMiddleware } from '../../middleware/auditLog'
 import { parsePagination, serverError } from '../../lib/request'
+import { resolveAccessToken } from '../../lib/allegro-orders/resolve-token'
+import {
+  changeIssueStatus,
+  getIssue,
+  listIssueMessages,
+  postIssueMessage,
+  type AllegroIssue,
+  type AllegroIssueMessage,
+} from '../../lib/allegro-returns/client'
 import type { Env } from '../../index'
 
 export const adminIssuesRouter = new Hono<{ Bindings: Env }>()
 
 adminIssuesRouter.use('*', requireAdminOrProxy())
+
+const ALLEGRO_API_BASE_URLS = {
+  production: 'https://api.allegro.pl',
+  sandbox:    'https://api.allegro.pl.allegrosandbox.pl',
+} as const
+
+function issueStatus(issue: AllegroIssue): string {
+  return issue.currentState?.status ?? issue.status ?? 'DISPUTE_ONGOING'
+}
+
+function issueLastMessageAt(issue: AllegroIssue, messages: AllegroIssueMessage[] = []): Date | null {
+  const dates = [
+    issue.chat?.lastMessage?.createdAt,
+    issue.lastMessageAt,
+    ...messages.map(m => m.createdAt),
+  ].filter(Boolean) as string[]
+  if (dates.length === 0) return null
+  const newest = dates.sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0]
+  return newest ? new Date(newest) : null
+}
+
+function normalizeAuthorRole(role: string | undefined): string {
+  if (role === 'SELLER' || role === 'ALLEGRO' || role === 'BUYER') return role
+  if (role === 'ADMIN' || role === 'FULFILLMENT') return 'ALLEGRO'
+  return 'BUYER'
+}
+
+function normalizeAttachments(
+  attachments: AllegroIssueMessage['attachments'],
+): Array<{ id: string; url?: string; name?: string }> | null {
+  if (!attachments || attachments.length === 0) return null
+  return attachments.map(a => ({
+    id: String(a.id),
+    url: a.url,
+    name: a.name ?? a.fileName,
+  }))
+}
+
+async function upsertIssueFromAllegro(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  db: any,
+  issue: AllegroIssue,
+  messages: AllegroIssueMessage[] = [],
+): Promise<{ issueId: number; orderId: number | null }> {
+  const checkoutFormId = issue.checkoutForm?.id
+  const orderRow = checkoutFormId
+    ? await db
+        .select({ id: orders.id })
+        .from(orders)
+        .where(eq(orders.externalId, checkoutFormId))
+        .limit(1)
+    : []
+  const orderId = orderRow[0]?.id ?? null
+  const lastMessageAt = issueLastMessageAt(issue, messages)
+
+  const [row] = await db
+    .insert(allegroIssues)
+    .values({
+      allegroIssueId: issue.id,
+      orderId,
+      returnId: null,
+      status: issueStatus(issue),
+      subject: issue.subject ?? issue.referenceNumber ?? null,
+      lastMessageAt,
+      payload: issue as unknown as Record<string, unknown>,
+    })
+    .onConflictDoUpdate({
+      target: allegroIssues.allegroIssueId,
+      set: {
+        orderId,
+        status: issueStatus(issue),
+        subject: issue.subject ?? issue.referenceNumber ?? null,
+        lastMessageAt,
+        payload: issue as unknown as Record<string, unknown>,
+        updatedAt: new Date(),
+      },
+    })
+    .returning({ id: allegroIssues.id })
+
+  const localIssueId = row.id
+  for (const message of messages) {
+    await db
+      .insert(allegroIssueMessages)
+      .values({
+        issueId: localIssueId,
+        allegroMessageId: message.id,
+        authorRole: normalizeAuthorRole(message.author?.role),
+        text: message.text ?? null,
+        attachments: normalizeAttachments(message.attachments),
+        createdAt: message.createdAt ? new Date(message.createdAt) : new Date(),
+      })
+      .onConflictDoUpdate({
+        target: allegroIssueMessages.allegroMessageId,
+        set: {
+          authorRole: normalizeAuthorRole(message.author?.role),
+          text: message.text ?? null,
+          attachments: normalizeAttachments(message.attachments),
+        },
+      })
+  }
+
+  return { issueId: localIssueId, orderId }
+}
+
+async function refreshIssueFromAllegro(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  db: any,
+  env: Env,
+  allegroIssueId: string,
+): Promise<{ issueId: number; orderId: number | null; messages: number }> {
+  const accessToken = await resolveAccessToken(env.ALLEGRO_KV, db, env)
+  if (!accessToken) {
+    throw new Error('ALLEGRO_TOKEN_UNAVAILABLE')
+  }
+
+  const environment = env.ALLEGRO_ENVIRONMENT ?? 'production'
+  const apiBase = ALLEGRO_API_BASE_URLS[environment] ?? ALLEGRO_API_BASE_URLS.production
+  const [issue, messagesResponse] = await Promise.all([
+    getIssue(allegroIssueId, apiBase, accessToken, db),
+    listIssueMessages(allegroIssueId, { limit: 100 }, apiBase, accessToken, db),
+  ])
+  const messages = messagesResponse.chat ?? messagesResponse.messages ?? []
+  const result = await upsertIssueFromAllegro(db, issue, messages)
+  return { ...result, messages: messages.length }
+}
 
 // ============================================
 // GET /admin/issues
@@ -173,5 +307,191 @@ adminIssuesRouter.get('/:id', auditLogMiddleware('view_order'), async (c) => {
     })
   } catch (err) {
     return serverError(c, 'GET /admin/issues/:id', err)
+  }
+})
+
+// ============================================
+// POST /admin/issues/:id/refresh
+// Odczyt aktualnego statusu i czatu z Allegro REST API
+// ============================================
+adminIssuesRouter.post('/:id/refresh', async (c) => {
+  try {
+    const db = createDb(c.env.DATABASE_URL)
+    const issueId = parseInt(c.req.param('id') ?? '', 10)
+
+    if (isNaN(issueId)) {
+      return c.json({ error: { code: 'INVALID_ID', message: 'Nieprawidłowe ID reklamacji' } }, 400)
+    }
+
+    const [localIssue] = await db
+      .select({ allegroIssueId: allegroIssues.allegroIssueId })
+      .from(allegroIssues)
+      .where(eq(allegroIssues.id, issueId))
+      .limit(1)
+
+    if (!localIssue) {
+      return c.json({ error: { code: 'NOT_FOUND', message: 'Reklamacja nie istnieje' } }, 404)
+    }
+
+    const result = await refreshIssueFromAllegro(db, c.env, localIssue.allegroIssueId)
+    return c.json({ data: { refreshed: true, ...result } })
+  } catch (err) {
+    if (err instanceof Error && err.message === 'ALLEGRO_TOKEN_UNAVAILABLE') {
+      return c.json({ error: { code: 'ALLEGRO_TOKEN_UNAVAILABLE', message: 'Brak aktywnego tokenu Allegro' } }, 503)
+    }
+    return serverError(c, 'POST /admin/issues/:id/refresh', err)
+  }
+})
+
+// ============================================
+// POST /admin/issues/:id/messages
+// Wysłanie odpowiedzi w dyskusji/reklamacji Allegro
+// ============================================
+adminIssuesRouter.post('/:id/messages', async (c) => {
+  try {
+    const db = createDb(c.env.DATABASE_URL)
+    const issueId = parseInt(c.req.param('id') ?? '', 10)
+
+    if (isNaN(issueId)) {
+      return c.json({ error: { code: 'INVALID_ID', message: 'Nieprawidłowe ID reklamacji' } }, 400)
+    }
+
+    const body = await c.req.json().catch(() => null) as {
+      text?: unknown
+      type?: unknown
+      attachmentIds?: unknown
+    } | null
+    const text = typeof body?.text === 'string' ? body.text.trim() : ''
+    const type = typeof body?.type === 'string' && body.type ? body.type : 'REGULAR'
+    const attachmentIds = Array.isArray(body?.attachmentIds)
+      ? body.attachmentIds.filter((id): id is string => typeof id === 'string' && id.length > 0)
+      : []
+
+    if (!text && attachmentIds.length === 0) {
+      return c.json({ error: { code: 'VALIDATION_ERROR', message: 'Wpisz wiadomość lub dodaj załącznik' } }, 400)
+    }
+
+    const [localIssue] = await db
+      .select({ allegroIssueId: allegroIssues.allegroIssueId })
+      .from(allegroIssues)
+      .where(eq(allegroIssues.id, issueId))
+      .limit(1)
+
+    if (!localIssue) {
+      return c.json({ error: { code: 'NOT_FOUND', message: 'Reklamacja nie istnieje' } }, 404)
+    }
+
+    const accessToken = await resolveAccessToken(c.env.ALLEGRO_KV, db, c.env)
+    if (!accessToken) {
+      return c.json({ error: { code: 'ALLEGRO_TOKEN_UNAVAILABLE', message: 'Brak aktywnego tokenu Allegro' } }, 503)
+    }
+
+    const environment = c.env.ALLEGRO_ENVIRONMENT ?? 'production'
+    const apiBase = ALLEGRO_API_BASE_URLS[environment] ?? ALLEGRO_API_BASE_URLS.production
+    await postIssueMessage(
+      localIssue.allegroIssueId,
+      { text: text || undefined, attachmentIds, type },
+      apiBase,
+      accessToken,
+      db,
+    )
+    const result = await refreshIssueFromAllegro(db, c.env, localIssue.allegroIssueId)
+
+    return c.json({ data: { sent: true, ...result } })
+  } catch (err) {
+    return serverError(c, 'POST /admin/issues/:id/messages', err)
+  }
+})
+
+// ============================================
+// POST /admin/issues/:id/status
+// Rozpatrzenie reklamacji Allegro
+// ============================================
+adminIssuesRouter.post('/:id/status', async (c) => {
+  try {
+    const db = createDb(c.env.DATABASE_URL)
+    const issueId = parseInt(c.req.param('id') ?? '', 10)
+
+    if (isNaN(issueId)) {
+      return c.json({ error: { code: 'INVALID_ID', message: 'Nieprawidłowe ID reklamacji' } }, 400)
+    }
+
+    const body = await c.req.json().catch(() => null) as {
+      status?: unknown
+      message?: unknown
+      partialRefund?: unknown
+    } | null
+    const status = typeof body?.status === 'string' ? body.status : ''
+    const message = typeof body?.message === 'string' ? body.message.trim() : ''
+    const partialRefund = body?.partialRefund && typeof body.partialRefund === 'object'
+      ? body.partialRefund as { amount?: string; currency?: string }
+      : undefined
+
+    const validStatuses = new Set([
+      'ACCEPTED_REPAIR',
+      'ACCEPTED_REFUND',
+      'ACCEPTED_EXCHANGE',
+      'ACCEPTED_PARTIAL_REFUND',
+      'REJECTED_ADDITIONAL_REQUIREMENTS_NOT_COMPLETED',
+      'REJECTED_PRODUCT_NOT_RETURNED',
+      'REJECTED_PRODUCT_DAMAGED_BY_USER',
+      'REJECTED_PRODUCT_CONFORMS_TO_CONTRACT',
+      'REJECTED_MINOR_DEFECT',
+      'REJECTED_OTHER',
+    ])
+
+    if (!validStatuses.has(status)) {
+      return c.json({ error: { code: 'VALIDATION_ERROR', message: 'Nieprawidłowy status decyzji reklamacyjnej' } }, 400)
+    }
+    if (!message) {
+      return c.json({ error: { code: 'VALIDATION_ERROR', message: 'Wiadomość decyzji jest wymagana' } }, 400)
+    }
+    if (
+      status === 'ACCEPTED_PARTIAL_REFUND'
+      && (!partialRefund?.amount || !partialRefund?.currency)
+    ) {
+      return c.json({ error: { code: 'VALIDATION_ERROR', message: 'Dla częściowego zwrotu podaj kwotę i walutę' } }, 400)
+    }
+
+    const [localIssue] = await db
+      .select({ allegroIssueId: allegroIssues.allegroIssueId, payload: allegroIssues.payload })
+      .from(allegroIssues)
+      .where(eq(allegroIssues.id, issueId))
+      .limit(1)
+
+    if (!localIssue) {
+      return c.json({ error: { code: 'NOT_FOUND', message: 'Reklamacja nie istnieje' } }, 404)
+    }
+
+    const payload = localIssue.payload as { type?: string } | null
+    if (payload?.type && payload.type !== 'CLAIM') {
+      return c.json({ error: { code: 'NOT_CLAIM', message: 'Status można zmienić tylko dla reklamacji Allegro' } }, 422)
+    }
+
+    const accessToken = await resolveAccessToken(c.env.ALLEGRO_KV, db, c.env)
+    if (!accessToken) {
+      return c.json({ error: { code: 'ALLEGRO_TOKEN_UNAVAILABLE', message: 'Brak aktywnego tokenu Allegro' } }, 503)
+    }
+
+    const environment = c.env.ALLEGRO_ENVIRONMENT ?? 'production'
+    const apiBase = ALLEGRO_API_BASE_URLS[environment] ?? ALLEGRO_API_BASE_URLS.production
+    await changeIssueStatus(
+      localIssue.allegroIssueId,
+      {
+        status,
+        message,
+        partialRefund: status === 'ACCEPTED_PARTIAL_REFUND'
+          ? { amount: partialRefund!.amount!, currency: partialRefund!.currency! }
+          : undefined,
+      },
+      apiBase,
+      accessToken,
+      db,
+    )
+    const result = await refreshIssueFromAllegro(db, c.env, localIssue.allegroIssueId)
+
+    return c.json({ data: { changed: true, ...result } })
+  } catch (err) {
+    return serverError(c, 'POST /admin/issues/:id/status', err)
   }
 })

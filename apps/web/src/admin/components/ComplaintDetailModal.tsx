@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { X, ExternalLink, Paperclip, User, Store, Shield } from 'lucide-react'
+import { X, ExternalLink, Paperclip, User, Store, Shield, RefreshCw, Send, CheckCircle, XCircle } from 'lucide-react'
 import { adminApi } from '../lib/adminApiClient'
 import { ComplaintStatusBadge } from './ComplaintStatusBadge'
 import type { AdminComplaint, AdminComplaintDetail, ComplaintMessage } from '../types/admin-api'
@@ -10,6 +10,7 @@ interface Props {
   complaint: AdminComplaint | null
   isOpen: boolean
   onClose: () => void
+  onChanged?: () => void
 }
 
 const DATE_FMT = new Intl.DateTimeFormat('pl-PL', {
@@ -35,21 +36,56 @@ function roleLabel(role: string): string {
   return role
 }
 
-export function ComplaintDetailModal({ complaint, isOpen, onClose }: Props) {
+const DECISION_OPTIONS = [
+  { status: 'ACCEPTED_REFUND', label: 'Uznaj: zwrot płatności', tone: 'accept' },
+  { status: 'ACCEPTED_EXCHANGE', label: 'Uznaj: wymiana', tone: 'accept' },
+  { status: 'ACCEPTED_REPAIR', label: 'Uznaj: naprawa', tone: 'accept' },
+  { status: 'REJECTED_PRODUCT_CONFORMS_TO_CONTRACT', label: 'Odrzuć: zgodne z umową', tone: 'reject' },
+  { status: 'REJECTED_PRODUCT_NOT_RETURNED', label: 'Odrzuć: brak zwrotu towaru', tone: 'reject' },
+  { status: 'REJECTED_OTHER', label: 'Odrzuć: inny powód', tone: 'reject' },
+] as const
+
+export function ComplaintDetailModal({ complaint, isOpen, onClose, onChanged }: Props) {
   const [detail, setDetail]   = useState<AdminComplaintDetail | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState<string | null>(null)
+  const [message, setMessage] = useState('')
+  const [actionError, setActionError] = useState<string | null>(null)
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
+
+  const loadDetail = async (id: number) => {
+    setLoading(true)
+    setError(null)
+    setDetail(null)
+    try {
+      const res = await adminApi.getComplaintDetail(id)
+      setDetail(res.data)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Błąd ładowania reklamacji')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
     if (!isOpen || !complaint) return
     let cancelled = false
-    setLoading(true)
-    setError(null)
-    setDetail(null)
-    adminApi.getComplaintDetail(complaint.id)
-      .then(res => { if (!cancelled) setDetail(res.data) })
-      .catch(err => { if (!cancelled) setError(err instanceof Error ? err.message : 'Błąd ładowania reklamacji') })
-      .finally(() => { if (!cancelled) setLoading(false) })
+    setMessage('')
+    setActionError(null)
+    const run = async () => {
+      setLoading(true)
+      setError(null)
+      setDetail(null)
+      try {
+        const res = await adminApi.getComplaintDetail(complaint.id)
+        if (!cancelled) setDetail(res.data)
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : 'Błąd ładowania reklamacji')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    run()
     return () => { cancelled = true }
   }, [isOpen, complaint])
 
@@ -63,6 +99,62 @@ export function ComplaintDetailModal({ complaint, isOpen, onClose }: Props) {
   if (!isOpen || !complaint) return null
 
   const messages: ComplaintMessage[] = detail?.messages ?? []
+  const activeDetail = detail ?? complaint
+  const payload = detail?.payload
+  const isClaim = payload?.type === 'CLAIM' || String(activeDetail.status).startsWith('CLAIM_')
+  const chatActive = payload?.currentState?.chatActive !== false && payload?.currentState?.chatActive !== 'false'
+  const canDecide = isClaim && activeDetail.status === 'CLAIM_SUBMITTED'
+  const decisionDueDate = payload?.decisionDueDate ?? payload?.currentState?.statusDueDate ?? payload?.currentState?.dueDate
+
+  const refresh = async () => {
+    if (!complaint) return
+    setActionLoading('refresh')
+    setActionError(null)
+    try {
+      await adminApi.refreshComplaint(complaint.id)
+      await loadDetail(complaint.id)
+      onChanged?.()
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Nie udało się odświeżyć reklamacji')
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const sendMessage = async () => {
+    if (!complaint || !message.trim()) return
+    setActionLoading('message')
+    setActionError(null)
+    try {
+      await adminApi.postComplaintMessage(complaint.id, { text: message.trim(), type: 'REGULAR' })
+      setMessage('')
+      await loadDetail(complaint.id)
+      onChanged?.()
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Nie udało się wysłać wiadomości')
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const decide = async (status: string) => {
+    if (!complaint || !message.trim()) {
+      setActionError('Przy decyzji reklamacyjnej wpisz wiadomość dla kupującego.')
+      return
+    }
+    setActionLoading(status)
+    setActionError(null)
+    try {
+      await adminApi.updateComplaintStatus(complaint.id, { status, message: message.trim() })
+      setMessage('')
+      await loadDetail(complaint.id)
+      onChanged?.()
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Nie udało się zmienić statusu reklamacji')
+    } finally {
+      setActionLoading(null)
+    }
+  }
 
   return (
     <div
@@ -79,10 +171,10 @@ export function ComplaintDetailModal({ complaint, isOpen, onClose }: Props) {
               <h2 className="text-lg font-semibold text-[#1A1A1A] truncate">
                 {complaint.subject || `Reklamacja #${complaint.allegroIssueId}`}
               </h2>
-              <ComplaintStatusBadge status={complaint.status} />
+              <ComplaintStatusBadge status={activeDetail.status} />
             </div>
             <div className="text-xs text-[#A3A3A3] mt-1">
-              ID Allegro: {complaint.allegroIssueId}
+              {isClaim ? 'Reklamacja' : 'Dyskusja'} Allegro: {complaint.allegroIssueId}
               {complaint.orderNumber && <> · Zamówienie: {complaint.orderNumber}</>}
               {detail?.returnNumber && <> · Zwrot: {detail.returnNumber}</>}
             </div>
@@ -103,11 +195,21 @@ export function ComplaintDetailModal({ complaint, isOpen, onClose }: Props) {
             <div className="text-xs text-[#525252]">{complaint.customerData?.email ?? ''}</div>
           </div>
           <div>
-            <div className="text-[11px] uppercase tracking-wider text-[#A3A3A3] mb-1">Ostatnia wiadomość</div>
-            <div className="text-[#1A1A1A]">{formatDT(complaint.lastMessageAt)}</div>
+            <div className="text-[11px] uppercase tracking-wider text-[#A3A3A3] mb-1">
+              {isClaim ? 'Termin decyzji' : 'Ostatnia wiadomość'}
+            </div>
+            <div className="text-[#1A1A1A]">{formatDT(isClaim ? decisionDueDate : activeDetail.lastMessageAt)}</div>
             <div className="text-xs text-[#525252]">Utworzono: {formatDT(complaint.createdAt)}</div>
           </div>
         </div>
+
+        {payload && (
+          <div className="px-6 py-3 border-b border-[#F0EFEC] bg-white text-xs text-[#525252] grid sm:grid-cols-3 gap-2">
+            <div><span className="text-[#A3A3A3]">Typ:</span> {isClaim ? 'Reklamacja' : 'Dyskusja'}</div>
+            <div><span className="text-[#A3A3A3]">Czat:</span> {chatActive ? 'aktywny' : 'nieaktywny'}</div>
+            <div><span className="text-[#A3A3A3]">Wiadomości:</span> {payload.chat?.messagesCount ?? messages.length}</div>
+          </div>
+        )}
 
         <div className="flex-1 overflow-y-auto px-6 py-4">
           {loading && (
@@ -185,17 +287,62 @@ export function ComplaintDetailModal({ complaint, isOpen, onClose }: Props) {
           </div>
         </div>
 
-        <div className="px-6 py-3 border-t border-[#F0EFEC] bg-[#FAFAF9] flex items-center justify-between">
-          <p className="text-xs text-[#A3A3A3]">
-            Odpowiedzi należy wysyłać przez panel Allegro.
-            Synchronizacja odbywa się automatycznie co 6 minut.
-          </p>
-          <button
-            onClick={onClose}
-            className="btn-secondary text-sm"
-          >
-            Zamknij
-          </button>
+        <div className="px-6 py-4 border-t border-[#F0EFEC] bg-[#FAFAF9] space-y-3">
+          {actionError && <p className="text-sm text-red-600">{actionError}</p>}
+          {chatActive ? (
+            <div className="space-y-2">
+              <textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder={canDecide ? 'Wpisz wiadomość do decyzji albo zwykłą odpowiedź...' : 'Wpisz odpowiedź do kupującego...'}
+                className="admin-input min-h-24 resize-y text-sm"
+              />
+              {canDecide && (
+                <div className="flex flex-wrap gap-2">
+                  {DECISION_OPTIONS.map((option) => (
+                    <button
+                      key={option.status}
+                      onClick={() => decide(option.status)}
+                      disabled={!!actionLoading}
+                      className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 ${
+                        option.tone === 'accept'
+                          ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                          : 'bg-red-50 text-red-700 hover:bg-red-100'
+                      }`}
+                    >
+                      {option.tone === 'accept' ? <CheckCircle size={14} /> : <XCircle size={14} />}
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-xs text-[#A3A3A3]">Czat w tej sprawie nie jest aktywny w Allegro.</p>
+          )}
+          <div className="flex items-center justify-between gap-3">
+            <button
+              onClick={refresh}
+              disabled={!!actionLoading}
+              className="inline-flex items-center gap-1.5 btn-secondary text-sm disabled:opacity-50"
+            >
+              <RefreshCw size={15} className={actionLoading === 'refresh' ? 'animate-spin' : ''} />
+              Odśwież z Allegro
+            </button>
+            <div className="flex items-center gap-2">
+              <button onClick={onClose} className="btn-secondary text-sm">Zamknij</button>
+              {chatActive && (
+                <button
+                  onClick={sendMessage}
+                  disabled={!message.trim() || !!actionLoading}
+                  className="inline-flex items-center gap-1.5 btn-primary text-sm disabled:opacity-50"
+                >
+                  <Send size={15} />
+                  Wyślij
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>

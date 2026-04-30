@@ -594,7 +594,18 @@ export interface AdminComplaint {
 }
 
 export interface AdminComplaintDetail extends AdminComplaint {
-  payload: Record<string, unknown> | null
+  payload: {
+    type?: 'DISPUTE' | 'CLAIM' | string
+    referenceNumber?: string | null
+    decisionDueDate?: string | null
+    openedDate?: string
+    description?: string | null
+    expectations?: Array<Record<string, unknown>>
+    reason?: Record<string, unknown> | null
+    right?: string | null
+    currentState?: { status?: string; statusDueDate?: string; dueDate?: string; chatActive?: boolean | string }
+    chat?: { messagesCount?: number; lastMessage?: { createdAt?: string; status?: string } }
+  } | null
   returnNumber: string | null
   messages: ComplaintMessage[]
 }

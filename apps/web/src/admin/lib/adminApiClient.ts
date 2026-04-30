@@ -446,6 +446,28 @@ export const adminApi = {
   getComplaintDetail: (id: number) =>
     request<{ data: AdminComplaintDetail }>(`/api/admin/issues/${id}`),
 
+  refreshComplaint: (id: number) =>
+    request<{ data: { refreshed: boolean; issueId: number; messages: number } }>(`/api/admin/issues/${id}/refresh`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    }),
+
+  postComplaintMessage: (id: number, body: { text: string; type?: string; attachmentIds?: string[] }) =>
+    request<{ data: { sent: boolean; issueId: number; messages: number } }>(`/api/admin/issues/${id}/messages`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  updateComplaintStatus: (id: number, body: {
+    status: string
+    message: string
+    partialRefund?: { amount: string; currency: string }
+  }) =>
+    request<{ data: { changed: boolean; issueId: number; messages: number } }>(`/api/admin/issues/${id}/status`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
   // ── Rich Content (D1) ────────────────────────────────────────────────────────
   getProductRichContent: (sku: string) =>
     request<ProductRichContentResponse>(`/api/admin/content/product/${encodeURIComponent(sku)}`),
