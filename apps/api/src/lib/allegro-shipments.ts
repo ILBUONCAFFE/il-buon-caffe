@@ -4,11 +4,10 @@
  * Realne źródła statusu w Allegro REST API:
  *   1. GET /order/checkout-forms/{id}/shipments
  *      → lista paczek: { id, waybill, carrierId, carrierName }
- *   2. GET /shipment-management/shipments/{shipmentId}
- *      → status + statusHistory, ale tylko dla "Wysyłam z Allegro" (gdy mamy `id`)
- *
- * Dla ręcznych numerów listów (seller wkleja tracking) Allegro nie udostępnia
- * historii zdarzeń kurierskich publicznym API — pokazujemy "Nadana" + waybill.
+ *   2. GET /order/carriers/{carrierId}/tracking?waybill={waybill}
+ *      → historia statusów przewoźnika: waybills[].trackingDetails.statuses
+ *   3. GET /shipment-management/shipments/{shipmentId}
+ *      → fallback dla "Wysyłam z Allegro" (gdy mamy `id`)
  */
 
 import { eq } from 'drizzle-orm'
@@ -84,8 +83,10 @@ const STATUS_LABEL_PL: Record<string, string> = {
   READY: 'Gotowa do nadania',
   REGISTERED: 'Zarejestrowana',
   SENT: 'Nadana',
+  PENDING: 'Oczekuje na nadanie',
   PICKED_UP: 'Odebrana przez kuriera',
   IN_TRANSIT: 'W drodze',
+  RELEASED_FOR_DELIVERY: 'W doręczeniu',
   ARRIVED_CARRIER_FACILITY: 'W sortowni',
   DEPARTED_CARRIER_FACILITY: 'Opuściła sortownię',
   OUT_FOR_DELIVERY: 'W doręczeniu',
@@ -93,6 +94,7 @@ const STATUS_LABEL_PL: Record<string, string> = {
   READY_FOR_PICKUP: 'Gotowa do odbioru',
   PICKUP_READY: 'Gotowa do odbioru',
   AVAILABLE_FOR_PICKUP: 'Czeka w punkcie',
+  NOTICE_LEFT: 'Awizowana',
   RETURNED: 'Zwrócona',
   RETURN_TO_SENDER: 'Zwrot do nadawcy',
   CANCELLED: 'Anulowana',
@@ -173,10 +175,27 @@ interface AllegroCarrierTrackingEvent {
   description?: string
   occurredAt?: string
   date?: string
+  time?: string
+}
+
+interface AllegroCarrierTrackingWaybill {
+  waybill?: string
+  trackingDetails?: {
+    statuses?: AllegroCarrierTrackingEvent[]
+    createdAt?: string
+  } | null
+  statuses?: AllegroCarrierTrackingEvent[]
+  events?: AllegroCarrierTrackingEvent[]
+  history?: AllegroCarrierTrackingEvent[]
 }
 
 interface AllegroCarrierTrackingResponse {
-  trackingHistory?: Array<{ waybill?: string; events?: AllegroCarrierTrackingEvent[] }>
+  waybills?: AllegroCarrierTrackingWaybill[]
+  shipments?: AllegroCarrierTrackingWaybill[]
+  packages?: AllegroCarrierTrackingWaybill[]
+  items?: AllegroCarrierTrackingWaybill[]
+  tracking?: AllegroCarrierTrackingWaybill[]
+  trackingHistory?: AllegroCarrierTrackingWaybill[]
   events?: AllegroCarrierTrackingEvent[]
   history?: AllegroCarrierTrackingEvent[]
   status?: string
@@ -188,8 +207,40 @@ function normalizeCarrierEvent(e: AllegroCarrierTrackingEvent): { code: string; 
   return {
     code,
     label: e.description?.trim() || labelFor(code),
-    occurredAt: e.occurredAt ?? e.date ?? null,
+    occurredAt: e.occurredAt ?? e.time ?? e.date ?? null,
   }
+}
+
+function collectCarrierEvents(data: AllegroCarrierTrackingResponse, waybill: string): AllegroCarrierTrackingEvent[] {
+  const normalizedWaybill = waybill.trim().toUpperCase()
+  const buckets = [
+    ...(data.waybills ?? []),
+    ...(data.shipments ?? []),
+    ...(data.packages ?? []),
+    ...(data.items ?? []),
+    ...(data.tracking ?? []),
+    ...(data.trackingHistory ?? []),
+  ]
+
+  const matchingBucket = buckets.find((bucket) => {
+    const bucketWaybill = (bucket.waybill ?? '').trim().toUpperCase()
+    return !bucketWaybill || bucketWaybill === normalizedWaybill
+  })
+
+  const bucketEvents = matchingBucket
+    ? [
+        ...(matchingBucket.trackingDetails?.statuses ?? []),
+        ...(matchingBucket.statuses ?? []),
+        ...(matchingBucket.events ?? []),
+        ...(matchingBucket.history ?? []),
+      ]
+    : []
+
+  return [
+    ...bucketEvents,
+    ...(data.events ?? []),
+    ...(data.history ?? []),
+  ]
 }
 
 async function fetchCarrierTracking(
@@ -210,8 +261,7 @@ async function fetchCarrierTracking(
       return []
     }
     const data = (await resp.json()) as AllegroCarrierTrackingResponse
-    const fromHistory = data.trackingHistory?.find((h) => !h.waybill || h.waybill === waybill)?.events ?? []
-    const raw = [...fromHistory, ...(data.events ?? []), ...(data.history ?? [])]
+    const raw = collectCarrierEvents(data, waybill)
     const normalized = raw
       .map(normalizeCarrierEvent)
       .filter((e): e is NonNullable<ReturnType<typeof normalizeCarrierEvent>> => e !== null)

@@ -58,7 +58,7 @@ function mapStatusCodeToDisplay(rawCode: string | null, orderStatus: string): Sh
 
   // Awaiting customer pickup — counted as out-for-delivery semantically
   if (code === 'READY_FOR_PICKUP' || code === 'PICKUP_READY' || code === 'AVAILABLE_FOR_PICKUP') return 'out_for_delivery'
-  if (code === 'OUT_FOR_DELIVERY' || code.includes('COURIER')) return 'out_for_delivery'
+  if (code === 'OUT_FOR_DELIVERY' || code === 'RELEASED_FOR_DELIVERY' || code === 'NOTICE_LEFT' || code.includes('COURIER')) return 'out_for_delivery'
 
   // In-transit family (carrier facility scans, sorted, sent, shipped)
   if (
@@ -70,7 +70,7 @@ function mapStatusCodeToDisplay(rawCode: string | null, orderStatus: string): Sh
   // Pre-handover — label exists or carrier acknowledged manifest
   if (
     code === 'LABEL_CREATED' || code === 'LABEL_PRINTED' || code === 'PRINTED' ||
-    code === 'CREATED' || code === 'NEW' || code === 'READY' ||
+    code === 'CREATED' || code === 'NEW' || code === 'READY' || code === 'PENDING' ||
     code === 'REGISTERED' || code === 'INFO_RECEIVED'
   ) return 'label_created'
 

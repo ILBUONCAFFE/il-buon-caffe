@@ -33,6 +33,7 @@ import {
 } from '../lib/allegro'
 import { syncAllegroOrders, backfillAllegroOrders } from '../lib/allegro-orders'
 import { encryptText, decryptText } from '../lib/crypto'
+import { getActiveAllegroToken } from '../lib/allegro-tokens'
 
 // ── Router ───────────────────────────────────────────────────────────────────
 export const allegroRouter = new Hono<{ Bindings: Env }>()
@@ -798,12 +799,10 @@ allegroRouter.get('/orders/:id', requireAdminOrProxy(), async (c) => {
 allegroRouter.get('/orders/:id/tracking', requireAdminOrProxy(), async (c) => {
   try {
     const checkoutFormId = c.req.param('id')
-    const kv = c.env.ALLEGRO_KV
-    const accessToken = await kv?.get('allegro:access_token')
-    if (!accessToken) return c.json({ success: false, error: 'Allegro nie podłączone' }, 503)
+    const token = await getActiveAllegroToken(c.env)
+    if (!token) return c.json({ success: false, error: 'Allegro nie podłączone' }, 503)
 
-    const allegroEnv = (c.env.ALLEGRO_ENVIRONMENT ?? 'sandbox') as AllegroEnvironment
-    const apiBase = getAllegroApiBase(allegroEnv)
+    const { apiBase, accessToken } = token
     const headers = {
       Authorization: `Bearer ${accessToken}`,
       Accept:        'application/vnd.allegro.public.v1+json',
@@ -815,7 +814,7 @@ allegroRouter.get('/orders/:id/tracking', requireAdminOrProxy(), async (c) => {
       return c.json({ success: false, error: `Brak przesyłek (${shipResp.status})` }, shipResp.status as any)
     }
     const shipData = await shipResp.json() as { shipments: Array<{ carrierId?: string; waybill?: string; trackingNumber?: string }> }
-    const firstShipment = shipData.shipments?.[0]
+    const firstShipment = shipData.shipments?.find((shipment) => shipment.carrierId && (shipment.waybill || shipment.trackingNumber))
 
     const carrierId = firstShipment?.carrierId
     const waybill = firstShipment?.waybill ?? firstShipment?.trackingNumber
@@ -835,9 +834,10 @@ allegroRouter.get('/orders/:id/tracking', requireAdminOrProxy(), async (c) => {
 
     const trackData = await trackResp.json() as Record<string, any>
 
-    // 3. Extract latest status (like Electron app's extractTrackingEntry)
+    // 3. Extract latest status from Allegro's documented shape:
+    // { waybills: [{ trackingDetails: { statuses: [{ code, occurredAt }] } }] }
     const buckets: any[] = []
-    for (const key of ['shipments', 'packages', 'items', 'waybills', 'tracking']) {
+    for (const key of ['waybills', 'shipments', 'packages', 'items', 'tracking', 'trackingHistory']) {
       if (Array.isArray(trackData[key])) buckets.push(...trackData[key])
     }
     const normWaybill = waybill.toUpperCase()
@@ -846,6 +846,9 @@ allegroRouter.get('/orders/:id/tracking', requireAdminOrProxy(), async (c) => {
     let statuses: any[] = []
     if (pick) {
       statuses = pick.trackingDetails?.statuses ?? pick.statuses ?? pick.events ?? pick.history ?? []
+    }
+    if (statuses.length === 0) {
+      statuses = trackData.events ?? trackData.history ?? []
     }
     const sorted = statuses.slice().sort((a: any, b: any) =>
       new Date(b.occurredAt ?? b.time ?? b.date ?? 0).getTime() - new Date(a.occurredAt ?? a.time ?? a.date ?? 0).getTime()
