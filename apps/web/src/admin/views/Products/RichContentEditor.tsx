@@ -44,8 +44,19 @@ const PROFILE_SCALE: Record<string, [string, string]> = {
 
 type KnownCategory = keyof typeof CATEGORY_CONFIG
 
+const CATEGORY_ALIASES: Record<string, KnownCategory> = {
+  wino: 'wine',
+  alcohol: 'wine',
+  kawa: 'coffee',
+  slodycze: 'delicacies',
+  sweets: 'delicacies',
+  spizarnia: 'delicacies',
+  pantry: 'delicacies',
+}
+
 function getCategoryConfig(cat: string) {
-  return CATEGORY_CONFIG[cat as KnownCategory] ?? CATEGORY_CONFIG.wine
+  const normalized = CATEGORY_ALIASES[cat] ?? cat
+  return CATEGORY_CONFIG[normalized as KnownCategory] ?? CATEGORY_CONFIG.wine
 }
 
 function emptyContent(category: string): UpsertProductRichContentPayload {

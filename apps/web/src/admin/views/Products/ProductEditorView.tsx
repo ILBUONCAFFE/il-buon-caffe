@@ -25,9 +25,11 @@ import {
   type CreateAdminProductPayload,
   type UpdateAdminProductPayload,
 } from '../../lib/adminApiClient'
+import { getWineDetailsForProduct } from '@/content/products/wineData'
 import { StockHistoryModal } from './StockHistoryModal'
 import { AllegroLinkModal } from './AllegroLinkModal'
 import { RichContentEditor } from './RichContentEditor'
+import { WineDetailsEditor } from './WineDetailsEditor'
 import { PermanentDeleteProductModal } from './PermanentDeleteProductModal'
 
 type ProductEditorViewProps = { sku: string }
@@ -273,12 +275,12 @@ function mapProductToForm(p: AdminProduct): ProductFormState {
   }
 }
 
-const TABS: { id: Tab; label: string; icon: typeof Package }[] = [
-  { id: 'podstawowe', label: 'Podstawowe',     icon: Package      },
-  { id: 'ceny',       label: 'Ceny i magazyn', icon: DollarSign   },
-  { id: 'allegro',    label: 'Allegro',        icon: ShoppingCart },
-  { id: 'media',      label: 'Media',          icon: ImageIcon    },
-  { id: 'tresc',      label: 'Treść premium',  icon: Sparkles     },
+const TABS: { id: Tab; label: string; icon: typeof Package; createMode?: boolean }[] = [
+  { id: 'podstawowe', label: 'Dane produktu',      icon: Package,    createMode: true },
+  { id: 'ceny',       label: 'Sprzedaż i magazyn', icon: DollarSign, createMode: true },
+  { id: 'media',      label: 'Media',              icon: ImageIcon,  createMode: true },
+  { id: 'allegro',    label: 'Allegro',            icon: ShoppingCart },
+  { id: 'tresc',      label: 'Treść',              icon: Sparkles     },
 ]
 
 function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
@@ -324,10 +326,11 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
 
   const initialTab = useMemo<Tab>(() => {
     const requested = searchParams.get('tab')
+    if (isCreateMode && (requested === 'allegro' || requested === 'tresc')) return 'podstawowe'
     return requested === 'ceny' || requested === 'allegro' || requested === 'media' || requested === 'tresc'
       ? requested
       : 'podstawowe'
-  }, [searchParams])
+  }, [isCreateMode, searchParams])
 
   const [activeTab, setActiveTab] = useState<Tab>(initialTab)
   const [form, setForm] = useState<ProductFormState>(DEFAULT_FORM)
@@ -347,6 +350,7 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
   const [showAllegroLink, setShowAllegroLink] = useState(false)
   const [showPermanentDelete, setShowPermanentDelete] = useState(false)
   const [isClearingCache, setIsClearingCache] = useState(false)
+  const [showManualImageUrl, setShowManualImageUrl] = useState(false)
 
   const loadCategories = useCallback(async () => {
     try {
@@ -372,6 +376,12 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
     if (isCreateMode) { setForm(DEFAULT_FORM); setProduct(null); setLoading(false); return }
     void loadProduct()
   }, [isCreateMode, loadProduct])
+
+  useEffect(() => {
+    if (isCreateMode && (activeTab === 'allegro' || activeTab === 'tresc')) {
+      setActiveTab('podstawowe')
+    }
+  }, [activeTab, isCreateMode])
 
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   useEffect(() => {
@@ -550,7 +560,7 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
 
   const categoryName = product?.category?.name || categories.find((c) => String(c.id) === form.categoryId)?.name || 'Brak kategorii'
   const categorySlug = product?.category?.slug || categories.find((c) => String(c.id) === form.categoryId)?.slug || ''
-  const isWineCategory = categorySlug === 'wino' || categorySlug === 'alcohol'
+  const isWineCategory = categorySlug === 'wino' || categorySlug === 'wine' || categorySlug === 'alcohol'
   const prefixBySlug: Record<string, string> = {
     kawa: 'KAW',
     coffee: 'KAW',
@@ -569,6 +579,7 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
     .replace(/^-+|-+$/g, '')
     .slice(0, 24) || 'PRODUKT'
   const skuPreview = `${prefixBySlug[categorySlug] ?? 'IBC'}-${skuPreviewNamePart}`
+  const visibleTabs = TABS.filter((tab) => !isCreateMode || tab.createMode)
 
   return (
     <div className="pb-24">
@@ -650,7 +661,7 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
               )}
             </div>
             <div className="mt-3 space-y-1">
-              <p className="font-mono text-xs text-[#A3A3A3] truncate">{form.sku || '—'}</p>
+              <p className="font-mono text-xs text-[#A3A3A3] truncate">{isCreateMode ? skuPreview : (form.sku || '—')}</p>
               <p className="text-sm font-medium text-[#1A1A1A] truncate">{form.name || 'Bez nazwy'}</p>
               <p className="text-xs text-[#737373] truncate">{categoryName}</p>
             </div>
@@ -669,7 +680,7 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
 
           {/* Section nav */}
           <nav className="bg-white rounded-xl border border-[#E5E4E1] p-2 shadow-sm">
-            {TABS.map((t) => {
+            {visibleTabs.map((t) => {
               const Icon = t.icon
               const active = activeTab === t.id
               return (
@@ -778,6 +789,35 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
                   </div>
                 )}
               </SectionCard>
+
+              <SectionCard title="Dane opcjonalne">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Field label="Pochodzenie">
+                    <input
+                      className="admin-input w-full"
+                      value={form.origin}
+                      onChange={(e) => handleFieldChange('origin', e.target.value)}
+                    />
+                  </Field>
+                  <Field label="Rocznik">
+                    <input
+                      className="admin-input w-full"
+                      value={form.year}
+                      onChange={(e) => handleFieldChange('year', e.target.value)}
+                    />
+                  </Field>
+                  <Field label="Waga (g)">
+                    <div className="relative">
+                      <input
+                        className="admin-input w-full pr-10"
+                        value={form.weight}
+                        onChange={(e) => handleFieldChange('weight', e.target.value)}
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#A3A3A3]">g</span>
+                    </div>
+                  </Field>
+                </div>
+              </SectionCard>
             </>
           )}
 
@@ -825,35 +865,6 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
                       className="admin-input w-full"
                       value={form.stock}
                       onChange={(e) => handleFieldChange('stock', e.target.value)}
-                    />
-                  </Field>
-                  <Field label="Waga (g)">
-                    <div className="relative">
-                      <input
-                        className="admin-input w-full pr-10"
-                        value={form.weight}
-                        onChange={(e) => handleFieldChange('weight', e.target.value)}
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#A3A3A3]">g</span>
-                    </div>
-                  </Field>
-                </div>
-              </SectionCard>
-
-              <SectionCard title="Pochodzenie">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Field label="Pochodzenie">
-                    <input
-                      className="admin-input w-full"
-                      value={form.origin}
-                      onChange={(e) => handleFieldChange('origin', e.target.value)}
-                    />
-                  </Field>
-                  <Field label="Rocznik">
-                    <input
-                      className="admin-input w-full"
-                      value={form.year}
-                      onChange={(e) => handleFieldChange('year', e.target.value)}
                     />
                   </Field>
                 </div>
@@ -911,7 +922,18 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
           )}
 
           {activeTab === 'media' && (
-            <SectionCard title="Zdjęcie główne">
+            <SectionCard
+              title="Zdjęcie główne"
+              action={
+                <button
+                  type="button"
+                  onClick={() => setShowManualImageUrl((value) => !value)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-[#E5E4E1] text-[#525252] hover:bg-[#F5F4F1]"
+                >
+                  {showManualImageUrl ? 'Ukryj URL' : 'URL ręcznie'}
+                </button>
+              }
+            >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {/* Left: current saved image */}
                 <div>
@@ -986,19 +1008,29 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-[#F0EFEC] space-y-3">
-                <Field label="URL obrazu (ręcznie)">
-                  <input
-                    className="admin-input w-full font-mono text-xs"
-                    value={form.imageUrl}
-                    onChange={(e) => handleFieldChange('imageUrl', e.target.value)}
-                  />
-                </Field>
-              </div>
+              {showManualImageUrl && (
+                <div className="pt-4 border-t border-[#F0EFEC] space-y-3">
+                  <Field label="URL obrazu (ręcznie)">
+                    <input
+                      className="admin-input w-full font-mono text-xs"
+                      value={form.imageUrl}
+                      onChange={(e) => handleFieldChange('imageUrl', e.target.value)}
+                    />
+                  </Field>
+                </div>
+              )}
             </SectionCard>
           )}
 
-          {activeTab === 'tresc' && !isCreateMode && product && (
+          {activeTab === 'tresc' && !isCreateMode && product && isWineCategory && (
+            <WineDetailsEditor
+              sku={sku}
+              product={product}
+              initialWineDetails={getWineDetailsForProduct(product)}
+              embedded
+            />
+          )}
+          {activeTab === 'tresc' && !isCreateMode && product && !isWineCategory && (
             <RichContentEditor sku={sku} category={product.category?.slug ?? 'wine'} product={product} />
           )}
           {activeTab === 'tresc' && isCreateMode && (

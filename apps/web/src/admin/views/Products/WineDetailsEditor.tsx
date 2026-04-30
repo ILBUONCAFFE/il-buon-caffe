@@ -389,53 +389,55 @@ export function WineDetailsEditor({
   }
 
   return (
-    <div className="space-y-5 pb-20">
-      <div className="sticky top-0 z-20 -mx-4 md:-mx-6 px-4 md:px-6 py-3 bg-white/85 backdrop-blur border-b border-[#E5E4E1]">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <button
-              type="button"
-              onClick={() => router.back()}
-              className="p-1.5 rounded-lg text-[#525252] hover:bg-[#F5F4F1] transition-colors shrink-0"
-              aria-label="Wróć"
-            >
-              <ArrowLeft size={18} />
-            </button>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 text-xs text-[#A3A3A3]">
-                <Link href="/admin/products" className="hover:text-[#1A1A1A]">Produkty</Link>
-                <span>/</span>
-                <Link href={`/admin/products/${encodeURIComponent(sku)}`} className="hover:text-[#1A1A1A] font-mono">
-                  {sku}
-                </Link>
-                <span>/</span>
-                <span>Wine Details</span>
+    <div className={`space-y-5 ${embedded ? '' : 'pb-20'}`}>
+      {!embedded && (
+        <div className="sticky top-0 z-20 -mx-4 md:-mx-6 px-4 md:px-6 py-3 bg-white/85 backdrop-blur border-b border-[#E5E4E1]">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className="p-1.5 rounded-lg text-[#525252] hover:bg-[#F5F4F1] transition-colors shrink-0"
+                aria-label="Wróć"
+              >
+                <ArrowLeft size={18} />
+              </button>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 text-xs text-[#A3A3A3]">
+                  <Link href="/admin/products" className="hover:text-[#1A1A1A]">Produkty</Link>
+                  <span>/</span>
+                  <Link href={`/admin/products/${encodeURIComponent(sku)}`} className="hover:text-[#1A1A1A] font-mono">
+                    {sku}
+                  </Link>
+                  <span>/</span>
+                  <span>Wine Details</span>
+                </div>
+                <h1 className="text-lg md:text-xl font-semibold text-[#1A1A1A] truncate">
+                  {product.name}
+                </h1>
               </div>
-              <h1 className="text-lg md:text-xl font-semibold text-[#1A1A1A] truncate">
-                {product.name}
-              </h1>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={resetToInitial}
+                className="btn-secondary text-sm inline-flex items-center gap-2"
+              >
+                <RefreshCw size={14} /> Przywróć bieżący stan
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleSave()}
+                disabled={saving}
+                className="btn-primary text-sm disabled:opacity-40 inline-flex items-center gap-2"
+              >
+                <Save size={14} /> {saving ? 'Zapisywanie…' : 'Zapisz wine details'}
+              </button>
             </div>
           </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={resetToInitial}
-              className="btn-secondary text-sm inline-flex items-center gap-2"
-            >
-              <RefreshCw size={14} /> Przywróć bieżący stan
-            </button>
-            <button
-              type="button"
-              onClick={() => void handleSave()}
-              disabled={saving}
-              className="btn-primary text-sm disabled:opacity-40 inline-flex items-center gap-2"
-            >
-              <Save size={14} /> {saving ? 'Zapisywanie…' : 'Zapisz wine details'}
-            </button>
-          </div>
         </div>
-      </div>
+      )}
 
       {error && (
         <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 flex items-start gap-2">
@@ -452,12 +454,32 @@ export function WineDetailsEditor({
         title="Podgląd produktu"
         description="Nazwa, opis krótki i zdjęcie główne edytujesz w standardowym formularzu produktu. Tutaj dopinasz wine design."
         action={
-          <Link
-            href={`/admin/products/${encodeURIComponent(sku)}`}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded-lg border border-[#E5E4E1] text-[#525252] hover:bg-[#F5F4F1] transition-colors"
-          >
-            <ExternalLink size={14} /> Edytuj produkt
-          </Link>
+          embedded ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={resetToInitial}
+                className="btn-secondary text-xs inline-flex items-center gap-1.5"
+              >
+                <RefreshCw size={13} /> Przywróć
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleSave()}
+                disabled={saving}
+                className="btn-primary text-xs disabled:opacity-40 inline-flex items-center gap-1.5"
+              >
+                <Save size={13} /> {saving ? 'Zapisywanie…' : 'Zapisz'}
+              </button>
+            </div>
+          ) : (
+            <Link
+              href={`/admin/products/${encodeURIComponent(sku)}`}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded-lg border border-[#E5E4E1] text-[#525252] hover:bg-[#F5F4F1] transition-colors"
+            >
+              <ExternalLink size={14} /> Edytuj produkt
+            </Link>
+          )
         }
       >
         <div className="grid grid-cols-1 md:grid-cols-[180px_1fr] gap-5 items-start">
