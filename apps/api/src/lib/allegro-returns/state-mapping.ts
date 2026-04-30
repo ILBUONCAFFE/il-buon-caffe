@@ -9,10 +9,16 @@
 
 export type AllegroReturnStatus =
   | 'CREATED'
-  | 'REFUND_OFFERED'
-  | 'REFUNDED'
+  | 'DISPATCHED'
+  | 'IN_TRANSIT'
+  | 'DELIVERED'
+  | 'FINISHED'
+  | 'FINISHED_APT'
   | 'REJECTED'
-  | 'CANCELLED'
+  | 'COMMISSION_REFUND_CLAIMED'
+  | 'COMMISSION_REFUNDED'
+  | 'WAREHOUSE_DELIVERED'
+  | 'WAREHOUSE_VERIFICATION'
 
 export type InternalReturnStatus =
   | 'new'
@@ -32,14 +38,20 @@ export function mapAllegroReturnStatusToInternal(
   switch (allegroStatus as AllegroReturnStatus) {
     case 'CREATED':
       return 'new'
-    case 'REFUND_OFFERED':
+    case 'DISPATCHED':
+    case 'IN_TRANSIT':
       return 'in_review'
-    case 'REFUNDED':
+    case 'DELIVERED':
+    case 'WAREHOUSE_DELIVERED':
+    case 'WAREHOUSE_VERIFICATION':
+      return 'approved'
+    case 'FINISHED':
+    case 'FINISHED_APT':
+    case 'COMMISSION_REFUND_CLAIMED':
+    case 'COMMISSION_REFUNDED':
       return 'refunded'
     case 'REJECTED':
       return 'rejected'
-    case 'CANCELLED':
-      return 'closed'
     default:
       return 'new'
   }

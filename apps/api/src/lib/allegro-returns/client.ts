@@ -60,11 +60,15 @@ export interface AllegroCustomerReturn {
   orderId: string
   createdAt: string
   status?: string
+  marketplaceId?: string
+  isFulfillment?: boolean
   items: Array<{
     reason?: { type: string; userComment?: string }
     quantity?: number
     offerId?: string
+    name?: string
     offerTitle?: string
+    url?: string
     price?: { amount: string; currency: string }
   }>
   buyer?: { login: string; email: string }
@@ -73,9 +77,18 @@ export interface AllegroCustomerReturn {
     status?: string
     bankAccount?: Record<string, unknown>
   }
-  parcels?: Array<{ transportingCarrierId?: string; trackingNumber?: string }>
+  parcels?: Array<{
+    createdAt?: string
+    waybill?: string | null
+    truckingWaybill?: string | null
+    transportingWaybill?: string | null
+    carrierId?: string | null
+    truckingCarrierId?: string | null
+    transportingCarrierId?: string | null
+    trackingNumber?: string | null
+    sender?: { phoneNumber?: string | null }
+  }>
   rejection?: { code?: string; reason?: string; createdAt?: string }
-  isFulfillment?: boolean
 }
 
 export interface AllegroCustomerReturnsResponse {
@@ -215,7 +228,7 @@ export async function listCustomerReturns(
   db: any,
 ): Promise<AllegroCustomerReturnsResponse> {
   const qs = new URLSearchParams()
-  if (params.orderId) qs.set('order.id', params.orderId)
+  if (params.orderId) qs.set('orderId', params.orderId)
   if (params.status) qs.set('status', params.status)
   if (params.createdAtGte) qs.set('createdAt.gte', params.createdAtGte)
   if (params.createdAtLte) qs.set('createdAt.lte', params.createdAtLte)
@@ -288,7 +301,7 @@ export async function rejectCustomerReturn(
   const url = `${apiBase}/order/customer-returns/${id}/rejection`
   try {
     await allegroFetch(url, {
-      method: 'PUT',
+      method: 'POST',
       headers: allegroReturnHeaders(accessToken, true),
       body: JSON.stringify(body),
     })

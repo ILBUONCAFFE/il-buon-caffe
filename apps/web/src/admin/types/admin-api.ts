@@ -472,11 +472,47 @@ export type ReturnReason =
   | 'other'
 
 export interface ReturnItem {
+  id?: number
   productSku: string
   productName: string
   quantity: number
   unitPrice: number
   totalPrice: number
+  condition?: string | null
+}
+
+export interface ReturnRefund {
+  id: number
+  method: string
+  status: string
+  amount: number
+  commandId?: string | null
+  externalId?: string | null
+  error?: Record<string, unknown> | null
+  createdAt: string
+}
+
+export interface AllegroReturnSnapshot {
+  customerReturnId: string
+  referenceNumber?: string
+  status?: string
+  marketplaceId?: string
+  isFulfillment?: boolean
+  rejection?: { code: string; reason?: string; createdAt: string }
+  refund?: {
+    value?: { amount: string; currency: string }
+    status?: string
+    bankAccount?: Record<string, unknown>
+  }
+  parcels?: Array<{
+    carrierId?: string
+    transportingCarrierId?: string
+    waybill?: string
+    transportingWaybill?: string
+    trackingNumber?: string
+    sender?: string
+    createdAt?: string
+  }>
 }
 
 export interface AdminReturn {
@@ -486,16 +522,22 @@ export interface AdminReturn {
   orderNumber: string
   createdAt: string
   updatedAt: string
+  source: 'shop' | 'allegro'
   status: ReturnStatus
   reason: ReturnReason
   reasonNote: string | null
   items: ReturnItem[]
   totalRefundAmount: number | null
   currency: string
+  allegro?: AllegroReturnSnapshot | null
+  refunds?: ReturnRefund[]
+  restockApplied?: boolean
+  closedAt?: string | null
   customerData: {
     name: string
     email: string
     phone?: string
+    bankAccount?: { owner?: string; accountNumber?: string; iban?: string; swift?: string }
   } | null
 }
 
@@ -503,6 +545,7 @@ export interface ReturnsQueryParams {
   page?: number
   limit?: number
   status?: string
+  source?: 'shop' | 'allegro' | ''
   search?: string
   from?: string
   to?: string

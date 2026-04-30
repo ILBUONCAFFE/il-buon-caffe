@@ -8,10 +8,16 @@ import {
 describe('mapAllegroReturnStatusToInternal', () => {
   const cases: [string, string][] = [
     ['CREATED', 'new'],
-    ['REFUND_OFFERED', 'in_review'],
-    ['REFUNDED', 'refunded'],
+    ['DISPATCHED', 'in_review'],
+    ['IN_TRANSIT', 'in_review'],
+    ['DELIVERED', 'approved'],
+    ['WAREHOUSE_DELIVERED', 'approved'],
+    ['WAREHOUSE_VERIFICATION', 'approved'],
+    ['FINISHED', 'refunded'],
+    ['FINISHED_APT', 'refunded'],
+    ['COMMISSION_REFUND_CLAIMED', 'refunded'],
+    ['COMMISSION_REFUNDED', 'refunded'],
     ['REJECTED', 'rejected'],
-    ['CANCELLED', 'closed'],
     ['UNKNOWN_VALUE', 'new'],
   ]
   it.each(cases)('%s → %s', (input, expected) => {

@@ -662,16 +662,23 @@ export interface ReturnCustomerData {
 export interface ReturnAllegroData {
   customerReturnId: string
   referenceNumber?: string
+  status?: string
+  marketplaceId?: string
+  isFulfillment?: boolean
   rejection?: { code: string; reason?: string; createdAt: string }
   refund?: {
-    value: { amount: string; currency: string }
-    status: string
+    value?: { amount: string; currency: string }
+    status?: string
     bankAccount?: Record<string, unknown>
   }
   parcels?: Array<{
+    carrierId?: string
     transportingCarrierId: string
+    waybill?: string
+    transportingWaybill?: string
     trackingNumber: string
     sender?: string
+    createdAt?: string
   }>
 }
 

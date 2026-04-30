@@ -21,6 +21,9 @@ import {
   type CommandEnv,
   type PrefetchedReturn,
 } from '../../lib/allegro-returns/commands'
+import { getCustomerReturn } from '../../lib/allegro-returns/client'
+import { upsertAllegroReturn } from '../../lib/allegro-returns/reconciler'
+import { resolveAccessToken } from '../../lib/allegro-orders/resolve-token'
 
 export const adminReturnsRouter = new Hono<{ Bindings: Env }>()
 
@@ -82,6 +85,7 @@ adminReturnsRouter.get('/', auditLogMiddleware('view_order'), async (c) => {
         totalRefundAmount: returns.totalRefundAmount,
         currency:          returns.currency,
         customerData:      returns.customerData,
+        allegro:           returns.allegro,
         restockApplied:    returns.restockApplied,
         closedAt:          returns.closedAt,
         createdAt:         returns.createdAt,
@@ -203,6 +207,78 @@ adminReturnsRouter.get('/:id', auditLogMiddleware('view_order'), async (c) => {
     return c.json({ data })
   } catch (err) {
     return serverError(c, 'GET /admin/returns/:id', err)
+  }
+})
+
+// ============================================
+// PATCH /admin/returns/:id/status
+// Ręczna zmiana statusu tylko dla lokalnych zwrotów sklepowych
+// ============================================
+adminReturnsRouter.patch('/:id/status', async (c) => {
+  try {
+    const db        = createDb(c.env.DATABASE_URL)
+    const adminUser = c.get('user')
+    const returnId  = parseInt(c.req.param('id') ?? '', 10)
+
+    if (isNaN(returnId)) {
+      return c.json({ error: { code: 'INVALID_ID', message: 'Nieprawidłowe ID zwrotu' } }, 400)
+    }
+
+    const body = await c.req.json().catch(() => null) as { status?: string } | null
+    const nextStatus = body?.status
+    const validStatuses = ['new', 'in_review', 'approved', 'rejected', 'refunded', 'closed']
+    if (!nextStatus || !validStatuses.includes(nextStatus)) {
+      return c.json({ error: { code: 'VALIDATION_ERROR', message: 'Nieprawidłowy status zwrotu' } }, 400)
+    }
+
+    const [ret] = await db
+      .select({ id: returns.id, source: returns.source, status: returns.status, orderId: returns.orderId })
+      .from(returns)
+      .where(eq(returns.id, returnId))
+      .limit(1)
+
+    if (!ret) {
+      return c.json({ error: { code: 'NOT_FOUND', message: 'Zwrot nie istnieje' } }, 404)
+    }
+    if (ret.source === 'allegro') {
+      return c.json({
+        error: {
+          code: 'ALLEGRO_STATUS_READ_ONLY',
+          message: 'Status zwrotu Allegro jest odczytywany z Allegro API. Użyj odświeżenia zwrotu.',
+        },
+      }, 422)
+    }
+
+    const transitions: Record<string, string[]> = {
+      new: ['in_review', 'rejected'],
+      in_review: ['approved', 'rejected'],
+      approved: ['refunded', 'closed'],
+      rejected: ['closed', 'in_review'],
+      refunded: ['closed'],
+      closed: ['in_review'],
+    }
+    if (!transitions[ret.status]?.includes(nextStatus)) {
+      return c.json({
+        error: { code: 'INVALID_TRANSITION', message: `Niedozwolona zmiana statusu z ${ret.status} na ${nextStatus}` },
+      }, 422)
+    }
+
+    await db.update(returns).set({
+      status: nextStatus as any,
+      closedAt: nextStatus === 'closed' || nextStatus === 'rejected' ? new Date() : null,
+      updatedAt: new Date(),
+    }).where(eq(returns.id, returnId))
+
+    await logAdminAction(db, {
+      adminSub: adminUser?.sub ?? '0',
+      action: 'admin_action',
+      targetOrderId: ret.orderId,
+      details: { event: 'return_status_change', returnId, previousStatus: ret.status, newStatus: nextStatus },
+    })
+
+    return c.json({ data: { id: returnId, status: nextStatus } })
+  } catch (err) {
+    return serverError(c, 'PATCH /admin/returns/:id/status', err)
   }
 })
 
@@ -586,15 +662,47 @@ adminReturnsRouter.post('/:id/restock', async (c) => {
 
 // ============================================
 // POST /admin/returns/:id/refresh
-// Force-sync placeholder (Allegro sync wired in Task 10)
+// Odczyt szczegółów zwrotu z Allegro REST API i zapis lokalnego snapshotu
 // ============================================
 adminReturnsRouter.post('/:id/refresh', async (c) => {
   try {
+    const db = createDb(c.env.DATABASE_URL)
     const returnId = parseInt(c.req.param('id') ?? '', 10)
     if (isNaN(returnId)) {
       return c.json({ error: { code: 'INVALID_ID', message: 'Nieprawidłowe ID zwrotu' } }, 400)
     }
-    return c.json({ data: { queued: true } })
+
+    const [ret] = await db
+      .select({ id: returns.id, source: returns.source, orderId: returns.orderId, allegro: returns.allegro })
+      .from(returns)
+      .where(eq(returns.id, returnId))
+      .limit(1)
+
+    if (!ret) {
+      return c.json({ error: { code: 'NOT_FOUND', message: 'Zwrot nie istnieje' } }, 404)
+    }
+    if (ret.source !== 'allegro') {
+      return c.json({ data: { refreshed: false, reason: 'shop_return' } })
+    }
+
+    const customerReturnId = ret.allegro?.customerReturnId
+    if (typeof customerReturnId !== 'string' || !customerReturnId) {
+      return c.json({ error: { code: 'MISSING_ALLEGRO_ID', message: 'Brak identyfikatora zwrotu Allegro' } }, 422)
+    }
+
+    const accessToken = await resolveAccessToken(c.env.ALLEGRO_KV, db, c.env)
+    if (!accessToken) {
+      return c.json({ error: { code: 'ALLEGRO_TOKEN_UNAVAILABLE', message: 'Brak aktywnego tokenu Allegro' } }, 503)
+    }
+
+    const environment = c.env.ALLEGRO_ENVIRONMENT ?? 'production'
+    const apiBase = environment === 'sandbox'
+      ? 'https://api.allegro.pl.allegrosandbox.pl'
+      : 'https://api.allegro.pl'
+    const allegroReturn = await getCustomerReturn(customerReturnId, apiBase, accessToken, db)
+    const result = await upsertAllegroReturn(db, allegroReturn, ret.orderId)
+
+    return c.json({ data: { refreshed: true, ...result } })
   } catch (err) {
     return serverError(c, 'POST /admin/returns/:id/refresh', err)
   }

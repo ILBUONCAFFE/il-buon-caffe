@@ -239,7 +239,7 @@ export async function acceptAllegroReturnRefund(
   }
 
   const allegroCustomerReturnId = ret.allegro?.customerReturnId
-  if (!allegroCustomerReturnId) {
+  if (typeof allegroCustomerReturnId !== 'string' || !allegroCustomerReturnId) {
     throw new CommandError('INVALID_STATE', 422, 'Return has no allegro.customerReturnId')
   }
 
@@ -329,7 +329,7 @@ export async function rejectReturn(
 
   if (ret.source === 'allegro') {
     const allegroCustomerReturnId = ret.allegro?.customerReturnId
-    if (!allegroCustomerReturnId) {
+    if (typeof allegroCustomerReturnId !== 'string' || !allegroCustomerReturnId) {
       throw new CommandError('INVALID_STATE', 422, 'Allegro return has no allegro.customerReturnId')
     }
     const apiBase = getApiBase(env)

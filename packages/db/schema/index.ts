@@ -704,9 +704,20 @@ export const returns = pgTable('returns', {
   allegro: jsonb('allegro').$type<{
     customerReturnId: string
     referenceNumber?: string
+    status?: string
+    marketplaceId?: string
+    isFulfillment?: boolean
     rejection?: { code: string; reason?: string; createdAt: string }
-    refund?: { value: { amount: string; currency: string }; status: string; bankAccount?: Record<string, unknown> }
-    parcels?: Array<{ transportingCarrierId: string; trackingNumber: string; sender?: string }>
+    refund?: { value?: { amount: string; currency: string }; status?: string; bankAccount?: Record<string, unknown> }
+    parcels?: Array<{
+      carrierId?: string
+      transportingCarrierId: string
+      waybill?: string
+      transportingWaybill?: string
+      trackingNumber: string
+      sender?: string
+      createdAt?: string
+    }>
   }>(),
   restockApplied: boolean('restock_applied').notNull().default(false),
   closedAt: timestamp('closed_at', { withTimezone: true }),

@@ -53,8 +53,24 @@ export async function upsertAllegroReturn(
   const currency = allegroReturn.refund?.value?.currency ?? 'PLN'
 
   const buyer = allegroReturn.buyer
+  const bankAccount = allegroReturn.refund?.bankAccount as
+    | { owner?: string; accountNumber?: string; iban?: string; swift?: string }
+    | undefined
   const customerData = buyer
-    ? { name: buyer.login, email: buyer.email }
+    ? {
+        name: buyer.login,
+        email: buyer.email,
+        ...(bankAccount?.owner || bankAccount?.accountNumber || bankAccount?.iban || bankAccount?.swift
+          ? {
+              bankAccount: {
+                owner: bankAccount.owner ?? '',
+                accountNumber: bankAccount.accountNumber ?? '',
+                iban: bankAccount.iban,
+                swift: bankAccount.swift,
+              },
+            }
+          : {}),
+      }
     : { name: '', email: '' }
 
   // Build the allegro JSONB block, using undefined for absent optional fields
@@ -64,9 +80,23 @@ export async function upsertAllegroReturn(
     referenceNumber?: string
     rejection?: { code: string; reason?: string; createdAt: string }
     refund?: { value: { amount: string; currency: string }; status: string; bankAccount?: Record<string, unknown> }
-    parcels?: Array<{ transportingCarrierId: string; trackingNumber: string; sender?: string }>
+    parcels?: Array<{
+      carrierId?: string
+      transportingCarrierId: string
+      waybill?: string
+      transportingWaybill?: string
+      trackingNumber: string
+      sender?: string
+      createdAt?: string
+    }>
+    status?: string
+    marketplaceId?: string
+    isFulfillment?: boolean
   } = {
     customerReturnId: allegroReturn.id,
+    status: allegroReturn.status,
+    marketplaceId: allegroReturn.marketplaceId,
+    isFulfillment: allegroReturn.isFulfillment,
     ...(allegroReturn.referenceNumber !== undefined
       ? { referenceNumber: allegroReturn.referenceNumber }
       : {}),
@@ -94,8 +124,13 @@ export async function upsertAllegroReturn(
     ...(allegroReturn.parcels !== undefined
       ? {
           parcels: allegroReturn.parcels.map((p) => ({
-            transportingCarrierId: p.transportingCarrierId ?? '',
-            trackingNumber: p.trackingNumber ?? '',
+            carrierId: p.carrierId ?? undefined,
+            transportingCarrierId: p.transportingCarrierId ?? p.truckingCarrierId ?? p.carrierId ?? '',
+            waybill: p.waybill ?? undefined,
+            transportingWaybill: p.transportingWaybill ?? p.truckingWaybill ?? undefined,
+            trackingNumber: p.trackingNumber ?? p.waybill ?? p.transportingWaybill ?? p.truckingWaybill ?? '',
+            sender: p.sender?.phoneNumber ?? undefined,
+            createdAt: p.createdAt ?? undefined,
           })),
         }
       : {}),
@@ -137,7 +172,7 @@ export async function upsertAllegroReturn(
           returnId,
           orderItemId: null,
           productSku: item.offerId ?? 'UNKNOWN',
-          productName: item.offerTitle ?? 'Produkt Allegro',
+          productName: item.name ?? item.offerTitle ?? 'Produkt Allegro',
           quantity,
           unitPrice: priceStr,
           totalPrice: totalStr,

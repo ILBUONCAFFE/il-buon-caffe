@@ -6,6 +6,7 @@ import { ReturnStatusBadge } from '../../components/ReturnStatusBadge'
 import { ReturnContextMenu } from '../../components/ReturnContextMenu'
 import { ReturnDetailModal } from '../../components/ReturnDetailModal'
 import { DateRangePicker } from '../../components/ui/DateRangePicker'
+import { Dropdown } from '../../components/ui/Dropdown'
 import type { AdminReturn, ReturnStatus, ReturnsQueryParams } from '../../types/admin-api'
 import { MoreVertical, ChevronLeft, ChevronRight as ChevronRightIcon } from 'lucide-react'
 
@@ -22,26 +23,28 @@ function formatDateShort(iso: string | null | undefined): string {
 
 function formatAmount(value: number | undefined | null, currency = 'PLN'): string {
   if (value == null) return '-'
-  const symbol: Record<string, string> = { PLN: 'zl', EUR: 'EUR' }
+  const symbol: Record<string, string> = { PLN: 'zł', EUR: 'EUR' }
   return `${Number(value).toFixed(2)} ${symbol[currency] ?? currency}`
 }
 
 const REASON_LABELS: Record<string, string> = {
   damaged:          'Uszkodzony produkt',
-  wrong_item:       'Bledny produkt',
+  wrong_item:       'Błędny produkt',
   not_as_described: 'Niezgodny z opisem',
   change_of_mind:   'Zmiana decyzji',
+  defect:           'Wada produktu',
+  mistake:          'Pomyłka kupującego',
   other:            'Inne',
 }
 
 const STATUS_TABS = [
   { key: 'all',       label: 'Wszystkie' },
   { key: 'new',       label: 'Nowe' },
-  { key: 'in_review', label: 'W rozpatrzeniu' },
-  { key: 'approved',  label: 'Zaakceptowane' },
+  { key: 'in_review', label: 'W drodze' },
+  { key: 'approved',  label: 'Do decyzji' },
   { key: 'rejected',  label: 'Odrzucone' },
-  { key: 'refunded',  label: 'Zwrot wyslany' },
-  { key: 'closed',    label: 'Zamkniete' },
+  { key: 'refunded',  label: 'Rozliczone' },
+  { key: 'closed',    label: 'Zamknięte' },
 ]
 
 const LIMIT = 50
@@ -53,6 +56,7 @@ export const ReturnsView = () => {
   const [error, setError]       = useState<string | null>(null)
 
   const [statusFilter, setStatusFilter] = useState('all')
+  const [sourceFilter, setSourceFilter] = useState('')
   const [searchInput, setSearchInput]   = useState('')
   const [search, setSearch]             = useState('')
   const [dateFrom, setDateFrom]         = useState('')
@@ -77,6 +81,7 @@ export const ReturnsView = () => {
     try {
       const params: ReturnsQueryParams = { page, limit: LIMIT }
       if (statusFilter !== 'all') params.status = statusFilter
+      if (sourceFilter) params.source = sourceFilter as 'shop' | 'allegro'
       if (search)   params.search = search
       if (dateFrom) params.from   = dateFrom
       if (dateTo)   params.to     = dateTo
@@ -89,7 +94,7 @@ export const ReturnsView = () => {
     } finally {
       setLoading(false)
     }
-  }, [dateFrom, dateTo, page, search, statusFilter])
+  }, [dateFrom, dateTo, page, search, sourceFilter, statusFilter])
 
   useEffect(() => { fetchReturns() }, [fetchReturns])
 
@@ -130,9 +135,13 @@ export const ReturnsView = () => {
   }
 
   const handleReject = async (ret: AdminReturn) => {
-    const reason = window.prompt('Powód odrzucenia (opcjonalnie):') ?? undefined
+    const reason = window.prompt('Uzasadnienie odmowy zwrotu środków:')?.trim()
+    if (!reason) {
+      showFeedback('error', 'Przy odmowie zwrotu środków podaj uzasadnienie')
+      return
+    }
     try {
-      await adminApi.rejectReturn(ret.id, { code: 'REFUND_REJECTED', reason: reason || undefined })
+      await adminApi.rejectReturn(ret.id, { code: 'REFUND_REJECTED', reason })
       await fetchReturns()
       showFeedback('success', 'Zwrot odrzucony')
     } catch {
@@ -173,6 +182,8 @@ export const ReturnsView = () => {
   const handleRefreshReturn = async (ret: AdminReturn) => {
     try {
       await adminApi.refreshReturn(ret.id)
+      const fresh = await adminApi.getReturnDetail(ret.id)
+      setDetailReturn((current) => (current?.id === ret.id ? fresh.data : current))
       await fetchReturns()
       showFeedback('success', 'Zwrot odświeżony')
     } catch {
@@ -183,6 +194,16 @@ export const ReturnsView = () => {
   const handleContextMenu = (e: React.MouseEvent, ret: AdminReturn) => {
     e.preventDefault()
     setContextMenu({ ret, x: e.clientX, y: e.clientY })
+  }
+
+  const openReturnDetails = async (ret: AdminReturn) => {
+    setDetailReturn(ret)
+    try {
+      const fresh = await adminApi.getReturnDetail(ret.id)
+      setDetailReturn(fresh.data)
+    } catch {
+      // List row is enough for basic details; keep modal open.
+    }
   }
 
   const handleToggleSelect = (id: number) => {
@@ -241,6 +262,19 @@ export const ReturnsView = () => {
             setPage(1)
           }}
         />
+        <Dropdown
+          label="Źródło"
+          value={sourceFilter}
+          onChange={(v) => {
+            setSourceFilter(v)
+            setPage(1)
+          }}
+          options={[
+            { value: '', label: 'Wszystkie' },
+            { value: 'allegro', label: 'Allegro' },
+            { value: 'shop', label: 'Sklep' },
+          ]}
+        />
       </div>
 
       {error ? (
@@ -281,13 +315,20 @@ export const ReturnsView = () => {
                     const firstItem = ret.items?.[0]
                     const extraCount = (ret.items?.length ?? 0) - 1
                     return (
-                      <tr key={ret.id} className="border-b border-[#F0EFEC] last:border-0 hover:bg-[#FAFAF9] cursor-pointer group" onClick={() => setDetailReturn(ret)} onContextMenu={(e) => handleContextMenu(e, ret)}>
+                      <tr key={ret.id} className="border-b border-[#F0EFEC] last:border-0 hover:bg-[#FAFAF9] cursor-pointer group" onClick={() => void openReturnDetails(ret)} onContextMenu={(e) => handleContextMenu(e, ret)}>
                         <td className="px-4 py-3 align-middle" onClick={(e) => e.stopPropagation()}>
                           <input type="checkbox" checked={selectedIds.has(ret.id)} onChange={() => handleToggleSelect(ret.id)} className="rounded border-[#D4D3D0] focus:ring-1 focus:ring-[#1A1A1A] opacity-0 group-hover:opacity-100 checked:opacity-100" />
                         </td>
                         <td className="px-4 py-3 align-middle">
                           <span className="font-semibold text-[#1A1A1A]">{ret.returnNumber}</span>
-                          <div className="text-xs text-[#A3A3A3] mt-1">{formatDateShort(ret.createdAt)}</div>
+                          <div className="flex items-center gap-1.5 text-xs text-[#A3A3A3] mt-1">
+                            <span>{formatDateShort(ret.createdAt)}</span>
+                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none ${
+                              ret.source === 'allegro' ? 'bg-[#FF5A00]/10 text-[#FF5A00]' : 'bg-[#F5F4F1] text-[#666]'
+                            }`}>
+                              {ret.source === 'allegro' ? 'A' : 'S'}
+                            </span>
+                          </div>
                         </td>
                         <td className="px-4 py-3 align-middle"><span className="text-[#1A1A1A]">{ret.orderNumber}</span></td>
                         <td className="px-4 py-3 align-middle">
@@ -335,7 +376,7 @@ export const ReturnsView = () => {
                 const firstItem = ret.items?.[0]
                 const extraCount = (ret.items?.length ?? 0) - 1
                 return (
-                  <div key={ret.id} className="bg-white rounded-xl border border-[#E5E4E1] p-4 cursor-pointer active:scale-[0.99] transition-all" onClick={() => setDetailReturn(ret)}>
+                  <div key={ret.id} className="bg-white rounded-xl border border-[#E5E4E1] p-4 cursor-pointer active:scale-[0.99] transition-all" onClick={() => void openReturnDetails(ret)}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3">
                         <div className="mt-0.5" onClick={(e) => { e.stopPropagation(); handleToggleSelect(ret.id) }}>
@@ -343,7 +384,7 @@ export const ReturnsView = () => {
                         </div>
                         <div>
                           <span className="font-semibold text-sm text-[#1A1A1A]">{ret.returnNumber}</span>
-                          <div className="text-xs text-[#A3A3A3] mt-0.5">zm. {ret.orderNumber} · {formatDateShort(ret.createdAt)}</div>
+                          <div className="text-xs text-[#A3A3A3] mt-0.5">zam. {ret.orderNumber} · {formatDateShort(ret.createdAt)} · {ret.source === 'allegro' ? 'Allegro' : 'Sklep'}</div>
                         </div>
                       </div>
                       <div className="flex items-start gap-2">
@@ -411,7 +452,7 @@ export const ReturnsView = () => {
           ret={contextMenu.ret}
           position={{ x: contextMenu.x, y: contextMenu.y }}
           onClose={() => setContextMenu(null)}
-          onOpenDetails={(ret) => setDetailReturn(ret)}
+          onOpenDetails={(ret) => void openReturnDetails(ret)}
           onChangeStatus={handleChangeStatus}
           onApprove={(ret) => { handleApprove(ret); setContextMenu(null) }}
           onReject={(ret) => { handleReject(ret); setContextMenu(null) }}
@@ -430,6 +471,7 @@ export const ReturnsView = () => {
         onApprove={handleApprove}
         onReject={handleReject}
         onRefund={handleRefund}
+        onRefreshReturn={handleRefreshReturn}
       />
 
       {feedback && (
