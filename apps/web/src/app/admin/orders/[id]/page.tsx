@@ -1,8 +1,11 @@
+import { OrderDetailView } from '@/admin/views/OrderDetail'
+
 /** Admin: Szczegóły zamówienia — /admin/orders/[id] */
-export default function AdminOrderDetailPage({
+export default async function AdminOrderDetailPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ id: string }>
 }) {
-  return <div>Szczegóły zamówienia — UI w przygotowaniu</div>;
+  const { id } = await params
+  return <OrderDetailView id={id} />
 }
