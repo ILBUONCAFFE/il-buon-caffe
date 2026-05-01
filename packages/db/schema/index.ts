@@ -565,77 +565,6 @@ export const orderStatusHistory = pgTable('order_status_history', {
 }));
 
 // ============================================
-// TABLES: SHIPMENTS (Allegro operational center)
-// ============================================
-
-export const shipments = pgTable('shipments', {
-  id: serial('id').primaryKey(),
-  orderId: integer('order_id').references(() => orders.id, { onDelete: 'cascade' }).notNull(),
-  externalOrderId: varchar('external_order_id', { length: 100 }).notNull(),
-  allegroShipmentId: varchar('allegro_shipment_id', { length: 100 }),
-  waybill: varchar('waybill', { length: 100 }),
-  carrierId: varchar('carrier_id', { length: 100 }),
-  carrierName: varchar('carrier_name', { length: 255 }),
-  deliveryMethodId: varchar('delivery_method_id', { length: 100 }),
-  statusCode: varchar('status_code', { length: 100 }).notNull().default('UNKNOWN'),
-  statusLabel: varchar('status_label', { length: 255 }),
-  occurredAt: timestamp('occurred_at', { withTimezone: true }),
-  pickupId: varchar('pickup_id', { length: 100 }),
-  labelDownloadedAt: timestamp('label_downloaded_at', { withTimezone: true }),
-  protocolDownloadedAt: timestamp('protocol_downloaded_at', { withTimezone: true }),
-  lastSyncedAt: timestamp('last_synced_at', { withTimezone: true }),
-  syncError: text('sync_error'),
-  raw: jsonb('raw').$type<Record<string, unknown>>(),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-}, (table) => ({
-  orderIdx: index('shipments_order_idx').on(table.orderId),
-  externalOrderIdx: index('shipments_external_order_idx').on(table.externalOrderId),
-  waybillIdx: index('shipments_waybill_idx').on(table.waybill),
-  allegroShipmentIdx: index('shipments_allegro_shipment_idx').on(table.allegroShipmentId),
-  statusIdx: index('shipments_status_idx').on(table.statusCode, table.occurredAt),
-  uniqueOrderWaybillIdx: uniqueIndex('shipments_order_waybill_idx').on(table.orderId, table.waybill),
-}));
-
-export const shipmentEvents = pgTable('shipment_events', {
-  id: serial('id').primaryKey(),
-  shipmentId: integer('shipment_id').references(() => shipments.id, { onDelete: 'cascade' }).notNull(),
-  code: varchar('code', { length: 100 }).notNull(),
-  label: varchar('label', { length: 255 }),
-  occurredAt: timestamp('occurred_at', { withTimezone: true }),
-  source: varchar('source', { length: 50 }).notNull().default('allegro_sync'),
-  raw: jsonb('raw').$type<Record<string, unknown>>(),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-}, (table) => ({
-  shipmentIdx: index('shipment_events_shipment_idx').on(table.shipmentId, table.occurredAt),
-  codeIdx: index('shipment_events_code_idx').on(table.code),
-  uniqueEventIdx: uniqueIndex('shipment_events_unique_idx').on(table.shipmentId, table.code, table.occurredAt),
-}));
-
-export const shipmentCommands = pgTable('shipment_commands', {
-  id: serial('id').primaryKey(),
-  commandId: uuid('command_id').notNull().unique(),
-  type: varchar('type', { length: 50 }).notNull(),
-  status: varchar('status', { length: 50 }).notNull().default('IN_PROGRESS'),
-  orderId: integer('order_id').references(() => orders.id, { onDelete: 'set null' }),
-  shipmentId: integer('shipment_id').references(() => shipments.id, { onDelete: 'set null' }),
-  allegroShipmentId: varchar('allegro_shipment_id', { length: 100 }),
-  pickupId: varchar('pickup_id', { length: 100 }),
-  retryAfter: integer('retry_after'),
-  requestPayload: jsonb('request_payload').$type<Record<string, unknown>>(),
-  responsePayload: jsonb('response_payload').$type<Record<string, unknown>>(),
-  errors: jsonb('errors').$type<Array<Record<string, unknown>>>(),
-  createdByAdminId: integer('created_by_admin_id').references(() => users.id, { onDelete: 'set null' }),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-}, (table) => ({
-  commandIdx: uniqueIndex('shipment_commands_command_idx').on(table.commandId),
-  typeStatusIdx: index('shipment_commands_type_status_idx').on(table.type, table.status),
-  orderIdx: index('shipment_commands_order_idx').on(table.orderId),
-  shipmentIdx: index('shipment_commands_shipment_idx').on(table.shipmentId),
-}));
-
-// ============================================
 // TABLES: ORDER SEQUENCES (atomic per-year counter)
 // ============================================
 
@@ -988,42 +917,10 @@ export const ordersRelations = relations(orders, ({ one, many }) => ({
     references: [users.id],
   }),
   items: many(orderItems),
-  shipments: many(shipments),
   stockChanges: many(stockChanges),
   statusHistory: many(orderStatusHistory),
   returns: many(returns),
   allegroIssues: many(allegroIssues),
-}));
-
-export const shipmentsRelations = relations(shipments, ({ one, many }) => ({
-  order: one(orders, {
-    fields: [shipments.orderId],
-    references: [orders.id],
-  }),
-  events: many(shipmentEvents),
-  commands: many(shipmentCommands),
-}));
-
-export const shipmentEventsRelations = relations(shipmentEvents, ({ one }) => ({
-  shipment: one(shipments, {
-    fields: [shipmentEvents.shipmentId],
-    references: [shipments.id],
-  }),
-}));
-
-export const shipmentCommandsRelations = relations(shipmentCommands, ({ one }) => ({
-  order: one(orders, {
-    fields: [shipmentCommands.orderId],
-    references: [orders.id],
-  }),
-  shipment: one(shipments, {
-    fields: [shipmentCommands.shipmentId],
-    references: [shipments.id],
-  }),
-  createdByAdmin: one(users, {
-    fields: [shipmentCommands.createdByAdminId],
-    references: [users.id],
-  }),
 }));
 
 export const orderStatusHistoryRelations = relations(orderStatusHistory, ({ one }) => ({
@@ -1130,15 +1027,6 @@ export type NewDbProduct = typeof products.$inferInsert;
 
 export type DbOrder = typeof orders.$inferSelect;
 export type NewDbOrder = typeof orders.$inferInsert;
-
-export type DbShipment = typeof shipments.$inferSelect;
-export type NewDbShipment = typeof shipments.$inferInsert;
-
-export type DbShipmentEvent = typeof shipmentEvents.$inferSelect;
-export type NewDbShipmentEvent = typeof shipmentEvents.$inferInsert;
-
-export type DbShipmentCommand = typeof shipmentCommands.$inferSelect;
-export type NewDbShipmentCommand = typeof shipmentCommands.$inferInsert;
 
 export type DbOrderItem = typeof orderItems.$inferSelect;
 export type NewDbOrderItem = typeof orderItems.$inferInsert;

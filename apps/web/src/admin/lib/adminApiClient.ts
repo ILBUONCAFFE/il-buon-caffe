@@ -11,12 +11,6 @@ import type {
   DeliveryServicesResponse,
   CreateShipmentPayload,
   ShipmentCreatedResponse,
-  ShippingQueue,
-  ShippingCenterRow,
-  ShippingCenterSummary,
-  ShippingCenterQueryParams,
-  ShippingCenterResponse,
-  ShippingOrderDetailResponse,
   ActivityFeedResponse,
   NotificationsResponse,
   AllegroStatusResponse,
@@ -167,80 +161,6 @@ export const adminApi = {
     }),
 
   // ── Shipment management ────────────────────────────────────────────────
-  getShippingCenter: (params?: ShippingCenterQueryParams) => {
-    const qs = new URLSearchParams()
-    if (params?.page) qs.set('page', String(params.page))
-    if (params?.limit) qs.set('limit', String(params.limit))
-    if (params?.queue && params.queue !== 'all') qs.set('queue', params.queue)
-    if (params?.search) qs.set('search', params.search)
-    if (params?.carrierId) qs.set('carrierId', params.carrierId)
-    if (params?.fulfillment) qs.set('fulfillment', params.fulfillment)
-    if (params?.from) qs.set('from', params.from)
-    if (params?.to) qs.set('to', params.to)
-    const suffix = qs.toString()
-    return request<ShippingCenterResponse>(`/api/admin/shipping${suffix ? `?${suffix}` : ''}`)
-  },
-
-  getShippingOrderDetail: (orderId: number) =>
-    request<ShippingOrderDetailResponse>(`/api/admin/shipping/orders/${orderId}`),
-
-  refreshShippingOrders: (orderIds: number[], force = false) =>
-    request<{ success: boolean; data: Array<{ orderId: number; refreshed: boolean; cached: boolean }> }>('/api/admin/shipping/refresh', {
-      method: 'POST',
-      body: JSON.stringify({ orderIds, force }),
-    }),
-
-  cancelAllegroShipment: (shipmentId: string) =>
-    request<{ success: boolean; data: { commandId: string; status: string; response: Record<string, unknown> } }>('/api/admin/shipping/cancel', {
-      method: 'POST',
-      body: JSON.stringify({ shipmentId }),
-    }),
-
-  requestPickupProposals: (payload: {
-    shipmentIds: string[]
-    readyDate?: string
-    address?: Record<string, unknown>
-  }) =>
-    request<{ success: boolean; data: Record<string, unknown> }>('/api/admin/shipping/pickup-proposals', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }),
-
-  createPickup: (payload: {
-    shipmentIds: string[]
-    pickupTime: { date: string; minTime?: string; maxTime?: string }
-    address?: Record<string, unknown>
-  }) =>
-    request<{ success: boolean; data: { commandId: string; status: string; response: Record<string, unknown> } }>('/api/admin/shipping/pickups', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }),
-
-  getPickupDetails: (pickupId: string) =>
-    request<{ success: boolean; data: Record<string, unknown> }>(`/api/admin/shipping/pickups/${encodeURIComponent(pickupId)}`),
-
-  getShipmentProtocol: async (shipmentIds: string[]): Promise<Blob> => {
-    const res = await fetch('/api/admin/shipping/protocol', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ shipmentIds }),
-      credentials: 'include',
-    })
-
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({})) as {
-        error?: { code?: string; message?: string }
-      }
-      throw new ApiError(
-        res.status,
-        body.error?.code ?? 'PROTOCOL_ERROR',
-        body.error?.message ?? 'Nie udalo sie pobrac protokolu',
-      )
-    }
-
-    return res.blob()
-  },
-
   getDeliveryServices: () =>
     request<DeliveryServicesResponse>('/api/admin/shipment/delivery-services'),
 
@@ -650,12 +570,6 @@ export type {
   DeliveryServiceInfo,
   CreateShipmentPayload,
   ShipmentCreatedResponse,
-  ShippingQueue,
-  ShippingCenterRow,
-  ShippingCenterSummary,
-  ShippingCenterQueryParams,
-  ShippingCenterResponse,
-  ShippingOrderDetailResponse,
   AllegroSalesQualityResponse,
   AdminProduct,
   AdminProductImage,

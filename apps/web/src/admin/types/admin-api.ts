@@ -61,13 +61,7 @@ export type OrderStatus =
   | 'paid'
   | 'processing'
   | 'shipped'
-  | 'in_transit'
-  | 'out_for_delivery'
   | 'delivered'
-  | 'return_requested'
-  | 'return_in_transit'
-  | 'return_received'
-  | 'disputed'
   | 'completed'
   | 'cancelled'
   | 'refunded'
@@ -476,14 +470,6 @@ export interface CreateShipmentPayload {
   length: number
   width: number
   height: number
-  packages?: Array<{
-    weight: number
-    length: number
-    width: number
-    height: number
-    textOnLabel?: string
-  }>
-  additionalServices?: string[]
   referenceNumber?: string
 }
 
@@ -493,86 +479,6 @@ export interface ShipmentCreatedResponse {
     shipmentId: string
     trackingNumber: string
     status: 'shipped'
-  }
-}
-
-export type ShippingQueue =
-  | 'all'
-  | 'to_ship'
-  | 'label_created'
-  | 'awaiting_pickup'
-  | 'in_transit'
-  | 'problem'
-  | 'delivered'
-  | 'stale'
-
-export interface ShippingCenterRow {
-  id: string
-  orderId: number
-  orderNumber: string
-  externalOrderId: string | null
-  orderStatus: string
-  fulfillmentStatus: string | null
-  customerName: string | null
-  customerEmail: string | null
-  buyerLogin: string | null
-  shippingMethod: string | null
-  createdAt: string
-  paidAt: string | null
-  shippedAt: string | null
-  deliveredAt: string | null
-  waybill: string | null
-  allegroShipmentId: string | null
-  carrierId: string | null
-  carrierName: string | null
-  deliveryMethodId: string | null
-  pickupId: string | null
-  statusCode: string
-  statusLabel: string | null
-  occurredAt: string | null
-  lastSyncedAt: string | null
-  queue: ShippingQueue
-  freshness: ShipmentFreshness
-  events: ShipmentEvent[]
-}
-
-export interface ShippingCenterSummary {
-  total: number
-  toShip: number
-  labelCreated: number
-  awaitingPickup: number
-  inTransit: number
-  problem: number
-  delivered: number
-  stale: number
-}
-
-export interface ShippingCenterResponse {
-  success: boolean
-  data: ShippingCenterRow[]
-  summary: ShippingCenterSummary
-  filters: { carriers: string[] }
-  meta: ApiListMeta
-  health: { circuitOpen: string | null; nextDueAt: string | null }
-}
-
-export interface ShippingCenterQueryParams {
-  page?: number
-  limit?: number
-  queue?: ShippingQueue
-  search?: string
-  carrierId?: string
-  fulfillment?: string
-  from?: string
-  to?: string
-}
-
-export interface ShippingOrderDetailResponse {
-  success: boolean
-  data: {
-    rows: ShippingCenterRow[]
-    commands: Array<Record<string, unknown>>
-    persistedShipments: Array<Record<string, unknown>>
   }
 }
 
