@@ -138,7 +138,6 @@ export interface Product {
   isActive: boolean;
   isNew?: boolean;
   isFeatured?: boolean;
-  wineDetails?: WineDetails;
   coffeeDetails?: CoffeeDetails;
   allegroOfferId?: string;        // Mapowanie 1:1 z Allegro
   createdAt: string;
@@ -873,6 +872,7 @@ export interface ProductRichContent {
   profile: FlavorProfile
   sensory: SensoryNotes
   extended: Record<string, unknown>
+  wineDetails: Record<string, unknown> | null
   hasAwards: boolean
   isPublished: boolean
   updatedAt: number

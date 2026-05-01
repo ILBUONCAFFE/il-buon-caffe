@@ -56,6 +56,9 @@ export const productContent = sqliteTable(
     // delicacies: {ingredients, storage, origin_story}
     extended: text('extended'),
 
+    // Full category-specific wine details JSON edited by admin.
+    wineDetails: text('wine_details'),
+
     hasAwards: integer('has_awards').notNull().default(0),
     isPublished: integer('is_published').notNull().default(0),
 

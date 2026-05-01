@@ -6,20 +6,19 @@
  * ARCHITEKTURA: "D1-first with static fallback"
  * 
  * ┌─────────────────────────────────────────────────────────┐
- * │  Warstwa 1: D1 → product_content keyed by SKU           │
+ * │  Warstwa 1: D1 → product_content.wine_details by SKU    │
  * │  Warstwa 2: Ten plik → wineDataCatalog[slug]            │
- * │  Warstwa 3: DB legacy → products.wine_details partial   │
- * │  Warstwa 4: defaultWineDetails                          │
+ * │  Warstwa 3: defaultWineDetails                          │
  * └─────────────────────────────────────────────────────────┘
  * 
  * ── Dlaczego nie wszystko w DB? ──
  * Dane statyczne (terroir, nuty smakowe, nagrody) NIE zmieniają
  * się z zamówieniami. Trzymanie ich tu = zero obciążenia DB.
- * Kolumna wine_details w DB jest domyślnie NULL (0 bajtów).
+ * Pole wine_details mieszka w Cloudflare D1 product_content.
  * 
  * ── Admin ──
  * Admin edytuje treść → API zapisuje do D1 product_content →
- * getWineDetailsForProduct() merguje: D1 > catalog > legacy DB > default.
+ * getWineDetailsForProduct() merguje: D1 wine_details > D1 split fields > catalog > default.
  * 
  * ── Dodawanie nowego wina ──
  * 1. Skopiuj template na dole tego pliku
@@ -543,6 +542,10 @@ function mapContentAwards(content: ProductRichContent): WineAward[] | undefined 
 function productRichContentToWineDetails(content: ProductRichContent | null | undefined): Record<string, unknown> | null {
   if (!content || content.category !== 'wine' || !content.isPublished) return null;
 
+  if (content.wineDetails && Object.keys(content.wineDetails).length > 0) {
+    return content.wineDetails;
+  }
+
   const extended = content.extended;
   const bodyValue = getProfileNumber(content.profile, 'body');
   const tannins = getProfileNumber(content.profile, 'tannin') ?? getProfileNumber(content.profile, 'tannins');
@@ -598,17 +601,14 @@ function productRichContentToWineDetails(content: ProductRichContent | null | un
  * PRIORYTET:
  * ══════════════════════════════════════════
  * 
- * 1. D1 Product Content (product_content keyed by SKU)
+ * 1. D1 Product Content (product_content.wine_details keyed by SKU)
  *    ↳ Opublikowane dane premium pobierane z Cloudflare D1.
  * 
  * 2. Static Catalog (wineDataCatalog[slug])
  *    ↳ Pełny obiekt WineDetails zdefiniowany w tym pliku.
  *      Służy jako "domyślne dane" produktu — darmowe, zero DB.
  * 
- * 3. Legacy DB Override (product.wineDetails JSONB)
- *    ↳ Tymczasowy fallback podczas migracji danych do D1.
- *
- * 4. Default Fallback (defaultWineDetails)
+ * 3. Default Fallback (defaultWineDetails)
  *    ↳ Generyczne wartości gdy produkt nie ma wpisu w katalogu.
  *      Uzupełniane danymi z pól product (grapeVariety, origin).
  * 
@@ -626,9 +626,8 @@ export function getWineDetailsForProduct(product: {
   origin?: string | null;
   originCountry?: string | null;
   year?: string | null;
-  wineDetails?: Record<string, unknown> | null;
 }, productContent?: ProductRichContent | null): WineDetails {
-  // Static catalog or default fallback; D1 and legacy DB are merged on top.
+  // Static catalog or default fallback; D1 content is merged on top.
   const staticData: WineDetails = (product.slug && wineDataCatalog[product.slug])
     ? { ...wineDataCatalog[product.slug] }
     : {
@@ -641,12 +640,7 @@ export function getWineDetailsForProduct(product: {
   if (d1WineDetails) {
     return normalizeWineDetails(deepMerge(staticData, d1WineDetails));
   }
-  
-  // Legacy DB override kept only as migration fallback.
-  if (product.wineDetails && Object.keys(product.wineDetails).length > 0) {
-    return normalizeWineDetails(deepMerge(staticData, product.wineDetails));
-  }
-  
+
   return normalizeWineDetails(staticData);
 }
 

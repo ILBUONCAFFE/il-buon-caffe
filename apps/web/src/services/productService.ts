@@ -96,8 +96,6 @@ function mapDbProductToProduct(dbProduct: DbProduct, categorySlug?: string): Pro
     originCountry: dbProduct.originCountry || undefined,
     originRegion: dbProduct.originRegion || undefined,
     grapeVariety: dbProduct.grapeVariety || undefined,
-    // Static content override (Electron admin, partial JSONB)
-    wineDetails: (dbProduct.wineDetails as Record<string, unknown>) || undefined,
     coffeeDetails: (dbProduct.coffeeDetails as Record<string, unknown>) || undefined,
     metaTitle: dbProduct.metaTitle || undefined,
     metaDescription: dbProduct.metaDescription || undefined,

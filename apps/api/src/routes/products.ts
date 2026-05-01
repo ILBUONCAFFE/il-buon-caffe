@@ -135,6 +135,7 @@ productsRouter.get('/:slug', async (c) => {
     let data: Record<string, unknown>
 
     if (kvStatic) {
+      const { wineDetails: _legacyWineDetails, ...staticData } = kvStatic
       // KV hit — only fetch dynamic fields from Neon
       const row = await db.query.products.findFirst({
         columns: {
@@ -146,7 +147,7 @@ productsRouter.get('/:slug', async (c) => {
       if (!row) return c.json({ success: false, error: 'Produkt nie znaleziony' }, 404)
 
       data = {
-        ...kvStatic,
+        ...staticData,
         price:          Number(row.price),
         compareAtPrice: row.compareAtPrice ? Number(row.compareAtPrice) : null,
         stock:          row.stock,
@@ -186,7 +187,6 @@ productsRouter.get('/:slug', async (c) => {
         grapeVariety:    product.grapeVariety,
         isNew:           product.isNew,
         isFeatured:      product.isFeatured,
-        wineDetails:     product.wineDetails,
         coffeeDetails:   product.coffeeDetails,
         metaTitle:       product.metaTitle,
         metaDescription: product.metaDescription,

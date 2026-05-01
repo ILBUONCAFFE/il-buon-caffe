@@ -486,6 +486,12 @@ export const adminApi = {
       body: JSON.stringify(payload),
     }),
 
+  upsertProductWineDetails: (sku: string, wineDetails: Record<string, unknown>, category = 'wine') =>
+    request<ProductRichContentResponse>(`/api/admin/content/product/${encodeURIComponent(sku)}/wine-details`, {
+      method: 'PUT',
+      body: JSON.stringify({ category, wineDetails }),
+    }),
+
   deleteProductRichContent: (sku: string) =>
     request<{ data: { deleted: boolean } }>(`/api/admin/content/product/${encodeURIComponent(sku)}`, {
       method: 'DELETE',

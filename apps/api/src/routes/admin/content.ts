@@ -5,6 +5,7 @@ import { checkContentLength, serverError } from '../../lib/request'
 import {
   getProductContent,
   putProductContent,
+  putProductWineDetails,
   deleteProductContent,
   getProductContentHistory,
   restoreProductContent,
@@ -60,6 +61,11 @@ const ProductContentSchema = z.object({
   sensory:      z.record(z.string(), z.string().max(2000)).optional(),
   extended:     z.record(z.string(), z.unknown()).optional(),
   isPublished:  z.boolean().optional(),
+})
+
+const ProductWineDetailsSchema = z.object({
+  category: z.string().min(1).max(50).optional().default('wine'),
+  wineDetails: z.record(z.string(), z.unknown()),
 })
 
 const ProducerEstateInfoSchema = z.object({
@@ -121,6 +127,31 @@ adminContentRouter.put('/product/:sku', async (c) => {
     return c.json({ data: result })
   } catch (err) {
     return serverError(c, 'PUT /admin/content/product/:sku', err)
+  }
+})
+
+adminContentRouter.put('/product/:sku/wine-details', async (c) => {
+  try {
+    const sizeErr = checkContentLength(c, MAX_BODY)
+    if (sizeErr) return sizeErr
+
+    const raw = await c.req.json()
+    const parsed = ProductWineDetailsSchema.safeParse(raw)
+    if (!parsed.success) {
+      return c.json({ error: { code: 'VALIDATION_ERROR', message: parsed.error.message } }, 400)
+    }
+
+    const body = parsed.data
+    const result = await putProductWineDetails(
+      c.env.CONTENT_DB,
+      c.req.param('sku'),
+      body.category,
+      body.wineDetails,
+      getAdminId(c)
+    )
+    return c.json({ data: result })
+  } catch (err) {
+    return serverError(c, 'PUT /admin/content/product/:sku/wine-details', err)
   }
 })
 

@@ -19,10 +19,12 @@ import {
   AlertCircle,
 } from 'lucide-react'
 import {
+  ApiError,
   adminApi,
   type AdminCategory,
   type AdminProduct,
   type CreateAdminProductPayload,
+  type ProductRichContent,
   type UpdateAdminProductPayload,
   type UpsertProductRichContentPayload,
 } from '../../lib/adminApiClient'
@@ -345,6 +347,7 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
   const [form, setForm] = useState<ProductFormState>(DEFAULT_FORM)
   const [categories, setCategories] = useState<AdminCategory[]>([])
   const [product, setProduct] = useState<AdminProduct | null>(null)
+  const [productRichContent, setProductRichContent] = useState<ProductRichContent | null>(null)
   const [selectedImage, setSelectedImage] = useState<File | null>(null)
   const [wineDetailsDraft, setWineDetailsDraft] = useState<WineFormState | null>(null)
   const [richContentDraft, setRichContentDraft] = useState<UpsertProductRichContentPayload | null>(null)
@@ -375,16 +378,28 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
     setLoading(true); setError(null)
     try {
       const res = await adminApi.getProduct(sku)
-      setProduct(res.data); setForm(mapProductToForm(res.data)); setWineDetailsDraft(null); setRichContentDraft(null)
+      let content: ProductRichContent | null = null
+      if (isWineCategorySlug(res.data.category?.slug ?? '')) {
+        try {
+          content = (await adminApi.getProductRichContent(sku)).data
+        } catch (err) {
+          const isNotFound =
+            (err instanceof ApiError && (err.status === 404 || err.code === 'NOT_FOUND')) ||
+            (err instanceof Error && (err.message.includes('NOT_FOUND') || err.message.includes('404')))
+          if (!isNotFound) throw err
+        }
+      }
+      setProduct(res.data); setProductRichContent(content); setForm(mapProductToForm(res.data)); setWineDetailsDraft(null); setRichContentDraft(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Nie udało się pobrać produktu')
       setProduct(null)
+      setProductRichContent(null)
     } finally { setLoading(false) }
   }, [isCreateMode, sku])
 
   useEffect(() => { void loadCategories() }, [loadCategories])
   useEffect(() => {
-    if (isCreateMode) { setForm(DEFAULT_FORM); setProduct(null); setLoading(false); return }
+    if (isCreateMode) { setForm(DEFAULT_FORM); setProduct(null); setProductRichContent(null); setLoading(false); return }
     void loadProduct()
   }, [isCreateMode, loadProduct])
 
@@ -492,7 +507,6 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
         allegroOfferId: trimTo(form.allegroOfferId, 50) || null,
         allegroSyncPrice: form.allegroSyncPrice,
         allegroSyncStock: form.allegroSyncStock,
-        ...(wineDetails ? { wineDetails } : {}),
       }
 
       await adminApi.updateProduct(sku, updatePayload)
@@ -513,6 +527,10 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
 
       if (richContent) {
         await adminApi.upsertProductRichContent(sku, richContent)
+      }
+      if (wineDetails) {
+        const updatedContent = await adminApi.upsertProductWineDetails(sku, wineDetails)
+        setProductRichContent(updatedContent.data)
       }
 
       await loadProduct()
@@ -1040,7 +1058,7 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
             <WineDetailsEditor
               sku={sku}
               product={product}
-              initialWineDetails={getWineDetailsForProduct(product)}
+              initialWineDetails={getWineDetailsForProduct(product, productRichContent)}
               embedded
               draft={wineDetailsDraft}
               onDraftChange={handleWineDetailsDraftChange}

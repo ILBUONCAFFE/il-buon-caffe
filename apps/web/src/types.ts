@@ -24,10 +24,6 @@ export interface Product {
   originCountry?: string;   // "Hiszpania", "Włochy"
   originRegion?: string;    // "Yecla", "Toskania"
   grapeVariety?: string;    // "Monastrell, Syrah"
-  
-  // Static content override from Electron admin (partial JSONB)
-  // NULL = use static wineData.ts catalog. Contains only overridden fields.
-  wineDetails?: Record<string, unknown> | null;
   coffeeDetails?: Record<string, unknown> | null;
   metaTitle?: string;
   metaDescription?: string;

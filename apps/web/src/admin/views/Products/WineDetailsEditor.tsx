@@ -396,7 +396,7 @@ export function WineDetailsEditor({
     setMessage(null)
     try {
       const payload = wineDetailsDraftToPayload(form)
-      await adminApi.updateProduct(sku, { wineDetails: payload })
+      await adminApi.upsertProductWineDetails(sku, payload)
       setMessage('Zapisano wine details produktu')
     } catch (err) {
       if (err instanceof Error) {

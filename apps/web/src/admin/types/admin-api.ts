@@ -321,7 +321,6 @@ export interface AdminProduct {
   grapeVariety?: string | null
   year: string | null
   weight: number | null
-  wineDetails?: Record<string, unknown> | null
   isActive: boolean
   isNew: boolean
   isFeatured: boolean
@@ -369,7 +368,6 @@ export interface CreateAdminProductPayload {
   origin?: string
   year?: string
   weight?: number | null
-  wineDetails?: Record<string, unknown> | null
   isActive?: boolean
   isNew?: boolean
   isFeatured?: boolean
@@ -887,6 +885,7 @@ export interface ProductRichContent {
   profile: Record<string, number>
   sensory: Record<string, string>
   extended: Record<string, unknown>
+  wineDetails: Record<string, unknown> | null
   hasAwards: boolean
   isPublished: boolean
   updatedAt: number
@@ -907,6 +906,7 @@ export interface UpsertProductRichContentPayload {
   profile?: Record<string, number>
   sensory?: Record<string, string>
   extended?: Record<string, unknown>
+  wineDetails?: Record<string, unknown> | null
   isPublished?: boolean
 }
 

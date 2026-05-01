@@ -37,6 +37,7 @@ function rowToProductRichContent(row: typeof productContent.$inferSelect): Produ
     profile: parseJson<FlavorProfile>(row.profile, {}),
     sensory: parseJson<SensoryNotes>(row.sensory, {}),
     extended: parseJson<Record<string, unknown>>(row.extended, {}),
+    wineDetails: parseJson<Record<string, unknown> | null>(row.wineDetails, null),
     hasAwards: row.hasAwards === 1,
     isPublished: row.isPublished === 1,
     updatedAt: row.updatedAt,
@@ -145,6 +146,9 @@ export async function putProductContent(
     profile: JSON.stringify(payload.profile ?? {}),
     sensory: JSON.stringify(payload.sensory ?? {}),
     extended: JSON.stringify(payload.extended ?? {}),
+    wineDetails: payload.wineDetails !== undefined
+      ? (payload.wineDetails ? JSON.stringify(payload.wineDetails) : null)
+      : (existing[0]?.wineDetails ?? null),
     hasAwards: awards.length > 0 ? 1 : 0,
     isPublished: payload.isPublished !== undefined ? (payload.isPublished ? 1 : 0) : (existing[0]?.isPublished ?? 0),
     updatedAt: ts,
@@ -156,6 +160,61 @@ export async function putProductContent(
     db.insert(productContentHistory).values({
       sku,
       payload: JSON.stringify(existing[0] ?? {}),
+      changedBy: adminId,
+      createdAt: ts,
+    }),
+    db
+      .insert(productContent)
+      .values(values)
+      .onConflictDoUpdate({ target: productContent.sku, set: values }),
+  ])
+
+  return rowToProductRichContent(values as typeof productContent.$inferSelect)
+}
+
+export async function putProductWineDetails(
+  d1: D1Database,
+  sku: string,
+  category: string,
+  wineDetails: Record<string, unknown>,
+  adminId: number | null
+): Promise<ProductRichContent> {
+  const db = createContentDb(d1)
+  const ts = now()
+
+  const existing = await db
+    .select()
+    .from(productContent)
+    .where(eq(productContent.sku, sku))
+    .limit(1)
+
+  const current = existing[0]
+  const nextVersion = current ? current.version + 1 : 1
+  const awards = current?.awards ?? JSON.stringify([])
+  const pairing = current?.pairing ?? JSON.stringify([])
+
+  const values = {
+    sku,
+    category: current?.category ?? category,
+    producerSlug: current?.producerSlug ?? null,
+    awards,
+    pairing,
+    ritual: current?.ritual ?? null,
+    servingTemp: current?.servingTemp ?? null,
+    profile: current?.profile ?? JSON.stringify({}),
+    sensory: current?.sensory ?? JSON.stringify({}),
+    extended: current?.extended ?? JSON.stringify({}),
+    wineDetails: JSON.stringify(wineDetails),
+    hasAwards: current?.hasAwards ?? 0,
+    isPublished: 1,
+    updatedAt: ts,
+    version: nextVersion,
+  }
+
+  await db.batch([
+    db.insert(productContentHistory).values({
+      sku,
+      payload: JSON.stringify(current ?? {}),
       changedBy: adminId,
       createdAt: ts,
     }),

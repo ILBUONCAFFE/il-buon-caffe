@@ -68,7 +68,6 @@ const isWineProduct = (product: Awaited<ReturnType<typeof getProductBySlug>>) =>
 const getProductBrand = (product: Awaited<ReturnType<typeof getProductBySlug>>) => {
   if (!product) return "Il Buon Caffe";
   return (
-    getDetailValue(product.wineDetails, "producer") ||
     getDetailValue(product.coffeeDetails, "producer") ||
     "Il Buon Caffe"
   );

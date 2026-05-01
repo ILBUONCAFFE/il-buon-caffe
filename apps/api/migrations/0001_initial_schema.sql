@@ -49,6 +49,9 @@ CREATE TABLE product_content (
   -- delicacies: {ingredients, storage, origin_story}
   extended TEXT,
 
+  -- Pelne wine details JSON edytowane w adminie
+  wine_details TEXT,
+
   -- Flagi do szybkich query (denormalizacja)
   has_awards INTEGER NOT NULL DEFAULT 0,
   is_published INTEGER NOT NULL DEFAULT 0,

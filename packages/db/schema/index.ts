@@ -27,7 +27,7 @@ import {
   inet
 } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
-import type { WineDetails, CoffeeDetails } from '@repo/types';
+import type { CoffeeDetails } from '@repo/types';
 
 // ============================================
 // ENUMS
@@ -402,7 +402,6 @@ export const products = pgTable('products', {
   grapeVariety: varchar('grape_variety', { length: 255 }),
 
   // ===== Category-specific details (JSONB, partial override) =====
-  wineDetails: jsonb('wine_details').$type<WineDetails>(),
   coffeeDetails: jsonb('coffee_details').$type<CoffeeDetails>(),
 
   // ===== SEO =====
