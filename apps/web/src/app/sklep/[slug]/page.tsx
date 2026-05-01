@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { ProductClient } from "@/components/Product/ProductClient";
 import { ShopClient } from "@/components/Shop/ShopClient";
-import { ProductRichContentLoader } from "@/components/Product/ProductRichContentSection";
+import { ProductRichContentLoader, fetchProductRichContent } from "@/components/Product/ProductRichContentSection";
 import { getProducts, getFilteredProducts } from "@/actions/products";
 import { getProductBySlug } from "@/lib/productFetchers";
 import type { Metadata } from "next";
@@ -58,6 +58,11 @@ const truncate = (value: string, maxLength: number) => {
 const getDetailValue = (details: Record<string, unknown> | null | undefined, key: string) => {
   const value = details?.[key];
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
+};
+
+const isWineProduct = (product: Awaited<ReturnType<typeof getProductBySlug>>) => {
+  if (!product) return false;
+  return product.category === "wino" || product.category === "alcohol" || product.sku?.startsWith("WIN");
 };
 
 const getProductBrand = (product: Awaited<ReturnType<typeof getProductBySlug>>) => {
@@ -248,6 +253,12 @@ export default async function ShopRoute({ params }: { params: Promise<{ slug: st
     },
   };
 
+  const wineProduct = isWineProduct(product);
+  const productRichContent = wineProduct && product.sku
+    ? await fetchProductRichContent(product.sku)
+    : null;
+  const publishedProductRichContent = productRichContent?.isPublished ? productRichContent : null;
+
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -262,10 +273,12 @@ export default async function ShopRoute({ params }: { params: Promise<{ slug: st
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
-      <ProductClient initialProduct={product} />
-      <Suspense fallback={null}>
-        <ProductRichContentLoader sku={product.sku} />
-      </Suspense>
+      <ProductClient initialProduct={product} initialProductRichContent={publishedProductRichContent} />
+      {!wineProduct && (
+        <Suspense fallback={null}>
+          <ProductRichContentLoader sku={product.sku} />
+        </Suspense>
+      )}
     </>
   );
 }

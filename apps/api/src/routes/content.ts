@@ -18,6 +18,7 @@ contentRouter.get('/product/:sku', async (c) => {
     const { sku } = c.req.param()
     const content = await getProductContent(c.env.CONTENT_DB, sku)
     if (!content) return c.json({ error: { code: 'NOT_FOUND', message: 'No content for this SKU' } }, 404)
+    if (!content.isPublished) return c.json({ error: { code: 'NOT_FOUND', message: 'No content for this SKU' } }, 404)
     return c.json({ data: content }, 200, {
       'Cache-Control': 's-maxage=300, stale-while-revalidate=86400',
     })

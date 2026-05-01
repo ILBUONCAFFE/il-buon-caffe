@@ -14,6 +14,7 @@ import { useNotification } from '@/components/Notification/NotificationProvider'
 import { getProductBySku } from '@/actions/products';
 import { Product } from '@/types';
 import { getWineDetailsForProduct } from '@/content/products/wineData';
+import type { ProductRichContent } from '@repo/types';
 import { SHOP_ENABLED } from '@/config/launch';
 import { ComingSoonBanner } from '@/components/ui/ComingSoonBanner';
 
@@ -27,9 +28,10 @@ import { ServingGuideSection } from './wine/ServingGuideSection';
 interface WineProductViewProps {
   product: Product;
   categoryName: string;
+  wineContent?: ProductRichContent | null;
 }
 
-export const WineProductView = ({ product, categoryName }: WineProductViewProps) => {
+export const WineProductView = ({ product, categoryName, wineContent }: WineProductViewProps) => {
   const { addToCart, items } = useCart();
   const { notify } = useNotification();
 
@@ -85,7 +87,7 @@ export const WineProductView = ({ product, categoryName }: WineProductViewProps)
   const decorBgY1 = useTransform(scrollYProgress, [0, 1], [0, -100]);
   const decorBgY2 = useTransform(scrollYProgress, [0, 1], [0, 100]);
 
-  const wineDetails = getWineDetailsForProduct(product);
+  const wineDetails = getWineDetailsForProduct(product, wineContent ?? null);
 
   const handleAddToCart = () => {
     if (availableToBuy !== null && quantity > availableToBuy) {

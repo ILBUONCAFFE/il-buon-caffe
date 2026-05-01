@@ -1,14 +1,15 @@
 /**
  * ═══════════════════════════════════════════════════════════
- * WINE PRODUCT DATA — statyczny katalog + DB override
+ * WINE PRODUCT DATA — D1 content + legacy fallbacks
  * ═══════════════════════════════════════════════════════════
  * 
- * ARCHITEKTURA: "Static-first with DB override"
+ * ARCHITEKTURA: "D1-first with static fallback"
  * 
  * ┌─────────────────────────────────────────────────────────┐
- * │  Warstwa 1: DB → products.wine_details (JSONB, partial) │
+ * │  Warstwa 1: D1 → product_content keyed by SKU           │
  * │  Warstwa 2: Ten plik → wineDataCatalog[slug]            │
- * │  Warstwa 3: defaultWineDetails (generyczny fallback)    │
+ * │  Warstwa 3: DB legacy → products.wine_details partial   │
+ * │  Warstwa 4: defaultWineDetails                          │
  * └─────────────────────────────────────────────────────────┘
  * 
  * ── Dlaczego nie wszystko w DB? ──
@@ -16,11 +17,9 @@
  * się z zamówieniami. Trzymanie ich tu = zero obciążenia DB.
  * Kolumna wine_details w DB jest domyślnie NULL (0 bajtów).
  * 
- * ── Electron Admin ──
- * Admin edytuje treść → API zapisuje PARTIAL JSONB do DB →
- * getWineDetailsForProduct() merguje: DB > catalog > default.
- * Np. admin zmienia TYLKO "bodyValue" → DB: {"bodyValue": 90}
- * → reszta pól brana ze statycznego katalogu poniżej.
+ * ── Admin ──
+ * Admin edytuje treść → API zapisuje do D1 product_content →
+ * getWineDetailsForProduct() merguje: D1 > catalog > legacy DB > default.
  * 
  * ── Dodawanie nowego wina ──
  * 1. Skopiuj template na dole tego pliku
@@ -28,6 +27,8 @@
  * 3. Gotowe — zero zmian w DB
  * ═══════════════════════════════════════════════════════════
  */
+
+import type { ProductRichContent } from '@repo/types';
 
 // ============================================
 // TYPES
@@ -475,6 +476,116 @@ function deepMerge(base: WineDetails, override: Record<string, unknown>): WineDe
   return result as unknown as WineDetails;
 }
 
+function getExtendedString(extended: Record<string, unknown>, key: string): string | undefined {
+  const value = extended[key];
+  return typeof value === 'string' && value.trim() ? value : undefined;
+}
+
+function getProfileNumber(profile: Record<string, number>, key: string): number | undefined {
+  const value = profile[key];
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+function mapContentPairing(content: ProductRichContent): WineFoodPairing[] | undefined {
+  const extendedPairing = content.extended['foodPairing'];
+  if (Array.isArray(extendedPairing)) {
+    const items = extendedPairing
+      .filter((item): item is Record<string, unknown> => isRecord(item))
+      .map((item) => {
+        const name = toString(item.name, toString(item.dish, ''));
+        const description = toString(item.description, toString(item.note, ''));
+        if (!name || !description) return null;
+        return {
+          name,
+          description,
+          ...(typeof item.emoji === 'string' ? { emoji: item.emoji } : {}),
+          ...(typeof item.imageUrl === 'string' ? { imageUrl: item.imageUrl } : {}),
+          ...(typeof item.category === 'string' ? { category: item.category as WineFoodPairing['category'] } : {}),
+        };
+      })
+      .filter((item): item is WineFoodPairing => item !== null);
+
+    if (items.length > 0) return items;
+  }
+
+  if (content.pairing.length === 0) return undefined;
+  return content.pairing.map((item) => ({
+    name: item.dish,
+    description: item.note || item.dish,
+  }));
+}
+
+function mapContentAwards(content: ProductRichContent): WineAward[] | undefined {
+  const extendedAwards = content.extended['awards'];
+  if (Array.isArray(extendedAwards)) {
+    const items = extendedAwards
+      .filter((item): item is Record<string, unknown> => isRecord(item))
+      .map((item) => {
+        const competition = toString(item.competition, toString(item.name, ''));
+        const award = toString(item.award, toString(item.rank, 'Wyróżnienie'));
+        const year = item.year;
+        if (!competition || (typeof year !== 'string' && typeof year !== 'number')) return null;
+        return { year: String(year), award, competition };
+      })
+      .filter((item): item is WineAward => item !== null);
+
+    if (items.length > 0) return items;
+  }
+
+  if (content.awards.length === 0) return undefined;
+  return content.awards.map((item) => ({
+    year: String(item.year),
+    award: item.rank || 'Wyróżnienie',
+    competition: item.name,
+  }));
+}
+
+function productRichContentToWineDetails(content: ProductRichContent | null | undefined): Record<string, unknown> | null {
+  if (!content || content.category !== 'wine' || !content.isPublished) return null;
+
+  const extended = content.extended;
+  const bodyValue = getProfileNumber(content.profile, 'body');
+  const tannins = getProfileNumber(content.profile, 'tannin') ?? getProfileNumber(content.profile, 'tannins');
+  const acidity = getProfileNumber(content.profile, 'acidity');
+  const sweetness = getProfileNumber(content.profile, 'sweetness');
+  const foodPairing = mapContentPairing(content);
+  const awards = mapContentAwards(content);
+
+  const mapped: Record<string, unknown> = {
+    ...(bodyValue !== undefined ? { bodyValue } : {}),
+    ...(tannins !== undefined ? { tannins } : {}),
+    ...(acidity !== undefined ? { acidity } : {}),
+    ...(sweetness !== undefined ? { sweetness } : {}),
+    ...(content.servingTemp ? { servingTemp: content.servingTemp } : {}),
+    ...(getExtendedString(extended, 'grape') ? { grape: getExtendedString(extended, 'grape') } : {}),
+    ...(getExtendedString(extended, 'alcohol') ? { alcohol: getExtendedString(extended, 'alcohol') } : {}),
+    ...(getExtendedString(extended, 'body') ? { body: getExtendedString(extended, 'body') } : {}),
+    ...(getExtendedString(extended, 'aging') ? { aging: getExtendedString(extended, 'aging') } : {}),
+    ...(getExtendedString(extended, 'decanting') ? { decanting: getExtendedString(extended, 'decanting') } : {}),
+    ...(getExtendedString(extended, 'agingPotential') ? { agingPotential: getExtendedString(extended, 'agingPotential') } : {}),
+    ...(getExtendedString(extended, 'winery') ? { winery: getExtendedString(extended, 'winery') } : {}),
+    ...(getExtendedString(extended, 'established') ? { established: getExtendedString(extended, 'established') } : {}),
+    ...(getExtendedString(extended, 'altitude') ? { altitude: getExtendedString(extended, 'altitude') } : {}),
+    ...(getExtendedString(extended, 'soil') ? { soil: getExtendedString(extended, 'soil') } : {}),
+    ...(getExtendedString(extended, 'climate') ? { climate: getExtendedString(extended, 'climate') } : {}),
+    ...(getExtendedString(extended, 'vinification') ? { vinification: getExtendedString(extended, 'vinification') } : {}),
+    ...(getExtendedString(extended, 'wineryDescription') ? { wineryDescription: getExtendedString(extended, 'wineryDescription') } : {}),
+    ...(getExtendedString(extended, 'countryCode') ? { countryCode: getExtendedString(extended, 'countryCode') } : {}),
+    ...(foodPairing ? { foodPairing } : {}),
+    ...(awards ? { awards } : {}),
+  };
+
+  if (Object.keys(content.sensory).length > 0) {
+    mapped.tastingNotes = {
+      ...(content.sensory.eye ? { eye: content.sensory.eye } : {}),
+      ...(content.sensory.nose ? { nose: content.sensory.nose } : {}),
+      ...(content.sensory.palate ? { palate: content.sensory.palate } : {}),
+    };
+  }
+
+  return Object.keys(mapped).length > 0 ? mapped : null;
+}
+
 // ============================================
 // MAIN RESOLVER — 3-tier priority chain
 // ============================================
@@ -484,34 +595,30 @@ function deepMerge(base: WineDetails, override: Record<string, unknown>): WineDe
  * Użycie: const details = getWineDetailsForProduct(product);
  * 
  * ══════════════════════════════════════════
- * PRIORYTET (3-warstwowy merge):
+ * PRIORYTET:
  * ══════════════════════════════════════════
  * 
- * 1. 🔶 DB Override (product.wineDetails JSONB)
- *    ↳ Partial — zawiera TYLKO pola zmienione z Electron admin.
- *      Np: { "bodyValue": 90, "tastingNotes": { "nose": "nowy opis" } }
- *      Reszta pól brana jest z warstw poniżej.
+ * 1. D1 Product Content (product_content keyed by SKU)
+ *    ↳ Opublikowane dane premium pobierane z Cloudflare D1.
  * 
- * 2. 📄 Static Catalog (wineDataCatalog[slug])
+ * 2. Static Catalog (wineDataCatalog[slug])
  *    ↳ Pełny obiekt WineDetails zdefiniowany w tym pliku.
  *      Służy jako "domyślne dane" produktu — darmowe, zero DB.
  * 
- * 3. ⬜ Default Fallback (defaultWineDetails)
+ * 3. Legacy DB Override (product.wineDetails JSONB)
+ *    ↳ Tymczasowy fallback podczas migracji danych do D1.
+ *
+ * 4. Default Fallback (defaultWineDetails)
  *    ↳ Generyczne wartości gdy produkt nie ma wpisu w katalogu.
  *      Uzupełniane danymi z pól product (grapeVariety, origin).
  * 
  * ══════════════════════════════════════════
- * PRZEPŁYW DLA ELECTRON ADMIN:
+ * PRZEPŁYW DLA ADMINA:
  * ══════════════════════════════════════════
  * 
- * Electron → API PUT /products/:sku/wine-details
- *   → Zapisuje partial JSONB do products.wine_details
- *   → Frontend automatycznie merguje z catalogiem
- * 
- * Przykład: admin zmienia tylko "bodyValue" na 90:
- *   DB: { "bodyValue": 90 }
- *   Static catalog: { bodyValue: 85, tannins: 75, ... }
- *   Wynik: { bodyValue: 90, tannins: 75, ... }  ← 90 z DB, reszta statyczna
+ * Admin → API PUT /admin/content/product/:sku
+ *   → Zapisuje do D1 product_content
+ *   → Produkt pobiera D1 po SKU i mapuje na obecny UI WineDetails
  */
 export function getWineDetailsForProduct(product: {
   slug?: string | null;
@@ -520,8 +627,8 @@ export function getWineDetailsForProduct(product: {
   originCountry?: string | null;
   year?: string | null;
   wineDetails?: Record<string, unknown> | null;
-}): WineDetails {
-  // Layer 2: Static catalog (or layer 3 fallback)
+}, productContent?: ProductRichContent | null): WineDetails {
+  // Static catalog or default fallback; D1 and legacy DB are merged on top.
   const staticData: WineDetails = (product.slug && wineDataCatalog[product.slug])
     ? { ...wineDataCatalog[product.slug] }
     : {
@@ -529,8 +636,13 @@ export function getWineDetailsForProduct(product: {
         grape: product.grapeVariety || defaultWineDetails.grape,
         countryCode: getCountryCode(product.originCountry || product.origin || ""),
       };
+
+  const d1WineDetails = productRichContentToWineDetails(productContent);
+  if (d1WineDetails) {
+    return normalizeWineDetails(deepMerge(staticData, d1WineDetails));
+  }
   
-  // Layer 1: DB override (partial merge from Electron admin)
+  // Legacy DB override kept only as migration fallback.
   if (product.wineDetails && Object.keys(product.wineDetails).length > 0) {
     return normalizeWineDetails(deepMerge(staticData, product.wineDetails));
   }

@@ -102,6 +102,10 @@ app.use('/admin/*', adminRateLimiter)
 // Health rate limiter — lenient (20 req/min, 1-min block)
 app.use('/health', healthRateLimiter)
 
+// Rich content is D1-only. Keep this before dbMiddleware so product content
+// reads do not wake Neon.
+app.route('/api/content', contentRouter)
+
 // Shared DB client per request — all routes/middleware read c.get('db')
 app.use('/api/*', dbMiddleware())
 app.use('/admin/*', dbMiddleware())
@@ -137,9 +141,6 @@ app.route('/api/webhooks', webhooksRouter)
 
 // ── Catalogs (public — secret UUID slug) ──────────────────────────────────
 app.route('/api/catalogs', catalogsRouter)
-
-// ── Rich content (D1)
-app.route('/api/content', contentRouter)
 
 // ── Admin API ─────────────────────────────────────────────────────────────
 app.route('/admin',             adminRouter)
