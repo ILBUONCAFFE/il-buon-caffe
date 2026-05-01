@@ -6,7 +6,7 @@ import Image from 'next/image'
 import {
   LayoutDashboard, ShoppingCart, ClipboardList, RotateCcw, AlertTriangle,
   Package, Archive, Link, Users, DollarSign, BarChart3, Tag, Gift,
-  Globe, LineChart, Edit, Settings, ChevronRight, Activity, X
+  Globe, LineChart, Edit, Settings, ChevronRight, X
 } from 'lucide-react'
 
 const navItems = [
@@ -42,7 +42,6 @@ const navItems = [
     ]
   },
   { id: 'statistics', path: '/admin/statistics', icon: BarChart3, label: 'Statystyka', destination: 'Analizy i statystyki' },
-  { id: 'analytics', path: '/admin/analytics', icon: Activity, label: 'Analityka API', destination: 'Cloudflare Analytics Engine' },
   { id: 'settings', path: '/admin/settings', icon: Settings, label: 'Ustawienia', destination: 'Konfiguracja systemu' }
 ]
 
