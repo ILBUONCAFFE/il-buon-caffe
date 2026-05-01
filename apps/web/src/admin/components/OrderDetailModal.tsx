@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState, type ReactNode } from 'react'
-import { X, RefreshCw, Package, Truck, CheckCircle2, AlertTriangle, XCircle, Clock, MapPin } from 'lucide-react'
+import Link from 'next/link'
+import { X, RefreshCw, Package, Truck, CheckCircle2, AlertTriangle, XCircle, Clock, MapPin, Maximize2 } from 'lucide-react'
 import { resolveShipmentStatus } from '../lib/shipmentStatus'
 import { OrderStatusBadge } from './OrderStatusBadge'
 import { ShipmentLabelPickerModal } from './ShipmentLabelPickerModal'
@@ -483,6 +484,16 @@ export function OrderDetailModal({
 
           <div className="flex items-center gap-3">
             <span className="text-sm text-[#A3A3A3]">{formatDate(order.paidAt ?? order.createdAt)}</span>
+            <Link
+              href={`/admin/orders/${order.id}`}
+              onClick={onClose}
+              title="Otworz pelny widok"
+              aria-label="Otworz pelny widok zamowienia"
+              className="p-1.5 rounded-lg text-[#A3A3A3] hover:text-[#1A1A1A] hover:bg-[#F5F4F1] transition-colors inline-flex items-center gap-1.5 text-sm"
+            >
+              <Maximize2 size={16} />
+              <span className="hidden sm:inline">Pelny widok</span>
+            </Link>
             <button
               onClick={onClose}
               className="p-1.5 -mr-1.5 rounded-lg text-[#A3A3A3] hover:text-[#1A1A1A] hover:bg-[#F5F4F1] transition-colors"
