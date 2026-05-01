@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import Image from 'next/image'
 import {
   LayoutDashboard, ShoppingCart, ClipboardList, RotateCcw, AlertTriangle,
-  Package, Archive, Link, Users, DollarSign, BarChart3, Truck, Tag, Gift,
+  Package, Archive, Link, Users, DollarSign, BarChart3, Tag, Gift,
   Globe, LineChart, Edit, Settings, ChevronRight, Activity, X
 } from 'lucide-react'
 
@@ -19,7 +19,6 @@ const navItems = [
       { id: 'orders-complaints', path: '/admin/orders/complaints', label: 'Reklamacje', icon: AlertTriangle }
     ]
   },
-  { id: 'shipping', path: '/admin/shipping', icon: Truck, label: 'Centrum przesyłek', destination: 'Zarządzanie wysyłkami' },
   {
     id: 'inventory', icon: Package, label: 'Magazyn', destination: 'Stan magazynowy',
     children: [
