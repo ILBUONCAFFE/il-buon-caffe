@@ -169,10 +169,11 @@ async function proxyAdminRequest(
   const contentType = upstreamRes.headers.get('Content-Type') ?? 'application/json'
   const isJson = contentType.includes('application/json')
   const isLabelEndpoint = slugs.length === 3 && slugs[0] === 'orders' && slugs[2] === 'label'
+  const isShippingBinaryEndpoint = slugs.length === 2 && slugs[0] === 'shipping' && slugs[1] === 'protocol'
 
   // Keep strict JSON guard for normal admin endpoints. Shipment labels are
   // binary PDF responses and must pass through as-is.
-  if (upstreamRes.ok && !isJson && !isLabelEndpoint) {
+  if (upstreamRes.ok && !isJson && !isLabelEndpoint && !isShippingBinaryEndpoint) {
     console.error(
       `[admin proxy] Upstream returned non-JSON content-type "${contentType}" with status ${upstreamRes.status} for ${upstreamUrl}`,
     )
