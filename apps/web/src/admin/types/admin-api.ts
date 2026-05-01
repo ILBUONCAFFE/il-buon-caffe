@@ -603,8 +603,18 @@ export interface AdminComplaintDetail extends AdminComplaint {
     expectations?: Array<Record<string, unknown>>
     reason?: Record<string, unknown> | null
     right?: string | null
+    buyer?: { id?: string; login?: string }
     currentState?: { status?: string; statusDueDate?: string; dueDate?: string; chatActive?: boolean | string }
-    chat?: { messagesCount?: number; lastMessage?: { createdAt?: string; status?: string } }
+    chat?: {
+      messagesCount?: number
+      lastMessage?: { createdAt?: string; status?: string }
+      initialMessage?: {
+        id?: string
+        text?: string
+        createdAt?: string
+        author?: { login?: string; role?: string }
+      }
+    }
   } | null
   returnNumber: string | null
   messages: ComplaintMessage[]

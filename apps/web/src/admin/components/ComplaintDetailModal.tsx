@@ -36,6 +36,31 @@ function roleLabel(role: string): string {
   return role
 }
 
+function buildDisplaySubject(complaint: AdminComplaint, detail: AdminComplaintDetail | null): string {
+  const subject = detail?.subject?.trim() || complaint.subject?.trim()
+  if (subject) return subject
+
+  const type = detail?.payload?.type
+  const reference = detail?.payload?.referenceNumber || complaint.allegroIssueId
+  return type === 'CLAIM'
+    ? `Reklamacja Allegro nr ${reference}`
+    : `Dyskusja Allegro nr ${reference}`
+}
+
+function getCustomerName(complaint: AdminComplaint, detail: AdminComplaintDetail | null): string {
+  return detail?.customerData?.name?.trim()
+    || complaint.customerData?.name?.trim()
+    || detail?.payload?.buyer?.login?.trim()
+    || 'Kupujący Allegro'
+}
+
+function getCustomerSecondary(complaint: AdminComplaint, detail: AdminComplaintDetail | null): string {
+  return detail?.customerData?.email?.trim()
+    || complaint.customerData?.email?.trim()
+    || detail?.payload?.buyer?.login?.trim()
+    || ''
+}
+
 const DECISION_OPTIONS = [
   { status: 'ACCEPTED_REFUND', label: 'Uznaj: zwrot płatności', tone: 'accept' },
   { status: 'ACCEPTED_EXCHANGE', label: 'Uznaj: wymiana', tone: 'accept' },
@@ -105,6 +130,9 @@ export function ComplaintDetailModal({ complaint, isOpen, onClose, onChanged }: 
   const chatActive = payload?.currentState?.chatActive !== false && payload?.currentState?.chatActive !== 'false'
   const canDecide = isClaim && activeDetail.status === 'CLAIM_SUBMITTED'
   const decisionDueDate = payload?.decisionDueDate ?? payload?.currentState?.statusDueDate ?? payload?.currentState?.dueDate
+  const displaySubject = buildDisplaySubject(complaint, detail)
+  const customerName = getCustomerName(complaint, detail)
+  const customerSecondary = getCustomerSecondary(complaint, detail)
 
   const refresh = async () => {
     if (!complaint) return
@@ -169,7 +197,7 @@ export function ComplaintDetailModal({ complaint, isOpen, onClose, onChanged }: 
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-semibold text-[#1A1A1A] truncate">
-                {complaint.subject || `Reklamacja #${complaint.allegroIssueId}`}
+                {displaySubject}
               </h2>
               <ComplaintStatusBadge status={activeDetail.status} />
             </div>
@@ -191,8 +219,8 @@ export function ComplaintDetailModal({ complaint, isOpen, onClose, onChanged }: 
         <div className="px-6 py-4 border-b border-[#F0EFEC] bg-[#FAFAF9] grid grid-cols-2 gap-4 text-sm">
           <div>
             <div className="text-[11px] uppercase tracking-wider text-[#A3A3A3] mb-1">Klient</div>
-            <div className="text-[#1A1A1A] font-medium">{complaint.customerData?.name ?? '-'}</div>
-            <div className="text-xs text-[#525252]">{complaint.customerData?.email ?? ''}</div>
+            <div className="text-[#1A1A1A] font-medium">{customerName}</div>
+            <div className="text-xs text-[#525252]">{customerSecondary}</div>
           </div>
           <div>
             <div className="text-[11px] uppercase tracking-wider text-[#A3A3A3] mb-1">

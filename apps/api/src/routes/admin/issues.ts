@@ -62,6 +62,93 @@ function normalizeAttachments(
   }))
 }
 
+function buildIssueSubject(issue: Partial<AllegroIssue> | null | undefined, allegroIssueId: string): string {
+  const rawSubject = typeof issue?.subject === 'string' ? issue.subject.trim() : ''
+  if (rawSubject) return rawSubject
+
+  const base = issue?.type === 'CLAIM' ? 'Reklamacja Allegro' : 'Dyskusja Allegro'
+  const reason = issue?.reason && typeof issue.reason === 'object'
+    ? issue.reason as { description?: unknown }
+    : null
+  const reasonDescription = typeof reason?.description === 'string' ? reason.description.trim() : ''
+  const description = typeof issue?.description === 'string' ? issue.description.trim() : ''
+  const detail = reasonDescription || description
+  if (detail) {
+    return `${base}: ${detail}`
+  }
+
+  const reference = issue?.referenceNumber?.trim() || allegroIssueId
+  return `${base} nr ${reference}`
+}
+
+function normalizeCustomerData(
+  customerData: { name?: string; email?: string } | null | undefined,
+  issue: Partial<AllegroIssue> | null | undefined,
+): { name?: string; email?: string } | null {
+  const name = customerData?.name?.trim() || issue?.buyer?.login?.trim() || ''
+  const email = customerData?.email?.trim() || ''
+
+  if (!name && !email) return null
+
+  return {
+    ...(name ? { name } : {}),
+    ...(email ? { email } : {}),
+  }
+}
+
+function normalizeMessageFromPayload(
+  issueId: number,
+  message: AllegroIssueMessage | null | undefined,
+): {
+  id: number
+  issueId: number
+  allegroMessageId: string
+  authorRole: string
+  text: string | null
+  attachments: Array<{ id: string; url?: string; name?: string }> | null
+  createdAt: string
+} | null {
+  if (!message?.id || !message.createdAt) return null
+
+  return {
+    id: -1,
+    issueId,
+    allegroMessageId: message.id,
+    authorRole: normalizeAuthorRole(message.author?.role),
+    text: typeof message.text === 'string' ? message.text : null,
+    attachments: normalizeAttachments(message.attachments),
+    createdAt: message.createdAt,
+  }
+}
+
+function withInitialMessageFallback(
+  issueId: number,
+  messages: Array<{
+    id: number
+    issueId: number
+    allegroMessageId: string
+    authorRole: string
+    text: string | null
+    attachments: Array<{ id: string; url?: string; name?: string }> | null
+    createdAt: Date | string
+  }>,
+  issue: Partial<AllegroIssue> | null | undefined,
+) {
+  const initialMessage = normalizeMessageFromPayload(issueId, issue?.chat?.initialMessage)
+  if (!initialMessage) return messages
+
+  const hasInitialMessage = messages.some((message) => message.allegroMessageId === initialMessage.allegroMessageId)
+  if (hasInitialMessage) return messages
+
+  return [
+    {
+      ...initialMessage,
+      createdAt: new Date(initialMessage.createdAt),
+    },
+    ...messages,
+  ]
+}
+
 async function upsertIssueFromAllegro(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   db: any,
@@ -86,7 +173,7 @@ async function upsertIssueFromAllegro(
       orderId,
       returnId: null,
       status: issueStatus(issue),
-      subject: issue.subject ?? issue.referenceNumber ?? null,
+      subject: buildIssueSubject(issue, issue.id),
       lastMessageAt,
       payload: issue as unknown as Record<string, unknown>,
     })
@@ -95,7 +182,7 @@ async function upsertIssueFromAllegro(
       set: {
         orderId,
         status: issueStatus(issue),
-        subject: issue.subject ?? issue.referenceNumber ?? null,
+        subject: buildIssueSubject(issue, issue.id),
         lastMessageAt,
         payload: issue as unknown as Record<string, unknown>,
         updatedAt: new Date(),
@@ -209,6 +296,7 @@ adminIssuesRouter.get('/', auditLogMiddleware('view_order'), async (c) => {
           updatedAt:      allegroIssues.updatedAt,
           orderNumber:    orders.orderNumber,
           customerData:   orders.customerData,
+          payload:        allegroIssues.payload,
         })
         .from(allegroIssues)
         .leftJoin(orders, eq(allegroIssues.orderId, orders.id))
@@ -241,11 +329,16 @@ adminIssuesRouter.get('/', auditLogMiddleware('view_order'), async (c) => {
     const total = Number(countResult[0]?.count ?? 0)
     const totalPages = Math.ceil(total / limit)
 
-    const data = rows.map(r => ({
-      ...r,
-      customerData: r.customerData as { name?: string; email?: string } | null,
-      lastMessage:  latestByIssue[r.id] ?? null,
-    }))
+    const data = rows.map((r) => {
+      const payload = (r.payload ?? null) as AllegroIssue | null
+      const { payload: _payload, ...rest } = r
+      return {
+        ...rest,
+        subject: buildIssueSubject(payload, r.allegroIssueId),
+        customerData: normalizeCustomerData(r.customerData as { name?: string; email?: string } | null, payload),
+        lastMessage: latestByIssue[r.id] ?? normalizeMessageFromPayload(r.id, payload?.chat?.initialMessage),
+      }
+    })
 
     return c.json({ data, meta: { total, page, limit, totalPages } })
   } catch (err) {
@@ -298,11 +391,15 @@ adminIssuesRouter.get('/:id', auditLogMiddleware('view_order'), async (c) => {
       .where(eq(allegroIssueMessages.issueId, issueId))
       .orderBy(allegroIssueMessages.createdAt)
 
+    const payload = (issueRow[0].payload ?? null) as AllegroIssue | null
+    const normalizedMessages = withInitialMessageFallback(issueId, messages, payload)
+
     return c.json({
       data: {
         ...issueRow[0],
-        customerData: issueRow[0].customerData as { name?: string; email?: string } | null,
-        messages,
+        subject: buildIssueSubject(payload, issueRow[0].allegroIssueId),
+        customerData: normalizeCustomerData(issueRow[0].customerData as { name?: string; email?: string } | null, payload),
+        messages: normalizedMessages,
       },
     })
   } catch (err) {
