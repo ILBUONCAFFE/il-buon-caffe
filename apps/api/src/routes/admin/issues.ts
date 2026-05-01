@@ -62,9 +62,37 @@ function normalizeAttachments(
   }))
 }
 
+function translateIssueSubject(subject: string): string | null {
+  const normalized = subject.trim().toLowerCase()
+  if (!normalized) return null
+
+  if (normalized.includes('i have not received the product')) {
+    return 'Nie otrzymałem produktu'
+  }
+  if (normalized.includes('product and parcel damaged')) {
+    return 'Produkt i przesyłka uszkodzone w transporcie'
+  }
+  if (normalized.includes('does not match the description')) {
+    return 'Produkt niezgodny z opisem'
+  }
+  if (normalized.includes('product damaged') || normalized.includes('damaged product')) {
+    return 'Produkt uszkodzony'
+  }
+  if (normalized.includes('wrong product')) {
+    return 'Otrzymano niewłaściwy produkt'
+  }
+  if (normalized.includes('missing product') || normalized.includes('missing item')) {
+    return 'Brak produktu w przesyłce'
+  }
+
+  const looksEnglish = /\b(the|product|parcel|received|description|damaged|match|wrong|broken|missing|delivery|order)\b/i.test(subject)
+  return looksEnglish ? null : subject.trim()
+}
+
 function buildIssueSubject(issue: Partial<AllegroIssue> | null | undefined, allegroIssueId: string): string {
   const rawSubject = typeof issue?.subject === 'string' ? issue.subject.trim() : ''
-  if (rawSubject) return rawSubject
+  const translatedSubject = rawSubject ? translateIssueSubject(rawSubject) : null
+  if (translatedSubject) return translatedSubject
 
   const base = issue?.type === 'CLAIM' ? 'Reklamacja Allegro' : 'Dyskusja Allegro'
   const reason = issue?.reason && typeof issue.reason === 'object'
@@ -232,7 +260,7 @@ async function refreshIssueFromAllegro(
     getIssue(allegroIssueId, apiBase, accessToken, db),
     listIssueMessages(allegroIssueId, { limit: 100 }, apiBase, accessToken, db),
   ])
-  const messages = messagesResponse.chat ?? messagesResponse.messages ?? []
+  const messages = messagesResponse.chat
   const result = await upsertIssueFromAllegro(db, issue, messages)
   return { ...result, messages: messages.length }
 }
@@ -359,7 +387,7 @@ adminIssuesRouter.get('/:id', auditLogMiddleware('view_order'), async (c) => {
       return c.json({ error: { code: 'INVALID_ID', message: 'Nieprawidłowe ID reklamacji' } }, 400)
     }
 
-    const issueRow = await db
+    const loadIssueRow = () => db
       .select({
         id:             allegroIssues.id,
         allegroIssueId: allegroIssues.allegroIssueId,
@@ -381,17 +409,44 @@ adminIssuesRouter.get('/:id', auditLogMiddleware('view_order'), async (c) => {
       .where(eq(allegroIssues.id, issueId))
       .limit(1)
 
-    if (!issueRow[0]) {
-      return c.json({ error: { code: 'NOT_FOUND', message: 'Reklamacja nie istnieje' } }, 404)
-    }
-
-    const messages = await db
+    const loadMessages = () => db
       .select()
       .from(allegroIssueMessages)
       .where(eq(allegroIssueMessages.issueId, issueId))
       .orderBy(allegroIssueMessages.createdAt)
 
-    const payload = (issueRow[0].payload ?? null) as AllegroIssue | null
+    let issueRow = await loadIssueRow()
+
+    if (!issueRow[0]) {
+      return c.json({ error: { code: 'NOT_FOUND', message: 'Reklamacja nie istnieje' } }, 404)
+    }
+
+    let messages = await loadMessages()
+
+    let payload = (issueRow[0].payload ?? null) as AllegroIssue | null
+    const expectedMessagesCount = payload?.chat?.messagesCount
+    const latestLocalMessageAt = messages
+      .map((message) => new Date(message.createdAt).getTime())
+      .filter((time) => Number.isFinite(time))
+      .sort((a, b) => b - a)[0] ?? 0
+    const latestRemoteMessageAt = payload?.chat?.lastMessage?.createdAt
+      ? new Date(payload.chat.lastMessage.createdAt).getTime()
+      : 0
+    const hasStaleMessages =
+      (typeof expectedMessagesCount === 'number' && expectedMessagesCount > messages.length)
+      || (latestRemoteMessageAt > latestLocalMessageAt)
+
+    if (hasStaleMessages) {
+      try {
+        await refreshIssueFromAllegro(db, c.env, issueRow[0].allegroIssueId)
+        issueRow = await loadIssueRow()
+        messages = await loadMessages()
+        payload = (issueRow[0]?.payload ?? null) as AllegroIssue | null
+      } catch (err) {
+        console.warn('[Issues] auto-refresh failed:', err instanceof Error ? err.message : err)
+      }
+    }
+
     const normalizedMessages = withInitialMessageFallback(issueId, messages, payload)
 
     return c.json({

@@ -155,6 +155,11 @@ export interface AllegroIssueMessage {
   createdAt: string
 }
 
+interface AllegroIssueMessagesResponse {
+  chat?: AllegroIssueMessage[] | { messages?: AllegroIssueMessage[] }
+  messages?: AllegroIssueMessage[]
+}
+
 export interface AllegroIssueStatusBody {
   status: string
   message?: string
@@ -167,6 +172,7 @@ export type AllegroCustomerReturnRefund = AllegroPaymentRefund
 
 const ALLEGRO_USER_AGENT = 'IlBuonCaffe/1.0 (+https://ilbuoncaffe.pl/api-info)'
 const BETA_CONTENT_TYPE = 'application/vnd.allegro.beta.v1+json'
+const ALLEGRO_ACCEPT_LANGUAGE = 'pl-PL'
 
 /** Returns beta-flavoured headers for Allegro Returns API calls. */
 function allegroReturnHeaders(
@@ -176,6 +182,7 @@ function allegroReturnHeaders(
   const headers: Record<string, string> = {
     Authorization: `Bearer ${accessToken}`,
     Accept: BETA_CONTENT_TYPE,
+    'Accept-Language': ALLEGRO_ACCEPT_LANGUAGE,
     'User-Agent': ALLEGRO_USER_AGENT,
   }
   if (withContentType) {
@@ -525,7 +532,7 @@ export async function listIssueMessages(
   accessToken: string,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   db: any,
-): Promise<{ chat?: AllegroIssueMessage[]; messages?: AllegroIssueMessage[] }> {
+): Promise<{ chat: AllegroIssueMessage[] }> {
   const qs = new URLSearchParams()
   if (params.limit != null) qs.set('limit', String(params.limit))
 
@@ -534,7 +541,20 @@ export async function listIssueMessages(
   try {
     result = await allegroFetch(url, { headers: allegroReturnHeaders(accessToken) })
     log(db, 'issue_messages_fetch', { id, params }, result)
-    return result as { chat?: AllegroIssueMessage[]; messages?: AllegroIssueMessage[] }
+    const response = result as AllegroIssueMessagesResponse | AllegroIssueMessage[] | null
+    if (Array.isArray(response)) {
+      return { chat: response }
+    }
+    if (Array.isArray(response?.chat)) {
+      return { chat: response.chat }
+    }
+    if (response?.chat && !Array.isArray(response.chat) && Array.isArray(response.chat.messages)) {
+      return { chat: response.chat.messages }
+    }
+    if (Array.isArray(response?.messages)) {
+      return { chat: response.messages }
+    }
+    return { chat: [] }
   } catch (err) {
     log(db, 'issue_messages_fetch', { id, params }, null, err)
     throw err
