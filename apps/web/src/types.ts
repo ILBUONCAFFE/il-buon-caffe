@@ -18,6 +18,7 @@ export interface Product {
   isArchived?: boolean;
   origin?: string;
   year?: string;
+  weight?: number;
   slug?: string;
   // Wine cascading filter fields
   originCountry?: string;   // "Hiszpania", "Włochy"
@@ -27,6 +28,9 @@ export interface Product {
   // Static content override from Electron admin (partial JSONB)
   // NULL = use static wineData.ts catalog. Contains only overridden fields.
   wineDetails?: Record<string, unknown> | null;
+  coffeeDetails?: Record<string, unknown> | null;
+  metaTitle?: string;
+  metaDescription?: string;
   createdAt?: Date | string;
   updatedAt?: Date | string;
 }
@@ -54,4 +58,3 @@ export interface Article {
   content: string; // HTML-like string or paragraphs
   readTime: string;
 }
-

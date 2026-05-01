@@ -46,6 +46,42 @@ const toAbsoluteUrl = (value?: unknown) => {
   return `${BASE_URL}${normalized.startsWith("/") ? normalized : `/${normalized}`}`;
 };
 
+const stripHtml = (value?: string) => value?.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim() || "";
+
+const truncate = (value: string, maxLength: number) => {
+  if (value.length <= maxLength) return value;
+  const trimmed = value.slice(0, maxLength - 1).trimEnd();
+  const lastSpace = trimmed.lastIndexOf(" ");
+  return `${trimmed.slice(0, lastSpace > 80 ? lastSpace : trimmed.length)}…`;
+};
+
+const getDetailValue = (details: Record<string, unknown> | null | undefined, key: string) => {
+  const value = details?.[key];
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+};
+
+const getProductBrand = (product: Awaited<ReturnType<typeof getProductBySlug>>) => {
+  if (!product) return "Il Buon Caffe";
+  return (
+    getDetailValue(product.wineDetails, "producer") ||
+    getDetailValue(product.coffeeDetails, "producer") ||
+    "Il Buon Caffe"
+  );
+};
+
+const getSeoDescription = (
+  product: Awaited<ReturnType<typeof getProductBySlug>>,
+  fallbackName: string,
+) => {
+  const explicitMeta = stripHtml(product?.metaDescription);
+  if (explicitMeta) return truncate(explicitMeta, 155);
+
+  const description = stripHtml(product?.description);
+  if (description) return truncate(description, 155);
+
+  return `Kup ${fallbackName} w sklepie Il Buon Caffe. Produkty premium, ceny w PLN i szybka dostawa na terenie Polski.`;
+};
+
 // ISR: rebuild at most every hour
 export const revalidate = 3600;
 export const dynamicParams = true;
@@ -115,17 +151,17 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       ? product.slug
       : slug;
   const canonicalPath = `/sklep/${canonicalSlug}`;
-  const title = `${safeName} | Sklep Il Buon Caffe`;
-  const description =
-    typeof product?.description === "string" && product.description.trim()
-      ? product.description.trim()
-      : `Kup ${safeName} w sklepie Il Buon Caffe. Najwyższa jakość, szybka dostawa.`;
+  const title =
+    typeof product?.metaTitle === "string" && product.metaTitle.trim()
+      ? product.metaTitle.trim()
+      : `${safeName} - kup online | Il Buon Caffe`;
+  const description = getSeoDescription(product, safeName);
   const productImage = toAbsoluteUrl(product?.imageUrl || product?.image) || `${BASE_URL}/assets/kawiarnia.jpg`;
 
   return {
     title,
     description,
-    alternates: { canonical: canonicalPath },
+    alternates: { canonical: `${BASE_URL}${canonicalPath}` },
     robots: product
       ? { index: true, follow: true }
       : { index: false, follow: false },
@@ -172,12 +208,21 @@ export default async function ShopRoute({ params }: { params: Promise<{ slug: st
   const parsedPrice = Number(product.price);
   const safePrice = Number.isFinite(parsedPrice) ? parsedPrice : 0;
   const safeName = typeof product.name === "string" && product.name.trim() ? product.name : "Produkt";
-  const safeDescription = typeof product.description === "string" ? product.description : "";
+  const safeDescription = getSeoDescription(product, safeName);
   const normalizedCategory = normalizeCategorySlug(product.category || "");
   const categoryLabel = categoryNameMap[normalizedCategory] || normalizedCategory || "Sklep";
   const categoryUrl = normalizedCategory ? `${BASE_URL}/sklep/${normalizedCategory}` : `${BASE_URL}/sklep`;
   const productUrl = `${BASE_URL}/sklep/${product.slug || slug}`;
   const productImage = toAbsoluteUrl(product.imageUrl || product.image);
+  const brandName = getProductBrand(product);
+  const productProperties = [
+    product.origin && { "@type": "PropertyValue", name: "Pochodzenie", value: product.origin },
+    product.originCountry && { "@type": "PropertyValue", name: "Kraj", value: product.originCountry },
+    product.originRegion && { "@type": "PropertyValue", name: "Region", value: product.originRegion },
+    product.grapeVariety && { "@type": "PropertyValue", name: "Szczep", value: product.grapeVariety },
+    product.year && { "@type": "PropertyValue", name: "Rocznik", value: product.year },
+    product.weight && { "@type": "PropertyValue", name: "Waga", value: `${product.weight} g` },
+  ].filter(Boolean);
 
   const productJsonLd = {
     "@context": "https://schema.org",
@@ -185,9 +230,11 @@ export default async function ShopRoute({ params }: { params: Promise<{ slug: st
     name: safeName,
     description: safeDescription,
     sku: product.sku,
+    mpn: product.sku,
     category: categoryLabel,
     image: productImage ? [productImage] : undefined,
-    brand: { "@type": "Brand", name: "Il Buon Caffe" },
+    brand: { "@type": "Brand", name: brandName },
+    additionalProperty: productProperties.length ? productProperties : undefined,
     offers: {
       "@type": "Offer",
       priceCurrency: "PLN",

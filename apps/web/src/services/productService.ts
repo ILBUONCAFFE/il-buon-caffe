@@ -90,6 +90,7 @@ function mapDbProductToProduct(dbProduct: DbProduct, categorySlug?: string): Pro
     isArchived: !dbProduct.isActive,
     origin: dbProduct.origin || undefined,
     year: dbProduct.year || undefined,
+    weight: dbProduct.weight || undefined,
     slug: dbProduct.slug,
     // Wine cascading fields
     originCountry: dbProduct.originCountry || undefined,
@@ -97,6 +98,9 @@ function mapDbProductToProduct(dbProduct: DbProduct, categorySlug?: string): Pro
     grapeVariety: dbProduct.grapeVariety || undefined,
     // Static content override (Electron admin, partial JSONB)
     wineDetails: (dbProduct.wineDetails as Record<string, unknown>) || undefined,
+    coffeeDetails: (dbProduct.coffeeDetails as Record<string, unknown>) || undefined,
+    metaTitle: dbProduct.metaTitle || undefined,
+    metaDescription: dbProduct.metaDescription || undefined,
     createdAt: dbProduct.createdAt,
     updatedAt: dbProduct.updatedAt,
   };
