@@ -2,6 +2,8 @@ import { Hono } from 'hono'
 import { createDb } from '@repo/db/client'
 import {
   orders, orderItems, products, users, stockChanges,
+  returns, returnItems, refunds, allegroIssues, allegroIssueMessages,
+  orderStatusHistory, auditLog,
 } from '@repo/db/schema'
 import { logAdminAction } from '../../lib/audit'
 import { eq, and, desc, sql, gte, lte, inArray } from 'drizzle-orm'
@@ -9,6 +11,8 @@ import { requireAdminOrProxy } from '../../middleware/auth'
 import { auditLogMiddleware } from '../../middleware/auditLog'
 import { recordStatusChange } from '../../lib/record-status-change'
 import { refreshOrderShipments, type ShipmentSnapshotEntry } from '../../lib/allegro-shipments'
+import { getActiveAllegroToken } from '../../lib/allegro-tokens'
+import { allegroHeaders } from '../../lib/allegro-orders/helpers'
 import type { Env } from '../../index'
 import { checkContentLength, parsePagination, getClientIp, serverError } from '../../lib/request'
 
@@ -113,6 +117,117 @@ function buildTrackingSnapshot(order: {
     shipmentDisplayStatus,
     shipmentFreshness,
     allShipments: all.length > 0 ? all : null,
+  }
+}
+
+function toNumberOrNull(value: unknown): number | null {
+  if (value == null) return null
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function dateToIso(value: Date | string | null | undefined): string | null {
+  const date = toDateOrNull(value)
+  return date ? date.toISOString() : null
+}
+
+function buildOrderWarnings(order: {
+  source: string
+  status: string
+  externalId: string | null
+  allegroFulfillmentStatus: string | null
+  trackingNumber: string | null
+  allegroShipmentsSnapshot?: ShipmentSnapshotEntry[] | null
+}) {
+  const warnings: Array<{ code: string; level: 'warning' | 'error'; message: string }> = []
+  if (order.source === 'allegro' && !order.externalId) {
+    warnings.push({ code: 'MISSING_ALLEGRO_ID', level: 'error', message: 'Brak ID zamówienia Allegro.' })
+  }
+  if (order.source === 'allegro' && ['paid', 'processing', 'shipped'].includes(order.status) && !order.allegroFulfillmentStatus) {
+    warnings.push({ code: 'MISSING_FULFILLMENT', level: 'warning', message: 'Brak lokalnie zapisanego statusu fulfillment Allegro.' })
+  }
+  if (order.status === 'shipped' && !order.trackingNumber && !(order.allegroShipmentsSnapshot ?? []).some((s) => s.waybill)) {
+    warnings.push({ code: 'MISSING_TRACKING', level: 'warning', message: 'Zamówienie oznaczone jako wysłane, ale bez numeru przesyłki.' })
+  }
+  return warnings
+}
+
+function buildActionAvailability(order: {
+  source: string
+  status: string
+  externalId: string | null
+  allegroShipmentId: string | null
+  trackingNumber: string | null
+  allegroShipmentsSnapshot?: ShipmentSnapshotEntry[] | null
+}) {
+  const isAllegro = order.source === 'allegro' && !!order.externalId
+  const hasShipment = !!order.allegroShipmentId || !!order.trackingNumber || (order.allegroShipmentsSnapshot ?? []).length > 0
+  return {
+    canRefreshShipment: isAllegro,
+    canCreateShipment: isAllegro && ['paid', 'processing'].includes(order.status) && !order.allegroShipmentId,
+    canDownloadLabel: isAllegro && !!order.allegroShipmentId,
+    canSyncFulfillment: isAllegro && !['cancelled', 'refunded'].includes(order.status),
+    canMarkShipped: isAllegro && !hasShipment && ['paid', 'processing'].includes(order.status),
+  }
+}
+
+async function fetchAllegroOrderLive(env: Env, externalId: string) {
+  const token = await getActiveAllegroToken(env)
+  if (!token) {
+    return {
+      connected: false,
+      fetchedAt: new Date().toISOString(),
+      error: { code: 'ALLEGRO_NOT_CONNECTED', message: 'Allegro nie jest podłączone' },
+    }
+  }
+
+  const resp = await fetch(`${token.apiBase}/order/checkout-forms/${encodeURIComponent(externalId)}`, {
+    signal: AbortSignal.timeout(10_000),
+    headers: { ...allegroHeaders(token.accessToken), 'Accept-Language': 'pl-PL' },
+  })
+
+  if (!resp.ok) {
+    return {
+      connected: true,
+      fetchedAt: new Date().toISOString(),
+      error: { code: 'ALLEGRO_ERROR', message: `Allegro API zwróciło ${resp.status}` },
+    }
+  }
+
+  const form = await resp.json() as Record<string, any>
+  const address = form.delivery?.address
+  const buyerName = `${address?.firstName ?? form.buyer?.firstName ?? ''} ${address?.lastName ?? form.buyer?.lastName ?? ''}`.trim()
+
+  return {
+    connected: true,
+    fetchedAt: new Date().toISOString(),
+    order: {
+      status: form.status ?? null,
+      revision: form.revision ?? null,
+      buyer: {
+        login: form.buyer?.login ?? null,
+        email: form.buyer?.email ?? null,
+        phone: form.buyer?.phoneNumber ?? form.buyer?.address?.phoneNumber ?? address?.phoneNumber ?? null,
+      },
+      delivery: {
+        methodName: form.delivery?.method?.name ?? null,
+        pickupPoint: form.delivery?.pickupPoint ?? null,
+        address: address
+          ? {
+              name: buyerName || form.buyer?.login || null,
+              street: address.street ?? '',
+              city: address.city ?? '',
+              postalCode: address.zipCode ?? address.postCode ?? '',
+              country: address.countryCode ?? '',
+              phone: address.phoneNumber ?? null,
+            }
+          : null,
+      },
+      fulfillment: {
+        status: form.fulfillment?.status ?? null,
+        shipmentSummary: form.delivery?.shipmentSummary ?? null,
+      },
+    },
   }
 }
 
@@ -301,6 +416,129 @@ adminOrdersRouter.get('/:id', auditLogMiddleware('view_order'), async (c) => {
 
     if (!order) return c.json({ error: 'Zamówienie nie znalezione' }, 404)
 
+    const [historyRows, returnRows, issueRows, auditRows] = await Promise.all([
+      db
+        .select()
+        .from(orderStatusHistory)
+        .where(eq(orderStatusHistory.orderId, orderId))
+        .orderBy(desc(orderStatusHistory.occurredAt)),
+      db
+        .select({
+          id: returns.id,
+          returnNumber: returns.returnNumber,
+          orderId: returns.orderId,
+          source: returns.source,
+          status: returns.status,
+          reason: returns.reason,
+          reasonNote: returns.reasonNote,
+          totalRefundAmount: returns.totalRefundAmount,
+          currency: returns.currency,
+          customerData: returns.customerData,
+          allegro: returns.allegro,
+          restockApplied: returns.restockApplied,
+          closedAt: returns.closedAt,
+          createdAt: returns.createdAt,
+          updatedAt: returns.updatedAt,
+          orderNumber: orders.orderNumber,
+        })
+        .from(returns)
+        .leftJoin(orders, eq(returns.orderId, orders.id))
+        .where(eq(returns.orderId, orderId))
+        .orderBy(desc(returns.createdAt)),
+      db
+        .select({
+          id: allegroIssues.id,
+          allegroIssueId: allegroIssues.allegroIssueId,
+          orderId: allegroIssues.orderId,
+          returnId: allegroIssues.returnId,
+          status: allegroIssues.status,
+          subject: allegroIssues.subject,
+          lastMessageAt: allegroIssues.lastMessageAt,
+          payload: allegroIssues.payload,
+          createdAt: allegroIssues.createdAt,
+          updatedAt: allegroIssues.updatedAt,
+        })
+        .from(allegroIssues)
+        .where(eq(allegroIssues.orderId, orderId))
+        .orderBy(desc(allegroIssues.lastMessageAt), desc(allegroIssues.createdAt)),
+      db
+        .select({
+          id: auditLog.id,
+          adminId: auditLog.adminId,
+          action: auditLog.action,
+          details: auditLog.details,
+          ipAddress: auditLog.ipAddress,
+          createdAt: auditLog.createdAt,
+          adminEmail: users.email,
+          adminName: users.name,
+        })
+        .from(auditLog)
+        .leftJoin(users, eq(auditLog.adminId, users.id))
+        .where(eq(auditLog.targetOrderId, orderId))
+        .orderBy(desc(auditLog.createdAt))
+        .limit(100),
+    ])
+
+    const returnIds = returnRows.map((row) => row.id)
+    const issueIds = issueRows.map((row) => row.id)
+
+    const [returnItemRows, refundRows, issueMessageRows] = await Promise.all([
+      returnIds.length > 0
+        ? db.select().from(returnItems).where(inArray(returnItems.returnId, returnIds))
+        : Promise.resolve([]),
+      returnIds.length > 0
+        ? db.select().from(refunds).where(inArray(refunds.returnId, returnIds)).orderBy(desc(refunds.createdAt))
+        : Promise.resolve([]),
+      issueIds.length > 0
+        ? db.select().from(allegroIssueMessages).where(inArray(allegroIssueMessages.issueId, issueIds)).orderBy(allegroIssueMessages.createdAt)
+        : Promise.resolve([]),
+    ])
+
+    const returnItemsByReturn = new Map<number, typeof returnItemRows>()
+    for (const item of returnItemRows) {
+      const bucket = returnItemsByReturn.get(item.returnId) ?? []
+      bucket.push(item)
+      returnItemsByReturn.set(item.returnId, bucket)
+    }
+
+    const refundsByReturn = new Map<number, typeof refundRows>()
+    for (const refund of refundRows) {
+      const bucket = refundsByReturn.get(refund.returnId) ?? []
+      bucket.push(refund)
+      refundsByReturn.set(refund.returnId, bucket)
+    }
+
+    const messagesByIssue = new Map<number, typeof issueMessageRows>()
+    for (const message of issueMessageRows) {
+      const bucket = messagesByIssue.get(message.issueId) ?? []
+      bucket.push(message)
+      messagesByIssue.set(message.issueId, bucket)
+    }
+
+    const allShipments = (order.allegroShipmentsSnapshot ?? []) as ShipmentSnapshotEntry[]
+    const tracking = buildTrackingSnapshot({
+      id: order.id,
+      status: order.status,
+      trackingNumber: order.trackingNumber ?? null,
+      allegroShipmentsSnapshot: allShipments,
+    })
+    const warnings = buildOrderWarnings({
+      source: order.source,
+      status: order.status,
+      externalId: order.externalId ?? null,
+      allegroFulfillmentStatus: order.allegroFulfillmentStatus ?? null,
+      trackingNumber: order.trackingNumber ?? null,
+      allegroShipmentsSnapshot: allShipments,
+    })
+    const actions = buildActionAvailability({
+      source: order.source,
+      status: order.status,
+      externalId: order.externalId ?? null,
+      allegroShipmentId: order.allegroShipmentId ?? null,
+      trackingNumber: order.trackingNumber ?? null,
+      allegroShipmentsSnapshot: allShipments,
+    })
+
     return c.json({
       success: true,
       data: {
@@ -308,19 +546,115 @@ adminOrdersRouter.get('/:id', auditLogMiddleware('view_order'), async (c) => {
         total:        Number(order.total),
         subtotal:     Number(order.subtotal),
         shippingCost: Number(order.shippingCost ?? 0),
+        taxAmount:    order.taxAmount    != null ? Number(order.taxAmount)    : null,
         totalPln:     order.totalPln     != null ? Number(order.totalPln)     : null,
         exchangeRate: order.exchangeRate != null ? Number(order.exchangeRate) : null,
         rateDate:     order.rateDate     ?? null,
-        ...buildTrackingSnapshot({
-          id: order.id,
-          status: order.status,
-          trackingNumber: order.trackingNumber ?? null,
-          allegroShipmentsSnapshot: order.allegroShipmentsSnapshot ?? null,
-        }),
+        p24Status: order.p24Status ?? null,
+        p24SessionId: order.p24SessionId ?? null,
+        p24TransactionId: order.p24TransactionId ?? null,
+        ...tracking,
+        statusHistory: historyRows.map((row) => ({
+          id: row.id,
+          orderId: row.orderId,
+          category: row.category,
+          previousValue: row.previousValue,
+          newValue: row.newValue,
+          source: row.source,
+          sourceRef: row.sourceRef,
+          metadata: row.metadata ?? null,
+          occurredAt: row.occurredAt.toISOString(),
+        })),
+        returns: returnRows.map((row) => ({
+          ...row,
+          createdAt: row.createdAt.toISOString(),
+          updatedAt: row.updatedAt.toISOString(),
+          closedAt: dateToIso(row.closedAt),
+          totalRefundAmount: toNumberOrNull(row.totalRefundAmount),
+          items: (returnItemsByReturn.get(row.id) ?? []).map((item) => ({
+            ...item,
+            createdAt: item.createdAt.toISOString(),
+            updatedAt: item.updatedAt.toISOString(),
+            unitPrice: Number(item.unitPrice),
+            totalPrice: Number(item.totalPrice),
+          })),
+          refunds: (refundsByReturn.get(row.id) ?? []).map((refund) => ({
+            ...refund,
+            createdAt: refund.createdAt.toISOString(),
+            updatedAt: refund.updatedAt.toISOString(),
+            amount: Number(refund.amount),
+          })),
+        })),
+        complaints: issueRows.map((row) => ({
+          ...row,
+          createdAt: row.createdAt.toISOString(),
+          updatedAt: row.updatedAt.toISOString(),
+          lastMessageAt: dateToIso(row.lastMessageAt),
+          orderNumber: order.orderNumber,
+          customerData: order.customerData,
+          messages: (messagesByIssue.get(row.id) ?? []).map((message) => ({
+            ...message,
+            createdAt: message.createdAt.toISOString(),
+          })),
+        })),
+        audit: auditRows.map((row) => ({
+          ...row,
+          createdAt: row.createdAt.toISOString(),
+        })),
+        allegroPanel: {
+          externalId: order.externalId ?? null,
+          revision: order.allegroRevision ?? null,
+          fulfillmentStatus: order.allegroFulfillmentStatus ?? null,
+          shipmentId: order.allegroShipmentId ?? null,
+          shipments: allShipments,
+          tracking,
+          warnings,
+          actions,
+        },
+        badgeCounts: {
+          returns: returnRows.length,
+          complaints: issueRows.length,
+          messages: issueMessageRows.filter((message) => message.authorRole === 'BUYER').length,
+          audit: auditRows.length,
+        },
+        warnings,
+        actions,
       },
     })
   } catch (err) {
     return serverError(c, 'GET /admin/orders/:id', err)
+  }
+})
+
+// ============================================
+// GET /admin/orders/:id/allegro-live
+// Dane live z Allegro, bez zapisu w lokalnej bazie
+// ============================================
+adminOrdersRouter.get('/:id/allegro-live', auditLogMiddleware('view_order'), async (c) => {
+  try {
+    const db = createDb(c.env.DATABASE_URL)
+    const orderId = Number(c.req.param('id'))
+    if (!Number.isFinite(orderId)) {
+      return c.json({ error: { code: 'BAD_REQUEST', message: 'Nieprawidłowe ID zamówienia' } }, 400)
+    }
+
+    const [order] = await db
+      .select({ id: orders.id, source: orders.source, externalId: orders.externalId })
+      .from(orders)
+      .where(eq(orders.id, orderId))
+      .limit(1)
+
+    if (!order) {
+      return c.json({ error: { code: 'NOT_FOUND', message: 'Zamówienie nie znalezione' } }, 404)
+    }
+    if (order.source !== 'allegro' || !order.externalId) {
+      return c.json({ error: { code: 'NOT_ALLEGRO', message: 'Zamówienie nie pochodzi z Allegro' } }, 400)
+    }
+
+    const data = await fetchAllegroOrderLive(c.env, order.externalId)
+    return c.json({ success: true, data })
+  } catch (err) {
+    return serverError(c, 'GET /admin/orders/:id/allegro-live', err)
   }
 })
 

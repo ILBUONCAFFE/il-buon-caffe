@@ -330,8 +330,6 @@ export async function fetchAllegroShipments(env: Env, externalId: string): Promi
 
   const data = (await shipmentsResp.json()) as AllegroShipmentsResponse
   const rows = data.shipments ?? []
-  // Debug: pokaż surową odpowiedź z Allegro żeby zweryfikować czy id jest dostępne.
-  console.log(`[Shipments][debug] /shipments raw (allegro id: ${externalId}):`, JSON.stringify(data))
   if (rows.length === 0) return { shipments: [], fulfillmentStatus }
 
   const fulfillmentDerivedCode = fulfillmentStatus

@@ -34,6 +34,7 @@ import {
 import { syncAllegroOrders, backfillAllegroOrders } from '../lib/allegro-orders'
 import { encryptText, decryptText } from '../lib/crypto'
 import { getActiveAllegroToken } from '../lib/allegro-tokens'
+import { fetchAllegroShipments } from '../lib/allegro-shipments'
 
 // ── Router ───────────────────────────────────────────────────────────────────
 export const allegroRouter = new Hono<{ Bindings: Env }>()
@@ -738,23 +739,21 @@ allegroRouter.put('/orders/:id/fulfillment', requireAdminOrProxy(), async (c) =>
 allegroRouter.get('/orders/:id', requireAdminOrProxy(), async (c) => {
   try {
     const checkoutFormId = c.req.param('id')
-    const kv = c.env.ALLEGRO_KV
-    const accessToken = await kv?.get('allegro:access_token')
-    if (!accessToken) return c.json({ success: false, error: 'Allegro nie podłączone' }, 503)
+    const token = await getActiveAllegroToken(c.env)
+    if (!token) {
+      return c.json({ error: { code: 'ALLEGRO_NOT_CONNECTED', message: 'Allegro nie jest podłączone' } }, 503)
+    }
 
-    const allegroEnv = (c.env.ALLEGRO_ENVIRONMENT ?? 'sandbox') as AllegroEnvironment
-    const apiBase = getAllegroApiBase(allegroEnv)
-
-    const resp = await fetch(`${apiBase}/order/checkout-forms/${checkoutFormId}`, {
+    const resp = await fetch(`${token.apiBase}/order/checkout-forms/${checkoutFormId}`, {
       signal:  AbortSignal.timeout(10_000),
       headers: {
-        Authorization: `Bearer ${accessToken}`,
+        Authorization: `Bearer ${token.accessToken}`,
         Accept: 'application/vnd.allegro.public.v1+json',
       },
     })
 
     if (!resp.ok) {
-      return c.json({ success: false, error: `Allegro API: ${resp.status}` }, resp.status as any)
+      return c.json({ error: { code: 'ALLEGRO_ERROR', message: `Allegro API: ${resp.status}` } }, resp.status as any)
     }
 
     const form = await resp.json() as Record<string, any>
@@ -789,7 +788,7 @@ allegroRouter.get('/orders/:id', requireAdminOrProxy(), async (c) => {
     })
   } catch (err) {
     console.error('[Allegro] order details error:', err instanceof Error ? err.message : String(err))
-    return c.json({ success: false, error: err instanceof Error ? err.message : 'Błąd' }, 500)
+    return c.json({ error: { code: 'ALLEGRO_ORDER_DETAILS_ERROR', message: err instanceof Error ? err.message : 'Błąd' } }, 500)
   }
 })
 
@@ -799,100 +798,34 @@ allegroRouter.get('/orders/:id', requireAdminOrProxy(), async (c) => {
 allegroRouter.get('/orders/:id/tracking', requireAdminOrProxy(), async (c) => {
   try {
     const checkoutFormId = c.req.param('id')
-    const token = await getActiveAllegroToken(c.env)
-    if (!token) return c.json({ success: false, error: 'Allegro nie podłączone' }, 503)
-
-    const { apiBase, accessToken } = token
-    const headers = {
-      Authorization: `Bearer ${accessToken}`,
-      Accept:        'application/vnd.allegro.public.v1+json',
+    if (!checkoutFormId) {
+      return c.json({ error: { code: 'BAD_REQUEST', message: 'Brak ID zamówienia Allegro' } }, 400)
+    }
+    const result = await fetchAllegroShipments(c.env, checkoutFormId)
+    if (result === null) {
+      return c.json({ error: { code: 'ALLEGRO_TRACKING_ERROR', message: 'Nie udało się pobrać tracking z Allegro' } }, 502)
     }
 
-    // 1. Get shipments for this order
-    const shipResp = await fetch(`${apiBase}/order/checkout-forms/${checkoutFormId}/shipments`, { signal: AbortSignal.timeout(10_000), headers })
-    if (!shipResp.ok) {
-      return c.json({ success: false, error: `Brak przesyłek (${shipResp.status})` }, shipResp.status as any)
-    }
-    const shipData = await shipResp.json() as { shipments: Array<{ carrierId?: string; waybill?: string; trackingNumber?: string }> }
-    const firstShipment = shipData.shipments?.find((shipment) => shipment.carrierId && (shipment.waybill || shipment.trackingNumber))
-
-    const carrierId = firstShipment?.carrierId
-    const waybill = firstShipment?.waybill ?? firstShipment?.trackingNumber
-    if (!carrierId || !waybill) {
-      return c.json({ success: true, data: { carrier: carrierId, waybill, status: null, message: 'Brak danych śledzenia' } })
-    }
-
-    // 2. Fetch carrier tracking
-    const trackResp = await fetch(
-      `${apiBase}/order/carriers/${encodeURIComponent(carrierId)}/tracking?waybill=${encodeURIComponent(waybill)}`,
-      { signal: AbortSignal.timeout(10_000), headers: { ...headers, 'Accept-Language': 'pl-PL' } },
-    )
-
-    if (!trackResp.ok) {
-      return c.json({ success: true, data: { carrier: carrierId, waybill, status: null, error: `Tracking API: ${trackResp.status}` } })
-    }
-
-    const trackData = await trackResp.json() as Record<string, any>
-
-    // 3. Extract latest status from Allegro's documented shape:
-    // { waybills: [{ trackingDetails: { statuses: [{ code, occurredAt }] } }] }
-    const buckets: any[] = []
-    for (const key of ['waybills', 'shipments', 'packages', 'items', 'tracking', 'trackingHistory']) {
-      if (Array.isArray(trackData[key])) buckets.push(...trackData[key])
-    }
-    const normWaybill = waybill.toUpperCase()
-    const pick = buckets.find(e => String(e?.waybill ?? e?.number ?? e?.id ?? '').toUpperCase() === normWaybill) ?? buckets[0]
-
-    let statuses: any[] = []
-    if (pick) {
-      statuses = pick.trackingDetails?.statuses ?? pick.statuses ?? pick.events ?? pick.history ?? []
-    }
-    if (statuses.length === 0) {
-      statuses = trackData.events ?? trackData.history ?? []
-    }
-    const sorted = statuses.slice().sort((a: any, b: any) =>
-      new Date(b.occurredAt ?? b.time ?? b.date ?? 0).getTime() - new Date(a.occurredAt ?? a.time ?? a.date ?? 0).getTime()
-    )
-    const latest = sorted[0]
-
-    const latestCodeRaw = (latest?.code ?? latest?.status ?? null)
-    const latestCode = latestCodeRaw == null
-      ? null
-      : String(latestCodeRaw).trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '') || null
-    const latestOccurredRaw = latest?.occurredAt ?? latest?.time ?? latest?.date ?? null
-    const latestOccurredAt = latestOccurredRaw ? new Date(String(latestOccurredRaw)) : null
-    const latestOccurredAtSafe = latestOccurredAt && !Number.isNaN(latestOccurredAt.getTime()) ? latestOccurredAt : null
-
-    // 4. Sync trackingNumber if changed (full status now lives in allegro_shipments_snapshot via /admin/orders/:id/refresh-shipment)
-    if (waybill) {
-      const db = createDb(c.env.DATABASE_URL)
-      await db.update(orders)
-        .set({ trackingNumber: waybill, updatedAt: new Date() })
-        .where(and(
-          eq(orders.externalId, checkoutFormId!),
-          sql`${orders.trackingNumber} IS DISTINCT FROM ${waybill}`,
-        ))
-    }
-    void latestCode; void latestOccurredAtSafe;
+    const selected = result.shipments.find((shipment) => shipment.isSelected) ?? result.shipments[0] ?? null
 
     return c.json({
       success: true,
       data: {
-        carrier: carrierId,
-        waybill,
-        status: (latest?.code ?? latest?.status ?? null)?.toUpperCase(),
-        statusDescription: latest?.description ?? null,
-        updatedAt: latest?.occurredAt ?? latest?.time ?? null,
-        allStatuses: sorted.slice(0, 10).map((s: any) => ({
-          status: s.code ?? s.status,
-          description: s.description,
-          occurredAt: s.occurredAt ?? s.time ?? s.date,
-        })),
+        carrier: selected?.carrierId ?? null,
+        waybill: selected?.waybill ?? null,
+        status: selected?.statusCode ?? null,
+        statusDescription: selected?.statusLabel ?? null,
+        updatedAt: selected?.occurredAt ?? null,
+        allStatuses: selected?.events?.map((event) => ({
+          status: event.code,
+          description: event.label,
+          occurredAt: event.occurredAt,
+        })) ?? [],
       },
     })
   } catch (err) {
     console.error('[Allegro] tracking error:', err instanceof Error ? err.message : String(err))
-    return c.json({ success: false, error: err instanceof Error ? err.message : 'Błąd' }, 500)
+    return c.json({ error: { code: 'ALLEGRO_TRACKING_ERROR', message: err instanceof Error ? err.message : 'Błąd' } }, 500)
   }
 })
 

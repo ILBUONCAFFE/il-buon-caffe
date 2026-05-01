@@ -145,6 +145,7 @@ export interface AdminOrder {
   trackingStatusCode?: string | null          // derived: snapshot[selected].statusCode (normalized)
   trackingStatusUpdatedAt?: string | null     // derived: snapshot[selected].occurredAt
   allegroShipmentId?: string | null
+  allegroRevision?: string | null
   allegroFulfillmentStatus?: string | null
   shipmentDisplayStatus?: ShipmentDisplayStatus
   shipmentFreshness?: ShipmentFreshness
@@ -153,9 +154,110 @@ export interface AdminOrder {
   internalNotes?: string
   paidAt?: string | null
   shippedAt?: string | null
+  deliveredAt?: string | null
   invoiceRequired?: boolean
   createdAt: string
   updatedAt?: string
+}
+
+export interface AdminOrderTimelineEntry {
+  id: number
+  orderId: number
+  category: StatusCategory | string
+  previousValue: string | null
+  newValue: string
+  source: StatusSource | string
+  sourceRef: string | null
+  metadata: Record<string, unknown> | null
+  occurredAt: string
+}
+
+export interface OrderDetailActionAvailability {
+  canRefreshShipment: boolean
+  canCreateShipment: boolean
+  canDownloadLabel: boolean
+  canSyncFulfillment: boolean
+  canMarkShipped: boolean
+}
+
+export interface OrderDetailWarning {
+  code: string
+  level: 'warning' | 'error'
+  message: string
+}
+
+export interface AdminOrderAllegroPanel {
+  externalId: string | null
+  revision: string | null
+  fulfillmentStatus: string | null
+  shipmentId: string | null
+  shipments: AllegroShipmentEntry[]
+  tracking: Pick<
+    AdminOrder,
+    | 'trackingNumber'
+    | 'trackingStatus'
+    | 'trackingStatusCode'
+    | 'trackingStatusUpdatedAt'
+    | 'shipmentDisplayStatus'
+    | 'shipmentFreshness'
+    | 'allShipments'
+  >
+  warnings: OrderDetailWarning[]
+  actions: OrderDetailActionAvailability
+}
+
+export interface AdminOrderAuditEntry {
+  id: number
+  adminId: number | null
+  action: string
+  details: Record<string, unknown> | null
+  ipAddress: string | null
+  createdAt: string
+  adminEmail: string | null
+  adminName: string | null
+}
+
+export interface AdminOrderDetailComplaint extends Omit<AdminComplaintDetail, 'customerData'> {
+  orderNumber: string
+  customerData: CustomerData
+}
+
+export interface AdminOrderDetail extends AdminOrder {
+  taxAmount: number | null
+  p24Status: string | null
+  p24SessionId: string | null
+  p24TransactionId: string | null
+  user?: { id: number; email: string; name: string | null; role: string } | null
+  statusHistory: AdminOrderTimelineEntry[]
+  returns: AdminReturn[]
+  complaints: AdminOrderDetailComplaint[]
+  audit: AdminOrderAuditEntry[]
+  allegroPanel: AdminOrderAllegroPanel
+  badgeCounts: {
+    returns: number
+    complaints: number
+    messages: number
+    audit: number
+  }
+  warnings: OrderDetailWarning[]
+  actions: OrderDetailActionAvailability
+}
+
+export interface AdminOrderDetailResponse {
+  success: boolean
+  data: AdminOrderDetail
+}
+
+export interface AdminOrderAllegroLiveResponse {
+  success: boolean
+  data: {
+    connected: boolean
+    fetchedAt: string
+    error?: { code: string; message: string }
+    order?: AllegroOrderDetails & {
+      revision?: string | null
+    }
+  }
 }
 
 export interface OrdersQueryParams {
