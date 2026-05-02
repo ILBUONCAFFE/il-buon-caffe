@@ -24,6 +24,7 @@ import { CountryFlag } from './wine/CountryFlag';
 import { WineProfileSection } from './wine/WineProfileSection';
 import { TerroirSection } from './wine/TerroirSection';
 import { ServingGuideSection } from './wine/ServingGuideSection';
+import { FoodPairingSection } from './wine/FoodPairingSection';
 
 interface WineProductViewProps {
   product: Product;
@@ -493,6 +494,11 @@ export const WineProductView = ({ product, categoryName, wineContent, producerCo
           SERVING GUIDE
       ═══════════════════════════════════════════════════════════ */}
       <ServingGuideSection wineDetails={wineDetails} palette={palette} />
+
+      {/* ═══════════════════════════════════════════════════════════
+          FOOD PAIRING
+      ═══════════════════════════════════════════════════════════ */}
+      <FoodPairingSection wineDetails={wineDetails} palette={palette} />
 
     </div>
   );

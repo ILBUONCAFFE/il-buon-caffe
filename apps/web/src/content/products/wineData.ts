@@ -73,8 +73,12 @@ export interface WineDetails {
   
   // ── Degustacja ──
   tastingNotes: WineTastingNotes;
-  
-  
+
+  /** Ogólne kategorie żywności do których pasuje wino — bez konkretnych dań.
+   *  Np. "Czerwone mięsa, dziczyzna, dojrzewające sery". Wyświetlane w sekcji
+   *  "Z czym podać" na stronie produktu. */
+  foodPairing?: string;
+
   // ── Nagrody ──
   awards: WineAward[];
   
@@ -202,6 +206,7 @@ const defaultWineDetails: WineDetails = {
     palate: "Brak opisu.",
   },
   awards: [],
+  foodPairing: undefined,
   countryCode: "",
 };
 
@@ -273,6 +278,10 @@ function normalizeWineDetails(details: WineDetails): WineDetails {
       palate: toString(tastingNotes['palate'], defaultWineDetails.tastingNotes.palate),
     },
     awards,
+    foodPairing:
+      details.foodPairing === undefined || details.foodPairing === null
+        ? undefined
+        : toString(details.foodPairing, ''),
     countryCode: toString(details.countryCode, defaultWineDetails.countryCode),
   };
 }
@@ -381,6 +390,7 @@ function productRichContentToWineDetails(content: ProductRichContent | null | un
     ...(getExtendedString(extended, 'climate') ? { climate: getExtendedString(extended, 'climate') } : {}),
     ...(getExtendedString(extended, 'vinification') ? { vinification: getExtendedString(extended, 'vinification') } : {}),
     ...(getExtendedString(extended, 'wineryDescription') ? { wineryDescription: getExtendedString(extended, 'wineryDescription') } : {}),
+    ...(getExtendedString(extended, 'foodPairing') ? { foodPairing: getExtendedString(extended, 'foodPairing') } : {}),
     ...(getExtendedString(extended, 'countryCode') ? { countryCode: getExtendedString(extended, 'countryCode') } : {}),
     ...(awards ? { awards } : {}),
   };

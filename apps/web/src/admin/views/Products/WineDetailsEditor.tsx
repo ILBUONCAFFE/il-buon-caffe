@@ -43,6 +43,7 @@ export type WineFormState = {
   eye: string
   nose: string
   palate: string
+  foodPairing: string
   isOrganic: boolean
   isBiodynamic: boolean
   isNatural: boolean
@@ -97,6 +98,7 @@ export function createWineDetailsDraft(details: CatalogWineDetails): WineFormSta
     eye: details.tastingNotes?.eye ?? '',
     nose: details.tastingNotes?.nose ?? '',
     palate: details.tastingNotes?.palate ?? '',
+    foodPairing: details.foodPairing ?? '',
     isOrganic: Boolean(details.isOrganic),
     isBiodynamic: Boolean(details.isBiodynamic),
     isNatural: Boolean(details.isNatural),
@@ -140,6 +142,7 @@ export function wineDetailsDraftToPayload(form: WineFormState): Record<string, u
       nose: trimText(form.nose),
       palate: trimText(form.palate),
     },
+    foodPairing: trimText(form.foodPairing) || undefined,
     isOrganic: form.isOrganic,
     isBiodynamic: form.isBiodynamic,
     isNatural: form.isNatural,
@@ -492,6 +495,20 @@ export function WineDetailsEditor({
             ))}
           </div>
         )}
+      </SectionCard>
+
+      <SectionCard
+        title="Z czym podać"
+        description="Ogólne kategorie żywności, do których pasuje wino — np. „Czerwone mięsa, dziczyzna, dojrzewające sery”. Bez konkretnych dań."
+      >
+        <Field label="Pairing">
+          <textarea
+            className="admin-input w-full min-h-[90px] resize-y"
+            value={form.foodPairing}
+            onChange={(e) => setField('foodPairing', e.target.value)}
+            placeholder="Czerwone mięsa, dziczyzna, dojrzewające sery"
+          />
+        </Field>
       </SectionCard>
 
       <SectionCard title="Cechy specjalne" description="Dodatkowe flagi, które mogą sterować wyglądem i komunikacją produktu.">
