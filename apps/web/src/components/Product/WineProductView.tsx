@@ -8,7 +8,7 @@ import {
   Minus, Plus, Heart, Share2,
   Check, ChevronRight,
   Grape, Globe, Wine, Thermometer,
-  Clock, Droplets, ArrowRight, Info
+  Clock, Droplets, Droplet, ArrowRight, Info
 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useNotification } from '@/components/Notification/NotificationProvider';
@@ -283,6 +283,16 @@ export const WineProductView = ({ product, categoryName, wineContent, producerCo
                   <Wine size={14} style={{ color: palette.gold }} />
                   <span className="pt-[1px]">{wineDetails.alcohol}</span>
                 </div>
+
+                {wineDetails.capacity && (
+                  <>
+                    <div className="w-1 h-1 rounded-full opacity-30" style={{ backgroundColor: palette.textMuted }} />
+                    <div className="flex items-center gap-2">
+                      <Droplet size={14} style={{ color: palette.gold }} />
+                      <span className="pt-[1px]">{wineDetails.capacity}</span>
+                    </div>
+                  </>
+                )}
               </motion.div>
 
               {/* Price */}

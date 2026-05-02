@@ -49,6 +49,8 @@ export interface WineDetails {
   // ── Technikalia ──
   grape: string;
   alcohol: string;
+  /** Pojemność butelki — np. "750 ml", "1,5 L". Wyświetlane w hero. */
+  capacity?: string;
   body: string;
   bodyValue: number;       // 0–100
   tannins: number;         // 0–100
@@ -253,6 +255,10 @@ function normalizeWineDetails(details: WineDetails): WineDetails {
     ...details,
     grape: toString(details.grape, defaultWineDetails.grape),
     alcohol: toString(details.alcohol, defaultWineDetails.alcohol),
+    capacity:
+      details.capacity === undefined || details.capacity === null
+        ? undefined
+        : toString(details.capacity, ''),
     body: toString(details.body, defaultWineDetails.body),
     bodyValue: toNumber(details.bodyValue, defaultWineDetails.bodyValue),
     tannins: toNumber(details.tannins, defaultWineDetails.tannins),
@@ -379,6 +385,7 @@ function productRichContentToWineDetails(content: ProductRichContent | null | un
     ...(content.servingTemp ? { servingTemp: content.servingTemp } : {}),
     ...(getExtendedString(extended, 'grape') ? { grape: getExtendedString(extended, 'grape') } : {}),
     ...(getExtendedString(extended, 'alcohol') ? { alcohol: getExtendedString(extended, 'alcohol') } : {}),
+    ...(getExtendedString(extended, 'capacity') ? { capacity: getExtendedString(extended, 'capacity') } : {}),
     ...(getExtendedString(extended, 'body') ? { body: getExtendedString(extended, 'body') } : {}),
     ...(getExtendedString(extended, 'aging') ? { aging: getExtendedString(extended, 'aging') } : {}),
     ...(getExtendedString(extended, 'decanting') ? { decanting: getExtendedString(extended, 'decanting') } : {}),

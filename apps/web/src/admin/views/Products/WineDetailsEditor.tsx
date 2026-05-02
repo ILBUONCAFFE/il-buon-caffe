@@ -31,6 +31,7 @@ type WineAwardDraft = {
 export type WineFormState = {
   grape: string
   alcohol: string
+  capacity: string
   body: string
   bodyValue: string
   tannins: string
@@ -86,6 +87,7 @@ export function createWineDetailsDraft(details: CatalogWineDetails): WineFormSta
   return {
     grape: details.grape ?? '',
     alcohol: details.alcohol ?? '',
+    capacity: details.capacity ?? '',
     body: details.body ?? '',
     bodyValue: String(details.bodyValue ?? ''),
     tannins: String(details.tannins ?? ''),
@@ -128,6 +130,7 @@ export function wineDetailsDraftToPayload(form: WineFormState): Record<string, u
   return {
     grape: trimText(form.grape) || undefined,
     alcohol: trimText(form.alcohol) || undefined,
+    capacity: trimText(form.capacity) || undefined,
     body: trimText(form.body) || undefined,
     bodyValue: toOptionalNumber(form.bodyValue, 'Body value'),
     tannins: toOptionalNumber(form.tannins, 'Taniny'),
@@ -401,6 +404,14 @@ export function WineDetailsEditor({
           </Field>
           <Field label="Alkohol">
             <input className="admin-input w-full" value={form.alcohol} onChange={(e) => setField('alcohol', e.target.value)} />
+          </Field>
+          <Field label="Pojemność">
+            <input
+              className="admin-input w-full"
+              value={form.capacity}
+              onChange={(e) => setField('capacity', e.target.value)}
+              placeholder="np. 750 ml"
+            />
           </Field>
           <Field label="Body label">
             <input className="admin-input w-full" value={form.body} onChange={(e) => setField('body', e.target.value)} />
