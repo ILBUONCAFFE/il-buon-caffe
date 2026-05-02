@@ -30,7 +30,6 @@ type D1Row = {
   sku: string
   category: string | null
   awards: string | null
-  pairing: string | null
   serving_temp: string | null
   profile: string | null
   sensory: string | null
@@ -90,20 +89,6 @@ function mapAwards(raw: unknown): unknown[] | undefined {
   return awards.length > 0 ? awards : undefined
 }
 
-function mapPairing(raw: unknown): unknown[] | undefined {
-  if (!Array.isArray(raw) || raw.length === 0) return undefined
-  const pairing = raw
-    .filter(isObject)
-    .map((item) => {
-      const name = asString(item.dish) ?? asString(item.name)
-      const description = asString(item.note) ?? asString(item.description)
-      if (!name && !description) return null
-      return { name: name ?? description, description: description ?? name }
-    })
-    .filter(Boolean)
-  return pairing.length > 0 ? pairing : undefined
-}
-
 function composeWineDetailsFromD1(row: D1Row | null): JsonObject {
   if (!row) return {}
 
@@ -111,7 +96,6 @@ function composeWineDetailsFromD1(row: D1Row | null): JsonObject {
   const sensory = parseJson<JsonObject>(row.sensory, {})
   const extended = parseJson<JsonObject>(row.extended, {})
   const awards = mapAwards(parseJson<unknown[]>(row.awards, []))
-  const foodPairing = mapPairing(parseJson<unknown[]>(row.pairing, []))
 
   const details: JsonObject = {
     ...(asNumber(profile.body) !== undefined ? { bodyValue: profile.body } : {}),
@@ -138,7 +122,6 @@ function composeWineDetailsFromD1(row: D1Row | null): JsonObject {
     ...(typeof extended.isBiodynamic === 'boolean' ? { isBiodynamic: extended.isBiodynamic } : {}),
     ...(typeof extended.isNatural === 'boolean' ? { isNatural: extended.isNatural } : {}),
     ...(awards ? { awards } : {}),
-    ...(foodPairing ? { foodPairing } : {}),
   }
 
   if (Object.keys(sensory).length > 0) {
@@ -172,7 +155,7 @@ async function d1Query<T>(statement: string, params: unknown[] = []): Promise<T[
 
 async function getD1Row(sku: string): Promise<D1Row | null> {
   const rows = await d1Query<D1Row>(
-    `SELECT sku, category, awards, pairing, serving_temp, profile, sensory, extended, wine_details
+    `SELECT sku, category, awards, serving_temp, profile, sensory, extended, wine_details
      FROM product_content
      WHERE sku = ?`,
     [sku]
@@ -191,10 +174,10 @@ async function saveWineDetails(sku: string, category: string, details: JsonObjec
 
   await d1Query(
     `INSERT INTO product_content (
-       sku, category, awards, pairing, profile, sensory, extended, wine_details,
+       sku, category, awards, profile, sensory, extended, wine_details,
        has_awards, is_published, updated_at, version
      )
-     VALUES (?, ?, '[]', '[]', '{}', '{}', '{}', ?, 0, 1, ?, 1)
+     VALUES (?, ?, '[]', '{}', '{}', '{}', ?, 0, 1, ?, 1)
      ON CONFLICT(sku) DO UPDATE SET
        wine_details = excluded.wine_details,
        is_published = 1,

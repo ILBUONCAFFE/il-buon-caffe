@@ -63,13 +63,6 @@ function mapAwards() {
   }))
 }
 
-function mapPairing() {
-  return (source.foodPairing ?? []).map((item) => ({
-    dish: item.name,
-    note: item.description,
-  }))
-}
-
 function mapProfile() {
   return {
     body: source.bodyValue,
@@ -108,7 +101,6 @@ function mapExtended() {
     vinification: source.vinification,
     wineryDescription: source.wineryDescription,
     countryCode: source.countryCode,
-    foodPairing: source.foodPairing,
     awards: source.awards,
     isOrganic: Boolean(source.isOrganic),
     isBiodynamic: Boolean(source.isBiodynamic),
@@ -120,7 +112,6 @@ async function main() {
   const ts = now()
 
   const awards = mapAwards()
-  const pairing = mapPairing()
   const profile = mapProfile()
   const sensory = mapSensory()
   const extended = mapExtended()
@@ -130,7 +121,6 @@ async function main() {
     category: 'wine',
     producerSlug: null,
     awards,
-    pairing,
     ritual: source.vinification,
     servingTemp: source.servingTemp,
     profile,
@@ -147,7 +137,6 @@ async function main() {
     category: 'wine',
     producerSlug: null,
     awards: JSON.stringify(awards),
-    pairing: JSON.stringify(pairing),
     ritual: source.vinification,
     servingTemp: source.servingTemp,
     profile: JSON.stringify(profile),
@@ -163,14 +152,13 @@ async function main() {
 
   const insertSql = `
     INSERT INTO product_content (
-      sku, category, producer_slug, awards, pairing, ritual, serving_temp,
+      sku, category, producer_slug, awards, ritual, serving_temp,
       profile, sensory, extended, has_awards, is_published, updated_at, version
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(sku) DO UPDATE SET
       category = excluded.category,
       producer_slug = excluded.producer_slug,
       awards = excluded.awards,
-      pairing = excluded.pairing,
       ritual = excluded.ritual,
       serving_temp = excluded.serving_temp,
       profile = excluded.profile,
@@ -192,7 +180,6 @@ async function main() {
     payload.category,
     payload.producerSlug,
     payload.awards,
-    payload.pairing,
     payload.ritual,
     payload.servingTemp,
     payload.profile,

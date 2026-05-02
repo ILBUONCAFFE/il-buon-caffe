@@ -34,7 +34,6 @@ export const productContent = sqliteTable(
     producerSlug: text('producer_slug').references(() => producers.slug),
 
     awards: text('awards'),       // JSON: [{name, year, rank}]
-    pairing: text('pairing'),     // JSON: [{dish, note}]
     ritual: text('ritual'),       // markdown
     servingTemp: text('serving_temp'),
 
@@ -84,29 +83,6 @@ export const productContentHistory = sqliteTable(
   },
   (t) => [
     index('pch_sku_created').on(t.sku, t.createdAt),
-  ]
-)
-
-export const dishTemplates = sqliteTable(
-  'dish_templates',
-  {
-    id: integer('id').primaryKey({ autoIncrement: true }),
-    category: text('category').notNull().default('wine'),
-    name: text('name').notNull(),
-    note: text('note'),
-    dishType: text('dish_type'),
-    imageUrl: text('image_url'),
-    emoji: text('emoji'),
-    tags: text('tags'),
-    isActive: integer('is_active').notNull().default(1),
-    sortOrder: integer('sort_order').notNull().default(0),
-    createdAt: integer('created_at').notNull(),
-    updatedAt: integer('updated_at').notNull(),
-  },
-  (t) => [
-    index('dt_category').on(t.category),
-    index('dt_active').on(t.isActive),
-    index('dt_dish_type').on(t.dishType),
   ]
 )
 

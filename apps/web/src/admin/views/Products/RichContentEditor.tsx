@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Plus, X, Award, Utensils, Sparkles, Wine, Thermometer, User } from 'lucide-react'
+import { Plus, X, Award, Sparkles, Wine, Thermometer, User } from 'lucide-react'
 import { getWineDetailsForProduct } from '@/content/products/wineData'
 import type { AdminProduct } from '../../types/admin-api'
 import { WineDetailsEditor } from './WineDetailsEditor'
@@ -10,8 +10,6 @@ import {
   ApiError,
   type UpsertProductRichContentPayload,
   type RichContentAward,
-  type RichContentPairing,
-  type DishTemplate,
 } from '../../lib/adminApiClient'
 
 const CATEGORY_CONFIG = {
@@ -65,7 +63,6 @@ function emptyContent(category: string): UpsertProductRichContentPayload {
     category,
     producerSlug: null,
     awards: [],
-    pairing: [],
     ritual: null,
     servingTemp: null,
     profile: Object.fromEntries(cfg.profile.map((d) => [d, 50])),
@@ -138,8 +135,6 @@ export function RichContentEditor({ sku, category, product, managedSave = false,
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
-  const [dishTemplates, setDishTemplates] = useState<DishTemplate[]>([])
-  const [selectedDishTemplateId, setSelectedDishTemplateId] = useState('')
 
   const load = useCallback(async () => {
     setLoading(true); setError(null)
@@ -148,7 +143,7 @@ export function RichContentEditor({ sku, category, product, managedSave = false,
       const c = res.data
       setContent({
         category: c.category, producerSlug: c.producerSlug,
-        awards: c.awards, pairing: c.pairing,
+        awards: c.awards,
         ritual: c.ritual, servingTemp: c.servingTemp,
         profile: c.profile, sensory: c.sensory,
         extended: c.extended, isPublished: c.isPublished,
@@ -174,18 +169,6 @@ export function RichContentEditor({ sku, category, product, managedSave = false,
   useEffect(() => {
     onDraftChange?.(content)
   }, [content, onDraftChange])
-
-  useEffect(() => {
-    if (!isWineCategory) {
-      setDishTemplates([])
-      return
-    }
-
-    adminApi
-      .listDishTemplates({ category: 'wine', active: 'true' })
-      .then((res) => setDishTemplates(res.data))
-      .catch(() => setDishTemplates([]))
-  }, [isWineCategory])
 
   const save = async () => {
     setSaving(true); setError(null); setMessage(null)
@@ -215,42 +198,10 @@ export function RichContentEditor({ sku, category, product, managedSave = false,
   const removeAward = (i: number) =>
     setContent((p) => ({ ...p, awards: (p.awards ?? []).filter((_, idx) => idx !== i) }))
 
-  const addPairing = () =>
-    setContent((p) => ({ ...p, pairing: [...(p.pairing ?? []), { dish: '', note: '' }] }))
-
-  const updatePairing = (i: number, field: keyof RichContentPairing, val: string) =>
-    setContent((p) => {
-      const pairing = [...(p.pairing ?? [])]
-      pairing[i] = { ...pairing[i], [field]: val }
-      return { ...p, pairing }
-    })
-
-  const removePairing = (i: number) =>
-    setContent((p) => ({ ...p, pairing: (p.pairing ?? []).filter((_, idx) => idx !== i) }))
-
-  const insertDishTemplate = (templateId: string) => {
-    setSelectedDishTemplateId(templateId)
-    const template = dishTemplates.find((item) => String(item.id) === templateId)
-    if (!template) return
-
-    setContent((p) => ({
-      ...p,
-      pairing: [
-        ...(p.pairing ?? []),
-        {
-          dish: template.name,
-          ...(template.note ? { note: template.note } : {}),
-        },
-      ],
-    }))
-    setSelectedDishTemplateId('')
-  }
-
   if (loading) return <div className="h-32 bg-[#F5F4F1] rounded-xl animate-pulse" />
 
   const isPublished = content.isPublished ?? false
   const awards = content.awards ?? []
-  const pairing = content.pairing ?? []
 
   return (
     <div className="space-y-5">
@@ -444,72 +395,6 @@ export function RichContentEditor({ sku, category, product, managedSave = false,
         )}
       </Card>
 
-      <Card
-        icon={Utensils}
-        title="Pairing"
-        action={
-          <button
-            type="button"
-            onClick={addPairing}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded-lg border border-[#E5E4E1] text-[#525252] hover:bg-[#F5F4F1] transition-colors"
-          >
-            <Plus size={14} /> Dodaj
-          </button>
-        }
-      >
-        {isWineCategory && dishTemplates.length > 0 && (
-          <div className="rounded-lg border border-[#E5E4E1] bg-[#FAFAF9] p-3">
-            <label className="block text-xs font-medium uppercase tracking-wider text-[#737373] mb-1.5">
-              Wstaw gotowiec dania
-            </label>
-            <select
-              className="admin-input w-full"
-              value={selectedDishTemplateId}
-              onChange={(e) => insertDishTemplate(e.target.value)}
-            >
-              <option value="">Wybierz gotowiec z bazy</option>
-              {dishTemplates.map((template) => (
-                <option key={template.id} value={template.id}>
-                  {template.name}{template.dishType ? ` · ${template.dishType}` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {pairing.length === 0 ? (
-          <p className="text-sm text-[#A3A3A3] text-center py-6">Brak pairingu</p>
-        ) : (
-          <div className="space-y-2">
-            {pairing.map((pair, i) => (
-              <div key={i} className="rounded-lg border border-[#E5E4E1] bg-[#FAFAF9] p-3">
-                <div className="grid grid-cols-12 gap-2 items-start">
-                  <input
-                    className="admin-input col-span-12 md:col-span-4"
-                    value={pair.dish}
-                    onChange={(e) => updatePairing(i, 'dish', e.target.value)}
-                    placeholder="Danie"
-                  />
-                  <input
-                    className="admin-input col-span-11 md:col-span-7"
-                    value={pair.note ?? ''}
-                    onChange={(e) => updatePairing(i, 'note', e.target.value)}
-                    placeholder="Opis"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removePairing(i)}
-                    className="col-span-1 flex items-center justify-center h-9 rounded-lg text-[#A3A3A3] hover:text-red-600 hover:bg-red-50 transition-colors"
-                    aria-label="Usuń pairing"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
     </div>
   )
 }

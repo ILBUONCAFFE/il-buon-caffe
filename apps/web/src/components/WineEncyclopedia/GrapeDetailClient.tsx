@@ -4,7 +4,7 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { ArrowLeft, Globe, Thermometer, Utensils, Wine, ChevronRight } from "lucide-react";
+import { ArrowLeft, Globe, Thermometer, Wine, ChevronRight } from "lucide-react";
 import { notFound } from "next/navigation";
 
 import { RED_GRAPE_VARIETIES, WHITE_GRAPE_VARIETIES } from "@/content/wineEncyclopedia";
@@ -197,27 +197,6 @@ const GrapeDetailClient: React.FC<GrapeDetailClientProps> = ({ slug }) => {
                       </div>
                     </div>
                   )}
-                </div>
-              </section>
-            )}
-
-            {/* Food Pairing */}
-            {grape.foodPairings && grape.foodPairings.length > 0 && (
-              <section className="bg-white rounded-2xl border border-brand-100 p-8">
-                <h2 className="text-2xl font-serif text-brand-900 mb-6 flex items-center gap-3">
-                  <Utensils className="text-brand-400" size={24} />
-                  Parowanie z jedzeniem
-                </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {grape.foodPairings.map((food: string) => (
-                    <div
-                      key={food}
-                      className="flex items-center gap-3 p-4 bg-brand-50 rounded-xl"
-                    >
-                      <div className="w-2 h-2 rounded-full bg-brand-400" />
-                      <span className="text-brand-700">{food}</span>
-                    </div>
-                  ))}
                 </div>
               </section>
             )}

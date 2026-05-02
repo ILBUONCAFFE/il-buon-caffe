@@ -2,14 +2,14 @@ import { notFound } from "next/navigation";
 import GrapeVarietiesSection from "@/components/WineEncyclopedia/GrapeVarietiesSection";
 import WineRegionsSection from "@/components/WineEncyclopedia/WineRegionsSection";
 
-type SectionSlug = 'szczepy' | 'regiony' | 'podstawy' | 'degustacja' | 'serwowanie' | 
-                   'parowanie' | 'przechowywanie' | 'produkcja' | 'klasyfikacje' | 
+type SectionSlug = 'szczepy' | 'regiony' | 'podstawy' | 'degustacja' | 'serwowanie' |
+                   'przechowywanie' | 'produkcja' | 'klasyfikacje' |
                    'roczniki' | 'slownik' | 'winnice';
 
 const sectionMetadata: Record<SectionSlug, { title: string; description: string }> = {
   szczepy: {
     title: "Szczepy Winogron | Encyklopedia Wina | Il Buon Caffe",
-    description: "Poznaj najważniejsze odmiany winogron - od Cabernet Sauvignon po Chardonnay. Charakterystyki, pochodzenie, aromaty i parowanie z jedzeniem.",
+    description: "Poznaj najważniejsze odmiany winogron - od Cabernet Sauvignon po Chardonnay. Charakterystyki, pochodzenie i aromaty.",
   },
   regiony: {
     title: "Regiony Winiarskie | Encyklopedia Wina | Il Buon Caffe",
@@ -26,10 +26,6 @@ const sectionMetadata: Record<SectionSlug, { title: string; description: string 
   serwowanie: {
     title: "Serwowanie Wina | Encyklopedia Wina | Il Buon Caffe",
     description: "Jak prawidłowo serwować wino - temperatury podawania, typy kieliszków, dekantacja i techniki otwierania butelek.",
-  },
-  parowanie: {
-    title: "Parowanie Wina z Jedzeniem | Encyklopedia Wina | Il Buon Caffe",
-    description: "Zasady łączenia win z potrawami - od steków przez owoce morza po desery. Sprawdzone kombinacje i wskazówki.",
   },
   przechowywanie: {
     title: "Przechowywanie Wina | Encyklopedia Wina | Il Buon Caffe",
@@ -92,7 +88,6 @@ export default async function WineSectionPage({ params }: { params: Promise<{ se
     case 'podstawy':
     case 'degustacja':
     case 'serwowanie':
-    case 'parowanie':
     case 'przechowywanie':
     case 'produkcja':
     case 'klasyfikacje':

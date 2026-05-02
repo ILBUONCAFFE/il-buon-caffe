@@ -77,7 +77,7 @@ export interface Env {
   RL_HEALTH?:         { limit(opts: { key: string }): Promise<{ success: boolean }> }
   RL_USER_EXPORT?:    { limit(opts: { key: string }): Promise<{ success: boolean }> }
 
-  // D1 — rich content (producers, tasting notes, awards, pairing)
+  // D1 — rich content (producers, tasting notes, awards)
   CONTENT_DB: D1Database
 }
 

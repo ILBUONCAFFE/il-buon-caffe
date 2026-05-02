@@ -75,7 +75,6 @@ export interface GrapeVariety {
   };
   flavorProfile: FlavorProfile;
   agingPotential: string;
-  foodPairings: string[];
   servingTemp: { min: number; max: number };
   image: WineImage;
   famousWines?: string[];
@@ -165,29 +164,6 @@ export interface DecantingGuide {
   shouldDecant: boolean;
   duration?: string; // e.g., "30 min - 2h"
   reason?: string;
-}
-
-// --- Food Pairing ---
-
-export interface FoodPairingRule {
-  id: string;
-  title: string;
-  description: string;
-  examples: string[];
-}
-
-export interface FoodPairingCategory {
-  id: string;
-  category: string; // e.g., "Mięso czerwone", "Ryby"
-  categoryPl: string;
-  description: string;
-  pairings: {
-    dish: string;
-    wineTypes: WineType[];
-    grapeVarieties?: string[];
-    specificWines?: string[];
-    notes?: string;
-  }[];
 }
 
 // --- Storage Guide ---

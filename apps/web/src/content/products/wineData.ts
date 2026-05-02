@@ -39,17 +39,6 @@ export interface WineTastingNotes {
   palate: string;
 }
 
-export interface WineFoodPairing {
-  name: string;
-  description: string;
-  emoji?: string;
-  /** Ścieżka do zdjęcia talerza. Lokalnie: /assets/dishes/nazwa.webp; produkcja: URL R2.
-   *  Jeśli brak — wyświetla fallback z emoji. */
-  imageUrl?: string;
-  /** Kategoria dania — używana do filtrowania lub stylu karty */
-  category?: 'mięso' | 'ryba' | 'makaron' | 'sery' | 'warzywa' | 'owoce morza' | 'drób' | 'deser' | 'wędliny' | 'dziczyzna';
-}
-
 export interface WineAward {
   year: string;
   award: string;
@@ -85,8 +74,6 @@ export interface WineDetails {
   // ── Degustacja ──
   tastingNotes: WineTastingNotes;
   
-  // ── Parowanie z jedzeniem ──
-  foodPairing: WineFoodPairing[];
   
   // ── Nagrody ──
   awards: WineAward[];
@@ -142,123 +129,6 @@ export const wineDataCatalog: Record<string, WineDetails> = {
       palate: "Aksamitne i uwodzicielskie — dobra intensywność owocowa, czyste nuty, kwasowość nadająca świeżość, zrównoważona przez dobrze zintegrowany słodki dąb na finiszu. Gładkie i słodkie przy wejściu, bardziej zwarte w środku palety — gorzkawa wiśnia, borówka, wanilia i korzenny tort. Dymna nuta pojawia się po napowietrzeniu.",
     },
     
-    foodPairing: [
-      {
-        name: "Albóndigas",
-        description: "Klopsiki w sosie pomidorowym po hiszpańsku — klasyczna tapas, której pikantność świetnie rezonuje z owocowymi nutami Monastrell",
-        category: "mięso",
-        imageUrl: "/api/uploads/image/dishes/Albóndigas.png",
-      },
-      {
-        name: "Antrykot wołowy z grilla",
-        description: "Soczysty antrykot z grilla z chrupiącą skórką — moce taniny Monastrell doskonale tną tłuszcz, wydobywając dymne nuty mięsa",
-        category: "mięso",
-        imageUrl: "/api/uploads/image/dishes/Antrykot wołowy z grilla.png",
-      },
-      {
-        name: "Birria",
-        description: "Meksykańskie duszone mięso w pikantnym bulionie — intensywne przyprawy i głęboki smak umami grają z ciemnymi owocami wina",
-        category: "mięso",
-        imageUrl: "/api/uploads/image/dishes/Birria.png",
-      },
-      {
-        name: "Chili con carne",
-        description: "Wołowina z fasolą i chili — pełna treść tego dania wymaga równie mocnego, taniczniego wina z Yecla",
-        category: "mięso",
-        imageUrl: "/api/uploads/image/dishes/Chili con carne.png",
-      },
-      {
-        name: "Chorizo i fuet – talerz wędlin",
-        description: "Talerz z chorizo, fuet i innymi suszonymi wędlinami — korzenne nuty wina i dymna wiśnia tworzą idealne połączenie tapas",
-        category: "wędliny",
-        imageUrl: "/api/uploads/image/dishes/Chorizo i fuet – talerz wędlin.png",
-      },
-      {
-        name: "Dzik duszony",
-        description: "Wolno duszony dzik z ziołami i czerwonym winem — dziczyzna o intensywnym smaku doskonale harmonizuje z Monastrell",
-        category: "dziczyzna",
-        imageUrl: "/api/uploads/image/dishes/Dzik duszony.png",
-      },
-      {
-        name: "Escalivada",
-        description: "Pieczone warzywa po katalońsku: bakłażan, papryka i cebula — wegańska klasyka podkreślająca owocowy charakter wina",
-        category: "warzywa",
-        imageUrl: "/api/uploads/image/dishes/Escalivada.png",
-      },
-      {
-        name: "Jagnięcina pieczona z ziołami",
-        description: "Udziec jagnięcy pieczony z rozmarynem, tymiankiem i czosnkiem — klasyczne połączenie dla win ze szczepu Monastrell z Yecla",
-        category: "mięso",
-        imageUrl: "/api/uploads/image/dishes/Jagnięcina pieczona z ziołami.png",
-      },
-      {
-        name: "Karkówka z grilla",
-        description: "Soczysta karkówka z grilla z marynatą ziołową — delikatny tłuszcz i dym grilla świetnie rezonują z taniczną strukturą Barahondy",
-        category: "mięso",
-        imageUrl: "/api/uploads/image/dishes/Karkówka z grilla.png",
-      },
-      {
-        name: "Manchego z dodatkami",
-        description: "Dojrzewający ser Manchego z oliwkami, marynowanymi warzywami i chrupkim pieczywem — idealna tapas do kieliszka Barahondy",
-        category: "sery",
-        imageUrl: "/api/uploads/image/dishes/Manchego z dodatkami.png",
-      },
-      {
-        name: "Moussaka",
-        description: "Grecka zapiekanka z mięsem mielonym, bakłażanem i sosem béchamel — bogata i kremowa struktura dania podkreśla dojrzałość wina",
-        category: "mięso",
-        imageUrl: "/api/uploads/image/dishes/Moussaka.png",
-      },
-      {
-        name: "Paella z mięsem",
-        description: "Tradycyjna paella valenciana z kurczakiem i królikiem — szafranowy ryż i wino z tej samej strefy klimatycznej to naturalne połączenie",
-        category: "mięso",
-        imageUrl: "/api/uploads/image/dishes/Paella z mięsem.png",
-      },
-      {
-        name: "Parmezan i Pecorino",
-        description: "Twarde sery dojrzewające o intensywnym smaku — słony, orzechowy charakter serów podkreśla ciemnoowocowe nuty Monastrell",
-        category: "sery",
-        imageUrl: "/api/uploads/image/dishes/Parmezan i Pecorino.png",
-      },
-      {
-        name: "Pieczona kaczka",
-        description: "Kaczka pieczona z figami i korzennymi przyprawami — tłuste, aromatyczne mięso drobiowe idealnie balansuje taniny Barahondy",
-        category: "drób",
-        imageUrl: "/api/uploads/image/dishes/Pieczona kaczka.png",
-      },
-      {
-        name: "Sarnina",
-        description: "Pieczeń z sarny lub gulasz z sarniny — szlachetna dziczyzna o lekko słodkawym smaku tworzy eleganckie połączenie z organicznym winem",
-        category: "dziczyzna",
-        imageUrl: "/api/uploads/image/dishes/Sarnina.png",
-      },
-      {
-        name: "Sery pleśniowe",
-        description: "Roquefort, Gorgonzola lub Cabrales — kontrastowe połączenie intensywnej pleśni i dojrzałych, ciemnych owoców wina",
-        category: "sery",
-        imageUrl: "/api/uploads/image/dishes/Sery pleśniowe.png",
-      },
-      {
-        name: "Souvlaki",
-        description: "Greckie szaszłyki z wieprzowiny lub jagnięciny z tzatziki i pitą — dymny grill i śródziemnomorskie zioła grają z charakterem wina",
-        category: "mięso",
-        imageUrl: "/api/uploads/image/dishes/Souvlaki.png",
-      },
-      {
-        name: "Żeberka wieprzowe BBQ",
-        description: "Wolno pieczone żeberka z sosem BBQ — słodko-dymna glazura i miękkie mięso wymagają pełnego, taniczniego czerwonego wina",
-        category: "mięso",
-        imageUrl: "/api/uploads/image/dishes/Żeberka wieprzowe BBQ.png",
-      },
-      {
-        name: "Żeberka wołowe duszone",
-        description: "Short ribs duszone przez 6 godzin z warzywami korzennymi — intensywne, rozpadające się mięso doskonale harmonizuje z Barahondą",
-        category: "mięso",
-        imageUrl: "/api/uploads/image/dishes/Żeberka wołowe duszone.png",
-      },
-    ],
-    
     awards: [
       { year: "2022", award: "94 pkt Decanter, 92 pkt Vinous, 91 pkt Wine Enthusiast, 90 pkt James Suckling", competition: "Rocznik 2022" },
       { year: "2021", award: "90 pkt Decanter, 90 pkt James Suckling", competition: "Rocznik 2021" },
@@ -298,9 +168,6 @@ export const wineDataCatalog: Record<string, WineDetails> = {
   //     nose: "",
   //     palate: "",
   //   },
-  //   foodPairing: [
-  //     { name: "", description: "", emoji: "" },
-  //   ],
   //   awards: [],
   //   countryCode: "",
   // },
@@ -334,7 +201,6 @@ const defaultWineDetails: WineDetails = {
     nose: "Brak opisu.",
     palate: "Brak opisu.",
   },
-  foodPairing: [],
   awards: [],
   countryCode: "",
 };
@@ -356,36 +222,9 @@ function toString(value: unknown, fallback: string): string {
   return typeof value === 'string' ? value : fallback;
 }
 
-function normalizeUploadImageUrl(value: string): string {
-  if (!value.startsWith('/api/uploads/image/')) return value;
-
-  const rawKey = value.replace(/^\/api\/uploads\/image\//, '');
-  const key = rawKey.includes('/') ? rawKey : `dishes/${rawKey}`;
-  const mediaOrigin = (
-    process.env.NEXT_PUBLIC_MEDIA_PUBLIC_URL ||
-    process.env.NEXT_PUBLIC_R2_MEDIA_URL ||
-    'https://media.ilbuoncaffe.pl'
-  ).replace(/\/+$/, '');
-
-  return `${mediaOrigin}/${key}`;
-}
-
 function normalizeWineDetails(details: WineDetails): WineDetails {
   const tastingNotes: Record<string, unknown> = isRecord(details.tastingNotes) ? details.tastingNotes : {};
 
-  const foodPairing: WineFoodPairing[] = Array.isArray(details.foodPairing)
-    ? details.foodPairing
-        .filter((item): item is WineFoodPairing => {
-          return isRecord(item) && typeof item.name === 'string' && typeof item.description === 'string';
-        })
-        .map((item) => ({
-          name: item.name,
-          description: item.description,
-          ...(typeof item.emoji === 'string' ? { emoji: item.emoji } : {}),
-          ...(typeof item.imageUrl === 'string' ? { imageUrl: normalizeUploadImageUrl(item.imageUrl) } : {}),
-          ...(typeof item.category === 'string' ? { category: item.category as WineFoodPairing['category'] } : {}),
-        }))
-    : [];
 
   const awards: WineAward[] = Array.isArray(details.awards)
     ? details.awards
@@ -433,7 +272,6 @@ function normalizeWineDetails(details: WineDetails): WineDetails {
       nose: toString(tastingNotes['nose'], defaultWineDetails.tastingNotes.nose),
       palate: toString(tastingNotes['palate'], defaultWineDetails.tastingNotes.palate),
     },
-    foodPairing,
     awards,
     countryCode: toString(details.countryCode, defaultWineDetails.countryCode),
   };
@@ -446,7 +284,7 @@ function normalizeWineDetails(details: WineDetails): WineDetails {
 /**
  * Głęboki merge dwóch obiektów. `override` nadpisuje pola z `base`.
  * Obsługuje zagnieżdżone obiekty (np. tastingNotes.nose).
- * Tablice (foodPairing, awards) są ZASTĘPOWANE, nie mergowane.
+ * Tablice (awards) są ZASTĘPOWANE, nie mergowane.
  */
 function deepMerge(base: WineDetails, override: Record<string, unknown>): WineDetails {
   const result: Record<string, unknown> = { ...base };
@@ -483,35 +321,6 @@ function getExtendedString(extended: Record<string, unknown>, key: string): stri
 function getProfileNumber(profile: Record<string, number>, key: string): number | undefined {
   const value = profile[key];
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
-}
-
-function mapContentPairing(content: ProductRichContent): WineFoodPairing[] | undefined {
-  const extendedPairing = content.extended['foodPairing'];
-  if (Array.isArray(extendedPairing)) {
-    const items = extendedPairing
-      .filter((item): item is Record<string, unknown> => isRecord(item))
-      .map((item) => {
-        const name = toString(item.name, toString(item.dish, ''));
-        const description = toString(item.description, toString(item.note, ''));
-        if (!name || !description) return null;
-        return {
-          name,
-          description,
-          ...(typeof item.emoji === 'string' ? { emoji: item.emoji } : {}),
-          ...(typeof item.imageUrl === 'string' ? { imageUrl: item.imageUrl } : {}),
-          ...(typeof item.category === 'string' ? { category: item.category as WineFoodPairing['category'] } : {}),
-        };
-      })
-      .filter((item): item is WineFoodPairing => item !== null);
-
-    if (items.length > 0) return items;
-  }
-
-  if (content.pairing.length === 0) return undefined;
-  return content.pairing.map((item) => ({
-    name: item.dish,
-    description: item.note || item.dish,
-  }));
 }
 
 function mapContentAwards(content: ProductRichContent): WineAward[] | undefined {
@@ -551,7 +360,6 @@ function productRichContentToWineDetails(content: ProductRichContent | null | un
   const tannins = getProfileNumber(content.profile, 'tannin') ?? getProfileNumber(content.profile, 'tannins');
   const acidity = getProfileNumber(content.profile, 'acidity');
   const sweetness = getProfileNumber(content.profile, 'sweetness');
-  const foodPairing = mapContentPairing(content);
   const awards = mapContentAwards(content);
 
   const mapped: Record<string, unknown> = {
@@ -574,7 +382,6 @@ function productRichContentToWineDetails(content: ProductRichContent | null | un
     ...(getExtendedString(extended, 'vinification') ? { vinification: getExtendedString(extended, 'vinification') } : {}),
     ...(getExtendedString(extended, 'wineryDescription') ? { wineryDescription: getExtendedString(extended, 'wineryDescription') } : {}),
     ...(getExtendedString(extended, 'countryCode') ? { countryCode: getExtendedString(extended, 'countryCode') } : {}),
-    ...(foodPairing ? { foodPairing } : {}),
     ...(awards ? { awards } : {}),
   };
 

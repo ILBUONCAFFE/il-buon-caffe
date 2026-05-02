@@ -9,7 +9,7 @@
  */
 
 import { neon } from '@neondatabase/serverless'
-import { wineDataCatalog, type WineDetails, type WineAward, type WineFoodPairing } from '../../../apps/web/src/content/products/wineData'
+import { wineDataCatalog, type WineDetails, type WineAward } from '../../../apps/web/src/content/products/wineData'
 
 const DATABASE_URL = process.env.DATABASE_URL
 const ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID
@@ -41,13 +41,6 @@ function toD1Awards(awards: WineAward[]) {
   }))
 }
 
-function toD1Pairing(pairing: WineFoodPairing[]) {
-  return pairing.map((item) => ({
-    dish: item.name,
-    note: item.description,
-  }))
-}
-
 function toExtended(details: WineDetails) {
   return {
     grape: details.grape,
@@ -64,7 +57,6 @@ function toExtended(details: WineDetails) {
     vinification: details.vinification,
     wineryDescription: details.wineryDescription ?? null,
     countryCode: details.countryCode,
-    foodPairing: details.foodPairing,
     awards: details.awards,
     isOrganic: details.isOrganic ?? false,
     isBiodynamic: details.isBiodynamic ?? false,
@@ -112,7 +104,6 @@ async function main() {
     }
 
     const awards = toD1Awards(details.awards)
-    const pairing = toD1Pairing(details.foodPairing)
     const profile = {
       body: details.bodyValue,
       sweetness: details.sweetness,
@@ -124,14 +115,13 @@ async function main() {
 
     const statement = `
       INSERT INTO product_content (
-        sku, category, awards, pairing, ritual, serving_temp, profile, sensory, extended,
+        sku, category, awards, ritual, serving_temp, profile, sensory, extended,
         has_awards, is_published, updated_at, version
       )
-      VALUES (?, 'wine', ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, 1)
+      VALUES (?, 'wine', ?, ?, ?, ?, ?, ?, ?, 1, ?, 1)
       ON CONFLICT(sku) DO UPDATE SET
         category = excluded.category,
         awards = excluded.awards,
-        pairing = excluded.pairing,
         ritual = excluded.ritual,
         serving_temp = excluded.serving_temp,
         profile = excluded.profile,
@@ -145,7 +135,6 @@ async function main() {
     const params = [
       sku,
       JSON.stringify(awards),
-      JSON.stringify(pairing),
       details.decanting,
       details.servingTemp,
       JSON.stringify(profile),

@@ -101,7 +101,6 @@ export interface WineDetails {
   alcohol?: number;
   style?: string;
   color?: string;
-  pairing?: string[];
   producer?: string;
   servingTemp?: string;
   aging?: string;
@@ -829,44 +828,11 @@ export interface Award {
   rank?: string
 }
 
-export interface Pairing {
-  dish: string
-  note?: string
-}
-
-export interface DishTemplate {
-  id: number
-  category: string
-  name: string
-  note: string | null
-  dishType: string | null
-  imageUrl: string | null
-  emoji: string | null
-  tags: string[]
-  isActive: boolean
-  sortOrder: number
-  createdAt: number
-  updatedAt: number
-}
-
-export interface UpsertDishTemplateRequest {
-  category?: string
-  name: string
-  note?: string | null
-  dishType?: string | null
-  imageUrl?: string | null
-  emoji?: string | null
-  tags?: string[]
-  isActive?: boolean
-  sortOrder?: number
-}
-
 export interface ProductRichContent {
   sku: string
   category: string
   producerSlug: string | null
   awards: Award[]
-  pairing: Pairing[]
   ritual: string | null
   servingTemp: string | null
   profile: FlavorProfile

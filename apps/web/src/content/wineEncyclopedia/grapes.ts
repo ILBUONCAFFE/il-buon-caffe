@@ -25,7 +25,6 @@ export const RED_GRAPE_VARIETIES: GrapeVariety[] = [
       tertiary: ['Cedr', 'Tytoń', 'Wanilia', 'Grafit', 'Skóra'],
     },
     agingPotential: '5-25+ lat dla top cru',
-    foodPairings: ['Stek z grilla', 'Jagnięcina', 'Dojrzałe sery', 'Gulasz wołowy'],
     servingTemp: { min: 16, max: 18 },
     image: {
       url: 'https://images.unsplash.com/photo-1596142046671-34bcc9f496e6?w=800',
@@ -53,7 +52,6 @@ export const RED_GRAPE_VARIETIES: GrapeVariety[] = [
       tertiary: ['Wanilia', 'Liść laurowy', 'Cedr'],
     },
     agingPotential: '3-15 lat',
-    foodPairings: ['Kaczka', 'Pasta z sosem mięsnym', 'Ser Brie', 'Pieczony kurczak'],
     servingTemp: { min: 15, max: 17 },
     image: {
       url: 'https://images.unsplash.com/photo-1568584711271-7b8673c93a42?w=800',
@@ -82,7 +80,6 @@ export const RED_GRAPE_VARIETIES: GrapeVariety[] = [
       tertiary: ['Grzyby', 'Liść jesieni', 'Trufa', 'Podszyt leśny'],
     },
     agingPotential: '3-20+ lat dla Grand Cru',
-    foodPairings: ['Łosoś', 'Kaczka', 'Kurczak pieczony', 'Grzyby', 'Tuńczyk'],
     servingTemp: { min: 14, max: 16 },
     image: {
       url: 'https://images.unsplash.com/photo-1567306226416-28f0efdc88ce?w=800',
@@ -111,7 +108,6 @@ export const RED_GRAPE_VARIETIES: GrapeVariety[] = [
       tertiary: ['Bekon', 'Skóra', 'Dym wędzarniczy'],
     },
     agingPotential: '5-20 lat',
-    foodPairings: ['Dziczyzna', 'Grillowane mięsa', 'BBQ', 'Ostre sery'],
     servingTemp: { min: 16, max: 18 },
     image: {
       url: 'https://images.unsplash.com/photo-1596142046671-34bcc9f496e6?w=800',
@@ -140,7 +136,6 @@ export const RED_GRAPE_VARIETIES: GrapeVariety[] = [
       tertiary: ['Skóra', 'Tytoń', 'Liść herbaty', 'Balsamico'],
     },
     agingPotential: '5-25 lat (Brunello)',
-    foodPairings: ['Pasta z pomidorami', 'Pizza', 'Bistecca alla fiorentina', 'Pecorino'],
     servingTemp: { min: 16, max: 18 },
     image: {
       url: 'https://images.unsplash.com/photo-1596142046671-34bcc9f496e6?w=800',
@@ -169,7 +164,6 @@ export const RED_GRAPE_VARIETIES: GrapeVariety[] = [
       tertiary: ['Smoła', 'Trufa', 'Liść herbaty', 'Skóra', 'Suszone zioła'],
     },
     agingPotential: '10-30+ lat',
-    foodPairings: ['Trufa biała', 'Risotto', 'Brasato', 'Dojrzałe sery'],
     servingTemp: { min: 16, max: 18 },
     image: {
       url: 'https://images.unsplash.com/photo-1596142046671-34bcc9f496e6?w=800',
@@ -198,7 +192,6 @@ export const RED_GRAPE_VARIETIES: GrapeVariety[] = [
       tertiary: ['Skóra', 'Tytoń', 'Dill'],
     },
     agingPotential: '5-20 lat',
-    foodPairings: ['Jagnięcina', 'Tapas', 'Chorizo', 'Manchego'],
     servingTemp: { min: 16, max: 18 },
     image: {
       url: 'https://images.unsplash.com/photo-1596142046671-34bcc9f496e6?w=800',
@@ -227,7 +220,6 @@ export const RED_GRAPE_VARIETIES: GrapeVariety[] = [
       tertiary: ['Wanilia', 'Skóra', 'Szata kadzidlana'],
     },
     agingPotential: '3-15 lat',
-    foodPairings: ['Stek argentyński', 'Empanadas', 'Grillowane mięsa', 'Blue cheese'],
     servingTemp: { min: 16, max: 18 },
     image: {
       url: 'https://images.unsplash.com/photo-1596142046671-34bcc9f496e6?w=800',
@@ -257,7 +249,6 @@ export const WHITE_GRAPE_VARIETIES: GrapeVariety[] = [
       tertiary: ['Wanilia', 'Karmel', 'Orzech laskowy', 'Dym'],
     },
     agingPotential: '3-10+ lat (Grand Cru)',
-    foodPairings: ['Homary', 'Kurczak w sosie śmietanowym', 'Ryby', 'Sery miękkie'],
     servingTemp: { min: 10, max: 12 },
     image: {
       url: 'https://images.unsplash.com/photo-1596142046671-34bcc9f496e6?w=800',
@@ -285,7 +276,6 @@ export const WHITE_GRAPE_VARIETIES: GrapeVariety[] = [
       tertiary: ['Krzemień (minerały)'],
     },
     agingPotential: '1-5 lat',
-    foodPairings: ['Kozi ser', 'Owoce morza', 'Sałatki', 'Szparagi'],
     servingTemp: { min: 8, max: 10 },
     image: {
       url: 'https://images.unsplash.com/photo-1596142046671-34bcc9f496e6?w=800',
@@ -312,7 +302,6 @@ export const WHITE_GRAPE_VARIETIES: GrapeVariety[] = [
       tertiary: ['Nuta naftowa (petrol)', 'Miód', 'Imbir'],
     },
     agingPotential: '5-30+ lat',
-    foodPairings: ['Kuchnia azjatycka', 'Pikantne potrawy', 'Pâté', 'Foie gras (wersje słodkie)'],
     servingTemp: { min: 8, max: 10 },
     image: {
       url: 'https://images.unsplash.com/photo-1596142046671-34bcc9f496e6?w=800',
@@ -340,7 +329,6 @@ export const WHITE_GRAPE_VARIETIES: GrapeVariety[] = [
       tertiary: ['Przyprawy korzenne (Alzacja)'],
     },
     agingPotential: '1-5 lat',
-    foodPairings: ['Owoce morza', 'Risotto', 'Lekkie pasty', 'Sałatki'],
     servingTemp: { min: 8, max: 10 },
     image: {
       url: 'https://images.unsplash.com/photo-1596142046671-34bcc9f496e6?w=800',
@@ -367,7 +355,6 @@ export const WHITE_GRAPE_VARIETIES: GrapeVariety[] = [
       tertiary: ['Miód', 'Muszkat'],
     },
     agingPotential: '2-10 lat',
-    foodPairings: ['Kuchnia azjatycka', 'Foie gras', 'Ostre curry', 'Sery pleśniowe'],
     servingTemp: { min: 10, max: 12 },
     image: {
       url: 'https://images.unsplash.com/photo-1596142046671-34bcc9f496e6?w=800',
@@ -394,7 +381,6 @@ export const WHITE_GRAPE_VARIETIES: GrapeVariety[] = [
       tertiary: ['Wanilia', 'Krem'],
     },
     agingPotential: '1-5 lat',
-    foodPairings: ['Dania z curry', 'Homary', 'Drób w sosach kremowych'],
     servingTemp: { min: 10, max: 12 },
     image: {
       url: 'https://images.unsplash.com/photo-1596142046671-34bcc9f496e6?w=800',

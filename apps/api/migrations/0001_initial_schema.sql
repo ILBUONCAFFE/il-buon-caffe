@@ -32,7 +32,6 @@ CREATE TABLE product_content (
 
   -- Wspólne dla każdej kategorii
   awards TEXT,        -- JSON: [{name, year, rank}]
-  pairing TEXT,       -- JSON: [{dish, note}]
   ritual TEXT,        -- markdown (serwowanie / parzenie / podanie)
   serving_temp TEXT,
 

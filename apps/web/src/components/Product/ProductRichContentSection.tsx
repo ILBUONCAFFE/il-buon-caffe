@@ -87,10 +87,9 @@ export function ProductRichContentSection({ content }: Props) {
   const hasProfile = Object.keys(content.profile).length > 0
   const hasSensory  = Object.values(content.sensory).some(Boolean)
   const hasAwards   = content.awards.length > 0
-  const hasPairing  = content.pairing.length > 0
   const hasRitual   = Boolean(content.ritual)
 
-  if (!hasProfile && !hasSensory && !hasAwards && !hasPairing && !hasRitual) return null
+  if (!hasProfile && !hasSensory && !hasAwards && !hasRitual) return null
 
   return (
     <div className="mt-16 space-y-12">
@@ -148,21 +147,6 @@ export function ProductRichContentSection({ content }: Props) {
                 <span className="font-semibold">Temperatura serwowania:</span> {content.servingTemp}
               </p>
             )}
-          </div>
-        </section>
-      )}
-
-      {/* Pairing */}
-      {hasPairing && (
-        <section>
-          <h2 className="text-2xl font-serif text-brand-900 mb-6">Pasuje do</h2>
-          <div className="flex flex-wrap gap-3">
-            {content.pairing.map((p, i) => (
-              <div key={i} className="bg-white rounded-xl px-4 py-3">
-                <p className="font-medium text-brand-900 text-sm">{p.dish}</p>
-                {p.note && <p className="text-xs text-brand-600 mt-1">{p.note}</p>}
-              </div>
-            ))}
           </div>
         </section>
       )}

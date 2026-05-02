@@ -13,10 +13,6 @@ import {
   listProducers,
   putProducer,
   getProducerHistory,
-  listDishTemplates,
-  createDishTemplate,
-  updateDishTemplate,
-  deleteDishTemplate,
 } from '../../lib/content-store'
 import type { Env } from '../../index'
 
@@ -33,28 +29,10 @@ const AwardSchema = z.object({
   rank: z.string().max(100).optional(),
 })
 
-const PairingSchema = z.object({
-  dish: z.string().min(1).max(200),
-  note: z.string().max(500).optional(),
-})
-
-const DishTemplateSchema = z.object({
-  category:  z.string().min(1).max(50).optional().default('wine'),
-  name:      z.string().min(1).max(200),
-  note:      z.string().max(500).nullable().optional(),
-  dishType:  z.string().max(100).nullable().optional(),
-  imageUrl:  z.string().max(500).nullable().optional(),
-  emoji:     z.string().max(20).nullable().optional(),
-  tags:      z.array(z.string().min(1).max(50)).max(20).optional(),
-  isActive:  z.boolean().optional(),
-  sortOrder: z.number().int().min(0).max(10000).optional(),
-})
-
 const ProductContentSchema = z.object({
   category:     z.string().min(1).max(50),
   producerSlug: z.string().max(100).nullable().optional(),
   awards:       z.array(AwardSchema).optional(),
-  pairing:      z.array(PairingSchema).optional(),
   ritual:       z.string().max(5000).nullable().optional(),
   servingTemp:  z.string().max(100).nullable().optional(),
   profile:      z.record(z.string(), z.number().min(0).max(100)).optional(),
@@ -268,76 +246,5 @@ adminContentRouter.get('/producer/:slug/history', async (c) => {
     return c.json({ data: history })
   } catch (err) {
     return serverError(c, 'GET /admin/content/producer/:slug/history', err)
-  }
-})
-
-// ── Dish template endpoints ──────────────────────────────────────────────────
-
-adminContentRouter.get('/dish-templates', async (c) => {
-  try {
-    const activeParam = c.req.query('active')
-    const list = await listDishTemplates(c.env.CONTENT_DB, {
-      category: c.req.query('category') || 'wine',
-      active: activeParam === undefined ? undefined : activeParam === 'true',
-      search: c.req.query('search') || undefined,
-    })
-    return c.json({ data: list })
-  } catch (err) {
-    return serverError(c, 'GET /admin/content/dish-templates', err)
-  }
-})
-
-adminContentRouter.post('/dish-templates', async (c) => {
-  try {
-    const sizeErr = checkContentLength(c, MAX_BODY)
-    if (sizeErr) return sizeErr
-
-    const raw = await c.req.json()
-    const parsed = DishTemplateSchema.safeParse(raw)
-    if (!parsed.success) {
-      return c.json({ error: { code: 'VALIDATION_ERROR', message: parsed.error.message } }, 400)
-    }
-
-    const result = await createDishTemplate(c.env.CONTENT_DB, parsed.data)
-    return c.json({ data: result }, 201)
-  } catch (err) {
-    return serverError(c, 'POST /admin/content/dish-templates', err)
-  }
-})
-
-adminContentRouter.put('/dish-templates/:id', async (c) => {
-  try {
-    const id = parseInt(c.req.param('id'), 10)
-    if (!Number.isInteger(id) || id <= 0) {
-      return c.json({ error: { code: 'INVALID_PARAM', message: 'Invalid dish template id' } }, 400)
-    }
-
-    const sizeErr = checkContentLength(c, MAX_BODY)
-    if (sizeErr) return sizeErr
-
-    const raw = await c.req.json()
-    const parsed = DishTemplateSchema.safeParse(raw)
-    if (!parsed.success) {
-      return c.json({ error: { code: 'VALIDATION_ERROR', message: parsed.error.message } }, 400)
-    }
-
-    const result = await updateDishTemplate(c.env.CONTENT_DB, id, parsed.data)
-    return c.json({ data: result })
-  } catch (err) {
-    return serverError(c, 'PUT /admin/content/dish-templates/:id', err)
-  }
-})
-
-adminContentRouter.delete('/dish-templates/:id', async (c) => {
-  try {
-    const id = parseInt(c.req.param('id'), 10)
-    if (!Number.isInteger(id) || id <= 0) {
-      return c.json({ error: { code: 'INVALID_PARAM', message: 'Invalid dish template id' } }, 400)
-    }
-
-    await deleteDishTemplate(c.env.CONTENT_DB, id)
-    return c.json({ data: { deleted: true } })
-  } catch (err) {
-    return serverError(c, 'DELETE /admin/content/dish-templates/:id', err)
   }
 })

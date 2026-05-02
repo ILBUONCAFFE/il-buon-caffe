@@ -11,7 +11,6 @@ import {
   Globe,
   Wine,
   GlassWater,
-  Utensils,
   Archive,
   Factory,
   Award,
@@ -35,7 +34,6 @@ const iconMap: Record<string, React.ReactNode> = {
   Globe: <Globe size={24} />,
   Wine: <Wine size={24} />,
   GlassWater: <GlassWater size={24} />,
-  Utensils: <Utensils size={24} />,
   Archive: <Archive size={24} />,
   Factory: <Factory size={24} />,
   Award: <Award size={24} />,
@@ -309,7 +307,7 @@ const WineEncyclopediaClient: React.FC = () => {
               className="text-white/70 text-lg md:text-xl leading-relaxed mb-10 max-w-2xl"
             >
               Kompletna baza wiedzy o winie - od podstaw po zaawansowane techniki.
-              Poznaj szczepy, regiony, sztukę degustacji i dobierania win do potraw.
+              Poznaj szczepy, regiony, sztukę degustacji i serwowania wina.
             </motion.p>
 
             {/* Search Bar */}
@@ -440,8 +438,8 @@ const WineEncyclopediaClient: React.FC = () => {
               Poszerz swoją wiedzę o winie
             </h3>
             <p className="text-brand-600 mb-8">
-              Zapisz się do newslettera i otrzymuj nowe artykuły, przepisy na 
-              parowanie win z potrawami oraz oferty specjalne.
+              Zapisz się do newslettera i otrzymuj nowe artykuły, wskazówki
+              degustacyjne oraz oferty specjalne.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <input

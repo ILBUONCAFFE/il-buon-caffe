@@ -556,7 +556,6 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
           category,
           producerSlug: selectedProducerSlug || null,
           awards: productRichContent?.awards,
-          pairing: productRichContent?.pairing,
           ritual: productRichContent?.ritual,
           servingTemp: productRichContent?.servingTemp,
           profile: productRichContent?.profile,

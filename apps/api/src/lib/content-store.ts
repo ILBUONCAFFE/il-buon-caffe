@@ -1,15 +1,12 @@
-import { eq, and, asc } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 import { createContentDb } from '@repo/content-db/client'
-import { dishTemplates, productContent, productContentHistory, producers, producersHistory } from '@repo/content-db/schema'
+import { productContent, productContentHistory, producers, producersHistory } from '@repo/content-db/schema'
 import type {
   ProductRichContent,
   ProducerContent,
   ContentHistoryEntry,
   ProducerHistoryEntry,
-  DishTemplate,
-  UpsertDishTemplateRequest,
   Award,
-  Pairing,
   FlavorProfile,
   SensoryNotes,
   ProducerEstateInfo,
@@ -31,7 +28,6 @@ function rowToProductRichContent(row: typeof productContent.$inferSelect): Produ
     category: row.category,
     producerSlug: row.producerSlug,
     awards: parseJson<Award[]>(row.awards, []),
-    pairing: parseJson<Pairing[]>(row.pairing, []),
     ritual: row.ritual,
     servingTemp: row.servingTemp,
     profile: parseJson<FlavorProfile>(row.profile, {}),
@@ -70,23 +66,6 @@ function rowToProducerContent(row: typeof producers.$inferSelect): ProducerConte
     website: row.website,
     updatedAt: row.updatedAt,
     version: row.version,
-  }
-}
-
-function rowToDishTemplate(row: typeof dishTemplates.$inferSelect): DishTemplate {
-  return {
-    id: row.id,
-    category: row.category,
-    name: row.name,
-    note: row.note,
-    dishType: row.dishType,
-    imageUrl: row.imageUrl,
-    emoji: row.emoji,
-    tags: parseJson<string[]>(row.tags, []),
-    isActive: row.isActive === 1,
-    sortOrder: row.sortOrder,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
   }
 }
 
@@ -151,7 +130,6 @@ export async function putProductContent(
     category,
     producerSlug: payload.producerSlug !== undefined ? payload.producerSlug : (current?.producerSlug ?? null),
     awards: awardsJson,
-    pairing: payload.pairing !== undefined ? JSON.stringify(payload.pairing) : (current?.pairing ?? JSON.stringify([])),
     ritual: payload.ritual !== undefined ? payload.ritual : (current?.ritual ?? null),
     servingTemp: payload.servingTemp !== undefined ? payload.servingTemp : (current?.servingTemp ?? null),
     profile: payload.profile !== undefined ? JSON.stringify(payload.profile) : (current?.profile ?? JSON.stringify({})),
@@ -202,14 +180,12 @@ export async function putProductWineDetails(
   const current = existing[0]
   const nextVersion = current ? current.version + 1 : 1
   const awards = current?.awards ?? JSON.stringify([])
-  const pairing = current?.pairing ?? JSON.stringify([])
 
   const values = {
     sku,
     category: current?.category ?? category,
     producerSlug: current?.producerSlug ?? null,
     awards,
-    pairing,
     ritual: current?.ritual ?? null,
     servingTemp: current?.servingTemp ?? null,
     profile: current?.profile ?? JSON.stringify({}),
@@ -398,86 +374,4 @@ export async function getProducerHistory(
     changedBy: r.changedBy,
     createdAt: r.createdAt,
   }))
-}
-
-// ── Dish templates ───────────────────────────────────────────────────────────
-
-export async function listDishTemplates(
-  d1: D1Database,
-  filters: { category?: string; active?: boolean; search?: string } = {}
-): Promise<DishTemplate[]> {
-  const db = createContentDb(d1)
-  const conditions = []
-  if (filters.category) conditions.push(eq(dishTemplates.category, filters.category))
-  if (filters.active !== undefined) conditions.push(eq(dishTemplates.isActive, filters.active ? 1 : 0))
-
-  const rows = conditions.length
-    ? await db.select().from(dishTemplates).where(and(...conditions)).orderBy(asc(dishTemplates.sortOrder), asc(dishTemplates.name))
-    : await db.select().from(dishTemplates).orderBy(asc(dishTemplates.sortOrder), asc(dishTemplates.name))
-
-  const search = filters.search?.trim().toLowerCase()
-  const mapped = rows.map(rowToDishTemplate)
-  if (!search) return mapped
-
-  return mapped.filter((item) =>
-    item.name.toLowerCase().includes(search) ||
-    (item.note ?? '').toLowerCase().includes(search) ||
-    (item.dishType ?? '').toLowerCase().includes(search) ||
-    item.tags.some((tag) => tag.toLowerCase().includes(search))
-  )
-}
-
-export async function createDishTemplate(
-  d1: D1Database,
-  payload: UpsertDishTemplateRequest
-): Promise<DishTemplate> {
-  const db = createContentDb(d1)
-  const ts = now()
-  const values = {
-    category: payload.category ?? 'wine',
-    name: payload.name,
-    note: payload.note ?? null,
-    dishType: payload.dishType ?? null,
-    imageUrl: payload.imageUrl ?? null,
-    emoji: payload.emoji ?? null,
-    tags: JSON.stringify(payload.tags ?? []),
-    isActive: payload.isActive === false ? 0 : 1,
-    sortOrder: payload.sortOrder ?? 0,
-    createdAt: ts,
-    updatedAt: ts,
-  }
-
-  const result = await db.insert(dishTemplates).values(values).returning()
-  return rowToDishTemplate(result[0])
-}
-
-export async function updateDishTemplate(
-  d1: D1Database,
-  id: number,
-  payload: UpsertDishTemplateRequest
-): Promise<DishTemplate> {
-  const db = createContentDb(d1)
-  const existing = await db.select().from(dishTemplates).where(eq(dishTemplates.id, id)).limit(1)
-  if (!existing[0]) throw new Error(`Dish template ${id} not found`)
-
-  const values = {
-    category: payload.category ?? existing[0].category,
-    name: payload.name,
-    note: payload.note ?? null,
-    dishType: payload.dishType ?? null,
-    imageUrl: payload.imageUrl ?? null,
-    emoji: payload.emoji ?? null,
-    tags: JSON.stringify(payload.tags ?? []),
-    isActive: payload.isActive === false ? 0 : 1,
-    sortOrder: payload.sortOrder ?? 0,
-    updatedAt: now(),
-  }
-
-  const result = await db.update(dishTemplates).set(values).where(eq(dishTemplates.id, id)).returning()
-  return rowToDishTemplate(result[0])
-}
-
-export async function deleteDishTemplate(d1: D1Database, id: number): Promise<void> {
-  const db = createContentDb(d1)
-  await db.delete(dishTemplates).where(eq(dishTemplates.id, id))
 }

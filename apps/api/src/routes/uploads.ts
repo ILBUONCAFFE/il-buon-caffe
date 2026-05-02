@@ -21,16 +21,15 @@ import { sanitize } from '../lib/sanitize'
  *   → Usuń plik z R2 (tylko admin)
  *
  * Foldery:
- *   dishes/    – zdjęcia talerzy (food pairing)
  *   products/  – zdjęcia butelek/produktów
  *   banners/   – banery CMS
  * ═══════════════════════════════════════════════════════════
  */
 
 // Dozwolone foldery i typy plików
-const ALLOWED_FOLDERS = ['dishes', 'products', 'banners', 'catalogs'] as const
+const ALLOWED_FOLDERS = ['products', 'banners', 'catalogs'] as const
 const ALLOWED_TYPES = ['image/webp', 'image/jpeg', 'image/png', 'image/avif', 'application/pdf']
-const PUBLIC_READ_PREFIXES = ['products/', 'dishes/', 'banners/'] as const
+const PUBLIC_READ_PREFIXES = ['products/', 'banners/'] as const
 const MAX_SIZE_MB = 4
 const MAX_PDF_SIZE_MB = 20
 const DEFAULT_MEDIA_PUBLIC_URL = 'https://media.ilbuoncaffe.pl'

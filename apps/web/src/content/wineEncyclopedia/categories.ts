@@ -71,19 +71,6 @@ export const WINE_ENCYCLOPEDIA_CATEGORIES: EncyclopediaCategory[] = [
     articleCount: 8,
   },
   {
-    id: 'pairing',
-    slug: 'parowanie',
-    name: 'Food Pairing',
-    namePl: 'Łączenie z Potrawami',
-    description: 'Zasady dobierania wina do jedzenia i idealnych kombinacji',
-    icon: 'Utensils',
-    image: {
-      url: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800',
-      alt: 'Wino i jedzenie',
-    },
-    articleCount: 15,
-  },
-  {
     id: 'storage',
     slug: 'przechowywanie',
     name: 'Wine Storage',

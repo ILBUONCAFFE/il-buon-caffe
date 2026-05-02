@@ -82,7 +82,7 @@ export const WINE_GLOSSARY: GlossaryTerm[] = [
   { id: 'reserve', term: 'Reserve / Reserva', termPl: 'Rezerwa', definition: 'W Hiszpanii - określony czas dojrzewania. W innych krajach - często marketingowy termin bez definicji prawnej.', category: 'Klasyfikacje' },
 
   // S
-  { id: 'sommelier', term: 'Sommelier', termPl: 'Sommelier', definition: 'Profesjonalista od wina w restauracji. Odpowiada za kartę win, serwis i parowanie z potrawami.', category: 'Profesja' },
+  { id: 'sommelier', term: 'Sommelier', termPl: 'Sommelier', definition: 'Profesjonalista od wina w restauracji. Odpowiada za kartę win i serwis.', category: 'Profesja' },
   { id: 'structure', term: 'Structure', termPl: 'Struktura', definition: 'Szkielet wina tworzony przez taniny (czerwone), kwasowość, alkohol i ekstrakt.', category: 'Degustacja' },
   { id: 'sulfites', term: 'Sulfites', termPl: 'Siarczyny', definition: 'Związki siarki dodawane jako konserwant i antyoksydant. Prawie wszystkie wina je zawierają.', category: 'Produkcja' },
 

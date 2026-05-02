@@ -7,7 +7,6 @@ export * from './grapes';
 export * from './regions';
 export * from './tasting';
 export * from './serving';
-export * from './pairing';
 export * from './storage';
 export * from './production';
 export * from './classifications';

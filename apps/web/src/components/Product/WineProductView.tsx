@@ -22,7 +22,6 @@ import { palette } from './wine/palette';
 import { CountryFlag } from './wine/CountryFlag';
 import { WineProfileSection } from './wine/WineProfileSection';
 import { TerroirSection } from './wine/TerroirSection';
-import { FoodPairingSection } from './wine/FoodPairingSection';
 import { ServingGuideSection } from './wine/ServingGuideSection';
 
 interface WineProductViewProps {
@@ -466,13 +465,6 @@ export const WineProductView = ({ product, categoryName, wineContent, producerCo
           TERROIR & WINERY
       ═══════════════════════════════════════════════════════════ */}
       <TerroirSection wineDetails={wineDetails} palette={palette} origin={product.origin} producer={producerContent ?? null} />
-
-      {/* ═══════════════════════════════════════════════════════════
-          FOOD PAIRING
-      ═══════════════════════════════════════════════════════════ */}
-      {wineDetails.foodPairing.length > 0 && (
-        <FoodPairingSection items={wineDetails.foodPairing} palette={palette} />
-      )}
 
       {/* ═══════════════════════════════════════════════════════════
           SERVING GUIDE

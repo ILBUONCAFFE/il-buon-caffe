@@ -16,21 +16,11 @@ import {
 } from 'lucide-react'
 import {
   adminApi,
-  type DishTemplate,
 } from '../../lib/adminApiClient'
 import type {
   WineDetails as CatalogWineDetails,
-  WineFoodPairing as CatalogWineFoodPairing,
   WineAward as CatalogWineAward,
 } from '@/content/products/wineData'
-
-type WinePairingDraft = {
-  name: string
-  description: string
-  emoji: string
-  imageUrl: string
-  category: string
-}
 
 type WineAwardDraft = {
   year: string
@@ -57,7 +47,6 @@ export type WineFormState = {
   isBiodynamic: boolean
   isNatural: boolean
   awards: WineAwardDraft[]
-  foodPairing: WinePairingDraft[]
 }
 
 export type WineEditorProductPreview = {
@@ -72,72 +61,6 @@ const EMPTY_AWARD: WineAwardDraft = {
   year: String(new Date().getFullYear()),
   award: '',
   competition: '',
-}
-
-const EMPTY_PAIRING: WinePairingDraft = {
-  name: '',
-  description: '',
-  emoji: '',
-  imageUrl: '',
-  category: '',
-}
-
-const MEDIA_PUBLIC_BASE_URL = (
-  process.env.NEXT_PUBLIC_MEDIA_PUBLIC_URL ||
-  process.env.NEXT_PUBLIC_R2_MEDIA_URL ||
-  'https://media.ilbuoncaffe.pl'
-).replace(/\/+$/, '')
-
-function encodeR2KeyForUrl(key: string): string {
-  return key
-    .split('/')
-    .filter(Boolean)
-    .map((part) => encodeURIComponent(part))
-    .join('/')
-}
-
-function decodeUrlPath(pathname: string): string {
-  return pathname
-    .split('/')
-    .filter(Boolean)
-    .map((part) => {
-      try {
-        return decodeURIComponent(part)
-      } catch {
-        return part
-      }
-    })
-    .join('/')
-}
-
-function normalizeDishImageUrl(raw: string): string {
-  const input = raw.trim()
-  if (!input) return ''
-
-  if (input.startsWith('/api/uploads/image/')) {
-    const key = decodeUrlPath(input.replace(/^\/api\/uploads\/image\//, ''))
-    return `${MEDIA_PUBLIC_BASE_URL}/${encodeR2KeyForUrl(key)}`
-  }
-
-  if (input.startsWith('api/uploads/image/')) {
-    const key = decodeUrlPath(input.replace(/^api\/uploads\/image\//, ''))
-    return `${MEDIA_PUBLIC_BASE_URL}/${encodeR2KeyForUrl(key)}`
-  }
-
-  if (/^https?:\/\//i.test(input)) {
-    try {
-      const parsed = new URL(input)
-      if (parsed.hostname.toLowerCase() === 'media.ilbuoncaffe.pl') {
-        const key = decodeUrlPath(parsed.pathname)
-        return `${MEDIA_PUBLIC_BASE_URL}/${encodeR2KeyForUrl(key)}`
-      }
-    } catch {
-      return input
-    }
-    return input
-  }
-
-  return `${MEDIA_PUBLIC_BASE_URL}/${encodeR2KeyForUrl(input.replace(/^\/+/, ''))}`
 }
 
 function trimText(value: string): string {
@@ -155,16 +78,6 @@ function toAwardDraft(value: CatalogWineAward): WineAwardDraft {
     year: String(value.year ?? ''),
     award: value.award ?? '',
     competition: value.competition ?? '',
-  }
-}
-
-function toPairingDraft(value: CatalogWineFoodPairing): WinePairingDraft {
-  return {
-    name: value.name ?? '',
-    description: value.description ?? '',
-    emoji: value.emoji ?? '',
-    imageUrl: value.imageUrl ? normalizeDishImageUrl(value.imageUrl) : '',
-    category: value.category ?? '',
   }
 }
 
@@ -188,7 +101,6 @@ export function createWineDetailsDraft(details: CatalogWineDetails): WineFormSta
     isBiodynamic: Boolean(details.isBiodynamic),
     isNatural: Boolean(details.isNatural),
     awards: (details.awards ?? []).map(toAwardDraft),
-    foodPairing: (details.foodPairing ?? []).map(toPairingDraft),
   }
 }
 
@@ -211,23 +123,6 @@ export function wineDetailsDraftToPayload(form: WineFormState): Record<string, u
     }))
     .filter((award) => Boolean(award.year) && Boolean(award.award))
 
-  const foodPairing = form.foodPairing
-    .map((item) => ({
-      name: trimText(item.name),
-      description: trimText(item.description),
-      emoji: trimText(item.emoji),
-      imageUrl: item.imageUrl.trim() ? normalizeDishImageUrl(item.imageUrl) : '',
-      category: trimText(item.category),
-    }))
-    .filter((item) => item.name || item.description || item.emoji || item.imageUrl || item.category)
-    .map((item) => ({
-      name: item.name,
-      description: item.description,
-      ...(item.emoji ? { emoji: item.emoji } : {}),
-      ...(item.imageUrl ? { imageUrl: item.imageUrl } : {}),
-      ...(item.category ? { category: item.category } : {}),
-    }))
-
   return {
     grape: trimText(form.grape) || undefined,
     alcohol: trimText(form.alcohol) || undefined,
@@ -249,7 +144,6 @@ export function wineDetailsDraftToPayload(form: WineFormState): Record<string, u
     isBiodynamic: form.isBiodynamic,
     isNatural: form.isNatural,
     awards,
-    foodPairing,
   }
 }
 
@@ -339,8 +233,6 @@ export function WineDetailsEditor({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
-  const [dishTemplates, setDishTemplates] = useState<DishTemplate[]>([])
-  const [selectedDishTemplateId, setSelectedDishTemplateId] = useState('')
   const initialForm = useMemo(() => createWineDetailsDraft(initialWineDetails), [initialWineDetails])
   const effectiveResetKey = resetKey ?? sku
 
@@ -353,13 +245,6 @@ export function WineDetailsEditor({
   useEffect(() => {
     onDraftChange?.(form)
   }, [form, onDraftChange])
-
-  useEffect(() => {
-    adminApi
-      .listDishTemplates({ category: 'wine', active: 'true' })
-      .then((res) => setDishTemplates(res.data))
-      .catch(() => setDishTemplates([]))
-  }, [])
 
   const productImage = useMemo(
     () => product.imageUrl || product.image || '',
@@ -403,37 +288,6 @@ export function WineDetailsEditor({
       next[index] = { ...next[index], [field]: value }
       return { ...prev, awards: next }
     })
-  }
-
-  const addPairing = () => setForm((prev) => ({ ...prev, foodPairing: [...prev.foodPairing, { ...EMPTY_PAIRING }] }))
-  const removePairing = (index: number) => setForm((prev) => ({ ...prev, foodPairing: prev.foodPairing.filter((_, itemIndex) => itemIndex !== index) }))
-  const updatePairing = (index: number, field: keyof WinePairingDraft, value: string) => {
-    setForm((prev) => {
-      const next = prev.foodPairing.slice()
-      next[index] = { ...next[index], [field]: value }
-      return { ...prev, foodPairing: next }
-    })
-  }
-
-  const insertDishTemplate = (templateId: string) => {
-    setSelectedDishTemplateId(templateId)
-    const template = dishTemplates.find((item) => String(item.id) === templateId)
-    if (!template) return
-
-    setForm((prev) => ({
-      ...prev,
-      foodPairing: [
-        ...prev.foodPairing,
-        {
-          name: template.name,
-          description: template.note ?? '',
-          emoji: template.emoji ?? '',
-          imageUrl: template.imageUrl ? normalizeDishImageUrl(template.imageUrl) : '',
-          category: template.dishType ?? '',
-        },
-      ],
-    }))
-    setSelectedDishTemplateId('')
   }
 
   return (
@@ -633,85 +487,6 @@ export function WineDetailsEditor({
                   >
                     <Trash2 size={16} />
                   </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </SectionCard>
-
-      <SectionCard
-        title="Pairing"
-        description="Potrawy i menu, które mają prowadzić klienta do zakupu wina."
-        action={<ArrayToolbar title="Lista pairingów" onAdd={addPairing} />}
-      >
-        {dishTemplates.length > 0 && (
-          <div className="rounded-lg border border-[#E5E4E1] bg-[#FAFAF9] p-3">
-            <label className="block text-xs font-medium uppercase tracking-wider text-[#737373] mb-1.5">
-              Wstaw gotowiec dania
-            </label>
-            <select
-              className="admin-input w-full"
-              value={selectedDishTemplateId}
-              onChange={(e) => insertDishTemplate(e.target.value)}
-            >
-              <option value="">Wybierz gotowiec z bazy</option>
-              {dishTemplates.map((template) => (
-                <option key={template.id} value={template.id}>
-                  {template.name}{template.dishType ? ` · ${template.dishType}` : ''}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {form.foodPairing.length === 0 ? (
-          <p className="text-sm text-[#A3A3A3] text-center py-6">Brak pairingów. Dodaj pierwsze danie lub set smakowy.</p>
-        ) : (
-          <div className="space-y-2">
-            {form.foodPairing.map((pairing, index) => (
-              <div key={index} className="rounded-lg border border-[#E5E4E1] bg-[#FAFAF9] p-3">
-                <div className="grid grid-cols-12 gap-2 items-start">
-                  <input
-                    className="admin-input col-span-12 md:col-span-4"
-                    value={pairing.name}
-                    onChange={(e) => updatePairing(index, 'name', e.target.value)}
-                    placeholder="Nazwa dania"
-                  />
-                  <input
-                    className="admin-input col-span-12 md:col-span-5"
-                    value={pairing.description}
-                    onChange={(e) => updatePairing(index, 'description', e.target.value)}
-                    placeholder="Opis"
-                  />
-                  <input
-                    className="admin-input col-span-6 md:col-span-1"
-                    value={pairing.emoji}
-                    onChange={(e) => updatePairing(index, 'emoji', e.target.value)}
-                    placeholder="Emoji"
-                  />
-                  <input
-                    className="admin-input col-span-5 md:col-span-1"
-                    value={pairing.category}
-                    onChange={(e) => updatePairing(index, 'category', e.target.value)}
-                    placeholder="Typ"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removePairing(index)}
-                    className="col-span-1 flex items-center justify-center h-9 rounded-lg text-[#A3A3A3] hover:text-red-600 hover:bg-red-50 transition-colors"
-                    aria-label="Usuń pairing"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                  <div className="col-span-12">
-                    <input
-                      className="admin-input w-full"
-                      value={pairing.imageUrl}
-                      onChange={(e) => updatePairing(index, 'imageUrl', e.target.value)}
-                      placeholder="URL obrazka (opcjonalnie)"
-                    />
-                  </div>
                 </div>
               </div>
             ))}

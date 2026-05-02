@@ -1,7 +1,7 @@
 /**
  * migrate-content-to-d1.ts
  *
- * Migrates awards/pairing/servingTemp from wineDetails JSONB (Neon) → D1 product_content.
+ * Migrates awards/servingTemp from wineDetails JSONB (Neon) → D1 product_content.
  *
  * Run:
  *   CLOUDFLARE_ACCOUNT_ID=xxx CLOUDFLARE_D1_TOKEN=xxx DATABASE_URL=xxx \
@@ -49,7 +49,6 @@ async function d1Exec(statement: string, params: unknown[] = []) {
 
 interface WineDetails {
   awards?: Array<{ name: string; year: number; rank?: string }>
-  pairing?: Array<{ dish: string; note?: string }>
   servingTemp?: string
   aging?: string
   grape?: string
@@ -80,10 +79,9 @@ async function main() {
     const details = (row.wine_details ?? {}) as WineDetails
 
     const awards  = details.awards  ?? []
-    const pairing = details.pairing ?? []
     const servingTemp = details.servingTemp ?? null
 
-    if (awards.length === 0 && pairing.length === 0 && !servingTemp) {
+    if (awards.length === 0 && !servingTemp) {
       skipped++
       continue
     }
@@ -91,11 +89,10 @@ async function main() {
     const ts = Math.floor(Date.now() / 1000)
 
     const stmt = `
-      INSERT INTO product_content (sku, category, awards, pairing, serving_temp, has_awards, is_published, updated_at, version)
-      VALUES (?, 'wine', ?, ?, ?, ?, 0, ?, 1)
+      INSERT INTO product_content (sku, category, awards, serving_temp, has_awards, is_published, updated_at, version)
+      VALUES (?, 'wine', ?, ?, ?, 0, ?, 1)
       ON CONFLICT(sku) DO UPDATE SET
         awards = excluded.awards,
-        pairing = excluded.pairing,
         serving_temp = excluded.serving_temp,
         has_awards = excluded.has_awards,
         updated_at = excluded.updated_at
@@ -103,14 +100,13 @@ async function main() {
     const params = [
       sku,
       JSON.stringify(awards),
-      JSON.stringify(pairing),
       servingTemp,
       awards.length > 0 ? 1 : 0,
       ts,
     ]
 
     if (DRY_RUN) {
-      console.log(`[DRY] Would migrate SKU ${sku}: ${awards.length} awards, ${pairing.length} pairings`)
+      console.log(`[DRY] Would migrate SKU ${sku}: ${awards.length} awards`)
     } else {
       await d1Exec(stmt, params)
       console.log(`Migrated SKU ${sku}`)

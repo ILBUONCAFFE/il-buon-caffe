@@ -834,52 +834,11 @@ export interface RichContentAward {
   rank?: string
 }
 
-export interface RichContentPairing {
-  dish: string
-  note?: string
-}
-
-export interface DishTemplate {
-  id: number
-  category: string
-  name: string
-  note: string | null
-  dishType: string | null
-  imageUrl: string | null
-  emoji: string | null
-  tags: string[]
-  isActive: boolean
-  sortOrder: number
-  createdAt: number
-  updatedAt: number
-}
-
-export interface DishTemplatesResponse {
-  data: DishTemplate[]
-}
-
-export interface DishTemplateResponse {
-  data: DishTemplate
-}
-
-export interface UpsertDishTemplatePayload {
-  category?: string
-  name: string
-  note?: string | null
-  dishType?: string | null
-  imageUrl?: string | null
-  emoji?: string | null
-  tags?: string[]
-  isActive?: boolean
-  sortOrder?: number
-}
-
 export interface ProductRichContent {
   sku: string
   category: string
   producerSlug: string | null
   awards: RichContentAward[]
-  pairing: RichContentPairing[]
   ritual: string | null
   servingTemp: string | null
   profile: Record<string, number>
@@ -900,7 +859,6 @@ export interface UpsertProductRichContentPayload {
   category: string
   producerSlug?: string | null
   awards?: RichContentAward[]
-  pairing?: RichContentPairing[]
   ritual?: string | null
   servingTemp?: string | null
   profile?: Record<string, number>

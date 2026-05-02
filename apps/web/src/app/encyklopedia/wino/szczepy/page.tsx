@@ -3,7 +3,7 @@ import GrapeVarietiesSection from "@/components/WineEncyclopedia/GrapeVarietiesS
 
 export const metadata: Metadata = {
   title: "Szczepy Winogron | Encyklopedia Wina | Il Buon Caffe",
-  description: "Poznaj najważniejsze odmiany winogron - od Cabernet Sauvignon po Chardonnay. Charakterystyki, pochodzenie, aromaty i parowanie z jedzeniem.",
+  description: "Poznaj najważniejsze odmiany winogron - od Cabernet Sauvignon po Chardonnay. Charakterystyki, pochodzenie i aromaty.",
   keywords: [
     "szczepy winogron",
     "odmiany winogron",
