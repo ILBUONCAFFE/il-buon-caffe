@@ -53,6 +53,11 @@ function rowToProducerContent(row: typeof producers.$inferSelect): ProducerConte
     region: row.region,
     country: row.country,
     founded: row.founded,
+    countryCode: row.countryCode,
+    established: row.established,
+    altitude: row.altitude,
+    soil: row.soil,
+    climate: row.climate,
     shortStory: row.shortStory,
     story: row.story,
     philosophy: row.philosophy,
@@ -132,25 +137,27 @@ export async function putProductContent(
     .where(eq(productContent.sku, sku))
     .limit(1)
 
-  const nextVersion = existing[0] ? existing[0].version + 1 : 1
-  const awards = payload.awards ?? []
+  const current = existing[0]
+  const nextVersion = current ? current.version + 1 : 1
+  const awardsJson = payload.awards !== undefined ? JSON.stringify(payload.awards) : (current?.awards ?? JSON.stringify([]))
+  const awards = parseJson<Award[]>(awardsJson, [])
 
   const values = {
     sku,
     category,
-    producerSlug: payload.producerSlug ?? existing[0]?.producerSlug ?? null,
-    awards: JSON.stringify(awards),
-    pairing: JSON.stringify(payload.pairing ?? []),
-    ritual: payload.ritual ?? existing[0]?.ritual ?? null,
-    servingTemp: payload.servingTemp ?? existing[0]?.servingTemp ?? null,
-    profile: JSON.stringify(payload.profile ?? {}),
-    sensory: JSON.stringify(payload.sensory ?? {}),
-    extended: JSON.stringify(payload.extended ?? {}),
+    producerSlug: payload.producerSlug !== undefined ? payload.producerSlug : (current?.producerSlug ?? null),
+    awards: awardsJson,
+    pairing: payload.pairing !== undefined ? JSON.stringify(payload.pairing) : (current?.pairing ?? JSON.stringify([])),
+    ritual: payload.ritual !== undefined ? payload.ritual : (current?.ritual ?? null),
+    servingTemp: payload.servingTemp !== undefined ? payload.servingTemp : (current?.servingTemp ?? null),
+    profile: payload.profile !== undefined ? JSON.stringify(payload.profile) : (current?.profile ?? JSON.stringify({})),
+    sensory: payload.sensory !== undefined ? JSON.stringify(payload.sensory) : (current?.sensory ?? JSON.stringify({})),
+    extended: payload.extended !== undefined ? JSON.stringify(payload.extended) : (current?.extended ?? JSON.stringify({})),
     wineDetails: payload.wineDetails !== undefined
       ? (payload.wineDetails ? JSON.stringify(payload.wineDetails) : null)
-      : (existing[0]?.wineDetails ?? null),
+      : (current?.wineDetails ?? null),
     hasAwards: awards.length > 0 ? 1 : 0,
-    isPublished: payload.isPublished !== undefined ? (payload.isPublished ? 1 : 0) : (existing[0]?.isPublished ?? 0),
+    isPublished: payload.isPublished !== undefined ? (payload.isPublished ? 1 : 0) : (current?.isPublished ?? 0),
     updatedAt: ts,
     version: nextVersion,
   }
@@ -159,7 +166,7 @@ export async function putProductContent(
   await db.batch([
     db.insert(productContentHistory).values({
       sku,
-      payload: JSON.stringify(existing[0] ?? {}),
+      payload: JSON.stringify(current ?? {}),
       changedBy: adminId,
       createdAt: ts,
     }),
@@ -331,6 +338,11 @@ export async function putProducer(
     region: payload.region,
     country: payload.country,
     founded: payload.founded,
+    countryCode: payload.countryCode,
+    established: payload.established,
+    altitude: payload.altitude,
+    soil: payload.soil,
+    climate: payload.climate,
     shortStory: payload.shortStory,
     story: payload.story,
     philosophy: payload.philosophy,

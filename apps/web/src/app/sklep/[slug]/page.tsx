@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { ProductClient } from "@/components/Product/ProductClient";
 import { ShopClient } from "@/components/Shop/ShopClient";
-import { ProductRichContentLoader, fetchProductRichContent } from "@/components/Product/ProductRichContentSection";
+import { ProductRichContentLoader, fetchProducerContent, fetchProductRichContent } from "@/components/Product/ProductRichContentSection";
 import { getProducts, getFilteredProducts } from "@/actions/products";
 import { getProductBySlug } from "@/lib/productFetchers";
 import type { Metadata } from "next";
@@ -257,6 +257,9 @@ export default async function ShopRoute({ params }: { params: Promise<{ slug: st
     ? await fetchProductRichContent(product.sku)
     : null;
   const publishedProductRichContent = productRichContent?.isPublished ? productRichContent : null;
+  const producerContent = publishedProductRichContent?.producerSlug
+    ? await fetchProducerContent(publishedProductRichContent.producerSlug)
+    : null;
 
   const breadcrumbJsonLd = {
     "@context": "https://schema.org",
@@ -272,7 +275,11 @@ export default async function ShopRoute({ params }: { params: Promise<{ slug: st
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
-      <ProductClient initialProduct={product} initialProductRichContent={publishedProductRichContent} />
+      <ProductClient
+        initialProduct={product}
+        initialProductRichContent={publishedProductRichContent}
+        initialProducerContent={producerContent}
+      />
       {!wineProduct && (
         <Suspense fallback={null}>
           <ProductRichContentLoader sku={product.sku} />

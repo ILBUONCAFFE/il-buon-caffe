@@ -901,6 +901,11 @@ export interface ProducerContent {
   region: string
   country: string
   founded: number | null
+  countryCode: string | null
+  established: string | null
+  altitude: string | null
+  soil: string | null
+  climate: string | null
   shortStory: string | null
   story: string | null
   philosophy: string | null

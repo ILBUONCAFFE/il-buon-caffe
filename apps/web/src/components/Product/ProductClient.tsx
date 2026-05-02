@@ -12,7 +12,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowLeft, Minus, Plus, Heart, Share2, Truck, Shield, RotateCcw, Check, ChevronRight } from 'lucide-react';
 import { Product } from '@/types';
-import type { ProductRichContent } from '@repo/types';
+import type { ProducerContent, ProductRichContent } from '@repo/types';
 import { getProductBySku, getProductBySlug } from '@/actions/products';
 import { SHOP_ENABLED } from '@/config/launch';
 import { ComingSoonBanner } from '@/components/ui/ComingSoonBanner';
@@ -36,9 +36,10 @@ const CATEGORY_NAMES: Record<string, string> = {
 export interface ProductClientProps {
   initialProduct?: Product | null;
   initialProductRichContent?: ProductRichContent | null;
+  initialProducerContent?: ProducerContent | null;
 }
 
-export const ProductClient = ({ initialProduct, initialProductRichContent }: ProductClientProps) => {
+export const ProductClient = ({ initialProduct, initialProductRichContent, initialProducerContent }: ProductClientProps) => {
   const params = useParams();
   const slug = params.slug as string;
   // const category = params.category as string; // We use product.category instead for reliability
@@ -105,7 +106,14 @@ export const ProductClient = ({ initialProduct, initialProductRichContent }: Pro
   const categoryName = product.category ? (CATEGORY_NAMES[product.category] || product.category) : '';
 
   if (isWine) {
-    return <WineProductView product={product} categoryName={categoryName} wineContent={initialProductRichContent ?? null} />;
+    return (
+      <WineProductView
+        product={product}
+        categoryName={categoryName}
+        wineContent={initialProductRichContent ?? null}
+        producerContent={initialProducerContent ?? null}
+      />
+    );
   }
   
   return (

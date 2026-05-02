@@ -24,6 +24,7 @@ import {
   type AdminCategory,
   type AdminProduct,
   type CreateAdminProductPayload,
+  type ProducerContent,
   type ProductRichContent,
   type UpdateAdminProductPayload,
   type UpsertProductRichContentPayload,
@@ -348,6 +349,8 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
   const [categories, setCategories] = useState<AdminCategory[]>([])
   const [product, setProduct] = useState<AdminProduct | null>(null)
   const [productRichContent, setProductRichContent] = useState<ProductRichContent | null>(null)
+  const [wineProducers, setWineProducers] = useState<ProducerContent[]>([])
+  const [selectedProducerSlug, setSelectedProducerSlug] = useState('')
   const [selectedImage, setSelectedImage] = useState<File | null>(null)
   const [wineDetailsDraft, setWineDetailsDraft] = useState<WineFormState | null>(null)
   const [richContentDraft, setRichContentDraft] = useState<UpsertProductRichContentPayload | null>(null)
@@ -373,6 +376,15 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
     } catch { setCategories([]) }
   }, [])
 
+  const loadWineProducers = useCallback(async () => {
+    try {
+      const res = await adminApi.listProducers({ category: 'wine' })
+      setWineProducers(res.data)
+    } catch {
+      setWineProducers([])
+    }
+  }, [])
+
   const loadProduct = useCallback(async () => {
     if (isCreateMode) return
     setLoading(true); setError(null)
@@ -389,17 +401,19 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
           if (!isNotFound) throw err
         }
       }
-      setProduct(res.data); setProductRichContent(content); setForm(mapProductToForm(res.data)); setWineDetailsDraft(null); setRichContentDraft(null)
+      setProduct(res.data); setProductRichContent(content); setSelectedProducerSlug(content?.producerSlug ?? ''); setForm(mapProductToForm(res.data)); setWineDetailsDraft(null); setRichContentDraft(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Nie udało się pobrać produktu')
       setProduct(null)
       setProductRichContent(null)
+      setSelectedProducerSlug('')
     } finally { setLoading(false) }
   }, [isCreateMode, sku])
 
   useEffect(() => { void loadCategories() }, [loadCategories])
+  useEffect(() => { void loadWineProducers() }, [loadWineProducers])
   useEffect(() => {
-    if (isCreateMode) { setForm(DEFAULT_FORM); setProduct(null); setProductRichContent(null); setLoading(false); return }
+    if (isCreateMode) { setForm(DEFAULT_FORM); setProduct(null); setProductRichContent(null); setSelectedProducerSlug(''); setLoading(false); return }
     void loadProduct()
   }, [isCreateMode, loadProduct])
 
@@ -530,6 +544,22 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
       }
       if (wineDetails) {
         const updatedContent = await adminApi.upsertProductWineDetails(sku, wineDetails)
+        setProductRichContent(updatedContent.data)
+      }
+      if (!isCreateMode && isWineCategorySlug(selectedCategorySlug)) {
+        const category = productRichContent?.category || 'wine'
+        const updatedContent = await adminApi.upsertProductRichContent(sku, {
+          category,
+          producerSlug: selectedProducerSlug || null,
+          awards: productRichContent?.awards,
+          pairing: productRichContent?.pairing,
+          ritual: productRichContent?.ritual,
+          servingTemp: productRichContent?.servingTemp,
+          profile: productRichContent?.profile,
+          sensory: productRichContent?.sensory,
+          extended: productRichContent?.extended,
+          isPublished: productRichContent?.isPublished ?? true,
+        })
         setProductRichContent(updatedContent.data)
       }
 
@@ -1055,14 +1085,43 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
           )}
 
           {activeTab === 'tresc' && !isCreateMode && product && isWineCategory && (
-            <WineDetailsEditor
-              sku={sku}
-              product={product}
-              initialWineDetails={getWineDetailsForProduct(product, productRichContent)}
-              embedded
-              draft={wineDetailsDraft}
-              onDraftChange={handleWineDetailsDraftChange}
-            />
+            <div className="space-y-5">
+              <SectionCard title="Winnica">
+                <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 items-end">
+                  <Field label="Przypisana winnica z D1">
+                    <select
+                      className="admin-input w-full"
+                      value={selectedProducerSlug}
+                      onChange={(e) => setSelectedProducerSlug(e.target.value)}
+                    >
+                      <option value="">Brak przypisanej winnicy</option>
+                      {wineProducers.map((producer) => (
+                        <option key={producer.slug} value={producer.slug}>
+                          {producer.name} — {producer.region}, {producer.country}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Link
+                    href="/admin/content"
+                    className="btn-secondary text-sm inline-flex items-center justify-center"
+                  >
+                    Zarządzaj winnicami
+                  </Link>
+                </div>
+                <p className="text-xs text-[#737373]">
+                  Opis i kafelki sekcji Historia & Terroir będą pobierane z rekordu winnicy w D1.
+                </p>
+              </SectionCard>
+              <WineDetailsEditor
+                sku={sku}
+                product={product}
+                initialWineDetails={getWineDetailsForProduct(product, productRichContent)}
+                embedded
+                draft={wineDetailsDraft}
+                onDraftChange={handleWineDetailsDraftChange}
+              />
+            </div>
           )}
           {activeTab === 'tresc' && !isCreateMode && product && !isWineCategory && (
             <RichContentEditor

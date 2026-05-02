@@ -14,7 +14,7 @@ import { useNotification } from '@/components/Notification/NotificationProvider'
 import { getProductBySku } from '@/actions/products';
 import { Product } from '@/types';
 import { getWineDetailsForProduct } from '@/content/products/wineData';
-import type { ProductRichContent } from '@repo/types';
+import type { ProducerContent, ProductRichContent } from '@repo/types';
 import { SHOP_ENABLED } from '@/config/launch';
 import { ComingSoonBanner } from '@/components/ui/ComingSoonBanner';
 
@@ -29,9 +29,10 @@ interface WineProductViewProps {
   product: Product;
   categoryName: string;
   wineContent?: ProductRichContent | null;
+  producerContent?: ProducerContent | null;
 }
 
-export const WineProductView = ({ product, categoryName, wineContent }: WineProductViewProps) => {
+export const WineProductView = ({ product, categoryName, wineContent, producerContent }: WineProductViewProps) => {
   const { addToCart, items } = useCart();
   const { notify } = useNotification();
 
@@ -464,7 +465,7 @@ export const WineProductView = ({ product, categoryName, wineContent }: WineProd
       {/* ═══════════════════════════════════════════════════════════
           TERROIR & WINERY
       ═══════════════════════════════════════════════════════════ */}
-      <TerroirSection wineDetails={wineDetails} palette={palette} origin={product.origin} />
+      <TerroirSection wineDetails={wineDetails} palette={palette} origin={product.origin} producer={producerContent ?? null} />
 
       {/* ═══════════════════════════════════════════════════════════
           FOOD PAIRING

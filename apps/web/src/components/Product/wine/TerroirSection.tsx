@@ -8,20 +8,25 @@ import { Section } from './Section';
 import { CountryFlag } from './CountryFlag';
 import type { PaletteType } from './palette';
 import type { WineDetails } from '@/content/products/wineData';
+import type { ProducerContent } from '@repo/types';
 
 interface TerroirSectionProps {
   wineDetails: WineDetails;
   palette: PaletteType;
   origin?: string;
+  producer?: ProducerContent | null;
 }
 
-export const TerroirSection = ({ wineDetails, palette, origin }: TerroirSectionProps) => {
+export const TerroirSection = ({ wineDetails, palette, origin, producer }: TerroirSectionProps) => {
+  const wineryName = producer?.name || wineDetails.winery;
+  const countryCode = producer?.countryCode || wineDetails.countryCode;
+  const description = producer?.story || wineDetails.wineryDescription;
   const stats = [
-    { value: wineDetails.altitude, label: "Wysokość" },
-    { value: `${wineDetails.established}`, label: "Rok założenia" },
-    { value: wineDetails.soil, label: "Gleba" },
-    { value: wineDetails.climate, label: "Klimat" },
-  ];
+    { value: producer?.altitude || wineDetails.altitude, label: "Wysokość" },
+    { value: producer?.established || wineDetails.established, label: "Rok założenia" },
+    { value: producer?.soil || wineDetails.soil, label: "Gleba" },
+    { value: producer?.climate || wineDetails.climate, label: "Klimat" },
+  ].filter((stat) => Boolean(stat.value));
 
   const certifications = [
     {
@@ -58,12 +63,12 @@ export const TerroirSection = ({ wineDetails, palette, origin }: TerroirSectionP
               Historia & Terroir
             </span>
             <h2 className="text-3xl md:text-4xl font-serif mb-6 flex items-center gap-3" style={{ color: palette.text }}>
-              {wineDetails.countryCode && <CountryFlag countryCode={wineDetails.countryCode} size={28} />}
-              {wineDetails.winery}
+              {countryCode && <CountryFlag countryCode={countryCode} size={28} />}
+              {wineryName}
             </h2>
-            {wineDetails.wineryDescription ? (
+            {description ? (
               <div className="mb-6 space-y-4">
-                {wineDetails.wineryDescription.split('\n\n').map((paragraph, idx) => (
+                {description.split('\n\n').map((paragraph, idx) => (
                   <p
                     key={idx}
                     className="text-base leading-[1.8]"

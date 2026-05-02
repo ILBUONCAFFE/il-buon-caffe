@@ -1,10 +1,16 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { CheckCircle2, Edit3, Globe, RefreshCw, Save, Search, Trash2, Utensils, X } from 'lucide-react'
-import { adminApi, type DishTemplate, type UpsertDishTemplatePayload } from '../../lib/adminApiClient'
+import { Building2, CheckCircle2, Edit3, Globe, RefreshCw, Save, Search, Trash2, Utensils, X } from 'lucide-react'
+import {
+  adminApi,
+  type DishTemplate,
+  type ProducerContent,
+  type UpsertDishTemplatePayload,
+  type UpsertProducerPayload,
+} from '../../lib/adminApiClient'
 
-type CmsTab = 'hero' | 'products' | 'dishTemplates'
+type CmsTab = 'wineries' | 'hero' | 'products' | 'dishTemplates'
 
 type DishTemplateForm = {
   id: number | null
@@ -18,6 +24,21 @@ type DishTemplateForm = {
   isActive: boolean
 }
 
+type WineryForm = {
+  slug: string
+  name: string
+  country: string
+  countryCode: string
+  region: string
+  established: string
+  altitude: string
+  soil: string
+  climate: string
+  shortStory: string
+  story: string
+  website: string
+}
+
 const EMPTY_DISH_FORM: DishTemplateForm = {
   id: null,
   name: '',
@@ -28,6 +49,21 @@ const EMPTY_DISH_FORM: DishTemplateForm = {
   tagsText: '',
   sortOrder: '0',
   isActive: true,
+}
+
+const EMPTY_WINERY_FORM: WineryForm = {
+  slug: '',
+  name: '',
+  country: '',
+  countryCode: '',
+  region: '',
+  established: '',
+  altitude: '',
+  soil: '',
+  climate: '',
+  shortStory: '',
+  story: '',
+  website: '',
 }
 
 const MEDIA_PUBLIC_BASE_URL = (
@@ -123,6 +159,55 @@ function toPayload(form: DishTemplateForm): UpsertDishTemplatePayload {
   }
 }
 
+function slugify(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 100)
+}
+
+function toWineryForm(producer: ProducerContent): WineryForm {
+  return {
+    slug: producer.slug,
+    name: producer.name,
+    country: producer.country,
+    countryCode: producer.countryCode ?? '',
+    region: producer.region,
+    established: producer.established ?? (producer.founded ? String(producer.founded) : ''),
+    altitude: producer.altitude ?? '',
+    soil: producer.soil ?? '',
+    climate: producer.climate ?? '',
+    shortStory: producer.shortStory ?? '',
+    story: producer.story ?? '',
+    website: producer.website ?? '',
+  }
+}
+
+function toWineryPayload(form: WineryForm): UpsertProducerPayload {
+  const founded = Number(form.established.trim())
+  return {
+    category: 'wine',
+    name: form.name.trim(),
+    region: form.region.trim(),
+    country: form.country.trim(),
+    founded: Number.isInteger(founded) && founded >= 1000 && founded <= 2100 ? founded : null,
+    countryCode: form.countryCode.trim().toLowerCase() || null,
+    established: form.established.trim() || null,
+    altitude: form.altitude.trim() || null,
+    soil: form.soil.trim() || null,
+    climate: form.climate.trim() || null,
+    shortStory: form.shortStory.trim() || null,
+    story: form.story.trim() || null,
+    philosophy: null,
+    estateInfo: [],
+    images: [],
+    website: form.website.trim() || null,
+  }
+}
+
 function TabButton({
   active,
   onClick,
@@ -146,7 +231,7 @@ function TabButton({
 }
 
 export const CmsView = () => {
-  const [activeTab, setActiveTab] = useState<CmsTab>('dishTemplates')
+  const [activeTab, setActiveTab] = useState<CmsTab>('wineries')
   const [dishTemplates, setDishTemplates] = useState<DishTemplate[]>([])
   const [dishForm, setDishForm] = useState<DishTemplateForm>(EMPTY_DISH_FORM)
   const [dishSearch, setDishSearch] = useState('')
@@ -154,6 +239,14 @@ export const CmsView = () => {
   const [dishSaving, setDishSaving] = useState(false)
   const [dishError, setDishError] = useState<string | null>(null)
   const [dishMessage, setDishMessage] = useState<string | null>(null)
+  const [wineries, setWineries] = useState<ProducerContent[]>([])
+  const [wineryForm, setWineryForm] = useState<WineryForm>(EMPTY_WINERY_FORM)
+  const [editingWinerySlug, setEditingWinerySlug] = useState<string | null>(null)
+  const [winerySearch, setWinerySearch] = useState('')
+  const [wineryLoading, setWineryLoading] = useState(false)
+  const [winerySaving, setWinerySaving] = useState(false)
+  const [wineryError, setWineryError] = useState<string | null>(null)
+  const [wineryMessage, setWineryMessage] = useState<string | null>(null)
 
   const filteredDishTemplates = useMemo(() => {
     const query = dishSearch.trim().toLowerCase()
@@ -166,6 +259,19 @@ export const CmsView = () => {
       template.tags.some((tag) => tag.toLowerCase().includes(query))
     )
   }, [dishSearch, dishTemplates])
+
+  const filteredWineries = useMemo(() => {
+    const query = winerySearch.trim().toLowerCase()
+    if (!query) return wineries
+
+    return wineries.filter((producer) =>
+      producer.name.toLowerCase().includes(query) ||
+      producer.slug.toLowerCase().includes(query) ||
+      producer.region.toLowerCase().includes(query) ||
+      producer.country.toLowerCase().includes(query) ||
+      (producer.shortStory ?? '').toLowerCase().includes(query)
+    )
+  }, [winerySearch, wineries])
 
   const loadDishTemplates = async () => {
     setDishLoading(true)
@@ -180,14 +286,35 @@ export const CmsView = () => {
     }
   }
 
+  const loadWineries = async () => {
+    setWineryLoading(true)
+    setWineryError(null)
+    try {
+      const res = await adminApi.listProducers({ category: 'wine' })
+      setWineries(res.data)
+    } catch (err) {
+      setWineryError(err instanceof Error ? err.message : 'Nie udało się pobrać winnic')
+    } finally {
+      setWineryLoading(false)
+    }
+  }
+
   useEffect(() => {
     void loadDishTemplates()
+    void loadWineries()
   }, [])
 
   const resetDishForm = () => {
     setDishForm(EMPTY_DISH_FORM)
     setDishError(null)
     setDishMessage(null)
+  }
+
+  const resetWineryForm = () => {
+    setWineryForm(EMPTY_WINERY_FORM)
+    setEditingWinerySlug(null)
+    setWineryError(null)
+    setWineryMessage(null)
   }
 
   const saveDishTemplate = async () => {
@@ -215,6 +342,36 @@ export const CmsView = () => {
       setDishError(err instanceof Error ? err.message : 'Nie udało się zapisać gotowca')
     } finally {
       setDishSaving(false)
+    }
+  }
+
+  const saveWinery = async () => {
+    const slug = (editingWinerySlug ?? (wineryForm.slug.trim() || slugify(wineryForm.name))).trim()
+    if (!slug) {
+      setWineryError('Slug winnicy jest wymagany')
+      return
+    }
+
+    const payload = toWineryPayload(wineryForm)
+    if (!payload.name || !payload.region || !payload.country) {
+      setWineryError('Nazwa, region i kraj są wymagane')
+      return
+    }
+
+    setWinerySaving(true)
+    setWineryError(null)
+    setWineryMessage(null)
+
+    try {
+      await adminApi.upsertProducer(slug, payload)
+      setWineryMessage(editingWinerySlug ? 'Zapisano winnicę' : 'Dodano winnicę')
+      setWineryForm(EMPTY_WINERY_FORM)
+      setEditingWinerySlug(null)
+      await loadWineries()
+    } catch (err) {
+      setWineryError(err instanceof Error ? err.message : 'Nie udało się zapisać winnicy')
+    } finally {
+      setWinerySaving(false)
     }
   }
 
@@ -250,6 +407,9 @@ export const CmsView = () => {
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0">
         <div className="lg:col-span-4 flex flex-col bg-white border border-[#E5E4E1] rounded-2xl overflow-hidden">
           <div className="flex border-b border-[#E5E4E1] bg-[#FAF9F7]">
+            <TabButton active={activeTab === 'wineries'} onClick={() => setActiveTab('wineries')}>
+              Winnice
+            </TabButton>
             <TabButton active={activeTab === 'dishTemplates'} onClick={() => setActiveTab('dishTemplates')}>
               Gotowce dań
             </TabButton>
@@ -262,6 +422,133 @@ export const CmsView = () => {
           </div>
 
           <div className="flex-1 overflow-y-auto p-5 space-y-6">
+            {activeTab === 'wineries' && (
+              <div className="space-y-4 animate-in fade-in">
+                <div className="flex items-center gap-2 text-[#1A1A1A]">
+                  <Building2 size={18} />
+                  <p className="text-sm font-semibold">Baza winnic do stron produktów</p>
+                </div>
+
+                {wineryError && (
+                  <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{wineryError}</div>
+                )}
+                {wineryMessage && (
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700 flex items-start gap-2">
+                    <CheckCircle2 size={16} className="mt-0.5 shrink-0" /> {wineryMessage}
+                  </div>
+                )}
+
+                <div className="space-y-3 rounded-xl border border-[#E5E4E1] bg-[#FAFAF9] p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-medium text-[#1A1A1A]">
+                      {editingWinerySlug ? 'Edycja winnicy' : 'Nowa winnica'}
+                    </p>
+                    {editingWinerySlug && (
+                      <button
+                        type="button"
+                        onClick={resetWineryForm}
+                        className="inline-flex items-center gap-1.5 text-xs text-[#737373] hover:text-[#1A1A1A]"
+                      >
+                        <X size={14} /> Anuluj
+                      </button>
+                    )}
+                  </div>
+
+                  <input
+                    className="admin-input w-full"
+                    value={wineryForm.name}
+                    onChange={(e) => setWineryForm((prev) => ({
+                      ...prev,
+                      name: e.target.value,
+                      slug: editingWinerySlug ? prev.slug : slugify(e.target.value),
+                    }))}
+                    placeholder="Nazwa, np. Bodegas Barahonda"
+                  />
+                  <input
+                    className="admin-input w-full font-mono text-xs"
+                    value={wineryForm.slug}
+                    disabled={Boolean(editingWinerySlug)}
+                    onChange={(e) => setWineryForm((prev) => ({ ...prev, slug: slugify(e.target.value) }))}
+                    placeholder="slug-winnicy"
+                  />
+                  <div className="grid grid-cols-1 md:grid-cols-[1fr_90px] gap-2">
+                    <input
+                      className="admin-input w-full"
+                      value={wineryForm.country}
+                      onChange={(e) => setWineryForm((prev) => ({ ...prev, country: e.target.value }))}
+                      placeholder="Kraj, np. Hiszpania"
+                    />
+                    <input
+                      className="admin-input w-full uppercase"
+                      value={wineryForm.countryCode}
+                      onChange={(e) => setWineryForm((prev) => ({ ...prev, countryCode: e.target.value.slice(0, 2).toLowerCase() }))}
+                      placeholder="es"
+                    />
+                  </div>
+                  <input
+                    className="admin-input w-full"
+                    value={wineryForm.region}
+                    onChange={(e) => setWineryForm((prev) => ({ ...prev, region: e.target.value }))}
+                    placeholder="Region / apelacja, np. D.O. Yecla"
+                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <input
+                      className="admin-input w-full"
+                      value={wineryForm.established}
+                      onChange={(e) => setWineryForm((prev) => ({ ...prev, established: e.target.value }))}
+                      placeholder="Rok założenia, np. 1925 / 2006"
+                    />
+                    <input
+                      className="admin-input w-full"
+                      value={wineryForm.altitude}
+                      onChange={(e) => setWineryForm((prev) => ({ ...prev, altitude: e.target.value }))}
+                      placeholder="Wysokość, np. 700-800 m n.p.m."
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <input
+                      className="admin-input w-full"
+                      value={wineryForm.soil}
+                      onChange={(e) => setWineryForm((prev) => ({ ...prev, soil: e.target.value }))}
+                      placeholder="Gleba"
+                    />
+                    <input
+                      className="admin-input w-full"
+                      value={wineryForm.climate}
+                      onChange={(e) => setWineryForm((prev) => ({ ...prev, climate: e.target.value }))}
+                      placeholder="Klimat"
+                    />
+                  </div>
+                  <textarea
+                    className="admin-textarea w-full min-h-[84px]"
+                    value={wineryForm.shortStory}
+                    onChange={(e) => setWineryForm((prev) => ({ ...prev, shortStory: e.target.value }))}
+                    placeholder="Krótki opis winnicy"
+                  />
+                  <textarea
+                    className="admin-textarea w-full min-h-[180px]"
+                    value={wineryForm.story}
+                    onChange={(e) => setWineryForm((prev) => ({ ...prev, story: e.target.value }))}
+                    placeholder="Pełny opis do sekcji Historia & Terroir. Akapity oddziel pustą linią."
+                  />
+                  <input
+                    className="admin-input w-full"
+                    value={wineryForm.website}
+                    onChange={(e) => setWineryForm((prev) => ({ ...prev, website: e.target.value }))}
+                    placeholder="Strona WWW"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void saveWinery()}
+                    disabled={winerySaving}
+                    className="btn-primary w-full inline-flex items-center justify-center gap-2 disabled:opacity-40"
+                  >
+                    <Save size={15} /> {winerySaving ? 'Zapisywanie…' : editingWinerySlug ? 'Zapisz winnicę' : 'Dodaj winnicę'}
+                  </button>
+                </div>
+              </div>
+            )}
+
             {activeTab === 'dishTemplates' && (
               <div className="space-y-4 animate-in fade-in">
                 <div className="flex items-center gap-2 text-[#1A1A1A]">
@@ -415,7 +702,87 @@ export const CmsView = () => {
           </div>
 
           <div className="flex-1 overflow-y-auto bg-white">
-            {activeTab === 'dishTemplates' ? (
+            {activeTab === 'wineries' ? (
+              <div className="p-6 space-y-5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-lg font-semibold text-[#1A1A1A]">Winnice</h3>
+                    <p className="text-sm text-[#737373] mt-1">Te wpisy zasilają sekcję Historia & Terroir na stronach win.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void loadWineries()}
+                    className="btn-secondary text-sm inline-flex items-center gap-2"
+                  >
+                    <RefreshCw size={14} /> Odśwież
+                  </button>
+                </div>
+
+                <div className="relative">
+                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A3A3A3]" />
+                  <input
+                    className="admin-input w-full pl-9"
+                    value={winerySearch}
+                    onChange={(e) => setWinerySearch(e.target.value)}
+                    placeholder="Szukaj po nazwie, slugu, kraju, regionie lub opisie"
+                  />
+                </div>
+
+                {wineryLoading ? (
+                  <div className="h-32 bg-[#F5F4F1] rounded-xl animate-pulse" />
+                ) : filteredWineries.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-[#D4D3D0] p-10 text-center">
+                    <Building2 size={24} className="mx-auto text-[#A3A3A3]" />
+                    <p className="text-sm text-[#737373] mt-3">Brak winnic dla obecnego wyszukiwania.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                    {filteredWineries.map((producer) => (
+                      <div key={producer.slug} className="rounded-xl border border-[#E5E4E1] bg-[#FAFAF9] p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <h4 className="font-semibold text-[#1A1A1A] truncate">{producer.name}</h4>
+                            <p className="text-xs text-[#737373] mt-1">
+                              {[producer.region, producer.country].filter(Boolean).join(' · ')}
+                            </p>
+                            <p className="text-[11px] text-[#A3A3A3] mt-1 font-mono truncate">{producer.slug}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setWineryForm(toWineryForm(producer))
+                              setEditingWinerySlug(producer.slug)
+                              setWineryError(null)
+                              setWineryMessage(null)
+                            }}
+                            className="p-1.5 rounded-lg text-[#525252] hover:bg-white hover:text-[#1A1A1A] transition-colors shrink-0"
+                            aria-label="Edytuj winnicę"
+                          >
+                            <Edit3 size={15} />
+                          </button>
+                        </div>
+
+                        {producer.shortStory && <p className="text-sm text-[#525252] mt-3 leading-relaxed">{producer.shortStory}</p>}
+                        <div className="grid grid-cols-2 gap-2 mt-3 text-xs">
+                          {producer.established && (
+                            <span className="rounded-lg bg-white border border-[#E5E4E1] px-2 py-1 text-[#737373]">{producer.established}</span>
+                          )}
+                          {producer.altitude && (
+                            <span className="rounded-lg bg-white border border-[#E5E4E1] px-2 py-1 text-[#737373]">{producer.altitude}</span>
+                          )}
+                          {producer.soil && (
+                            <span className="rounded-lg bg-white border border-[#E5E4E1] px-2 py-1 text-[#737373]">{producer.soil}</span>
+                          )}
+                          {producer.climate && (
+                            <span className="rounded-lg bg-white border border-[#E5E4E1] px-2 py-1 text-[#737373]">{producer.climate}</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : activeTab === 'dishTemplates' ? (
               <div className="p-6 space-y-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
