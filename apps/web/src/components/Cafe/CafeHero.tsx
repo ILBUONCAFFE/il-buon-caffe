@@ -171,7 +171,6 @@ export const CafeHero: React.FC = () => {
                 alt="Wnętrze kawiarni Il Buon Caffe"
                 fill
                 className="object-cover"
-                priority
                 sizes="(max-width: 1024px) 0px, 40vw"
               />
               <div className="absolute top-3 left-3 bg-white/95 dark:bg-brand-950/95 backdrop-blur-sm px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] font-bold text-brand-900 dark:text-white">
@@ -190,7 +189,6 @@ export const CafeHero: React.FC = () => {
                 alt="Świeże wypieki"
                 fill
                 className="object-cover"
-                priority
                 sizes="(max-width: 1024px) 0px, 30vw"
               />
               <div className="absolute top-3 left-3 bg-white/95 dark:bg-brand-950/95 backdrop-blur-sm px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] font-bold text-brand-900 dark:text-white">

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import HomeClient from "@/components/Home/HomeClient";
+import { getFeaturedProducts } from "@/actions/products";
 
 // ISR: rebuild home page at most every 30 minutes
 export const revalidate = 1800;
@@ -39,6 +40,8 @@ export const metadata: Metadata = {
   },
 };
 
-export default function Home() {
-  return <HomeClient />;
+export default async function Home() {
+  const featuredProducts = await getFeaturedProducts(8).catch(() => []);
+
+  return <HomeClient featuredProducts={featuredProducts} />;
 }

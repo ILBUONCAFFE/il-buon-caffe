@@ -381,6 +381,22 @@
   animation: marquee-right var(--marquee-duration, 25s) linear infinite;
 }
 
+@media (max-width: 767px), (prefers-reduced-motion: reduce) {
+  .animate-marquee-left,
+  .animate-marquee-right,
+  .animate-float-gentle,
+  .animate-float-slow,
+  .animate-steam,
+  .animate-glow-pulse,
+  .animate-gradient-shift,
+  .animate-bounce-subtle,
+  .animate-shimmer,
+  .animate-rotate-slow,
+  .animate-breathe {
+    animation: none !important;
+  }
+}
+
 /* Slide-in from left (mobile filters) */
 @keyframes slide-in-left {
   from {

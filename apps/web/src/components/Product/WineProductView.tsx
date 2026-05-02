@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
-import { motion, useScroll, useTransform } from 'motion/react';
+import { motion, useReducedMotion, useScroll, useTransform } from 'motion/react';
 import {
   Minus, Plus, Heart, Share2,
   Check, ChevronRight,
@@ -40,6 +41,8 @@ export const WineProductView = ({ product, categoryName, wineContent, producerCo
   const [isFavorite, setIsFavorite] = useState(false);
   const [cloudStock, setCloudStock] = useState<number | null>(null);
   const [cloudReserved, setCloudReserved] = useState<number>(0);
+  const [isMobile, setIsMobile] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
     const fetchStock = async () => {
@@ -54,8 +57,23 @@ export const WineProductView = ({ product, categoryName, wineContent, producerCo
         console.error("Failed to fetch stock", err);
       }
     };
-    fetchStock();
+    if ('requestIdleCallback' in window) {
+      const idleId = window.requestIdleCallback(fetchStock, { timeout: 2500 });
+      return () => window.cancelIdleCallback(idleId);
+    }
+
+    const timeoutId = globalThis.setTimeout(fetchStock, 800);
+    return () => globalThis.clearTimeout(timeoutId);
   }, [product.sku]);
+
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 767px)');
+    const update = () => setIsMobile(media.matches);
+
+    update();
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
 
   const cartItem = items.find(item => item.sku === product.sku);
   const inCartQuantity = cartItem?.quantity || 0;
@@ -86,6 +104,7 @@ export const WineProductView = ({ product, categoryName, wineContent, producerCo
   const bgOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
   const decorBgY1 = useTransform(scrollYProgress, [0, 1], [0, -100]);
   const decorBgY2 = useTransform(scrollYProgress, [0, 1], [0, 100]);
+  const useStaticHero = isMobile || prefersReducedMotion;
 
   const wineDetails = getWineDetailsForProduct(product, wineContent ?? null);
 
@@ -118,7 +137,7 @@ export const WineProductView = ({ product, categoryName, wineContent, producerCo
 
         {/* Subtle decorative elements */}
         <motion.div
-          className="absolute top-0 right-[-10%] w-[800px] h-[800px] rounded-full blur-[160px] pointer-events-none"
+          className="absolute top-0 right-[-10%] hidden md:block w-[800px] h-[800px] rounded-full blur-[160px] pointer-events-none"
           style={{
             background: `radial-gradient(circle, ${palette.accentSoft} 0%, transparent 60%)`,
             opacity: bgOpacity,
@@ -126,7 +145,7 @@ export const WineProductView = ({ product, categoryName, wineContent, producerCo
           }}
         />
         <motion.div
-          className="absolute bottom-[-10%] left-[-5%] w-[600px] h-[600px] rounded-full blur-[120px] pointer-events-none"
+          className="absolute bottom-[-10%] left-[-5%] hidden md:block w-[600px] h-[600px] rounded-full blur-[120px] pointer-events-none"
           style={{
             background: `radial-gradient(circle, rgba(166, 139, 91, 0.08) 0%, transparent 60%)`,
             opacity: bgOpacity,
@@ -143,22 +162,26 @@ export const WineProductView = ({ product, categoryName, wineContent, producerCo
             {/* LEFT: Bottle & Visuals */}
             <motion.div
               className="lg:col-span-5 relative flex justify-center items-center order-2 lg:order-1 h-[60vh] lg:h-[75vh]"
-              style={{ y: bottleY, scale: bottleScale }}
+              style={useStaticHero ? undefined : { y: bottleY, scale: bottleScale }}
             >
               <div className="relative z-10 flex items-center justify-center w-full h-full pb-8 lg:pb-0">
                 <motion.div
-                  initial={{ opacity: 0, y: 80 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+                  initial={useStaticHero ? false : { opacity: 0, y: 80 }}
+                  animate={useStaticHero ? undefined : { opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
                   className="relative flex justify-center h-full w-full"
                 >
-                  <img
+                  <Image
                     src={product.image || product.imageUrl || '/assets/placeholder.webp'}
                     alt={product.name}
+                    fill
+                    priority
+                    sizes="(max-width: 768px) 86vw, (max-width: 1024px) 50vw, 34vw"
                     className="h-full w-auto object-contain"
                     style={{
                       filter: 'drop-shadow(0 40px 80px rgba(28, 23, 20, 0.15)) drop-shadow(0 10px 20px rgba(28, 23, 20, 0.1))',
-                      maxHeight: '100%'
+                      maxHeight: '100%',
+                      objectFit: 'contain'
                     }}
                   />
                 </motion.div>

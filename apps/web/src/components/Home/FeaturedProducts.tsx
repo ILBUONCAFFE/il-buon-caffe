@@ -107,15 +107,17 @@ const CardSkeleton = () => (
 );
 
 // ── Main section ───────────────────────────────────────────────────
-export const FeaturedProducts = () => {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loaded, setLoaded] = useState(false);
+export const FeaturedProducts = ({ initialProducts = [] }: { initialProducts?: Product[] }) => {
+  const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [loaded, setLoaded] = useState(initialProducts.length > 0);
 
   useEffect(() => {
+    if (initialProducts.length > 0) return;
+
     getFeaturedProducts(8)
       .then((p) => { setProducts(p); setLoaded(true); })
       .catch(() => setLoaded(true));
-  }, []);
+  }, [initialProducts.length]);
 
   return (
     <section className="bg-white dark:bg-brand-950 py-20 md:py-28 border-b border-brand-100 dark:border-white/5">
