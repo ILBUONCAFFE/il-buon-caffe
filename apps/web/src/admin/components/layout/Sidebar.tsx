@@ -1,49 +1,86 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Image from 'next/image'
 import {
   LayoutDashboard, ShoppingCart, ClipboardList, RotateCcw, AlertTriangle,
-  Package, Archive, Link, Users, DollarSign, BarChart3, Tag, Gift,
-  Globe, LineChart, Edit, Settings, ChevronRight, X
+  Package, Archive, Link2, Users, DollarSign, BarChart3, Tag, Gift,
+  Globe, LineChart, Edit, Settings, ChevronDown, X, Search, LogOut
 } from 'lucide-react'
 
-const navItems = [
-  { id: 'dashboard', path: '/admin', icon: LayoutDashboard, label: 'Pulpit', destination: 'Przegląd główny' },
+type NavLeaf = { id: string; path: string; label: string; icon: typeof LayoutDashboard }
+type NavParent = { id: string; label: string; icon: typeof LayoutDashboard; children: NavLeaf[] }
+type NavItem = NavLeaf | NavParent
+type NavSection = { id: string; label: string; items: NavItem[] }
+
+const sections: NavSection[] = [
   {
-    id: 'orders', icon: ShoppingCart, label: 'Zamówienia', destination: 'Zarządzanie zamówieniami',
-    children: [
-      { id: 'orders-all', path: '/admin/orders', label: 'Zamówienia', icon: ClipboardList },
-      { id: 'orders-returns', path: '/admin/orders/returns', label: 'Zwroty', icon: RotateCcw },
-      { id: 'orders-complaints', path: '/admin/orders/complaints', label: 'Reklamacje', icon: AlertTriangle }
-    ]
+    id: 'overview',
+    label: 'Główne',
+    items: [
+      { id: 'dashboard', path: '/admin', icon: LayoutDashboard, label: 'Pulpit' },
+    ],
   },
   {
-    id: 'inventory', icon: Package, label: 'Magazyn', destination: 'Stan magazynowy',
-    children: [
-      { id: 'inventory-products', path: '/admin/products', label: 'Produkty', icon: Archive },
-      { id: 'inventory-connections', path: '/admin/inventory/connections', label: 'Połączenia Allegro', icon: Link }
-    ]
+    id: 'sales',
+    label: 'Sprzedaż',
+    items: [
+      {
+        id: 'orders', icon: ShoppingCart, label: 'Zamówienia',
+        children: [
+          { id: 'orders-all', path: '/admin/orders', label: 'Wszystkie', icon: ClipboardList },
+          { id: 'orders-returns', path: '/admin/orders/returns', label: 'Zwroty', icon: RotateCcw },
+          { id: 'orders-complaints', path: '/admin/orders/complaints', label: 'Reklamacje', icon: AlertTriangle },
+        ],
+      },
+      { id: 'customers', path: '/admin/customers', icon: Users, label: 'Klienci' },
+      { id: 'finance', path: '/admin/finance', icon: DollarSign, label: 'Finanse' },
+    ],
   },
-  { id: 'customers', path: '/admin/customers', icon: Users, label: 'Klienci', destination: 'Baza klientów' },
-  { id: 'finance', path: '/admin/finance', icon: DollarSign, label: 'Finanse', destination: 'Transakcje i raporty' },
   {
-    id: 'marketing', icon: Tag, label: 'Marketing', destination: 'Promocje i kampanie',
-    children: [
-      { id: 'marketing-promotions', path: '/admin/marketing/promotions', label: 'Kreator Promocji', icon: Gift }
-    ]
+    id: 'catalog',
+    label: 'Katalog',
+    items: [
+      {
+        id: 'inventory', icon: Package, label: 'Magazyn',
+        children: [
+          { id: 'inventory-products', path: '/admin/products', label: 'Produkty', icon: Archive },
+          { id: 'inventory-connections', path: '/admin/inventory/connections', label: 'Allegro', icon: Link2 },
+        ],
+      },
+      {
+        id: 'marketing', icon: Tag, label: 'Marketing',
+        children: [
+          { id: 'marketing-promotions', path: '/admin/marketing/promotions', label: 'Promocje', icon: Gift },
+        ],
+      },
+    ],
   },
   {
-    id: 'website', icon: Globe, label: 'Strona internetowa', destination: 'Zarządzanie stroną',
-    children: [
-      { id: 'website-stats', path: '/admin/website/stats', label: 'Statystyki', icon: LineChart },
-      { id: 'website-cms', path: '/admin/content', label: 'Treści i gotowce', icon: Edit }
-    ]
+    id: 'content',
+    label: 'Strona',
+    items: [
+      {
+        id: 'website', icon: Globe, label: 'Witryna',
+        children: [
+          { id: 'website-stats', path: '/admin/website/stats', label: 'Ruch', icon: LineChart },
+          { id: 'website-cms', path: '/admin/content', label: 'Treści', icon: Edit },
+        ],
+      },
+      { id: 'statistics', path: '/admin/statistics', icon: BarChart3, label: 'Statystyki' },
+    ],
   },
-  { id: 'statistics', path: '/admin/statistics', icon: BarChart3, label: 'Statystyka', destination: 'Analizy i statystyki' },
-  { id: 'settings', path: '/admin/settings', icon: Settings, label: 'Ustawienia', destination: 'Konfiguracja systemu' }
+  {
+    id: 'system',
+    label: 'System',
+    items: [
+      { id: 'settings', path: '/admin/settings', icon: Settings, label: 'Ustawienia' },
+    ],
+  },
 ]
+
+const isParent = (i: NavItem): i is NavParent => 'children' in i
 
 type SidebarProps = {
   expandedMenus: string[]
@@ -55,143 +92,230 @@ type SidebarProps = {
 export const Sidebar = ({ expandedMenus, setExpandedMenus, isOpen = false, onClose }: SidebarProps) => {
   const router = useRouter()
   const pathname = usePathname()
-  const activePath = pathname
+  const [query, setQuery] = useState('')
 
-  const toggleMenu = (id: string) => {
-    if (expandedMenus.includes(id)) {
-      setExpandedMenus(expandedMenus.filter(menuId => menuId !== id))
-    } else {
-      setExpandedMenus([...expandedMenus, id])
-    }
+  const isActive = (path?: string) => {
+    if (!path) return false
+    if (path === '/admin') return pathname === '/admin'
+    return pathname === path || pathname.startsWith(path + '/')
   }
 
-  const isExpanded = (id: string) => expandedMenus.includes(id)
-
-  const isActiveItem = (path?: string) => path === activePath
-
-  const isParentActive = (item: typeof navItems[number]) =>
-    'children' in item && item.children
-      ? item.children.some(c => c.path === activePath)
-      : false
+  const toggle = (id: string) => {
+    setExpandedMenus(
+      expandedMenus.includes(id)
+        ? expandedMenus.filter(x => x !== id)
+        : [...expandedMenus, id]
+    )
+  }
 
   useEffect(() => {
-    for (const item of navItems) {
-      if ('children' in item && item.children) {
-        if (item.children.some(c => c.path === activePath) && !expandedMenus.includes(item.id)) {
+    for (const sec of sections) {
+      for (const item of sec.items) {
+        if (isParent(item) && item.children.some(c => isActive(c.path)) && !expandedMenus.includes(item.id)) {
           setExpandedMenus([...expandedMenus, item.id])
         }
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activePath])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname])
 
-  const handleNavigate = (path: string) => {
+  const navigate = (path: string) => {
     router.push(path)
     onClose?.()
   }
 
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return sections
+    return sections
+      .map(sec => {
+        const items = sec.items
+          .map(it => {
+            if (isParent(it)) {
+              if (it.label.toLowerCase().includes(q)) return it
+              const kids = it.children.filter(c => c.label.toLowerCase().includes(q))
+              if (kids.length) return { ...it, children: kids }
+              return null
+            }
+            return it.label.toLowerCase().includes(q) ? it : null
+          })
+          .filter(Boolean) as NavItem[]
+        return items.length ? { ...sec, items } : null
+      })
+      .filter(Boolean) as NavSection[]
+  }, [query])
+
   return (
     <aside
       className={`
-        fixed left-0 top-0 h-screen w-72 bg-white border-r border-[#E5E4E1] flex flex-col z-50
-        transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
+        fixed left-0 top-0 h-screen w-72 bg-white border-r border-neutral-200 flex flex-col z-50
+        transition-transform duration-300 ease-out
         lg:translate-x-0
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}
     >
-      <div className="p-6 border-b border-[#E5E4E1] flex items-center justify-between">
-        <div className="flex items-center justify-center flex-1 -ml-2">
+      <div className="h-16 px-5 flex items-center justify-between border-b border-neutral-200 shrink-0">
+        <button
+          onClick={() => navigate('/admin')}
+          className="flex items-center gap-2 group"
+          aria-label="Pulpit"
+        >
           <Image
             src="/assets/logo.png"
-            alt="Il Buon Caffe Logo"
-            width={120}
-            height={48}
-            className="h-12 w-auto object-contain brightness-0"
+            alt=""
+            width={96}
+            height={32}
+            className="h-7 w-auto object-contain brightness-0 group-hover:opacity-80 transition-opacity"
             priority
           />
-        </div>
-        {/* Close button — visible only on mobile */}
+          <span className="text-[11px] font-semibold tracking-[0.18em] uppercase text-neutral-400 border-l border-neutral-200 pl-2 ml-1">
+            Admin
+          </span>
+        </button>
         <button
           onClick={onClose}
-          className="lg:hidden p-2 rounded-lg text-[#A3A3A3] hover:bg-[#F5F4F1] hover:text-[#1A1A1A] transition-colors duration-150"
+          className="lg:hidden p-2 -mr-2 rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900"
           aria-label="Zamknij menu"
         >
-          <X size={20} />
+          <X size={18} />
         </button>
       </div>
-      <nav className="flex-1 overflow-y-auto p-4 relative">
-        <div className="space-y-1">
-          {navItems.map((item) => {
-            const Icon = item.icon
-            const hasChildren = 'children' in item && item.children && item.children.length > 0
-            const active = !hasChildren && isActiveItem('path' in item ? item.path : undefined)
-            const parentActive = hasChildren && isParentActive(item)
 
-            return (
-              <div key={item.id}>
-                <button
-                  onClick={() => {
-                    if (hasChildren) {
-                      toggleMenu(item.id)
-                    } else if ('path' in item && item.path) {
-                      handleNavigate(item.path)
-                    }
-                  }}
-                  className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
-                    active
-                      ? 'bg-[#EEF4FF] text-[#0066CC]'
-                      : parentActive
-                        ? 'text-[#0066CC]'
-                        : 'text-[#525252] hover:bg-[#F5F4F1] hover:text-[#1A1A1A]'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Icon size={20} />
-                    <span>{item.label}</span>
-                  </div>
-                  {hasChildren && (
-                    <ChevronRight
-                      size={16}
-                      className={`text-[#737373] transition-transform duration-200 ${isExpanded(item.id) ? 'rotate-90' : ''}`}
-                    />
-                  )}
-                </button>
+      <div className="px-4 pt-4 pb-2 shrink-0">
+        <div className="relative">
+          <Search
+            size={14}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none"
+          />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Szukaj w menu…"
+            className="w-full h-9 pl-9 pr-3 text-sm bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:bg-white focus:border-neutral-400 transition-colors"
+          />
+        </div>
+      </div>
 
-                {hasChildren && (
-                  <div
-                    className={`grid transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
-                      isExpanded(item.id) ? 'grid-rows-[1fr] opacity-100 mt-1 ml-2' : 'grid-rows-[0fr] opacity-0'
-                    }`}
-                  >
-                    <div className="overflow-hidden">
-                      <div className="space-y-0.5 py-1">
-                        {'children' in item && item.children?.map((child) => {
-                          const ChildIcon = child.icon
-                          const childActive = isActiveItem(child.path)
-                          return (
-                            <button
-                              key={child.id}
-                              onClick={() => child.path && handleNavigate(child.path)}
-                              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-colors ${
-                                childActive
-                                  ? 'bg-[#EEF4FF] text-[#0066CC] font-medium'
-                                  : 'text-[#737373] hover:bg-[#F5F4F1] hover:text-[#1A1A1A]'
-                              }`}
-                            >
-                              <ChildIcon size={16} />
-                              <span>{child.label}</span>
-                            </button>
-                          )
-                        })}
+      <nav className="flex-1 overflow-y-auto px-3 pb-4">
+        {filtered.map((sec, idx) => (
+          <div key={sec.id} className={idx === 0 ? 'mt-1' : 'mt-5'}>
+            <div className="px-3 mb-1.5 text-[10px] font-semibold tracking-[0.14em] uppercase text-neutral-400">
+              {sec.label}
+            </div>
+            <ul className="space-y-0.5">
+              {sec.items.map((item) => {
+                const Icon = item.icon
+                if (!isParent(item)) {
+                  const active = isActive(item.path)
+                  return (
+                    <li key={item.id}>
+                      <button
+                        onClick={() => navigate(item.path)}
+                        className={`w-full flex items-center gap-3 h-9 px-3 rounded-md text-[13.5px] transition-colors ${
+                          active
+                            ? 'bg-neutral-900 text-white'
+                            : 'text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900'
+                        }`}
+                      >
+                        <Icon size={17} strokeWidth={active ? 2.2 : 1.8} />
+                        <span className="font-medium">{item.label}</span>
+                      </button>
+                    </li>
+                  )
+                }
+
+                const expanded = expandedMenus.includes(item.id) || query.trim().length > 0
+                const childActive = item.children.some(c => isActive(c.path))
+                return (
+                  <li key={item.id}>
+                    <button
+                      onClick={() => toggle(item.id)}
+                      className={`w-full flex items-center justify-between h-9 px-3 rounded-md text-[13.5px] transition-colors ${
+                        childActive
+                          ? 'text-neutral-900'
+                          : 'text-neutral-700 hover:bg-neutral-100 hover:text-neutral-900'
+                      }`}
+                      aria-expanded={expanded}
+                    >
+                      <span className="flex items-center gap-3">
+                        <Icon size={17} strokeWidth={1.8} />
+                        <span className="font-medium">{item.label}</span>
+                      </span>
+                      <ChevronDown
+                        size={14}
+                        className={`text-neutral-400 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
+                      />
+                    </button>
+
+                    <div
+                      className={`grid transition-all duration-200 ease-out ${
+                        expanded ? 'grid-rows-[1fr] mt-0.5' : 'grid-rows-[0fr]'
+                      }`}
+                    >
+                      <div className="overflow-hidden">
+                        <ul className="relative ml-[19px] pl-3 border-l border-neutral-200 space-y-0.5 py-1">
+                          {item.children.map((child) => {
+                            const ChildIcon = child.icon
+                            const active = isActive(child.path)
+                            return (
+                              <li key={child.id}>
+                                <button
+                                  onClick={() => navigate(child.path)}
+                                  className={`relative w-full flex items-center gap-2.5 h-8 px-2.5 rounded-md text-[13px] transition-colors ${
+                                    active
+                                      ? 'bg-neutral-100 text-neutral-900 font-medium'
+                                      : 'text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900'
+                                  }`}
+                                >
+                                  {active && (
+                                    <span className="absolute -left-3 top-1/2 -translate-y-1/2 h-4 w-px bg-neutral-900" />
+                                  )}
+                                  <ChildIcon size={14} strokeWidth={1.8} />
+                                  <span>{child.label}</span>
+                                </button>
+                              </li>
+                            )
+                          })}
+                        </ul>
                       </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        ))}
+
+        {filtered.length === 0 && (
+          <div className="px-3 py-6 text-center text-xs text-neutral-400">
+            Brak wyników dla „{query}”
+          </div>
+        )}
       </nav>
+
+      <div className="border-t border-neutral-200 p-3 shrink-0">
+        <div className="flex items-center justify-between gap-2 px-2 py-1.5">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="h-7 w-7 rounded-full bg-neutral-900 text-white flex items-center justify-center text-[11px] font-semibold shrink-0">
+              IB
+            </div>
+            <div className="min-w-0">
+              <div className="text-[12px] font-medium text-neutral-900 truncate">Il Buon Caffe</div>
+              <div className="text-[11px] text-neutral-500 truncate">Panel admina</div>
+            </div>
+          </div>
+          <form action="/api/admin/logout" method="post">
+            <button
+              type="submit"
+              className="p-2 rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 transition-colors"
+              aria-label="Wyloguj"
+              title="Wyloguj"
+            >
+              <LogOut size={15} />
+            </button>
+          </form>
+        </div>
+      </div>
     </aside>
   )
 }
