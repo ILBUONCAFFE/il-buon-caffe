@@ -49,7 +49,7 @@ export const FilterSection: React.FC<{
       transition={{ duration: 0.3, ease: "easeInOut" }}
       onAnimationStart={() => setIsAnimating(true)}
       onAnimationComplete={() => setIsAnimating(false)}
-      className={isAnimating ? "overflow-hidden" : ""}
+      className={isAnimating || !isOpen ? "overflow-hidden pointer-events-none" : ""}
     >
       {children}
     </motion.div>
