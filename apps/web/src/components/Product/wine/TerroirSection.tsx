@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { motion } from 'motion/react';
-import { ArrowRight, Leaf } from 'lucide-react';
+import { ArrowRight, Leaf, Sparkles, Sprout } from 'lucide-react';
 import { Section } from './Section';
 import { CountryFlag } from './CountryFlag';
 import type { PaletteType } from './palette';
@@ -22,6 +22,27 @@ export const TerroirSection = ({ wineDetails, palette, origin }: TerroirSectionP
     { value: wineDetails.soil, label: "Gleba" },
     { value: wineDetails.climate, label: "Klimat" },
   ];
+
+  const certifications = [
+    {
+      enabled: wineDetails.isOrganic,
+      label: "Organiczne",
+      description: "Certyfikowane uprawy organiczne, bez syntetycznych pestycydów i herbicydów.",
+      icon: Leaf,
+    },
+    {
+      enabled: wineDetails.isBiodynamic,
+      label: "Biodynamiczne",
+      description: "Uprawa prowadzona zgodnie z rytmem natury i zasadami rolnictwa biodynamicznego.",
+      icon: Sprout,
+    },
+    {
+      enabled: wineDetails.isNatural,
+      label: "Naturalne",
+      description: "Minimalna interwencja w piwnicy, z naciskiem na autentyczny charakter owocu i terroir.",
+      icon: Sparkles,
+    },
+  ].filter((certification) => certification.enabled);
 
   return (
     <section className="py-24" style={{ backgroundColor: palette.bg }}>
@@ -124,15 +145,27 @@ export const TerroirSection = ({ wineDetails, palette, origin }: TerroirSectionP
                 ))}
               </div>
 
-              <div className="mt-8 pt-6" style={{ borderTop: `1px solid ${palette.borderLight}` }}>
-                <div className="flex items-center gap-2.5 mb-3">
-                  <Leaf size={14} style={{ color: '#2D6A4F' }} />
-                  <span className="uppercase tracking-widest text-[11px] font-semibold" style={{ color: '#2D6A4F' }}>Organiczne</span>
+              {certifications.length > 0 && (
+                <div className="mt-8 pt-6 space-y-5" style={{ borderTop: `1px solid ${palette.borderLight}` }}>
+                  {certifications.map((certification) => {
+                    const Icon = certification.icon;
+
+                    return (
+                      <div key={certification.label}>
+                        <div className="flex items-center gap-2.5 mb-3">
+                          <Icon size={14} style={{ color: '#2D6A4F' }} />
+                          <span className="uppercase tracking-widest text-[11px] font-semibold" style={{ color: '#2D6A4F' }}>
+                            {certification.label}
+                          </span>
+                        </div>
+                        <p className="text-sm leading-relaxed" style={{ color: palette.textMuted }}>
+                          {certification.description}
+                        </p>
+                      </div>
+                    );
+                  })}
                 </div>
-                <p className="text-sm leading-relaxed" style={{ color: palette.textMuted }}>
-                  Certyfikowane uprawy organiczne, bez syntetycznych pestycydów i herbicydów.
-                </p>
-              </div>
+              )}
             </div>
           </Section>
         </div>
