@@ -435,6 +435,10 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
     () => (previewUrl ? [previewUrl] : getAdminImagePreviewCandidates(form.imageUrl)),
     [previewUrl, form.imageUrl],
   )
+  const savedImageCandidates = useMemo(
+    () => getAdminImagePreviewCandidates(form.imageUrl),
+    [form.imageUrl],
+  )
 
   const handleFieldChange = <K extends keyof ProductFormState>(field: K, value: ProductFormState[K]) => {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -613,6 +617,12 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
     catch (err) { setError(err instanceof Error ? err.message : 'Nie udało się wypchnąć danych na Allegro') }
     finally { setPushingStock(false) }
   }
+
+  const initialWineDetails = useMemo(
+    () => (product ? getWineDetailsForProduct(product, productRichContent) : null),
+    [product, productRichContent],
+  )
+  const wineDetailsResetKey = `${sku}:${productRichContent?.updatedAt ?? 'initial'}:${productRichContent?.version ?? '0'}`
 
   if (loading) {
     return (
@@ -1006,7 +1016,7 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
                   <p className="text-xs font-medium uppercase tracking-wider text-[#737373] mb-1.5">Aktualne</p>
                   <div className="aspect-square rounded-lg border border-[#E5E4E1] bg-[#FAFAF9] flex items-center justify-center overflow-hidden">
                     {form.imageUrl ? (
-                      <PreviewImage srcCandidates={getAdminImagePreviewCandidates(form.imageUrl)} className="w-full h-full object-contain" />
+                      <PreviewImage srcCandidates={savedImageCandidates} className="w-full h-full object-contain" />
                     ) : (
                       <ImageIcon size={32} className="text-[#D4D3D0]" />
                     )}
@@ -1084,7 +1094,7 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
             </SectionCard>
           )}
 
-          {activeTab === 'tresc' && !isCreateMode && product && isWineCategory && (
+          {activeTab === 'tresc' && !isCreateMode && product && initialWineDetails && isWineCategory && (
             <div className="space-y-5">
               <SectionCard title="Winnica">
                 <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 items-end">
@@ -1116,9 +1126,10 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
               <WineDetailsEditor
                 sku={sku}
                 product={product}
-                initialWineDetails={getWineDetailsForProduct(product, productRichContent)}
+                initialWineDetails={initialWineDetails}
                 embedded
                 draft={wineDetailsDraft}
+                resetKey={wineDetailsResetKey}
                 onDraftChange={handleWineDetailsDraftChange}
               />
             </div>

@@ -323,6 +323,7 @@ export function WineDetailsEditor({
   initialWineDetails,
   embedded = false,
   draft,
+  resetKey,
   onDraftChange,
 }: {
   sku: string
@@ -330,6 +331,7 @@ export function WineDetailsEditor({
   initialWineDetails: CatalogWineDetails
   embedded?: boolean
   draft?: WineFormState | null
+  resetKey?: string
   onDraftChange?: (draft: WineFormState) => void
 }) {
   const router = useRouter()
@@ -339,10 +341,14 @@ export function WineDetailsEditor({
   const [message, setMessage] = useState<string | null>(null)
   const [dishTemplates, setDishTemplates] = useState<DishTemplate[]>([])
   const [selectedDishTemplateId, setSelectedDishTemplateId] = useState('')
+  const initialForm = useMemo(() => createWineDetailsDraft(initialWineDetails), [initialWineDetails])
+  const effectiveResetKey = resetKey ?? sku
 
   useEffect(() => {
-    setForm(draft ?? createWineDetailsDraft(initialWineDetails))
-  }, [draft, initialWineDetails])
+    setForm(draft ?? initialForm)
+    setError(null)
+    setMessage(null)
+  }, [effectiveResetKey])
 
   useEffect(() => {
     onDraftChange?.(form)
@@ -361,7 +367,7 @@ export function WineDetailsEditor({
   )
 
   const resetToInitial = () => {
-    setForm(createWineDetailsDraft(initialWineDetails))
+    setForm(initialForm)
     setMessage('Przywrócono bieżące dane z katalogu i overrideów')
     setError(null)
   }
@@ -599,7 +605,7 @@ export function WineDetailsEditor({
         ) : (
           <div className="space-y-2">
             {form.awards.map((award, index) => (
-              <div key={`${index}-${award.year}`} className="rounded-lg border border-[#E5E4E1] bg-[#FAFAF9] p-3">
+              <div key={index} className="rounded-lg border border-[#E5E4E1] bg-[#FAFAF9] p-3">
                 <div className="grid grid-cols-12 gap-2 items-start">
                   <input
                     className="admin-input col-span-12 md:col-span-2"
@@ -664,7 +670,7 @@ export function WineDetailsEditor({
         ) : (
           <div className="space-y-2">
             {form.foodPairing.map((pairing, index) => (
-              <div key={`${index}-${pairing.name}`} className="rounded-lg border border-[#E5E4E1] bg-[#FAFAF9] p-3">
+              <div key={index} className="rounded-lg border border-[#E5E4E1] bg-[#FAFAF9] p-3">
                 <div className="grid grid-cols-12 gap-2 items-start">
                   <input
                     className="admin-input col-span-12 md:col-span-4"
