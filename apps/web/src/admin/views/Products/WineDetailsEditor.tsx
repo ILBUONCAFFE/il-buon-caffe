@@ -50,14 +50,6 @@ export type WineFormState = {
   servingTemp: string
   decanting: string
   agingPotential: string
-  winery: string
-  established: string
-  altitude: string
-  soil: string
-  climate: string
-  vinification: string
-  wineryDescription: string
-  countryCode: string
   eye: string
   nose: string
   palate: string
@@ -189,14 +181,6 @@ export function createWineDetailsDraft(details: CatalogWineDetails): WineFormSta
     servingTemp: details.servingTemp ?? '',
     decanting: details.decanting ?? '',
     agingPotential: details.agingPotential ?? '',
-    winery: details.winery ?? '',
-    established: details.established ?? '',
-    altitude: details.altitude ?? '',
-    soil: details.soil ?? '',
-    climate: details.climate ?? '',
-    vinification: details.vinification ?? '',
-    wineryDescription: details.wineryDescription ?? '',
-    countryCode: details.countryCode ?? '',
     eye: details.tastingNotes?.eye ?? '',
     nose: details.tastingNotes?.nose ?? '',
     palate: details.tastingNotes?.palate ?? '',
@@ -256,14 +240,6 @@ export function wineDetailsDraftToPayload(form: WineFormState): Record<string, u
     servingTemp: trimText(form.servingTemp) || undefined,
     decanting: trimText(form.decanting) || undefined,
     agingPotential: trimText(form.agingPotential) || undefined,
-    winery: trimText(form.winery) || undefined,
-    established: trimText(form.established) || undefined,
-    altitude: trimText(form.altitude) || undefined,
-    soil: trimText(form.soil) || undefined,
-    climate: trimText(form.climate) || undefined,
-    vinification: trimText(form.vinification) || undefined,
-    wineryDescription: trimText(form.wineryDescription) || undefined,
-    countryCode: trimText(form.countryCode) || undefined,
     tastingNotes: {
       eye: trimText(form.eye),
       nose: trimText(form.nose),
@@ -566,15 +542,6 @@ export function WineDetailsEditor({
           <Field label="Body label">
             <input className="admin-input w-full" value={form.body} onChange={(e) => setField('body', e.target.value)} />
           </Field>
-          <Field label="Kod kraju">
-            <input className="admin-input w-full font-mono" value={form.countryCode} onChange={(e) => setField('countryCode', e.target.value)} />
-          </Field>
-          <Field label="Winnica">
-            <input className="admin-input w-full" value={form.winery} onChange={(e) => setField('winery', e.target.value)} />
-          </Field>
-          <Field label="Rocznik / założenie">
-            <input className="admin-input w-full" value={form.established} onChange={(e) => setField('established', e.target.value)} />
-          </Field>
         </div>
       </SectionCard>
 
@@ -618,26 +585,6 @@ export function WineDetailsEditor({
           </Field>
           <Field label="Nuty podniebienia">
             <textarea className="admin-input w-full min-h-[110px] resize-y" value={form.palate} onChange={(e) => setField('palate', e.target.value)} />
-          </Field>
-          <Field label="Wino / opis krótkiego body">
-            <textarea className="admin-input w-full min-h-[110px] resize-y" value={form.wineryDescription} onChange={(e) => setField('wineryDescription', e.target.value)} />
-          </Field>
-        </div>
-      </SectionCard>
-
-      <SectionCard title="Terroir i produkcja" description="Sekcja o winie i miejscu powstania w stylu Barahondy.">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Field label="Wysokość">
-            <input className="admin-input w-full" value={form.altitude} onChange={(e) => setField('altitude', e.target.value)} />
-          </Field>
-          <Field label="Gleba">
-            <input className="admin-input w-full" value={form.soil} onChange={(e) => setField('soil', e.target.value)} />
-          </Field>
-          <Field label="Klimat">
-            <input className="admin-input w-full" value={form.climate} onChange={(e) => setField('climate', e.target.value)} />
-          </Field>
-          <Field label="Winifikacja">
-            <input className="admin-input w-full" value={form.vinification} onChange={(e) => setField('vinification', e.target.value)} />
           </Field>
         </div>
       </SectionCard>

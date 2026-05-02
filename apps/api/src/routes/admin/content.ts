@@ -81,6 +81,13 @@ const ProducerImageSchema = z.object({
   caption: z.string().max(200).optional(),
 })
 
+const OptionalUrlSchema = z.preprocess((value) => {
+  if (typeof value !== 'string') return value
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
+}, z.string().url().max(500).nullable().optional())
+
 const ProducerSchema = z.object({
   category:   z.string().min(1).max(50),
   name:       z.string().min(1).max(255),
@@ -97,7 +104,7 @@ const ProducerSchema = z.object({
   philosophy: z.string().max(5000).nullable().optional(),
   estateInfo: z.array(ProducerEstateInfoSchema).optional(),
   images:     z.array(ProducerImageSchema).optional(),
-  website:    z.string().url().max(500).nullable().optional(),
+  website:    OptionalUrlSchema,
 })
 
 function getAdminId(c: Parameters<typeof serverError>[0]): number | null {

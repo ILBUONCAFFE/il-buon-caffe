@@ -186,6 +186,13 @@ function toWineryForm(producer: ProducerContent): WineryForm {
   }
 }
 
+function normalizeWebsiteUrl(raw: string): string | null {
+  const input = raw.trim()
+  if (!input) return null
+  if (/^https?:\/\//i.test(input)) return input
+  return `https://${input}`
+}
+
 function toWineryPayload(form: WineryForm): UpsertProducerPayload {
   const founded = Number(form.established.trim())
   return {
@@ -204,7 +211,7 @@ function toWineryPayload(form: WineryForm): UpsertProducerPayload {
     philosophy: null,
     estateInfo: [],
     images: [],
-    website: form.website.trim() || null,
+    website: normalizeWebsiteUrl(form.website),
   }
 }
 
