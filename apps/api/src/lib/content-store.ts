@@ -46,6 +46,10 @@ function rowToProductRichContent(row: typeof productContent.$inferSelect): Produ
 }
 
 function rowToProducerContent(row: typeof producers.$inferSelect): ProducerContent {
+  const estateInfo = parseJson<(ProducerEstateInfo & Record<string, unknown>)[]>(row.estateInfo, [])
+  const wineryMeta = estateInfo.find((item) => item.name === '__winery_meta__') as Record<string, unknown> | undefined
+  const publicEstateInfo = estateInfo.filter((item) => item.name !== '__winery_meta__')
+
   return {
     slug: row.slug,
     category: row.category,
@@ -53,15 +57,15 @@ function rowToProducerContent(row: typeof producers.$inferSelect): ProducerConte
     region: row.region,
     country: row.country,
     founded: row.founded,
-    countryCode: row.countryCode,
-    established: row.established,
-    altitude: row.altitude,
-    soil: row.soil,
-    climate: row.climate,
+    countryCode: typeof wineryMeta?.countryCode === 'string' ? wineryMeta.countryCode : null,
+    established: typeof wineryMeta?.established === 'string' ? wineryMeta.established : null,
+    altitude: typeof wineryMeta?.altitude === 'string' ? wineryMeta.altitude : null,
+    soil: typeof wineryMeta?.soil === 'string' ? wineryMeta.soil : null,
+    climate: typeof wineryMeta?.climate === 'string' ? wineryMeta.climate : null,
     shortStory: row.shortStory,
     story: row.story,
     philosophy: row.philosophy,
-    estateInfo: parseJson<ProducerEstateInfo[]>(row.estateInfo, []),
+    estateInfo: publicEstateInfo,
     images: parseJson<ProducerImage[]>(row.images, []),
     website: row.website,
     updatedAt: row.updatedAt,
@@ -330,6 +334,16 @@ export async function putProducer(
     .limit(1)
 
   const nextVersion = existing[0] ? existing[0].version + 1 : 1
+  const existingEstateInfo = parseJson<(ProducerEstateInfo & Record<string, unknown>)[]>(existing[0]?.estateInfo ?? null, [])
+  const payloadEstateInfo = payload.estateInfo ?? existingEstateInfo.filter((item) => item.name !== '__winery_meta__')
+  const wineryMeta = {
+    name: '__winery_meta__',
+    countryCode: payload.countryCode,
+    established: payload.established,
+    altitude: payload.altitude,
+    soil: payload.soil,
+    climate: payload.climate,
+  }
 
   const values = {
     slug,
@@ -338,15 +352,10 @@ export async function putProducer(
     region: payload.region,
     country: payload.country,
     founded: payload.founded,
-    countryCode: payload.countryCode,
-    established: payload.established,
-    altitude: payload.altitude,
-    soil: payload.soil,
-    climate: payload.climate,
     shortStory: payload.shortStory,
     story: payload.story,
     philosophy: payload.philosophy,
-    estateInfo: JSON.stringify(payload.estateInfo ?? []),
+    estateInfo: JSON.stringify([wineryMeta, ...payloadEstateInfo]),
     images: JSON.stringify(payload.images ?? []),
     website: payload.website,
     updatedAt: ts,
