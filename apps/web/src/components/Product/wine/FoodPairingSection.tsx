@@ -15,8 +15,8 @@ export const FoodPairingSection = ({ wineDetails, palette }: FoodPairingSectionP
   if (!pairing) return null;
 
   return (
-    <section className="py-24" style={{ backgroundColor: palette.bgWarm }}>
-      <div className="container mx-auto px-6 md:px-12 lg:px-20">
+    <section className="py-16 md:py-24" style={{ backgroundColor: palette.bgWarm }}>
+      <div className="container mx-auto px-5 md:px-12 lg:px-20">
         <div className="max-w-4xl mx-auto text-center">
           <Section>
             <span
@@ -27,14 +27,14 @@ export const FoodPairingSection = ({ wineDetails, palette }: FoodPairingSectionP
             </span>
 
             <h2
-              className="text-3xl md:text-5xl font-serif leading-[1.2] mb-10"
+              className="text-[1.75rem] md:text-5xl font-serif leading-[1.15] mb-8 md:mb-10"
               style={{ color: palette.text }}
             >
               Sugerowane towarzystwo
             </h2>
 
             <p
-              className="text-xl md:text-2xl leading-relaxed font-serif italic"
+              className="text-lg md:text-2xl leading-relaxed font-serif italic"
               style={{ color: palette.textSecondary }}
             >
               {pairing}

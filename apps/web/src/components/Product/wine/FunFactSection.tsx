@@ -16,12 +16,12 @@ export const FunFactSection = ({ wineDetails, palette }: FunFactSectionProps) =>
 
   return (
     <section
-      className="py-24 md:py-32 relative overflow-hidden"
+      className="py-16 md:py-32 relative overflow-hidden"
       style={{ backgroundColor: palette.bgWarm }}
     >
-      <div className="container mx-auto px-6 md:px-12 lg:px-20 relative z-10">
+      <div className="container mx-auto px-5 md:px-12 lg:px-20 relative z-10">
         <Section className="max-w-3xl mx-auto">
-          <div className="flex items-center gap-4 mb-10">
+          <div className="flex items-center gap-4 mb-7 md:mb-10">
             <span
               className="uppercase tracking-[0.24em] text-[11px] font-semibold block"
               style={{ color: palette.textDim }}
@@ -31,7 +31,7 @@ export const FunFactSection = ({ wineDetails, palette }: FunFactSectionProps) =>
           </div>
 
           <blockquote
-            className="font-serif text-2xl md:text-4xl leading-[1.3]"
+            className="font-serif text-xl md:text-4xl leading-[1.35] md:leading-[1.3]"
             style={{ color: palette.text }}
           >
             <span

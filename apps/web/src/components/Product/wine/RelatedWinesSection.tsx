@@ -41,9 +41,9 @@ export const RelatedWinesSection = ({ palette, currentSku }: RelatedWinesSection
   if (loaded && items.length === 0) return null;
 
   return (
-    <section className="py-24 md:py-28" style={{ backgroundColor: palette.bgWarm }}>
-      <div className="container mx-auto px-6 md:px-12 lg:px-20">
-        <Section className="flex items-end justify-between mb-12 gap-6 flex-wrap">
+    <section className="py-16 md:py-28" style={{ backgroundColor: palette.bgWarm }}>
+      <div className="container mx-auto px-5 md:px-12 lg:px-20">
+        <Section className="flex items-end justify-between mb-9 md:mb-12 gap-4 md:gap-6 flex-wrap">
           <div>
             <span
               className="uppercase tracking-[0.2em] text-[11px] font-semibold block mb-3"
@@ -51,7 +51,7 @@ export const RelatedWinesSection = ({ palette, currentSku }: RelatedWinesSection
             >
               Polecane
             </span>
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-serif" style={{ color: palette.text }}>
+            <h2 className="text-[1.75rem] md:text-4xl lg:text-5xl font-serif leading-[1.1]" style={{ color: palette.text }}>
               Podobne wina
             </h2>
           </div>
@@ -104,22 +104,22 @@ export const RelatedWinesSection = ({ palette, currentSku }: RelatedWinesSection
                         />
                       ) : null}
                     </div>
-                    <div className="p-5">
+                    <div className="p-4 md:p-5">
                       {wine.origin && (
                         <span
-                          className="text-[10px] uppercase tracking-[0.18em] font-semibold block mb-2"
+                          className="text-[10px] uppercase tracking-[0.18em] font-semibold block mb-1.5 md:mb-2"
                           style={{ color: palette.textDim }}
                         >
                           {wine.origin}
                         </span>
                       )}
                       <h3
-                        className="font-serif text-base md:text-lg leading-snug mb-3 line-clamp-2 min-h-[3em]"
+                        className="font-serif text-[15px] md:text-lg leading-snug mb-2 md:mb-3 line-clamp-2 min-h-[2.6em] md:min-h-[3em]"
                         style={{ color: palette.text }}
                       >
                         {wine.name}
                       </h3>
-                      <p className="font-serif text-lg" style={{ color: palette.accent }}>
+                      <p className="font-serif text-base md:text-lg" style={{ color: palette.accent }}>
                         {wine.price.toFixed(2).replace('.', ',')} zł
                       </p>
                     </div>

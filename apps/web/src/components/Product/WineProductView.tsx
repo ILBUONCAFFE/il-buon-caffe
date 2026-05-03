@@ -142,7 +142,7 @@ export const WineProductView = ({ product, categoryName, wineContent, producerCo
       {/* ═══════════════════════════════════════════════════════════
           HERO SECTION
       ═══════════════════════════════════════════════════════════ */}
-      <section ref={heroRef} className="relative min-h-[80vh] lg:min-h-[85vh] flex items-center justify-center pt-24 pb-12 overflow-hidden">
+      <section ref={heroRef} className="relative min-h-[88vh] lg:min-h-[85vh] flex items-center justify-center pt-20 md:pt-24 pb-10 md:pb-12 overflow-hidden">
 
         {/* Subtle decorative elements */}
         <motion.div
@@ -165,12 +165,12 @@ export const WineProductView = ({ product, categoryName, wineContent, producerCo
         {/* Optional noise overlay for texture */}
         <div className="absolute inset-0 opacity-[0.015] pointer-events-none" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }}></div>
 
-        <div className="relative z-10 w-full max-w-[1400px] mx-auto px-6 md:px-12 lg:px-16 2xl:px-20 h-full flex flex-col justify-center">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20 items-center">
+        <div className="relative z-10 w-full max-w-[1400px] mx-auto px-5 md:px-12 lg:px-16 2xl:px-20 h-full flex flex-col justify-center">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-12 lg:gap-20 items-center">
 
             {/* LEFT: Bottle & Visuals */}
             <motion.div
-              className="lg:col-span-5 relative flex justify-center items-center order-2 lg:order-1 h-[45vh] lg:h-[65vh]"
+              className="lg:col-span-5 relative flex justify-center items-center order-2 lg:order-1 h-[50vh] sm:h-[55vh] lg:h-[65vh]"
               style={useStaticHero ? undefined : { y: bottleY, scale: bottleScale }}
             >
               <div className="relative z-10 flex items-center justify-center w-full h-full pb-8 lg:pb-0">
@@ -212,10 +212,10 @@ export const WineProductView = ({ product, categoryName, wineContent, producerCo
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.3 }}
                 aria-label="Nawigacja okruszkowa"
-                className="text-[13px] mb-8 lg:mb-12 font-medium"
+                className="text-[12px] md:text-[13px] mb-6 lg:mb-12 font-medium"
                 style={{ color: palette.textDim }}
               >
-                <ol className="flex items-center gap-2.5 list-none">
+                <ol className="flex items-center gap-1.5 md:gap-2.5 list-none flex-wrap">
                   <li><Link href="/sklep" className="hover:text-amber-900 transition-colors">Sklep</Link></li>
                   <li aria-hidden="true" className="opacity-50"><ChevronRight size={14} /></li>
                   <li><Link href="/sklep/wino" className="hover:text-amber-900 transition-colors">Wina</Link></li>
@@ -229,17 +229,17 @@ export const WineProductView = ({ product, categoryName, wineContent, producerCo
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                className="mb-8"
+                className="mb-6 md:mb-8"
               >
                 <h1
-                  className="text-4xl md:text-5xl lg:text-5xl xl:text-6xl 2xl:text-[4.5rem] font-serif font-normal leading-[1.05] tracking-[-0.01em]"
+                  className="text-[2.25rem] sm:text-5xl lg:text-5xl xl:text-6xl 2xl:text-[4.5rem] font-serif font-normal leading-[1.05] tracking-[-0.01em]"
                   style={{ color: palette.text, wordSpacing: '-0.1em' }}
                 >
                   {product.name}
                 </h1>
                 {product.year && (
-                  <p 
-                    className="text-2xl md:text-3xl font-serif italic mt-3"
+                  <p
+                    className="text-xl md:text-3xl font-serif italic mt-2 md:mt-3"
                     style={{ color: palette.textMuted }}
                   >
                     Rocznik {product.year}
@@ -252,12 +252,12 @@ export const WineProductView = ({ product, categoryName, wineContent, producerCo
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.55 }}
-                  className="flex flex-wrap items-center gap-2 mb-6"
+                  className="flex flex-wrap items-center gap-1.5 md:gap-2 mb-5 md:mb-6"
                 >
                   {wineClassificationTags.map((tag) => (
                     <span
                       key={tag}
-                      className="rounded-full border px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] backdrop-blur-sm"
+                      className="rounded-full border px-3 md:px-3.5 py-1 md:py-1.5 text-[10px] md:text-[11px] font-semibold uppercase tracking-[0.16em] md:tracking-[0.18em] backdrop-blur-sm"
                       style={{
                         borderColor: `${palette.gold}55`,
                         backgroundColor: 'rgba(255,255,255,0.54)',
@@ -275,12 +275,12 @@ export const WineProductView = ({ product, categoryName, wineContent, producerCo
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.7 }}
-                className="flex items-baseline gap-1.5 mb-10"
+                className="flex items-baseline gap-1.5 mb-8 md:mb-10"
               >
-                <span className="text-4xl lg:text-5xl xl:text-6xl font-serif font-medium" style={{ color: palette.text }}>
+                <span className="text-[2.5rem] lg:text-5xl xl:text-6xl font-serif font-medium" style={{ color: palette.text }}>
                   {product.price.toFixed(0)}
                 </span>
-                <span className="text-xl lg:text-2xl font-light tracking-tight" style={{ color: palette.textMuted }}>
+                <span className="text-lg lg:text-2xl font-light tracking-tight" style={{ color: palette.textMuted }}>
                   ,{(product.price % 1).toFixed(2).slice(2)} zł
                 </span>
               </motion.div>
@@ -314,11 +314,11 @@ export const WineProductView = ({ product, categoryName, wineContent, producerCo
                     initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 0.95 }}
-                    className="flex flex-col sm:flex-row gap-3 mb-8"
+                    className="flex flex-row gap-3 mb-7 md:mb-8"
                   >
                     {/* Quantity Control */}
                     <div
-                      className="flex items-center h-[3.5rem] rounded-xl overflow-hidden backdrop-blur-md shrink-0 sm:w-36 w-full"
+                      className="flex items-center h-14 rounded-xl overflow-hidden backdrop-blur-md shrink-0 w-32 sm:w-36"
                       style={{
                         background: 'rgba(255, 255, 255, 0.8)',
                         border: '1px solid rgba(255, 255, 255, 1)',
@@ -346,7 +346,7 @@ export const WineProductView = ({ product, categoryName, wineContent, producerCo
                     <motion.button
                       onClick={handleAddToCart}
                       disabled={isAdded || (availableToBuy !== null && availableToBuy === 0)}
-                      className="relative overflow-hidden flex-1 h-[3.5rem] px-8 font-bold uppercase tracking-[0.12em] text-[11px] flex items-center justify-center gap-3 rounded-xl transition-all duration-300"
+                      className="relative overflow-hidden flex-1 h-14 px-5 sm:px-8 font-bold uppercase tracking-[0.12em] text-[11px] flex items-center justify-center gap-2 sm:gap-3 rounded-xl transition-all duration-300"
                       style={{
                         background: isAdded ? '#2D6A4F' : (availableToBuy === 0 ? palette.textMuted : `linear-gradient(135deg, ${palette.accent} 0%, #60212E 100%)`),
                         color: '#fff',
@@ -382,7 +382,7 @@ export const WineProductView = ({ product, categoryName, wineContent, producerCo
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.6, delay: 1 }}
-                    className="flex gap-8 text-[13px] font-medium"
+                    className="flex flex-wrap gap-x-6 gap-y-3 sm:gap-8 text-[12px] md:text-[13px] font-medium"
                     style={{ color: palette.textMuted }}
                   >
                     <button

@@ -47,8 +47,8 @@ export const TerroirSection = ({ wineDetails, palette, origin, producer }: Terro
   ].filter((certification) => certification.enabled);
 
   return (
-    <section className="py-24" style={{ backgroundColor: palette.bg }}>
-      <div className="container mx-auto px-6 md:px-12 lg:px-20">
+    <section className="py-16 md:py-24" style={{ backgroundColor: palette.bg }}>
+      <div className="container mx-auto px-5 md:px-12 lg:px-20">
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 lg:gap-16">
 
           {/* Main Content: 3 cols */}
@@ -59,16 +59,21 @@ export const TerroirSection = ({ wineDetails, palette, origin, producer }: Terro
             >
               — Historia & Terroir
             </span>
-            <h2 className="text-3xl md:text-5xl font-serif mb-8 flex items-center gap-4" style={{ color: palette.text }}>
-              {countryCode && <CountryFlag countryCode={countryCode} size={32} />}
-              {wineryName}
+            <h2 className="text-[1.75rem] md:text-5xl font-serif mb-7 md:mb-8 flex items-center gap-3 md:gap-4 leading-[1.1]" style={{ color: palette.text }}>
+              {countryCode && (
+                <span className="shrink-0 inline-flex">
+                  <span className="md:hidden"><CountryFlag countryCode={countryCode} size={22} /></span>
+                  <span className="hidden md:inline-flex"><CountryFlag countryCode={countryCode} size={32} /></span>
+                </span>
+              )}
+              <span className="min-w-0 break-words">{wineryName}</span>
             </h2>
             {description ? (
               <div className="mb-6 space-y-4">
                 {description.split('\n\n').map((paragraph, idx) => (
                   <p
                     key={idx}
-                    className="text-base leading-[1.8]"
+                    className="text-[15px] md:text-base leading-[1.75] md:leading-[1.8]"
                     style={{ color: idx === 0 ? palette.textSecondary : palette.textMuted }}
                   >
                     {paragraph}
@@ -121,7 +126,7 @@ export const TerroirSection = ({ wineDetails, palette, origin, producer }: Terro
           {/* Awards Panel: 2 cols */}
           <Section className="lg:col-span-2" delay={0.2}>
             <div
-              className="p-8 lg:p-10 rounded-3xl h-full"
+              className="p-6 md:p-8 lg:p-10 rounded-2xl md:rounded-3xl h-full"
               style={{ backgroundColor: palette.bgCard, border: `1px solid ${palette.border}`, boxShadow: palette.shadow }}
             >
               <h3 className="text-xl font-serif mb-8" style={{ color: palette.text }}>Nagrody</h3>

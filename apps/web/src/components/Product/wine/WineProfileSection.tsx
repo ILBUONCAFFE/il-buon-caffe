@@ -22,9 +22,9 @@ export const WineProfileSection = ({ wineDetails, palette }: WineProfileSectionP
   const [activeTab, setActiveTab] = useState<'eye' | 'nose' | 'palate'>('nose');
 
   return (
-    <section className="py-24" style={{ backgroundColor: palette.bgWarm }}>
-      <div className="container mx-auto px-6 md:px-12 lg:px-20">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20">
+    <section className="py-16 md:py-24" style={{ backgroundColor: palette.bgWarm }}>
+      <div className="container mx-auto px-5 md:px-12 lg:px-20">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-14 lg:gap-20">
 
           {/* Left: Characteristics */}
           <Section>
@@ -34,7 +34,7 @@ export const WineProfileSection = ({ wineDetails, palette }: WineProfileSectionP
             >
               — Profil Wina
             </span>
-            <h2 className="text-3xl md:text-5xl font-serif mb-10" style={{ color: palette.text }}>
+            <h2 className="text-[1.75rem] md:text-5xl font-serif mb-8 md:mb-10 leading-[1.1]" style={{ color: palette.text }}>
               Charakterystyka
             </h2>
 
@@ -54,20 +54,20 @@ export const WineProfileSection = ({ wineDetails, palette }: WineProfileSectionP
             >
               — Degustacja
             </span>
-            <h2 className="text-3xl md:text-5xl font-serif mb-10" style={{ color: palette.text }}>
+            <h2 className="text-[1.75rem] md:text-5xl font-serif mb-8 md:mb-10 leading-[1.1]" style={{ color: palette.text }}>
               Nuty zmysłowe
             </h2>
 
             {/* Tab Navigation — text-only, no emojis */}
             <div
-              className="inline-flex rounded-lg p-1 mb-8"
+              className="inline-flex w-full sm:w-auto rounded-lg p-1 mb-7 md:mb-8"
               style={{ backgroundColor: palette.bgMuted }}
             >
               {TABS.map((tab) => (
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className="relative px-5 py-2 text-[13px] font-medium transition-colors duration-200 rounded-md"
+                  className="relative flex-1 sm:flex-initial px-3 sm:px-5 py-2 text-[12px] sm:text-[13px] font-medium transition-colors duration-200 rounded-md whitespace-nowrap"
                   style={{
                     color: activeTab === tab.key ? palette.text : palette.textMuted,
                   }}
@@ -98,7 +98,7 @@ export const WineProfileSection = ({ wineDetails, palette }: WineProfileSectionP
                 transition={{ duration: 0.25 }}
               >
                 <blockquote
-                  className="text-lg leading-relaxed font-serif italic pl-5"
+                  className="text-base md:text-lg leading-relaxed font-serif italic pl-4 md:pl-5"
                   style={{
                     color: palette.textSecondary,
                     borderLeft: `2px solid ${palette.accent}`,

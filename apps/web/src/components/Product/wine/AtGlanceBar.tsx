@@ -116,23 +116,36 @@ export const AtGlanceGrid = ({ wineDetails, palette, origin }: AtGlanceBarProps)
 
   if (items.length === 0) return null;
 
+  const isOddLast = items.length % 2 === 1;
+
   return (
     <div className="lg:hidden border-y" style={{ borderColor: palette.borderLight, backgroundColor: palette.bgWarm }}>
-      <div className="grid grid-cols-2 divide-x divide-y" style={{ borderColor: palette.borderLight }}>
-        {items.map((item, idx) => (
-          <div key={idx} className="flex flex-col items-center justify-center text-center px-4 py-5 min-w-0"
-               style={{ borderTop: idx < 2 ? 'none' : `1px solid ${palette.borderLight}` }}>
-            <span className="text-[9px] uppercase tracking-[0.2em] font-semibold mb-1.5" style={{ color: palette.textDim }}>
-              {item.label}
-            </span>
-            <div className="flex items-center gap-1.5 min-w-0">
-              {item.customVisual}
-              <span className="text-[13px] font-medium truncate" style={{ color: palette.text }}>
-                {item.value}
+      <div className="grid grid-cols-2">
+        {items.map((item, idx) => {
+          const isLastOdd = isOddLast && idx === items.length - 1;
+          const onLeft = idx % 2 === 0;
+          const onTopRow = idx < 2;
+          return (
+            <div
+              key={idx}
+              className={`flex flex-col items-center justify-center text-center px-4 py-4 min-w-0 ${isLastOdd ? 'col-span-2' : ''}`}
+              style={{
+                borderLeft: !isLastOdd && !onLeft ? `1px solid ${palette.borderLight}` : 'none',
+                borderTop: !onTopRow ? `1px solid ${palette.borderLight}` : 'none',
+              }}
+            >
+              <span className="text-[9px] uppercase tracking-[0.22em] font-semibold mb-1.5" style={{ color: palette.textDim }}>
+                {item.label}
               </span>
+              <div className="flex items-center gap-1.5 min-w-0 max-w-full">
+                {item.customVisual}
+                <span className="text-[13px] font-medium truncate" style={{ color: palette.text }}>
+                  {item.value}
+                </span>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

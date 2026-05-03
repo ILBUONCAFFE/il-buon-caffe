@@ -25,18 +25,18 @@ export const TrustStripSection = ({ palette }: TrustStripSectionProps) => {
   ];
 
   return (
-    <section className="py-16 md:py-20 border-y" style={{ backgroundColor: palette.bgCard, borderColor: palette.borderLight }}>
-      <div className="container mx-auto px-6 md:px-12 lg:px-20">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 max-w-5xl mx-auto text-center md:text-left">
+    <section className="py-14 md:py-20 border-y" style={{ backgroundColor: palette.bgCard, borderColor: palette.borderLight }}>
+      <div className="container mx-auto px-5 md:px-12 lg:px-20">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-12 max-w-5xl mx-auto text-center md:text-left">
           {items.map((item, idx) => (
             <Section key={item.title} delay={idx * 0.08}>
-              <div className="flex flex-col gap-3">
-                <div>
+              <div className="flex flex-col gap-3 items-center md:items-start">
+                <div className="w-full">
                   <h3 className="font-serif text-lg md:text-xl relative inline-block pb-2 mb-2" style={{ color: palette.text }}>
                     {item.title}
-                    <span className="absolute bottom-0 left-0 w-8 h-0.5" style={{ backgroundColor: palette.accent }}></span>
+                    <span className="absolute bottom-0 left-1/2 -translate-x-1/2 md:left-0 md:translate-x-0 w-8 h-0.5" style={{ backgroundColor: palette.accent }}></span>
                   </h3>
-                  <p className="text-[13px] md:text-sm leading-relaxed" style={{ color: palette.textMuted }}>
+                  <p className="text-[13px] md:text-sm leading-relaxed max-w-xs mx-auto md:mx-0" style={{ color: palette.textMuted }}>
                     {item.desc}
                   </p>
                 </div>
