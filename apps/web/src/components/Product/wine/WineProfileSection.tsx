@@ -29,16 +29,16 @@ export const WineProfileSection = ({ wineDetails, palette }: WineProfileSectionP
           {/* Left: Characteristics */}
           <Section>
             <span
-              className="uppercase tracking-[0.2em] text-[11px] font-semibold block mb-2"
+              className="uppercase tracking-[0.24em] text-[11px] font-semibold block mb-4"
               style={{ color: palette.textDim }}
             >
-              Profil Wina
+              — Profil Wina
             </span>
-            <h2 className="text-3xl md:text-4xl font-serif mb-10" style={{ color: palette.text }}>
+            <h2 className="text-3xl md:text-5xl font-serif mb-10" style={{ color: palette.text }}>
               Charakterystyka
             </h2>
 
-            <div className="space-y-5">
+            <div className="space-y-6">
               <CharacteristicBar label="Ciało" value={wineDetails.bodyValue} delay={0} />
               <CharacteristicBar label="Taniny" value={wineDetails.tannins} delay={0.1} />
               <CharacteristicBar label="Kwasowość" value={wineDetails.acidity} delay={0.2} />
@@ -49,13 +49,13 @@ export const WineProfileSection = ({ wineDetails, palette }: WineProfileSectionP
           {/* Right: Tasting Notes */}
           <Section delay={0.15}>
             <span
-              className="uppercase tracking-[0.2em] text-[11px] font-semibold block mb-2"
+              className="uppercase tracking-[0.24em] text-[11px] font-semibold block mb-4"
               style={{ color: palette.textDim }}
             >
-              Degustacja
+              — Degustacja
             </span>
-            <h2 className="text-3xl md:text-4xl font-serif mb-8" style={{ color: palette.text }}>
-              Nuty Smakowe
+            <h2 className="text-3xl md:text-5xl font-serif mb-10" style={{ color: palette.text }}>
+              Nuty zmysłowe
             </h2>
 
             {/* Tab Navigation — text-only, no emojis */}

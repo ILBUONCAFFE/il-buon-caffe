@@ -55,16 +55,16 @@ export const ServingGuideSection = ({ wineDetails, palette }: ServingGuideSectio
 
         <Section className="mb-14">
           <span
-            className="uppercase tracking-[0.2em] text-[11px] font-semibold block mb-2 text-center"
+            className="uppercase tracking-[0.24em] text-[11px] font-semibold block mb-4 text-center"
             style={{ color: palette.textDim }}
           >
-            Serwowanie
+            — Serwowanie
           </span>
           <h2
-            className="text-3xl md:text-4xl lg:text-5xl font-serif text-center"
+            className="text-3xl md:text-5xl font-serif text-center"
             style={{ color: palette.text }}
           >
-            Rytuał Podania
+            Rekomendacje podania
           </h2>
         </Section>
 

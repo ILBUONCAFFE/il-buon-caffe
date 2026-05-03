@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { motion } from 'motion/react';
-import { ArrowRight, Leaf, Sparkles, Sprout } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { Section } from './Section';
 import { CountryFlag } from './CountryFlag';
 import type { PaletteType } from './palette';
@@ -33,19 +33,16 @@ export const TerroirSection = ({ wineDetails, palette, origin, producer }: Terro
       enabled: wineDetails.isOrganic,
       label: "Organiczne",
       description: "Certyfikowane uprawy organiczne, bez syntetycznych pestycydów i herbicydów.",
-      icon: Leaf,
     },
     {
       enabled: wineDetails.isBiodynamic,
       label: "Biodynamiczne",
       description: "Uprawa prowadzona zgodnie z rytmem natury i zasadami rolnictwa biodynamicznego.",
-      icon: Sprout,
     },
     {
       enabled: wineDetails.isNatural,
       label: "Naturalne",
       description: "Minimalna interwencja w piwnicy, z naciskiem na autentyczny charakter owocu i terroir.",
-      icon: Sparkles,
     },
   ].filter((certification) => certification.enabled);
 
@@ -57,13 +54,13 @@ export const TerroirSection = ({ wineDetails, palette, origin, producer }: Terro
           {/* Main Content: 3 cols */}
           <Section className="lg:col-span-3">
             <span
-              className="uppercase tracking-[0.2em] text-[11px] font-semibold block mb-2"
+              className="uppercase tracking-[0.24em] text-[11px] font-semibold block mb-4"
               style={{ color: palette.textDim }}
             >
-              Historia & Terroir
+              — Historia & Terroir
             </span>
-            <h2 className="text-3xl md:text-4xl font-serif mb-6 flex items-center gap-3" style={{ color: palette.text }}>
-              {countryCode && <CountryFlag countryCode={countryCode} size={28} />}
+            <h2 className="text-3xl md:text-5xl font-serif mb-8 flex items-center gap-4" style={{ color: palette.text }}>
+              {countryCode && <CountryFlag countryCode={countryCode} size={32} />}
               {wineryName}
             </h2>
             {description ? (
@@ -153,12 +150,10 @@ export const TerroirSection = ({ wineDetails, palette, origin, producer }: Terro
               {certifications.length > 0 && (
                 <div className="mt-8 pt-6 space-y-5" style={{ borderTop: `1px solid ${palette.borderLight}` }}>
                   {certifications.map((certification) => {
-                    const Icon = certification.icon;
-
                     return (
                       <div key={certification.label}>
-                        <div className="flex items-center gap-2.5 mb-3">
-                          <Icon size={14} style={{ color: '#2D6A4F' }} />
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#2D6A4F]" />
                           <span className="uppercase tracking-widest text-[11px] font-semibold" style={{ color: '#2D6A4F' }}>
                             {certification.label}
                           </span>

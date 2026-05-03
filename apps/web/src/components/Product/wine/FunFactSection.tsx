@@ -1,7 +1,6 @@
 "use client";
 
 import React from 'react';
-import { Sparkles } from 'lucide-react';
 import { Section } from './Section';
 import type { PaletteType } from './palette';
 import type { WineDetails } from '@/content/products/wineData';
@@ -17,41 +16,32 @@ export const FunFactSection = ({ wineDetails, palette }: FunFactSectionProps) =>
 
   return (
     <section
-      className="py-20 md:py-28 relative overflow-hidden"
+      className="py-24 md:py-32 relative overflow-hidden"
       style={{ backgroundColor: palette.bgWarm }}
     >
-      <div
-        className="absolute inset-0 opacity-[0.03] pointer-events-none"
-        style={{
-          backgroundImage: `radial-gradient(circle at 20% 30%, ${palette.accent} 0%, transparent 60%), radial-gradient(circle at 80% 70%, ${palette.gold} 0%, transparent 60%)`,
-        }}
-      />
-
       <div className="container mx-auto px-6 md:px-12 lg:px-20 relative z-10">
-        <Section className="max-w-3xl mx-auto text-center">
-          <div
-            className="inline-flex items-center justify-center h-14 w-14 rounded-full mb-8"
-            style={{
-              backgroundColor: palette.bgCard,
-              border: `1px solid ${palette.gold}`,
-              boxShadow: palette.shadow,
-            }}
-          >
-            <Sparkles size={22} strokeWidth={1.5} style={{ color: palette.gold }} />
+        <Section className="max-w-3xl mx-auto">
+          <div className="flex items-center gap-4 mb-10">
+            <span
+              className="uppercase tracking-[0.24em] text-[11px] font-semibold block"
+              style={{ color: palette.textDim }}
+            >
+              — Ciekawostka
+            </span>
           </div>
 
-          <span
-            className="uppercase tracking-[0.24em] text-[10px] font-semibold block mb-4"
-            style={{ color: palette.gold }}
-          >
-            Czy wiesz, że…
-          </span>
-
           <blockquote
-            className="font-serif text-2xl md:text-3xl lg:text-[2.25rem] leading-[1.35] italic"
+            className="font-serif text-2xl md:text-4xl leading-[1.3]"
             style={{ color: palette.text }}
           >
-            „{fact}”
+            <span
+              aria-hidden="true"
+              className="font-serif mr-4 align-top"
+              style={{ color: palette.gold, fontSize: '1.2em', lineHeight: 0.8 }}
+            >
+              *
+            </span>
+            {fact}
           </blockquote>
         </Section>
       </div>
