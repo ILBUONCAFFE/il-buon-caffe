@@ -119,7 +119,7 @@ must be added if the source ever becomes dynamic/user-controlled.
 | # | Note |
 |---|------|
 | 1 | `NEXT_PUBLIC_API_URL` is the public API hostname — exposing it to the browser is intentional (admin client uses it for direct calls). |
-| 2 | `images.unsplash.com` / `barahonda.com` remote image patterns — intentional, specific enough. |
+| 2 | `images.unsplash.com` remote image patterns — intentional, specific enough. |
 | 3 | In-memory rate limiting has no effect across serverless isolates — acknowledged in code comments; DB lockout provides the durable layer. |
 | 4 | No global Content-Security-Policy for public pages — a strict CSP would require auditing all inline scripts/styles across the public site. Consider adding after a full CSP audit. |
 | 5 | `.env` files are excluded by root `.gitignore`. Confirm they have never been committed (`git log --all -- '*/.env'`). |

@@ -341,13 +341,12 @@ const details = deepMerge(
 | 5 | Słodycze | slodycze | default |
 | 6 | Delikatesy | delikatesy | default |
 
-**Produkty (11):**
+**Produkty (10):**
 | SKU | Nazwa | Kategoria | Cena | Stock |
 |-----|-------|-----------|------|-------|
 | COFFEE-001 | Lavazza Qualità Oro | Kawa | 45.99 | 50 |
 | COFFEE-002 | Illy Classico | Kawa | 52.99 | 35 |
 | COFFEE-003 | Kimbo Napoletano | Kawa | 38.99 | 40 |
-| WINE-001 | Barahonda Organic Barrica | Wina | 49.99 | 25 |
 | WINE-002 | Nero d'Avola Sicilia DOC | Wina | 39.99 | 30 |
 | WINE-003 | Chianti Classico DOCG | Wina | 69.99 | 15 |
 | WINE-004 | Vinho Verde DOC | Wina | 29.99 | 40 |
@@ -395,7 +394,7 @@ interface WineDetails {
   }
 
   // Terroir
-  winery: string             // "Bodegas Barahonda"
+  winery: string             // Nazwa producenta
   wineryDescription: string  // Pełna narracja (multi-paragraph)
   established: string        // "1925 / 2006" (kafelki — krótko)
   altitude: string           // "700–800 m n.p.m." (kafelki — krótko)
@@ -434,7 +433,6 @@ interface WineDetails {
 
 | Slug | Wino | Status |
 |------|------|--------|
-| `barahonda-organic-barrica` | Barahonda Organic Barrica | ✅ Pełne dane (terroir, tasting, awards, pairing) |
 | *(inne)* | — | ⬜ Fallback na `defaultWineDetails` |
 
 ### Flagi krajów
@@ -799,7 +797,7 @@ Pierwszy koszt dopiero przy: >100k req/day LUB >0.5 GB DB LUB >100 emails/day.
 |---|---------|------|------|
 | 1 | **Koszyk nie podłączony w WineProductView** | `WineProductView.tsx` | `handleAddToCart` robi `console.log` zamiast `useCart().addToCart()` |
 | 2 | **Brak flag w /assets/flags/** | `public/assets/flags/` | Folder pusty — `CountryFlag` zwraca 404 |
-| 3 | **Jedyny produkt w wineData** | `wineData.ts` | Tylko Barahonda — inne wina → generyczny fallback |
+| 3 | **Brak pełnego katalogu wineData** | `wineData.ts` | Produkty bez wpisu → generyczny fallback |
 
 ### Priorytet: Średni
 

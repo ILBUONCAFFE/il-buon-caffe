@@ -499,7 +499,7 @@ export function WineDetailsEditor({
         </div>
       </SectionCard>
 
-      <SectionCard title="Profil degustacyjny" description="Barahonda-style sekcja z intensywnością i opowieścią sensoryczną.">
+      <SectionCard title="Profil degustacyjny" description="Sekcja z intensywnością i opowieścią sensoryczną.">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Field label="Ciało (opis)">
             <input className="admin-input w-full" value={form.body} onChange={(e) => setField('body', e.target.value)} />

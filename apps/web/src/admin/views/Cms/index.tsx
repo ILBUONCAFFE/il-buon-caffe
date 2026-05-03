@@ -263,7 +263,7 @@ export const CmsView = () => {
                       name: e.target.value,
                       slug: editingWinerySlug ? prev.slug : slugify(e.target.value),
                     }))}
-                    placeholder="Nazwa, np. Bodegas Barahonda"
+                    placeholder="Nazwa, np. Castello di Greve"
                   />
                   <input
                     className="admin-input w-full font-mono text-xs"

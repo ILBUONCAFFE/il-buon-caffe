@@ -112,50 +112,6 @@ export interface WineDetails {
  * Klucz = slug produktu z bazy danych.
  */
 export const wineDataCatalog: Record<string, WineDetails> = {
-  
-  // ─────────────────────────────────────────
-  // BARAHONDA ORGANIC BARRICA
-  // ─────────────────────────────────────────
-  "barahonda-organic-barrica": {
-    grape: "60% Monastrell (40-letnie winorośle) + 40% Syrah (20-letnie winorośle)",
-    alcohol: "14,5%",
-    body: "Pełne, aksamitne",
-    bodyValue: 80,
-    tannins: 60,
-    acidity: 58,
-    sweetness: 15,
-    aging: "6 mies. beczki z francuskiego dębu (oddzielna winifikacja szczepów, połączenie po fermentacji)",
-    servingTemp: "16–18°C",
-    decanting: "30–45 min — otwiera dymne nuty i łagodzi taniny",
-    agingPotential: "7–8 lat od zbioru",
-    
-    winery: "Bodegas Barahonda",
-    established: "1925 / 2006",
-    altitude: "700–800 m n.p.m.",
-    soil: "Wapień, piasek, glina",
-    climate: "Kontynentalny",
-    vinification: "Oddzielna winifikacja Monastrell i Syrah, połączenie po fermentacji. 6 mies. dąb francuski.",
-    wineryDescription: "Rodzinna tradycja winarska sięga 1850 roku — cztery pokolenia rodziny Candela. W 1925 r. założono bodegę, a w 2006 r. bracia Antonio i Alfredo Candela powołali Bodegas Barahonda, dziś jedną z najbardziej rozpoznawalnych winnic w D.O. Yecla.\n\n150 ha własnych winnic + ponad 600 ha pod nadzorem agrotechnicznym. Działki w dwóch strefach: Campo Arriba (700–800 m) — 80% wapień, 5% piasek, 15% glina; Campo Abajo (400–500 m) — 30% wapień, 5% piasek, 65% glina. Głębokie, przepuszczalne gleby — ilaste podłoże retencjonuje wodę, co przekłada się na koncentrację i złożoność wina.\n\nKlimat kontynentalny z ekstremalnymi amplitudami (–6°C do +40°C), 3 385 h słońca i ok. 300 mm opadów rocznie. Certyfikat ekologiczny CAERM (ES-ECO-024-MU), certyfikat wegański. Restauracja przy winnicy wyróżniona w przewodniku Michelin i nagrodzona Repsol Sol.",
-    
-    tastingNotes: {
-      eye: "Intensywna rubinowa czerwień o żywym, niemal purpurowym połysku.",
-      nose: "Bogaty i głęboko perfumowany — dojrzałe czarne i niebieskie owoce, cola, wanilia i potpourri. Śliwka, borówka, czarny pieprz i kamfora, a za nimi mineralne, dymne i drzewne nuty.",
-      palate: "Aksamitne i uwodzicielskie — dobra intensywność owocowa, czyste nuty, kwasowość nadająca świeżość, zrównoważona przez dobrze zintegrowany słodki dąb na finiszu. Gładkie i słodkie przy wejściu, bardziej zwarte w środku palety — gorzkawa wiśnia, borówka, wanilia i korzenny tort. Dymna nuta pojawia się po napowietrzeniu.",
-    },
-    
-    awards: [
-      { year: "2022", award: "94 pkt Decanter, 92 pkt Vinous, 91 pkt Wine Enthusiast, 90 pkt James Suckling", competition: "Rocznik 2022" },
-      { year: "2021", award: "90 pkt Decanter, 90 pkt James Suckling", competition: "Rocznik 2021" },
-      { year: "2020", award: "91 pkt James Suckling, 90 pkt Wine Enthusiast «Best Buy»", competition: "Rocznik 2020" },
-      { year: "2019", award: "91 pkt James Suckling", competition: "Rocznik 2019" },
-      { year: "2018", award: "92 pkt James Suckling (rocznik 2017), 91 pkt James Suckling (rocznik 2016)", competition: "James Suckling" },
-      { year: "2020", award: "Złoty Medal", competition: "Challenge Milésime Bio (rocznik 2017)" },
-    ],
-    
-    isOrganic: true,
-    countryCode: "es",
-  },
-
   // ─────────────────────────────────────────
   // TEMPLATE — skopiuj i dostosuj dla nowego wina
   // ─────────────────────────────────────────

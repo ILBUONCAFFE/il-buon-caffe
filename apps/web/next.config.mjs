@@ -47,11 +47,6 @@ const IMAGE_REMOTE_PATTERNS = [
   },
   {
     protocol: 'https',
-    hostname: 'barahonda.com',
-    pathname: '/**',
-  },
-  {
-    protocol: 'https',
     hostname: 'media.ilbuoncaffe.pl',
     pathname: '/**',
   },
