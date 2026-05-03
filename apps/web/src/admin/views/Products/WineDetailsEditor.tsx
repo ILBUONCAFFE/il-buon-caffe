@@ -23,6 +23,7 @@ import type {
   WineColor,
   WineSweetness,
   WineType,
+  GlassType,
 } from '@/content/products/wineData'
 
 type WineAwardDraft = {
@@ -56,6 +57,8 @@ export type WineFormState = {
   nose: string
   palate: string
   foodPairing: string
+  glassType: string
+  funFact: string
   isOrganic: boolean
   isBiodynamic: boolean
   isNatural: boolean
@@ -79,6 +82,16 @@ const EMPTY_AWARD: WineAwardDraft = {
 const WINE_COLOR_OPTIONS: WineColor[] = ['Czerwone', 'Białe', 'Różowe', 'Pomarańczowe']
 const WINE_TYPE_OPTIONS: WineType[] = ['Spokojne', 'Musujące', 'Półmusujące']
 const WINE_SWEETNESS_OPTIONS: WineSweetness[] = ['Wytrawne', 'Półwytrawne', 'Półsłodkie', 'Słodkie']
+const GLASS_TYPE_OPTIONS: { value: GlassType; label: string }[] = [
+  { value: 'bordeaux', label: 'Bordeaux (czerwone pełne)' },
+  { value: 'burgundy', label: 'Burgund (czerwone aromatyczne)' },
+  { value: 'white', label: 'Białe wino' },
+  { value: 'rose', label: 'Różowe' },
+  { value: 'flute', label: 'Flute (musujące)' },
+  { value: 'tulip', label: 'Tulipan (musujące premium)' },
+  { value: 'coupe', label: 'Coupe' },
+  { value: 'iso', label: 'ISO uniwersalny' },
+]
 
 function trimText(value: string): string {
   return value.trim()
@@ -119,6 +132,8 @@ export function createWineDetailsDraft(details: WineDetailsDraftSource): WineFor
     nose: details.tastingNotes?.nose ?? '',
     palate: details.tastingNotes?.palate ?? '',
     foodPairing: details.foodPairing ?? '',
+    glassType: details.glassType ?? '',
+    funFact: details.funFact ?? '',
     isOrganic: Boolean(details.isOrganic),
     isBiodynamic: Boolean(details.isBiodynamic),
     isNatural: Boolean(details.isNatural),
@@ -169,6 +184,8 @@ export function wineDetailsDraftToPayload(form: WineFormState): Record<string, u
     ...(trimText(form.agingPotential) ? { agingPotential: trimText(form.agingPotential) } : {}),
     ...(Object.keys(tastingNotes).length > 0 ? { tastingNotes } : {}),
     ...(trimText(form.foodPairing) ? { foodPairing: trimText(form.foodPairing) } : {}),
+    ...(trimText(form.glassType) ? { glassType: trimText(form.glassType) } : {}),
+    ...(trimText(form.funFact) ? { funFact: trimText(form.funFact) } : {}),
     ...(form.isOrganic ? { isOrganic: true } : {}),
     ...(form.isBiodynamic ? { isBiodynamic: true } : {}),
     ...(form.isNatural ? { isNatural: true } : {}),
@@ -541,6 +558,18 @@ export function WineDetailsEditor({
           <Field label="Potencjał starzenia">
             <input className="admin-input w-full" value={form.agingPotential} onChange={(e) => setField('agingPotential', e.target.value)} />
           </Field>
+          <Field label="Typ kieliszka">
+            <select
+              className="admin-input w-full"
+              value={form.glassType}
+              onChange={(e) => setField('glassType', e.target.value)}
+            >
+              <option value="">— wybierz —</option>
+              {GLASS_TYPE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </Field>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
@@ -599,6 +628,21 @@ export function WineDetailsEditor({
             ))}
           </div>
         )}
+      </SectionCard>
+
+      <SectionCard
+        title="Ciekawostka"
+        description="Krótka anegdota o winie, producencie lub regionie. ~200 znaków. Wyświetlana jako narracyjny break między sekcjami Terroir i Serwowanie."
+      >
+        <Field label="Tekst ciekawostki">
+          <textarea
+            className="admin-input w-full min-h-[90px] resize-y"
+            value={form.funFact}
+            onChange={(e) => setField('funFact', e.target.value)}
+            maxLength={280}
+            placeholder="Np. Winnica korzysta z 80-letnich krzewów Tempranillo zasadzonych jeszcze przez dziadka obecnego enologa."
+          />
+        </Field>
       </SectionCard>
 
       <SectionCard

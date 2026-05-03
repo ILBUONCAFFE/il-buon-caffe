@@ -48,6 +48,7 @@ export interface WineAward {
 export type WineColor = 'Czerwone' | 'Białe' | 'Różowe' | 'Pomarańczowe';
 export type WineType = 'Spokojne' | 'Musujące' | 'Półmusujące';
 export type WineSweetness = 'Wytrawne' | 'Półwytrawne' | 'Półsłodkie' | 'Słodkie';
+export type GlassType = 'bordeaux' | 'burgundy' | 'flute' | 'tulip' | 'coupe' | 'iso' | 'white' | 'rose';
 
 export interface WineDetails {
   // ── Technikalia ──
@@ -83,6 +84,14 @@ export interface WineDetails {
   
   // ── Degustacja ──
   tastingNotes: WineTastingNotes;
+
+  /** Typ kieliszka rekomendowany dla tego wina. Renderowany jako SVG sylwetka
+   *  w sekcji "Serwowanie". */
+  glassType?: GlassType;
+
+  /** Krótka ciekawostka o winie / producencie / regionie. Renderowana jako
+   *  narracyjny break między sekcjami Terroir i Serwowanie. ~200 znaków. */
+  funFact?: string;
 
   /** Ogólne kategorie żywności do których pasuje wino — bez konkretnych dań.
    *  Np. "Czerwone mięsa, dziczyzna, dojrzewające sery". Wyświetlane w sekcji
@@ -173,6 +182,8 @@ const defaultWineDetails: WineDetails = {
   },
   awards: [],
   foodPairing: undefined,
+  glassType: undefined,
+  funFact: undefined,
   countryCode: "",
 };
 
@@ -264,6 +275,14 @@ function normalizeWineDetails(details: WineDetails): WineDetails {
       details.foodPairing === undefined || details.foodPairing === null
         ? undefined
         : toString(details.foodPairing, ''),
+    glassType:
+      details.glassType === undefined || details.glassType === null
+        ? undefined
+        : (toString(details.glassType, '') as GlassType),
+    funFact:
+      details.funFact === undefined || details.funFact === null
+        ? undefined
+        : toString(details.funFact, ''),
     countryCode: toString(details.countryCode, defaultWineDetails.countryCode),
   };
 }
@@ -374,6 +393,8 @@ function productRichContentToWineDetails(content: ProductRichContent | null | un
     ...(getExtendedString(extended, 'vinification') ? { vinification: getExtendedString(extended, 'vinification') } : {}),
     ...(getExtendedString(extended, 'wineryDescription') ? { wineryDescription: getExtendedString(extended, 'wineryDescription') } : {}),
     ...(getExtendedString(extended, 'foodPairing') ? { foodPairing: getExtendedString(extended, 'foodPairing') } : {}),
+    ...(getExtendedString(extended, 'glassType') ? { glassType: getExtendedString(extended, 'glassType') } : {}),
+    ...(getExtendedString(extended, 'funFact') ? { funFact: getExtendedString(extended, 'funFact') } : {}),
     ...(getExtendedString(extended, 'countryCode') ? { countryCode: getExtendedString(extended, 'countryCode') } : {}),
     ...(awards ? { awards } : {}),
   };

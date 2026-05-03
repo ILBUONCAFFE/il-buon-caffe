@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Section } from './Section';
+import { GlassIcon, getGlassLabel } from './GlassIcon';
 import type { PaletteType } from './palette';
 import type { WineDetails } from '@/content/products/wineData';
 
@@ -10,8 +11,15 @@ interface ServingGuideSectionProps {
   palette: PaletteType;
 }
 
+interface GuideItem {
+  label: string;
+  value: string;
+  desc: string;
+  icon?: React.ReactNode;
+}
+
 export const ServingGuideSection = ({ wineDetails, palette }: ServingGuideSectionProps) => {
-  const items = [
+  const items: GuideItem[] = [
     {
       label: "Temperatura",
       value: wineDetails.servingTemp,
@@ -22,12 +30,24 @@ export const ServingGuideSection = ({ wineDetails, palette }: ServingGuideSectio
       value: wineDetails.decanting,
       desc: "Przelej do karafki dla pełnego uwolnienia aromatów",
     },
-    {
-      label: "Potencjał",
-      value: wineDetails.agingPotential,
-      desc: "Optymalne okno do konsumpcji przy odpowiednim przechowywaniu",
-    },
   ];
+
+  if (wineDetails.glassType) {
+    items.push({
+      label: "Kieliszek",
+      value: getGlassLabel(wineDetails.glassType),
+      desc: "Kształt kieliszka kierunkuje aromaty na właściwe receptory",
+      icon: <GlassIcon type={wineDetails.glassType} size={56} color={palette.gold} strokeWidth={1.3} />,
+    });
+  }
+
+  items.push({
+    label: "Potencjał",
+    value: wineDetails.agingPotential,
+    desc: "Optymalne okno do konsumpcji przy odpowiednim przechowywaniu",
+  });
+
+  const colsClass = items.length === 4 ? 'md:grid-cols-4' : 'md:grid-cols-3';
 
   return (
     <section className="py-24" style={{ backgroundColor: palette.bg }}>
@@ -49,9 +69,9 @@ export const ServingGuideSection = ({ wineDetails, palette }: ServingGuideSectio
         </Section>
 
         {/* Horizontal layout — simple data display, no giant background numbers  */}
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-5xl mx-auto">
           <div
-            className="grid grid-cols-1 md:grid-cols-3 rounded-2xl overflow-hidden"
+            className={`grid grid-cols-1 ${colsClass} rounded-2xl overflow-hidden`}
             style={{
               backgroundColor: palette.bgWarm,
               border: `1px solid ${palette.borderLight}`,
@@ -60,27 +80,33 @@ export const ServingGuideSection = ({ wineDetails, palette }: ServingGuideSectio
             {items.map((item, idx) => (
               <Section key={idx} delay={idx * 0.08}>
                 <div
-                  className="px-8 py-10 text-center"
+                  className="px-6 py-10 text-center h-full flex flex-col items-center"
                   style={{
                     borderRight: idx < items.length - 1 ? `1px solid ${palette.borderLight}` : 'none',
                   }}
                 >
+                  {item.icon && (
+                    <div className="mb-4 flex items-center justify-center" style={{ color: palette.gold }}>
+                      {item.icon}
+                    </div>
+                  )}
+
                   <span
-                    className="text-[10px] uppercase tracking-[0.2em] font-semibold block mb-4"
+                    className="text-[10px] uppercase tracking-[0.2em] font-semibold block mb-3"
                     style={{ color: palette.textDim }}
                   >
                     {item.label}
                   </span>
 
                   <p
-                    className="text-2xl md:text-3xl font-serif mb-4 leading-snug"
+                    className="text-xl md:text-2xl font-serif mb-3 leading-snug"
                     style={{ color: palette.text }}
                   >
                     {item.value}
                   </p>
 
                   <p
-                    className="text-[13px] leading-relaxed max-w-[220px] mx-auto"
+                    className="text-[12px] leading-relaxed max-w-[200px] mx-auto"
                     style={{ color: palette.textMuted }}
                   >
                     {item.desc}

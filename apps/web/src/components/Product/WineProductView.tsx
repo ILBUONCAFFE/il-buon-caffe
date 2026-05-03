@@ -7,8 +7,7 @@ import { motion, useReducedMotion, useScroll, useTransform } from 'motion/react'
 import {
   Minus, Plus, Heart, Share2,
   Check, ChevronRight,
-  Grape, Globe, Wine, Thermometer,
-  Clock, Droplets, Droplet, ArrowRight, Info
+  ArrowRight, Info
 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useNotification } from '@/components/Notification/NotificationProvider';
@@ -20,11 +19,16 @@ import { SHOP_ENABLED } from '@/config/launch';
 import { ComingSoonBanner } from '@/components/ui/ComingSoonBanner';
 
 import { palette } from './wine/palette';
-import { CountryFlag } from './wine/CountryFlag';
 import { WineProfileSection } from './wine/WineProfileSection';
 import { TerroirSection } from './wine/TerroirSection';
 import { ServingGuideSection } from './wine/ServingGuideSection';
 import { FoodPairingSection } from './wine/FoodPairingSection';
+import { AtGlanceBar, AtGlanceGrid } from './wine/AtGlanceBar';
+import { TastingNotesSection } from './wine/TastingNotesSection';
+import { FunFactSection } from './wine/FunFactSection';
+import { TrustStripSection } from './wine/TrustStripSection';
+import { ReviewsSection } from './wine/ReviewsSection';
+import { RelatedWinesSection } from './wine/RelatedWinesSection';
 
 interface WineProductViewProps {
   product: Product;
@@ -139,7 +143,7 @@ export const WineProductView = ({ product, categoryName, wineContent, producerCo
       {/* ═══════════════════════════════════════════════════════════
           HERO SECTION
       ═══════════════════════════════════════════════════════════ */}
-      <section ref={heroRef} className="relative min-h-screen flex items-center justify-center pt-24 pb-12 overflow-hidden">
+      <section ref={heroRef} className="relative min-h-[80vh] lg:min-h-[85vh] flex items-center justify-center pt-24 pb-12 overflow-hidden">
 
         {/* Subtle decorative elements */}
         <motion.div
@@ -167,7 +171,7 @@ export const WineProductView = ({ product, categoryName, wineContent, producerCo
 
             {/* LEFT: Bottle & Visuals */}
             <motion.div
-              className="lg:col-span-5 relative flex justify-center items-center order-2 lg:order-1 h-[60vh] lg:h-[75vh]"
+              className="lg:col-span-5 relative flex justify-center items-center order-2 lg:order-1 h-[45vh] lg:h-[65vh]"
               style={useStaticHero ? undefined : { y: bottleY, scale: bottleScale }}
             >
               <div className="relative z-10 flex items-center justify-center w-full h-full pb-8 lg:pb-0">
@@ -221,18 +225,6 @@ export const WineProductView = ({ product, categoryName, wineContent, producerCo
                 </ol>
               </motion.nav>
 
-              {/* Category Tag */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.4 }}
-                className="mb-4"
-              >
-                <span className="uppercase tracking-[0.2em] text-[11px] font-semibold" style={{ color: palette.textDim }}>
-                  Wino czerwone
-                </span>
-              </motion.div>
-
               {/* Title & Vintage */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -279,50 +271,6 @@ export const WineProductView = ({ product, categoryName, wineContent, producerCo
                 </motion.div>
               )}
 
-              {/* Minimalist Properties: Origin, Grape, Alcohol */}
-              <motion.div
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.6 }}
-                className="flex flex-wrap items-center gap-4 mb-10 text-[13px] font-medium tracking-wide uppercase"
-                style={{ color: palette.textSecondary }}
-              >
-                {product.origin && (
-                  <div className="flex items-center gap-2">
-                    {wineDetails.countryCode ? (
-                      <CountryFlag countryCode={wineDetails.countryCode} size={16} className="rounded-sm opacity-90 grayscale-[20%]" />
-                    ) : (
-                      <Globe size={14} style={{ color: palette.gold }} />
-                    )}
-                    <span className="pt-[1px]">{product.origin}</span>
-                  </div>
-                )}
-
-                {product.origin && <div className="w-1 h-1 rounded-full opacity-30" style={{ backgroundColor: palette.textMuted }} />}
-
-                <div className="flex items-center gap-2">
-                  <Grape size={14} style={{ color: palette.gold }} />
-                  <span className="pt-[1px]">{wineDetails.grape}</span>
-                </div>
-
-                <div className="w-1 h-1 rounded-full opacity-30" style={{ backgroundColor: palette.textMuted }} />
-
-                <div className="flex items-center gap-2">
-                  <Wine size={14} style={{ color: palette.gold }} />
-                  <span className="pt-[1px]">{wineDetails.alcohol}</span>
-                </div>
-
-                {wineDetails.capacity && (
-                  <>
-                    <div className="w-1 h-1 rounded-full opacity-30" style={{ backgroundColor: palette.textMuted }} />
-                    <div className="flex items-center gap-2">
-                      <Droplet size={14} style={{ color: palette.gold }} />
-                      <span className="pt-[1px]">{wineDetails.capacity}</span>
-                    </div>
-                  </>
-                )}
-              </motion.div>
-
               {/* Price */}
               <motion.div
                 initial={{ opacity: 0, y: 15 }}
@@ -336,28 +284,6 @@ export const WineProductView = ({ product, categoryName, wineContent, producerCo
                 <span className="text-xl lg:text-2xl font-light tracking-tight" style={{ color: palette.textMuted }}>
                   ,{(product.price % 1).toFixed(2).slice(2)} zł
                 </span>
-              </motion.div>
-
-              {/* Minimalist Quick Specs */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.8 }}
-                className="flex items-center gap-10 mb-10"
-              >
-                {[
-                  { icon: Droplets, label: "Ciało", value: wineDetails.body },
-                  { icon: Thermometer, label: "Temp.", value: wineDetails.servingTemp },
-                  { icon: Clock, label: "Dojrz.", value: wineDetails.aging },
-                ].map((spec, idx) => (
-                  <div key={idx} className="flex flex-col gap-1.5">
-                    <div className="flex items-center gap-2" style={{ color: palette.textMuted }}>
-                      <spec.icon size={16} strokeWidth={2} style={{ color: palette.accent }} />
-                      <p className="text-[10px] uppercase tracking-[0.2em] font-semibold">{spec.label}</p>
-                    </div>
-                    <p className="font-serif font-medium text-[15px] leading-none text-left" style={{ color: palette.text }}>{spec.value}</p>
-                  </div>
-                ))}
               </motion.div>
 
               {SHOP_ENABLED ? (
@@ -518,25 +444,36 @@ export const WineProductView = ({ product, categoryName, wineContent, producerCo
 
       </section>
 
-      {/* ═══════════════════════════════════════════════════════════
-          WINE PROFILE SECTION
-      ═══════════════════════════════════════════════════════════ */}
+      {/* AT-A-GLANCE BAR — sticky desktop, grid mobile */}
+      <AtGlanceBar wineDetails={wineDetails} palette={palette} origin={product.origin} />
+      <AtGlanceGrid wineDetails={wineDetails} palette={palette} origin={product.origin} />
+
+      {/* TASTING NOTES — primary storytelling */}
+      <TastingNotesSection wineDetails={wineDetails} palette={palette} />
+
+      {/* WINE PROFILE — characteristic bars */}
       <WineProfileSection wineDetails={wineDetails} palette={palette} />
 
-      {/* ═══════════════════════════════════════════════════════════
-          TERROIR & WINERY
-      ═══════════════════════════════════════════════════════════ */}
+      {/* TERROIR & WINERY */}
       <TerroirSection wineDetails={wineDetails} palette={palette} origin={product.origin} producer={producerContent ?? null} />
 
-      {/* ═══════════════════════════════════════════════════════════
-          SERVING GUIDE
-      ═══════════════════════════════════════════════════════════ */}
+      {/* FUN FACT — narrative break */}
+      <FunFactSection wineDetails={wineDetails} palette={palette} />
+
+      {/* SERVING GUIDE — 4 tiles incl. glass */}
       <ServingGuideSection wineDetails={wineDetails} palette={palette} />
 
-      {/* ═══════════════════════════════════════════════════════════
-          FOOD PAIRING
-      ═══════════════════════════════════════════════════════════ */}
+      {/* FOOD PAIRING */}
       <FoodPairingSection wineDetails={wineDetails} palette={palette} />
+
+      {/* TRUST STRIP */}
+      <TrustStripSection palette={palette} />
+
+      {/* REVIEWS — UI only, empty state */}
+      <ReviewsSection palette={palette} productName={product.name} />
+
+      {/* RELATED WINES */}
+      <RelatedWinesSection palette={palette} currentSku={product.sku} />
 
     </div>
   );
