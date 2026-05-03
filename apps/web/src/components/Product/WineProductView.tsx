@@ -185,10 +185,10 @@ export const WineProductView = ({ product, categoryName, wineContent, producerCo
                     alt={product.name}
                     fill
                     priority
-                    sizes="(max-width: 768px) 86vw, (max-width: 1024px) 50vw, 34vw"
-                    className="h-full w-auto object-contain"
+                    quality={92}
+                    sizes="(max-width: 640px) 70vw, (max-width: 1024px) 45vw, 34vw"
+                    className="h-full w-auto object-contain wine-hero-bottle"
                     style={{
-                      filter: 'drop-shadow(0 40px 80px rgba(28, 23, 20, 0.15)) drop-shadow(0 10px 20px rgba(28, 23, 20, 0.1))',
                       maxHeight: '100%',
                       objectFit: 'contain'
                     }}

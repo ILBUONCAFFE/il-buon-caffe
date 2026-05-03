@@ -670,3 +670,14 @@
     @apply font-mono text-2xl font-bold;
   }
 }
+
+/* Wine hero bottle: lighter shadow on mobile to prevent foggy halo */
+.wine-hero-bottle {
+  filter: drop-shadow(0 12px 24px rgba(28, 23, 20, 0.18));
+}
+@media (min-width: 1024px) {
+  .wine-hero-bottle {
+    filter: drop-shadow(0 30px 60px rgba(28, 23, 20, 0.16))
+            drop-shadow(0 8px 16px rgba(28, 23, 20, 0.08));
+  }
+}
