@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Section } from './Section';
-import { GlassIcon, getGlassLabel } from './GlassIcon';
+import { getGlassLabel } from './GlassIcon';
 import type { PaletteType } from './palette';
 import type { WineDetails } from '@/content/products/wineData';
 
@@ -15,7 +15,6 @@ interface GuideItem {
   label: string;
   value: string;
   desc: string;
-  icon?: React.ReactNode;
 }
 
 export const ServingGuideSection = ({ wineDetails, palette }: ServingGuideSectionProps) => {
@@ -37,7 +36,6 @@ export const ServingGuideSection = ({ wineDetails, palette }: ServingGuideSectio
       label: "Kieliszek",
       value: getGlassLabel(wineDetails.glassType),
       desc: "Kształt kieliszka kierunkuje aromaty na właściwe receptory",
-      icon: <GlassIcon type={wineDetails.glassType} size={56} color={palette.gold} strokeWidth={1.3} />,
     });
   }
 
@@ -85,12 +83,6 @@ export const ServingGuideSection = ({ wineDetails, palette }: ServingGuideSectio
                     borderRight: idx < items.length - 1 ? `1px solid ${palette.borderLight}` : 'none',
                   }}
                 >
-                  {item.icon && (
-                    <div className="mb-4 flex items-center justify-center" style={{ color: palette.gold }}>
-                      {item.icon}
-                    </div>
-                  )}
-
                   <span
                     className="text-[10px] uppercase tracking-[0.2em] font-semibold block mb-3"
                     style={{ color: palette.textDim }}
