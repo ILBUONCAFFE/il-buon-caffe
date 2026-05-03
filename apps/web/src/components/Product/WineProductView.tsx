@@ -108,6 +108,11 @@ export const WineProductView = ({ product, categoryName, wineContent, producerCo
   const useStaticHero = isMobile || prefersReducedMotion;
 
   const wineDetails = getWineDetailsForProduct(product, wineContent ?? null);
+  const wineClassificationTags = [
+    wineDetails.wineColor,
+    wineDetails.wineType,
+    wineDetails.wineSweetness,
+  ].filter((value): value is NonNullable<typeof value> => typeof value === 'string' && value.trim().length > 0);
 
   const handleAddToCart = () => {
     if (availableToBuy !== null && quantity > availableToBuy) {
@@ -250,6 +255,29 @@ export const WineProductView = ({ product, categoryName, wineContent, producerCo
                   </p>
                 )}
               </motion.div>
+
+              {wineClassificationTags.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.55 }}
+                  className="flex flex-wrap items-center gap-2 mb-6"
+                >
+                  {wineClassificationTags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-full border px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] backdrop-blur-sm"
+                      style={{
+                        borderColor: `${palette.gold}55`,
+                        backgroundColor: 'rgba(255,255,255,0.54)',
+                        color: palette.textSecondary,
+                      }}
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </motion.div>
+              )}
 
               {/* Minimalist Properties: Origin, Grape, Alcohol */}
               <motion.div

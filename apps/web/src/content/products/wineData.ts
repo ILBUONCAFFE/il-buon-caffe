@@ -45,12 +45,20 @@ export interface WineAward {
   competition: string;
 }
 
+export type WineColor = 'Czerwone' | 'Białe' | 'Różowe' | 'Pomarańczowe';
+export type WineType = 'Spokojne' | 'Musujące' | 'Półmusujące';
+export type WineSweetness = 'Wytrawne' | 'Półwytrawne' | 'Półsłodkie' | 'Słodkie';
+
 export interface WineDetails {
   // ── Technikalia ──
   grape: string;
   alcohol: string;
   /** Pojemność butelki — np. "750 ml", "1,5 L". Wyświetlane w hero. */
   capacity?: string;
+  /** Klasyfikacja widoczna w hero produktu. */
+  wineColor?: WineColor;
+  wineType?: WineType;
+  wineSweetness?: WineSweetness;
   body: string;
   bodyValue: number;       // 0–100
   tannins: number;         // 0–100
@@ -259,6 +267,18 @@ function normalizeWineDetails(details: WineDetails): WineDetails {
       details.capacity === undefined || details.capacity === null
         ? undefined
         : toString(details.capacity, ''),
+    wineColor:
+      details.wineColor === undefined || details.wineColor === null
+        ? undefined
+        : toString(details.wineColor, '') as WineColor,
+    wineType:
+      details.wineType === undefined || details.wineType === null
+        ? undefined
+        : toString(details.wineType, '') as WineType,
+    wineSweetness:
+      details.wineSweetness === undefined || details.wineSweetness === null
+        ? undefined
+        : toString(details.wineSweetness, '') as WineSweetness,
     body: toString(details.body, defaultWineDetails.body),
     bodyValue: toNumber(details.bodyValue, defaultWineDetails.bodyValue),
     tannins: toNumber(details.tannins, defaultWineDetails.tannins),

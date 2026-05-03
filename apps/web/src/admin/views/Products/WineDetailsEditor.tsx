@@ -20,6 +20,9 @@ import {
 import type {
   WineDetails as CatalogWineDetails,
   WineAward as CatalogWineAward,
+  WineColor,
+  WineSweetness,
+  WineType,
 } from '@/content/products/wineData'
 
 type WineAwardDraft = {
@@ -32,6 +35,9 @@ export type WineFormState = {
   grape: string
   alcohol: string
   capacity: string
+  wineColor: string
+  wineType: string
+  wineSweetness: string
   body: string
   bodyValue: string
   tannins: string
@@ -65,6 +71,10 @@ const EMPTY_AWARD: WineAwardDraft = {
   competition: '',
 }
 
+const WINE_COLOR_OPTIONS: WineColor[] = ['Czerwone', 'Białe', 'Różowe', 'Pomarańczowe']
+const WINE_TYPE_OPTIONS: WineType[] = ['Spokojne', 'Musujące', 'Półmusujące']
+const WINE_SWEETNESS_OPTIONS: WineSweetness[] = ['Wytrawne', 'Półwytrawne', 'Półsłodkie', 'Słodkie']
+
 function trimText(value: string): string {
   return value.trim()
 }
@@ -88,6 +98,9 @@ export function createWineDetailsDraft(details: CatalogWineDetails): WineFormSta
     grape: details.grape ?? '',
     alcohol: details.alcohol ?? '',
     capacity: details.capacity ?? '',
+    wineColor: details.wineColor ?? '',
+    wineType: details.wineType ?? '',
+    wineSweetness: details.wineSweetness ?? '',
     body: details.body ?? '',
     bodyValue: String(details.bodyValue ?? ''),
     tannins: String(details.tannins ?? ''),
@@ -131,6 +144,9 @@ export function wineDetailsDraftToPayload(form: WineFormState): Record<string, u
     grape: trimText(form.grape) || undefined,
     alcohol: trimText(form.alcohol) || undefined,
     capacity: trimText(form.capacity) || undefined,
+    wineColor: trimText(form.wineColor) || undefined,
+    wineType: trimText(form.wineType) || undefined,
+    wineSweetness: trimText(form.wineSweetness) || undefined,
     body: trimText(form.body) || undefined,
     bodyValue: toOptionalNumber(form.bodyValue, 'Body value'),
     tannins: toOptionalNumber(form.tannins, 'Taniny'),
@@ -199,6 +215,50 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (val
       </span>
       <span className="text-sm font-medium text-[#1A1A1A]">{label}</span>
     </button>
+  )
+}
+
+function SegmentedSelect({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string
+  value: string
+  options: readonly string[]
+  onChange: (value: string) => void
+}) {
+  return (
+    <Field label={label}>
+      <div className="flex flex-wrap gap-2 rounded-lg border border-[#E5E4E1] bg-[#FAFAF9] p-1.5">
+        <button
+          type="button"
+          onClick={() => onChange('')}
+          className={`min-h-9 rounded-md px-3 text-sm font-medium transition-colors ${
+            value === ''
+              ? 'bg-white text-[#1A1A1A] shadow-sm'
+              : 'text-[#737373] hover:bg-white/70 hover:text-[#1A1A1A]'
+          }`}
+        >
+          Puste
+        </button>
+        {options.map((option) => (
+          <button
+            key={option}
+            type="button"
+            onClick={() => onChange(option)}
+            className={`min-h-9 rounded-md px-3 text-sm font-medium transition-colors ${
+              value === option
+                ? 'bg-[#1A1A1A] text-white shadow-sm'
+                : 'text-[#525252] hover:bg-white hover:text-[#1A1A1A]'
+            }`}
+          >
+            {option}
+          </button>
+        ))}
+      </div>
+    </Field>
   )
 }
 
@@ -416,6 +476,26 @@ export function WineDetailsEditor({
           <Field label="Body label">
             <input className="admin-input w-full" value={form.body} onChange={(e) => setField('body', e.target.value)} />
           </Field>
+        </div>
+        <div className="grid grid-cols-1 gap-4 pt-2">
+          <SegmentedSelect
+            label="Kolor"
+            value={form.wineColor}
+            options={WINE_COLOR_OPTIONS}
+            onChange={(value) => setField('wineColor', value)}
+          />
+          <SegmentedSelect
+            label="Styl"
+            value={form.wineType}
+            options={WINE_TYPE_OPTIONS}
+            onChange={(value) => setField('wineType', value)}
+          />
+          <SegmentedSelect
+            label="Słodycz"
+            value={form.wineSweetness}
+            options={WINE_SWEETNESS_OPTIONS}
+            onChange={(value) => setField('wineSweetness', value)}
+          />
         </div>
       </SectionCard>
 
