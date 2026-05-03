@@ -29,13 +29,13 @@ import {
   type UpdateAdminProductPayload,
   type UpsertProductRichContentPayload,
 } from '../../lib/adminApiClient'
-import { getWineDetailsForProduct } from '@/content/products/wineData'
 import { StockHistoryModal } from './StockHistoryModal'
 import { AllegroLinkModal } from './AllegroLinkModal'
 import { RichContentEditor } from './RichContentEditor'
 import {
   WineDetailsEditor,
   wineDetailsDraftToPayload,
+  type WineDetailsDraftSource,
   type WineFormState,
 } from './WineDetailsEditor'
 import { PermanentDeleteProductModal } from './PermanentDeleteProductModal'
@@ -617,8 +617,8 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
     finally { setPushingStock(false) }
   }
 
-  const initialWineDetails = useMemo(
-    () => (product ? getWineDetailsForProduct(product, productRichContent) : null),
+  const initialWineDetails = useMemo<WineDetailsDraftSource | null>(
+    () => (product ? (productRichContent?.wineDetails as WineDetailsDraftSource | null) ?? {} : null),
     [product, productRichContent],
   )
   const wineDetailsResetKey = `${sku}:${productRichContent?.updatedAt ?? 'initial'}:${productRichContent?.version ?? '0'}`

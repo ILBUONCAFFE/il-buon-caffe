@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   ArrowLeft,
@@ -29,6 +29,11 @@ type WineAwardDraft = {
   year: string
   award: string
   competition: string
+}
+
+export type WineDetailsDraftSource = Partial<Omit<CatalogWineDetails, 'awards' | 'tastingNotes'>> & {
+  awards?: CatalogWineAward[]
+  tastingNotes?: Partial<CatalogWineDetails['tastingNotes']>
 }
 
 export type WineFormState = {
@@ -93,7 +98,7 @@ function toAwardDraft(value: CatalogWineAward): WineAwardDraft {
   }
 }
 
-export function createWineDetailsDraft(details: CatalogWineDetails): WineFormState {
+export function createWineDetailsDraft(details: WineDetailsDraftSource): WineFormState {
   return {
     grape: details.grape ?? '',
     alcohol: details.alcohol ?? '',
@@ -140,32 +145,34 @@ export function wineDetailsDraftToPayload(form: WineFormState): Record<string, u
     }))
     .filter((award) => Boolean(award.year) && Boolean(award.award))
 
+  const tastingNotes = {
+    ...(trimText(form.eye) ? { eye: trimText(form.eye) } : {}),
+    ...(trimText(form.nose) ? { nose: trimText(form.nose) } : {}),
+    ...(trimText(form.palate) ? { palate: trimText(form.palate) } : {}),
+  }
+
   return {
-    grape: trimText(form.grape) || undefined,
-    alcohol: trimText(form.alcohol) || undefined,
-    capacity: trimText(form.capacity) || undefined,
-    wineColor: trimText(form.wineColor) || undefined,
-    wineType: trimText(form.wineType) || undefined,
-    wineSweetness: trimText(form.wineSweetness) || undefined,
-    body: trimText(form.body) || undefined,
-    bodyValue: toOptionalNumber(form.bodyValue, 'Body value'),
-    tannins: toOptionalNumber(form.tannins, 'Taniny'),
-    acidity: toOptionalNumber(form.acidity, 'Kwasowość'),
-    sweetness: toOptionalNumber(form.sweetness, 'Słodycz'),
-    aging: trimText(form.aging) || undefined,
-    servingTemp: trimText(form.servingTemp) || undefined,
-    decanting: trimText(form.decanting) || undefined,
-    agingPotential: trimText(form.agingPotential) || undefined,
-    tastingNotes: {
-      eye: trimText(form.eye),
-      nose: trimText(form.nose),
-      palate: trimText(form.palate),
-    },
-    foodPairing: trimText(form.foodPairing) || undefined,
-    isOrganic: form.isOrganic,
-    isBiodynamic: form.isBiodynamic,
-    isNatural: form.isNatural,
-    awards,
+    ...(trimText(form.grape) ? { grape: trimText(form.grape) } : {}),
+    ...(trimText(form.alcohol) ? { alcohol: trimText(form.alcohol) } : {}),
+    ...(trimText(form.capacity) ? { capacity: trimText(form.capacity) } : {}),
+    ...(trimText(form.wineColor) ? { wineColor: trimText(form.wineColor) } : {}),
+    ...(trimText(form.wineType) ? { wineType: trimText(form.wineType) } : {}),
+    ...(trimText(form.wineSweetness) ? { wineSweetness: trimText(form.wineSweetness) } : {}),
+    ...(trimText(form.body) ? { body: trimText(form.body) } : {}),
+    ...(toOptionalNumber(form.bodyValue, 'Body value') !== undefined ? { bodyValue: toOptionalNumber(form.bodyValue, 'Body value') } : {}),
+    ...(toOptionalNumber(form.tannins, 'Taniny') !== undefined ? { tannins: toOptionalNumber(form.tannins, 'Taniny') } : {}),
+    ...(toOptionalNumber(form.acidity, 'Kwasowość') !== undefined ? { acidity: toOptionalNumber(form.acidity, 'Kwasowość') } : {}),
+    ...(toOptionalNumber(form.sweetness, 'Słodycz') !== undefined ? { sweetness: toOptionalNumber(form.sweetness, 'Słodycz') } : {}),
+    ...(trimText(form.aging) ? { aging: trimText(form.aging) } : {}),
+    ...(trimText(form.servingTemp) ? { servingTemp: trimText(form.servingTemp) } : {}),
+    ...(trimText(form.decanting) ? { decanting: trimText(form.decanting) } : {}),
+    ...(trimText(form.agingPotential) ? { agingPotential: trimText(form.agingPotential) } : {}),
+    ...(Object.keys(tastingNotes).length > 0 ? { tastingNotes } : {}),
+    ...(trimText(form.foodPairing) ? { foodPairing: trimText(form.foodPairing) } : {}),
+    ...(form.isOrganic ? { isOrganic: true } : {}),
+    ...(form.isBiodynamic ? { isBiodynamic: true } : {}),
+    ...(form.isNatural ? { isNatural: true } : {}),
+    ...(awards.length > 0 ? { awards } : {}),
   }
 }
 
@@ -288,7 +295,7 @@ export function WineDetailsEditor({
 }: {
   sku: string
   product: WineEditorProductPreview
-  initialWineDetails: CatalogWineDetails
+  initialWineDetails: WineDetailsDraftSource
   embedded?: boolean
   draft?: WineFormState | null
   resetKey?: string
@@ -301,14 +308,20 @@ export function WineDetailsEditor({
   const [message, setMessage] = useState<string | null>(null)
   const initialForm = useMemo(() => createWineDetailsDraft(initialWineDetails), [initialWineDetails])
   const effectiveResetKey = resetKey ?? sku
+  const isHydratingRef = useRef(true)
 
   useEffect(() => {
+    isHydratingRef.current = true
     setForm(draft ?? initialForm)
     setError(null)
     setMessage(null)
   }, [effectiveResetKey])
 
   useEffect(() => {
+    if (isHydratingRef.current) {
+      isHydratingRef.current = false
+      return
+    }
     onDraftChange?.(form)
   }, [form, onDraftChange])
 

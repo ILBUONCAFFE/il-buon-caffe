@@ -1,10 +1,9 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Plus, X, Award, Sparkles, Wine, Thermometer, User } from 'lucide-react'
-import { getWineDetailsForProduct } from '@/content/products/wineData'
 import type { AdminProduct } from '../../types/admin-api'
-import { WineDetailsEditor } from './WineDetailsEditor'
+import { WineDetailsEditor, type WineDetailsDraftSource } from './WineDetailsEditor'
 import {
   adminApi,
   ApiError,
@@ -125,12 +124,9 @@ function PrettySlider({ value, onChange }: { value: number; onChange: (v: number
 export function RichContentEditor({ sku, category, product, managedSave = false, draft, onDraftChange }: Props) {
   const cfg = getCategoryConfig(category)
   const isWineCategory = category === 'wine' || category === 'wino' || category === 'alcohol'
-  const initialWineDetails = useMemo(
-    () => (product ? getWineDetailsForProduct(product) : null),
-    [product],
-  )
 
   const [content, setContent] = useState<UpsertProductRichContentPayload>(() => draft ?? emptyContent(category))
+  const [loadedWineDetails, setLoadedWineDetails] = useState<WineDetailsDraftSource>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -148,11 +144,15 @@ export function RichContentEditor({ sku, category, product, managedSave = false,
         profile: c.profile, sensory: c.sensory,
         extended: c.extended, isPublished: c.isPublished,
       })
+      setLoadedWineDetails((c.wineDetails as WineDetailsDraftSource | null) ?? {})
     } catch (err: unknown) {
       const isNotFound =
         (err instanceof ApiError && (err.status === 404 || err.code === 'NOT_FOUND')) ||
         (err instanceof Error && (err.message.includes('NOT_FOUND') || err.message.includes('404')))
-      if (isNotFound) setContent(emptyContent(category))
+      if (isNotFound) {
+        setContent(emptyContent(category))
+        setLoadedWineDetails({})
+      }
       else setError('Nie udało się pobrać treści premium')
     } finally { setLoading(false) }
   }, [sku, category])
@@ -208,7 +208,7 @@ export function RichContentEditor({ sku, category, product, managedSave = false,
       {error && <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
       {message && <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">{message}</div>}
 
-      {isWineCategory && product && initialWineDetails && (
+      {isWineCategory && product && (
         <div className="space-y-5">
           <div className="rounded-xl border border-[#E5E4E1] bg-[#FAFAF9] p-4 text-sm text-[#525252]">
             Wino edytujesz tutaj razem z treścią premium. Zmiany z tej zakładki idą do produktu i do sekcji premium na stronie produktu.
@@ -216,7 +216,7 @@ export function RichContentEditor({ sku, category, product, managedSave = false,
           <WineDetailsEditor
             sku={sku}
             product={product}
-            initialWineDetails={initialWineDetails}
+            initialWineDetails={loadedWineDetails}
             embedded
           />
         </div>
