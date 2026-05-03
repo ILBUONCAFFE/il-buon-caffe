@@ -452,6 +452,55 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
     setRichContentDraft(draft)
   }, [])
 
+  const handleUploadSelectedImageNow = async () => {
+    if (isCreateMode) {
+      setError('Najpierw utwórz produkt, potem zdjęcie może być podmieniane natychmiast.')
+      return
+    }
+    if (!selectedImage) return
+
+    setUploading(true)
+    setError(null)
+    setMessage(null)
+    try {
+      const uploaded = await adminApi.uploadProductMainImage(sku, selectedImage)
+      const imageUrl = normalizeAdminProductImageUrl(uploaded.url)
+      setForm((p) => ({ ...p, imageUrl }))
+      setProduct((p) => p ? { ...p, imageUrl } : p)
+      setSelectedImage(null)
+      router.refresh()
+      setMessage('Zdjęcie produktu zostało podmienione')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Nie udało się podmienić zdjęcia')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handlePersistManualImageUrl = async () => {
+    if (isCreateMode) {
+      setError('Najpierw utwórz produkt, potem URL zdjęcia może być zmieniany natychmiast.')
+      return
+    }
+
+    const imageUrl = normalizeAdminProductImageUrl(trimTo(form.imageUrl, 500))
+    setUploading(true)
+    setError(null)
+    setMessage(null)
+    try {
+      const updated = await adminApi.updateProduct(sku, { imageUrl })
+      const normalized = normalizeAdminProductImageUrl(updated.data.imageUrl || '')
+      setForm((p) => ({ ...p, imageUrl: normalized }))
+      setProduct(updated.data)
+      router.refresh()
+      setMessage('URL zdjęcia produktu został zapisany')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Nie udało się zapisać URL zdjęcia')
+    } finally {
+      setUploading(false)
+    }
+  }
+
   const saveProduct = async () => {
     setSaving(true); setError(null); setMessage(null)
     const cleanedName = trimTo(form.name, 255)
@@ -1072,9 +1121,24 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
                   )}
 
                   {selectedImage && (
-                    <p className="mt-3 text-xs text-[#737373]">
-                      Zdjęcie zostanie zapisane razem z produktem przez główny przycisk w nagłówku.
-                    </p>
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      {!isCreateMode && (
+                        <button
+                          type="button"
+                          onClick={() => void handleUploadSelectedImageNow()}
+                          disabled={uploading}
+                          className="inline-flex items-center gap-2 btn-secondary text-sm disabled:opacity-40"
+                        >
+                          <Upload size={14} />
+                          {uploading ? 'Podmienianie…' : 'Podmień teraz'}
+                        </button>
+                      )}
+                      <p className="text-xs text-[#737373]">
+                        {isCreateMode
+                          ? 'Zdjęcie zostanie zapisane razem z nowym produktem.'
+                          : 'Możesz podmienić od razu albo zapisać razem z formularzem.'}
+                      </p>
+                    </div>
                   )}
                 </div>
               </div>
@@ -1088,6 +1152,17 @@ export const ProductEditorView = ({ sku }: ProductEditorViewProps) => {
                       onChange={(e) => handleFieldChange('imageUrl', e.target.value)}
                     />
                   </Field>
+                  {!isCreateMode && (
+                    <button
+                      type="button"
+                      onClick={() => void handlePersistManualImageUrl()}
+                      disabled={uploading}
+                      className="inline-flex items-center gap-2 btn-secondary text-sm disabled:opacity-40"
+                    >
+                      <CheckCircle2 size={14} />
+                      {uploading ? 'Zapisywanie…' : 'Zapisz URL teraz'}
+                    </button>
+                  )}
                 </div>
               )}
             </SectionCard>

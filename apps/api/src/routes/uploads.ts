@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
-import { eq } from 'drizzle-orm'
-import { products } from '@repo/db/schema'
+import { and, asc, eq } from 'drizzle-orm'
+import { productImages, products } from '@repo/db/schema'
 import type { Env } from '../index'
 import { requireAdminOrProxy } from '../middleware/auth'
 import { sanitize } from '../lib/sanitize'
@@ -109,9 +109,10 @@ app.post('/image', requireAdminOrProxy(), async (c) => {
 
   const db = c.get('db')
   let productSlugForCache: string | null = null
+  let productNameForImage: string | null = null
   if (shouldPersistProductUrl) {
     const product = await db.query.products.findFirst({
-      columns: { sku: true, slug: true },
+      columns: { sku: true, slug: true, name: true },
       where: eq(products.sku, productSku),
     })
 
@@ -122,6 +123,7 @@ app.post('/image', requireAdminOrProxy(), async (c) => {
     // Stabilny klucz oparty o SKU — zmiana nazwy/slugu produktu nie łamie URL obrazka.
     key = `products/${productSku.toLowerCase()}/main.${ext}`
     productSlugForCache = product.slug
+    productNameForImage = product.name
   }
 
   const uploadBucket = folder === 'catalogs' ? c.env.CATALOGS_BUCKET : c.env.MEDIA_BUCKET
@@ -144,6 +146,40 @@ app.post('/image', requireAdminOrProxy(), async (c) => {
         .update(products)
         .set({ imageUrl: url, updatedAt: new Date() })
         .where(eq(products.sku, productSku))
+
+      await db
+        .update(productImages)
+        .set({ isPrimary: false })
+        .where(eq(productImages.productSku, productSku))
+
+      const existingPrimary = await db.query.productImages.findFirst({
+        columns: { id: true },
+        where: eq(productImages.productSku, productSku),
+        orderBy: asc(productImages.sortOrder),
+      })
+
+      if (existingPrimary) {
+        await db
+          .update(productImages)
+          .set({
+            url,
+            altText: productNameForImage,
+            sortOrder: 0,
+            isPrimary: true,
+          })
+          .where(and(
+            eq(productImages.id, existingPrimary.id),
+            eq(productImages.productSku, productSku),
+          ))
+      } else {
+        await db.insert(productImages).values({
+          productSku,
+          url,
+          altText: productNameForImage,
+          sortOrder: 0,
+          isPrimary: true,
+        })
+      }
     } catch (error) {
       // Nie zostawiaj osieroconego pliku, jeśli zapis URL do DB się nie powiedzie.
       await uploadBucket.delete(key).catch(() => undefined)

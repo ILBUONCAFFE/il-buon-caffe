@@ -99,6 +99,46 @@ function syncProductMutationToAllegro(
   )
 }
 
+async function syncPrimaryProductImage(
+  db: ReturnType<typeof createDb>,
+  args: { sku: string; url: string | null; altText: string },
+) {
+  await db.update(productImages)
+    .set({ isPrimary: false })
+    .where(eq(productImages.productSku, args.sku))
+
+  if (!args.url) return
+
+  const existingImage = await db.query.productImages.findFirst({
+    columns: { id: true },
+    where: eq(productImages.productSku, args.sku),
+    orderBy: asc(productImages.sortOrder),
+  })
+
+  if (existingImage) {
+    await db.update(productImages)
+      .set({
+        url: args.url,
+        altText: args.altText,
+        sortOrder: 0,
+        isPrimary: true,
+      })
+      .where(and(
+        eq(productImages.id, existingImage.id),
+        eq(productImages.productSku, args.sku),
+      ))
+    return
+  }
+
+  await db.insert(productImages).values({
+    productSku: args.sku,
+    url: args.url,
+    altText: args.altText,
+    sortOrder: 0,
+    isPrimary: true,
+  })
+}
+
 export const adminProductsRouter = new Hono<{ Bindings: Env }>()
 adminProductsRouter.use('*', requireAdminOrProxy())
 
@@ -281,6 +321,14 @@ adminProductsRouter.post('/', async (c) => {
       allegroSyncStock: body.allegroSyncStock ?? false,
     }).returning()
 
+    if (product.imageUrl) {
+      await syncPrimaryProductImage(db, {
+        sku,
+        url: product.imageUrl,
+        altText: product.name,
+      })
+    }
+
     await logAdminAction(db, {
       adminSub:  admin.sub,
       action:    'admin_action',
@@ -349,6 +397,14 @@ adminProductsRouter.put('/:sku', async (c) => {
     if (body.name) setCols.slug = slugify(body.name)
 
     const [updated] = await db.update(products).set(setCols as any).where(eq(products.sku, sku)).returning()
+
+    if (body.imageUrl !== undefined) {
+      await syncPrimaryProductImage(db, {
+        sku,
+        url: updated.imageUrl,
+        altText: updated.name,
+      })
+    }
 
     if (body.price !== undefined && updated.allegroSyncPrice) {
       syncProductMutationToAllegro(c.env, c.executionCtx, {
