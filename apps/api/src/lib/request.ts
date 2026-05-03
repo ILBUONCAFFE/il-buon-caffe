@@ -50,6 +50,14 @@ export function parsePagination(
   return { page, limit }
 }
 
+// ── Query values ────────────────────────────────────────────────────────────
+
+export function parseQueryDate(raw: string | undefined): Date | null {
+  if (!raw) return null
+  const date = new Date(raw)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
 // ── IP extraction ────────────────────────────────────────────────────────────
 
 /**

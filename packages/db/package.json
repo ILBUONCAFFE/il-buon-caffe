@@ -7,7 +7,8 @@
   "exports": {
     ".": "./schema/index.ts",
     "./schema": "./schema/index.ts",
-    "./client": "./client.ts"
+    "./client": "./client.ts",
+    "./orm": "./orm.ts"
   },
   "scripts": {
     "generate": "drizzle-kit generate",

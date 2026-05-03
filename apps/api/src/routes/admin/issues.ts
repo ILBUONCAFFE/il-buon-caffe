@@ -6,10 +6,11 @@ import {
   allegroIssues,
   allegroIssueMessages,
 } from '@repo/db/schema'
+import { containsLikePattern } from '@repo/db/orm'
 import { eq, and, desc, sql, gte, lte } from 'drizzle-orm'
 import { requireAdminOrProxy } from '../../middleware/auth'
 import { auditLogMiddleware } from '../../middleware/auditLog'
-import { parsePagination, serverError } from '../../lib/request'
+import { parsePagination, parseQueryDate, serverError } from '../../lib/request'
 import { resolveAccessToken } from '../../lib/allegro-orders/resolve-token'
 import {
   changeIssueStatus,
@@ -289,12 +290,13 @@ adminIssuesRouter.get('/', auditLogMiddleware('view_order'), async (c) => {
 
     const conditions: any[] = []
     if (status && validStatuses.includes(status)) conditions.push(eq(allegroIssues.status, status))
-    if (from) conditions.push(gte(allegroIssues.createdAt, new Date(from)))
-    if (to)   conditions.push(lte(allegroIssues.createdAt, new Date(to)))
+    const fromDate = parseQueryDate(from)
+    const toDate = parseQueryDate(to)
+    if (fromDate) conditions.push(gte(allegroIssues.createdAt, fromDate))
+    if (toDate)   conditions.push(lte(allegroIssues.createdAt, toDate))
 
-    if (search) {
-      const safe = search.trim().replace(/[%_]/g, '')
-      const term = `%${safe}%`
+    if (search.trim()) {
+      const term = containsLikePattern(search.trim())
       conditions.push(
         sql`(
           ${allegroIssues.allegroIssueId} ILIKE ${term}

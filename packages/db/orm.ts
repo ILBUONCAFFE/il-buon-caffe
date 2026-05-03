@@ -19,3 +19,19 @@ export {
   exists, notExists,
 } from 'drizzle-orm';
 export type { SQL } from 'drizzle-orm';
+
+export function escapeLikePattern(value: string): string {
+  return value.replace(/[\\%_]/g, (char) => `\\${char}`);
+}
+
+export function containsLikePattern(value: string): string {
+  return `%${escapeLikePattern(value)}%`;
+}
+
+export function prefixLikePattern(value: string): string {
+  return `${escapeLikePattern(value)}%`;
+}
+
+export function suffixLikePattern(value: string): string {
+  return `%${escapeLikePattern(value)}`;
+}

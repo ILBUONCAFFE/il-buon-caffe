@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import { createDb } from '@repo/db/client'
+import { containsLikePattern } from '@repo/db/orm'
 import { products, productImages, categories, stockChanges } from '@repo/db/schema'
 import { logAdminAction } from '../../lib/audit'
 import { eq, and, asc, desc, sql, count, ilike } from 'drizzle-orm'
@@ -155,7 +156,7 @@ adminProductsRouter.get('/', async (c) => {
     const category = c.req.query('category') || ''
 
     const conditions: any[] = []
-    if (search)            conditions.push(ilike(products.name, `%${search}%`))
+    if (search)            conditions.push(ilike(products.name, containsLikePattern(search)))
     if (activeQ === 'true')  conditions.push(eq(products.isActive, true))
     if (activeQ === 'false') conditions.push(eq(products.isActive, false))
     if (category)          conditions.push(eq(categories.slug, category))

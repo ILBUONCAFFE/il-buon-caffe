@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import { createDb } from '@repo/db/client'
+import { containsLikePattern } from '@repo/db/orm'
 import {
   orders, orderItems, products, stockChanges,
   returns, returnItems, refunds, allegroIssues, allegroIssueMessages,
@@ -9,7 +10,7 @@ import { eq, and, desc, sql, gte, lte, inArray, or, ilike } from 'drizzle-orm'
 import { requireAdminOrProxy } from '../../middleware/auth'
 import { auditLogMiddleware } from '../../middleware/auditLog'
 import { recordStatusChange } from '../../lib/record-status-change'
-import { parsePagination, serverError } from '../../lib/request'
+import { parsePagination, parseQueryDate, serverError } from '../../lib/request'
 import type { Env } from '../../index'
 import {
   acceptShopReturn,
@@ -51,12 +52,13 @@ adminReturnsRouter.get('/', auditLogMiddleware('view_order'), async (c) => {
 
     if (status && validStatuses.includes(status)) conditions.push(eq(returns.status, status as any))
     if (source && validSources.includes(source))  conditions.push(eq(returns.source, source as any))
-    if (from) conditions.push(gte(returns.createdAt, new Date(from)))
-    if (to)   conditions.push(lte(returns.createdAt, new Date(to)))
+    const fromDate = parseQueryDate(from)
+    const toDate = parseQueryDate(to)
+    if (fromDate) conditions.push(gte(returns.createdAt, fromDate))
+    if (toDate)   conditions.push(lte(returns.createdAt, toDate))
 
-    if (search) {
-      const safe = search.trim().replace(/[%_]/g, '')
-      const term = `%${safe}%`
+    if (search.trim()) {
+      const term = containsLikePattern(search.trim())
       conditions.push(
         sql`(
           ${returns.returnNumber} ILIKE ${term}

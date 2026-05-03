@@ -1,6 +1,6 @@
 import { db } from '@/db';
 import { products, categories, DbProduct } from '@/db/schema';
-import { eq, desc, asc, and, ilike, or, gte, lt, sql, SQL } from '@repo/db/orm';
+import { eq, desc, asc, and, ilike, or, gte, lt, sql, SQL, containsLikePattern, prefixLikePattern, suffixLikePattern } from '@repo/db/orm';
 import type { Product } from '@/types';
 import type { SortOption, ProductFilters, FilteredProductsResult, WineFilterOptions, WineFilterOption } from '@/types/filters';
 import { categoryFilterSlugs, normalizeCategorySlug } from '@/lib/categories';
@@ -148,7 +148,7 @@ export const productService = {
 
       // Text search (uses products_name_trgm_idx, products_description_trgm_idx, products_origin_trgm_idx)
       if (search && search.trim()) {
-        const searchTerm = `%${search.trim()}%`;
+        const searchTerm = containsLikePattern(search.trim());
         conditions.push(
           or(
             ilike(products.name, searchTerm),
@@ -183,7 +183,7 @@ export const productService = {
       // Origin filter — legacy (uses products_origin_idx)
       if (origins && origins.length > 0) {
         const originConditions = origins.map(origin =>
-          ilike(products.origin, `${origin}%`)
+          ilike(products.origin, prefixLikePattern(origin))
         );
         conditions.push(or(...originConditions)!);
       }
@@ -199,7 +199,7 @@ export const productService = {
       }
       // Grape variety filter (level 3 — uses ILIKE for comma-separated matching)
       if (grapeVariety) {
-        conditions.push(ilike(products.grapeVariety, `%${grapeVariety}%`));
+        conditions.push(ilike(products.grapeVariety, containsLikePattern(grapeVariety)));
       }
 
       // ── Determine ORDER BY ──────────────────────
@@ -436,7 +436,7 @@ export const productService = {
       }
 
       if (search && search.trim()) {
-        const searchTerm = `%${search.trim()}%`;
+        const searchTerm = containsLikePattern(search.trim());
         conditions.push(
           or(
             ilike(products.name, searchTerm),
@@ -542,7 +542,7 @@ export const productService = {
           })
           .from(products)
           .leftJoin(categories, eq(products.categoryId, categories.id))
-          .where(ilike(products.slug, `%${slug}`)) // Suffix match
+          .where(ilike(products.slug, suffixLikePattern(slug))) // Suffix match
           .limit(1);
       }
 
@@ -587,7 +587,7 @@ export const productService = {
     try {
       const conditions: SQL[] = [eq(products.isActive, true)];
       for (const token of tokens) {
-        const pattern = `%${token}%`;
+        const pattern = containsLikePattern(token);
         conditions.push(
           or(
             ilike(products.name, pattern),

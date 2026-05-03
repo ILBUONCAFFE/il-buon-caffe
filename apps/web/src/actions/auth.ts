@@ -2,7 +2,7 @@
 
 import { db } from '@/db';
 import { users } from '@/db/schema';
-import { eq } from '@repo/db/orm';
+import { eq, sql } from '@repo/db/orm';
 
 /**
  * Check if a user email exists in the Neon database.
@@ -40,7 +40,7 @@ export async function checkDatabaseHealth(): Promise<{
   const start = Date.now();
 
   try {
-    const result = await db.execute<{ now: string }>('SELECT NOW() as now');
+    const result = await db.execute<{ now: string }>(sql`SELECT NOW() as now`);
     const latencyMs = Date.now() - start;
 
     return {

@@ -12,9 +12,10 @@ import { auditLogMiddleware } from '../../middleware/auditLog'
 import { recordStatusChange } from '../../lib/record-status-change'
 import { refreshOrderShipments, type ShipmentSnapshotEntry } from '../../lib/allegro-shipments'
 import { getActiveAllegroToken } from '../../lib/allegro-tokens'
+import { containsLikePattern } from '@repo/db/orm'
 import { allegroHeaders } from '../../lib/allegro-orders/helpers'
 import type { Env } from '../../index'
-import { checkContentLength, parsePagination, getClientIp, serverError } from '../../lib/request'
+import { checkContentLength, parsePagination, parseQueryDate, getClientIp, serverError } from '../../lib/request'
 
 export const adminOrdersRouter = new Hono<{ Bindings: Env }>()
 
@@ -267,12 +268,13 @@ adminOrdersRouter.get('/', auditLogMiddleware('view_order'), async (c) => {
       }
     }
     if (status  && validStatuses.includes(status))  conditions.push(eq(orders.status,  status  as any))
-    if (from)   conditions.push(gte(orders.createdAt, new Date(from)))
-    if (to)     conditions.push(lte(orders.createdAt, new Date(to)))
-    if (search) {
+    const fromDate = parseQueryDate(from)
+    const toDate = parseQueryDate(to)
+    if (fromDate) conditions.push(gte(orders.createdAt, fromDate))
+    if (toDate)   conditions.push(lte(orders.createdAt, toDate))
+    if (search.trim()) {
       const raw  = search.trim()
-      const safe = raw.replace(/[%_]/g, '')
-      const term = `%${safe}%`
+      const term = containsLikePattern(raw)
 
       // Detect: pure number or #number → search by order id/number
       const isNumericId = /^#?\d{1,8}$/.test(raw)
@@ -295,14 +297,14 @@ adminOrdersRouter.get('/', auditLogMiddleware('view_order'), async (c) => {
         )
       } else if (isNip) {
         const cleanNip = raw.replace(/-/g, '')
-        const nipTerm  = `%${cleanNip}%`
+        const nipTerm  = containsLikePattern(cleanNip)
         conditions.push(
           sql`(${orders.customerData}::text ILIKE ${nipTerm})`
         )
       } else if (isPhone) {
         // Take last 9 digits to strip country prefix (+48, 0048) — Polish mobile = 9 digits
         const suffix    = stripped.slice(-9)
-        const phoneTerm = `%${suffix}%`
+        const phoneTerm = containsLikePattern(suffix)
         conditions.push(
           sql`REGEXP_REPLACE(${orders.customerData}->>'phone', '[^0-9]', '', 'g') LIKE ${phoneTerm}`
         )

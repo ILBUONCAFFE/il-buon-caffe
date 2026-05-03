@@ -1,8 +1,9 @@
 import { Hono } from 'hono'
 import { createDb } from '@repo/db/client'
 import { users, orders, userConsents } from '@repo/db/schema'
+import { containsLikePattern } from '@repo/db/orm'
 import { logAdminAction } from '../../lib/audit'
-import { eq, and, desc, sql, like, ilike, isNull, lte, asc } from 'drizzle-orm'
+import { eq, and, desc, sql, ilike, isNull, lte, asc } from 'drizzle-orm'
 import { requireAdminOrProxy } from '../../middleware/auth'
 import { auditLogMiddleware } from '../../middleware/auditLog'
 import type { Env } from '../../index'
@@ -27,7 +28,7 @@ adminCustomersRouter.get('/', auditLogMiddleware('view_customer'), async (c) => 
       eq(users.role, 'customer'),
     ]
     if (search) {
-      conditions.push(ilike(users.email, `%${search}%`))
+      conditions.push(ilike(users.email, containsLikePattern(search)))
     }
 
     const where = and(...conditions)

@@ -4,7 +4,7 @@ import { auditLog, users } from '@repo/db/schema'
 import { eq, and, desc, gte, lte, sql } from 'drizzle-orm'
 import { requireAdminOrProxy } from '../../middleware/auth'
 import type { Env } from '../../index'
-import { parsePagination, serverError } from '../../lib/request'
+import { parsePagination, parseQueryDate, serverError } from '../../lib/request'
 
 export const adminAuditRouter = new Hono<{ Bindings: Env }>()
 adminAuditRouter.use('*', requireAdminOrProxy())
@@ -30,8 +30,10 @@ adminAuditRouter.get('/', async (c) => {
     const conditions: any[] = []
     if (action  && VALID_ACTIONS.includes(action)) conditions.push(eq(auditLog.action, action as any))
     if (adminIdQ && !isNaN(parseInt(adminIdQ)))    conditions.push(eq(auditLog.adminId, parseInt(adminIdQ)))
-    if (from)   conditions.push(gte(auditLog.createdAt, new Date(from)))
-    if (to)     conditions.push(lte(auditLog.createdAt, new Date(to)))
+    const fromDate = parseQueryDate(from)
+    const toDate = parseQueryDate(to)
+    if (fromDate) conditions.push(gte(auditLog.createdAt, fromDate))
+    if (toDate)   conditions.push(lte(auditLog.createdAt, toDate))
 
     const where = conditions.length > 0 ? and(...conditions) : undefined
 

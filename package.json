@@ -12,7 +12,8 @@
     "seo:monitor:strict": "node scripts/seo-monitoring-check.mjs --base-url=https://ilbuoncaffe.pl --strict",
     "media:generate": "node scripts/generate-placeholder-images.js",
     "media:upload": "bash scripts/upload-r2-media.sh il-buon-caffe-media-dev",
-    "media:upload:prod": "bash scripts/upload-r2-media.sh il-buon-caffe-media"
+    "media:upload:prod": "bash scripts/upload-r2-media.sh il-buon-caffe-media",
+    "security:sql": "node scripts/check-sql-safety.mjs"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
