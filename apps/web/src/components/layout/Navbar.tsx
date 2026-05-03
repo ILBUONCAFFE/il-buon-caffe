@@ -318,7 +318,7 @@ export const Navbar = () => {
   }, [pathname]);
 
   useEffect(() => {
-    if (isMobileMenuOpen) {
+    if (isMobileMenuOpen || isSearchOpen) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
@@ -326,7 +326,7 @@ export const Navbar = () => {
     return () => {
       document.body.style.overflow = "";
     };
-  }, [isMobileMenuOpen]);
+  }, [isMobileMenuOpen, isSearchOpen]);
 
   // Escape closes, Ctrl/Cmd+K toggles
   useEffect(() => {
@@ -504,16 +504,16 @@ export const Navbar = () => {
           style={{ scaleX: scrollProgress }}
         />
 
-        <motion.nav 
+        <motion.nav
           className={cn(
-            "container mx-auto px-4 lg:px-8 transition-all duration-500",
-            isScrolled ? "py-3" : "py-4 lg:py-6"
+            "container mx-auto px-3 sm:px-4 lg:px-8 transition-all duration-500",
+            isScrolled ? "py-2.5 lg:py-3" : "py-3 lg:py-6"
           )}
           variants={containerVariants}
           initial="hidden"
           animate="visible"
         >
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center justify-between gap-2 sm:gap-4">
             {/* Logo Island - Premium floating pill */}
             <motion.div
               variants={itemVariants}
@@ -530,16 +530,15 @@ export const Navbar = () => {
                   delay: 0.05 
                 }}
               >
-                <Link 
-                  href="/" 
+                <Link
+                  href="/"
                   className={cn(
-                    "flex items-center gap-3 z-50 group rounded-full transition-all duration-500",
-                    // Island styling - always visible but adapts to context
-                    isScrolled 
+                    "flex items-center gap-2 sm:gap-3 z-50 group rounded-full transition-all duration-500",
+                    isScrolled
                       ? (isEffectiveDark
-                          ? "bg-brand-950/80 backdrop-blur-xl shadow-lg shadow-black/[0.2] border border-white/[0.08] pl-1.5 pr-4 py-1.5"
-                          : "bg-white/95  backdrop-blur-xl shadow-lg shadow-black/[0.08] border border-black/[0.04]  pl-1.5 pr-4 py-1.5")
-                      : "bg-transparent border border-transparent pl-1.5 pr-4 py-1.5"
+                          ? "bg-brand-950/80 backdrop-blur-xl shadow-lg shadow-black/[0.2] border border-white/[0.08] pl-1 pr-3 py-1 sm:pl-1.5 sm:pr-4 sm:py-1.5"
+                          : "bg-white/95  backdrop-blur-xl shadow-lg shadow-black/[0.08] border border-black/[0.04] pl-1 pr-3 py-1 sm:pl-1.5 sm:pr-4 sm:py-1.5")
+                      : "bg-transparent border border-transparent pl-1 pr-3 py-1 sm:pl-1.5 sm:pr-4 sm:py-1.5"
                   )}
                 >
                   {/* Logo with glow */}
@@ -560,7 +559,7 @@ export const Navbar = () => {
                     )} />
                     
                     {/* Logo container without border */}
-                    <div className="relative w-12 h-12 rounded-full overflow-hidden flex items-center justify-center transition-all duration-500 bg-transparent">
+                    <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden flex items-center justify-center transition-all duration-500 bg-transparent">
                       <Image
                         src="/assets/logo.png"
                         alt="Il Buon Caffe"
@@ -576,24 +575,24 @@ export const Navbar = () => {
 
                   {/* Brand text */}
                   <div className="flex flex-col">
-                    <motion.span 
+                    <motion.span
                       className={cn(
-                        "text-sm font-serif font-bold tracking-tight leading-none mb-0.5 whitespace-nowrap transition-colors duration-500",
-                        isScrolled 
-                          ? (isEffectiveDark ? "text-white" : "text-brand-900 ") 
-                          : isDarkHeroPage 
-                            ? "text-white" 
+                        "text-[13px] sm:text-sm font-serif font-bold tracking-tight leading-none mb-0 sm:mb-0.5 whitespace-nowrap transition-colors duration-500",
+                        isScrolled
+                          ? (isEffectiveDark ? "text-white" : "text-brand-900 ")
+                          : isDarkHeroPage
+                            ? "text-white"
                             : "text-brand-900"
                       )}
                     >
                       Il Buon Caffe
                     </motion.span>
                     <span className={cn(
-                      "text-[9px] uppercase tracking-[0.15em] whitespace-nowrap transition-colors duration-500",
-                      isScrolled 
-                        ? (isEffectiveDark ? "text-white/70" : "text-brand-700 ") 
-                        : isDarkHeroPage 
-                          ? "text-white/50" 
+                      "hidden sm:inline text-[9px] uppercase tracking-[0.15em] whitespace-nowrap transition-colors duration-500",
+                      isScrolled
+                        ? (isEffectiveDark ? "text-white/70" : "text-brand-700 ")
+                        : isDarkHeroPage
+                          ? "text-white/50"
                           : "text-brand-700"
                     )}>
                       Est. 2003
@@ -740,11 +739,11 @@ export const Navbar = () => {
                 whileHover={{ scale: 1.15, rotate: 10 }}
                 whileTap={{ scale: 0.9 }}
                 className={cn(
-                  "hidden sm:flex w-9 h-9 items-center justify-center rounded-full transition-colors",
+                  "flex w-9 h-9 items-center justify-center rounded-full transition-colors",
                   isScrolled
                     ? (isEffectiveDark ? "text-white/80 hover:text-white hover:bg-white/10" : "text-brand-700  hover:bg-brand-100 :bg-white/10 :text-white")
-                    : (isDarkHeroPage 
-                        ? "text-white/80 hover:text-white hover:bg-white/10" 
+                    : (isDarkHeroPage
+                        ? "text-white/80 hover:text-white hover:bg-white/10"
                         : "text-brand-700  hover:bg-brand-100 :bg-white/10 :text-white")
                 )}
                 aria-label="Szukaj"
@@ -1162,7 +1161,7 @@ export const Navbar = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-[60] bg-[#1a1410]/75 backdrop-blur-md flex items-start justify-center pt-20 md:pt-24 px-4"
+            className="fixed inset-0 z-[60] bg-[#1a1410]/75 backdrop-blur-md flex items-stretch md:items-start justify-center md:pt-24 md:px-4"
             onClick={closeSearch}
             role="dialog"
             aria-modal="true"
@@ -1186,16 +1185,21 @@ export const Navbar = () => {
               };
               return (
             <motion.div
-              initial={{ opacity: 0, y: -20, scale: 0.98 }}
+              initial={{ opacity: 0, y: 24, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -20, scale: 0.98 }}
+              exit={{ opacity: 0, y: 24, scale: 0.98 }}
               transition={{ type: "spring", damping: 28, stiffness: 320 }}
-              className="w-full max-w-2xl"
+              className="w-full max-w-2xl flex md:block"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="relative overflow-hidden rounded-2xl border border-brand-900/10 bg-[#f8f3ec] shadow-[0_40px_90px_-20px_rgba(26,20,16,0.55)]">
+              <div className="relative overflow-hidden md:rounded-2xl border-0 md:border md:border-brand-900/10 bg-[#f8f3ec] shadow-none md:shadow-[0_40px_90px_-20px_rgba(26,20,16,0.55)] flex flex-col w-full h-[100dvh] md:h-auto">
+                {/* Mobile drag handle */}
+                <div className="md:hidden pt-[max(0.75rem,env(safe-area-inset-top))] flex justify-center">
+                  <div className="w-10 h-1 rounded-full bg-brand-900/15" />
+                </div>
+
                 {/* Header / Input */}
-                <div className="relative flex items-center gap-4 px-5 md:px-6 border-b border-brand-900/10">
+                <div className="relative flex items-center gap-3 md:gap-4 px-4 md:px-6 border-b border-brand-900/10">
                   <Search className="w-4 h-4 text-brand-900/50 flex-shrink-0" strokeWidth={1.75} />
                   <input
                     type="text"
@@ -1203,69 +1207,112 @@ export const Navbar = () => {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onKeyDown={onInputKeyDown}
-                    placeholder="Kawa, wino, region, produkt…"
+                    placeholder="Kawa, wino, region…"
                     autoFocus
-                    className="flex-1 bg-transparent py-5 md:py-6 text-base md:text-lg font-serif text-brand-950 placeholder-brand-900/35 focus:outline-none tracking-[0.005em]"
+                    enterKeyHint="search"
+                    inputMode="search"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
+                    className="flex-1 min-w-0 bg-transparent py-4 md:py-6 text-base md:text-lg font-serif text-brand-950 placeholder-brand-900/35 focus:outline-none tracking-[0.005em]"
                   />
                   {searchQuery && (
                     <button
                       onClick={() => setSearchQuery("")}
-                      className="text-[10px] uppercase tracking-[0.2em] text-brand-900/50 hover:text-brand-900 transition-colors"
+                      className="hidden md:inline-flex text-[10px] uppercase tracking-[0.2em] text-brand-900/50 hover:text-brand-900 transition-colors"
                       aria-label="Wyczyść"
                     >
                       Wyczyść
                     </button>
                   )}
+                  {searchQuery && (
+                    <button
+                      onClick={() => setSearchQuery("")}
+                      className="md:hidden w-8 h-8 flex items-center justify-center rounded-full bg-brand-900/8 text-brand-900/60 hover:bg-brand-900/15 transition-colors"
+                      aria-label="Wyczyść"
+                    >
+                      <X className="w-3.5 h-3.5" strokeWidth={2} />
+                    </button>
+                  )}
                   <button
                     onClick={closeSearch}
-                    className="w-8 h-8 flex items-center justify-center rounded-full text-brand-900/60 hover:bg-brand-900/5 hover:text-brand-900 transition-colors"
+                    className="hidden md:flex w-8 h-8 items-center justify-center rounded-full text-brand-900/60 hover:bg-brand-900/5 hover:text-brand-900 transition-colors"
                     aria-label="Zamknij"
                   >
                     <X className="w-4 h-4" strokeWidth={1.75} />
                   </button>
+                  <button
+                    onClick={closeSearch}
+                    className="md:hidden text-[11px] uppercase tracking-[0.18em] font-semibold text-brand-900/70 hover:text-brand-900 transition-colors px-1"
+                    aria-label="Anuluj"
+                  >
+                    Anuluj
+                  </button>
                 </div>
 
                 {/* Body */}
-                <div className="max-h-[60vh] overflow-y-auto">
-                  {/* Idle state — shortcuts only, no AI fluff */}
+                <div className="flex-1 md:flex-none md:max-h-[60vh] overflow-y-auto overscroll-contain">
+                  {/* Idle state — shortcuts + popular categories */}
                   {!hasTypedQuery && (
-                    <div className="px-5 md:px-6 py-5">
-                      <p className="text-[10px] uppercase tracking-[0.28em] text-brand-900/45 mb-4">Przejdź do</p>
-                      <div className="space-y-1">
-                        {filteredShortcuts.map((shortcut, idx) => (
-                          <button
-                            key={shortcut.id}
-                            type="button"
-                            onMouseEnter={() => setSearchSelectedIndex(idx)}
-                            onClick={() => navigateFromSearch(shortcut.href)}
-                            className={cn(
-                              "w-full text-left flex items-center gap-4 px-3 py-3 rounded-lg transition-colors group",
-                              searchSelectedIndex === idx ? "bg-brand-900/5" : "hover:bg-brand-900/5"
-                            )}
-                          >
-                            <shortcut.icon className="w-4 h-4 text-brand-900/60 flex-shrink-0" strokeWidth={1.5} />
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm font-medium text-brand-950">{shortcut.title}</p>
-                              <p className="text-xs text-brand-900/55 mt-0.5 truncate">{shortcut.subtitle}</p>
-                            </div>
-                            <ChevronRight className={cn(
-                              "w-4 h-4 flex-shrink-0 transition-opacity",
-                              searchSelectedIndex === idx ? "opacity-100 text-brand-900" : "opacity-0 group-hover:opacity-60"
-                            )} strokeWidth={1.5} />
-                          </button>
-                        ))}
+                    <div className="px-4 md:px-6 py-5 space-y-6">
+                      <div>
+                        <p className="text-[10px] uppercase tracking-[0.28em] text-brand-900/45 mb-3">Przejdź do</p>
+                        <div className="space-y-1">
+                          {filteredShortcuts.map((shortcut, idx) => (
+                            <button
+                              key={shortcut.id}
+                              type="button"
+                              onMouseEnter={() => setSearchSelectedIndex(idx)}
+                              onClick={() => navigateFromSearch(shortcut.href)}
+                              className={cn(
+                                "w-full text-left flex items-center gap-3 md:gap-4 px-3 py-3.5 md:py-3 rounded-xl md:rounded-lg transition-colors group active:bg-brand-900/10",
+                                searchSelectedIndex === idx ? "bg-brand-900/5" : "hover:bg-brand-900/5"
+                              )}
+                            >
+                              <span className="w-9 h-9 md:w-auto md:h-auto rounded-full md:rounded-none bg-brand-900/[0.06] md:bg-transparent flex items-center justify-center flex-shrink-0">
+                                <shortcut.icon className="w-4 h-4 text-brand-900/65" strokeWidth={1.5} />
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-[14px] md:text-sm font-medium text-brand-950">{shortcut.title}</p>
+                                <p className="text-[12px] md:text-xs text-brand-900/55 mt-0.5 truncate">{shortcut.subtitle}</p>
+                              </div>
+                              <ChevronRight className={cn(
+                                "w-4 h-4 flex-shrink-0 transition-opacity text-brand-900/40 md:text-brand-900",
+                                searchSelectedIndex === idx ? "md:opacity-100" : "md:opacity-0 md:group-hover:opacity-60"
+                              )} strokeWidth={1.5} />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Popular search chips — mobile + desktop */}
+                      <div>
+                        <p className="text-[10px] uppercase tracking-[0.28em] text-brand-900/45 mb-3">Popularne</p>
+                        <div className="flex flex-wrap gap-2">
+                          {["espresso", "wino czerwone", "cantucci", "Toskania", "biodynamiczne", "pojedyncze pochodzenie"].map((term) => (
+                            <button
+                              key={term}
+                              type="button"
+                              onClick={() => setSearchQuery(term)}
+                              className="text-[12px] px-3 py-1.5 rounded-full border border-brand-900/12 bg-white/60 text-brand-900/75 hover:bg-brand-900 hover:text-white hover:border-brand-900 transition-colors"
+                            >
+                              {term}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   )}
 
                   {/* Typed — loading */}
                   {hasTypedQuery && isSearchLoading && (
-                    <div className="px-5 md:px-6 py-5 space-y-1.5">
-                      {Array.from({ length: 4 }).map((_, i) => (
+                    <div className="px-4 md:px-6 py-5 space-y-1.5">
+                      {Array.from({ length: 5 }).map((_, i) => (
                         <div key={i} className="flex items-center gap-4 px-3 py-3">
-                          <div className="w-12 h-12 rounded-md bg-brand-900/5 animate-pulse" />
+                          <div className="w-14 h-14 md:w-12 md:h-12 rounded-lg md:rounded-md bg-brand-900/5 animate-pulse" />
                           <div className="flex-1 space-y-2">
-                            <div className="h-3 w-1/2 rounded bg-brand-900/5 animate-pulse" />
+                            <div className="h-3.5 w-2/3 rounded bg-brand-900/5 animate-pulse" />
                             <div className="h-2.5 w-1/3 rounded bg-brand-900/5 animate-pulse" />
                           </div>
                         </div>
@@ -1275,22 +1322,25 @@ export const Navbar = () => {
 
                   {/* Typed — error */}
                   {hasTypedQuery && !isSearchLoading && searchError && (
-                    <div className="px-5 md:px-6 py-6">
+                    <div className="px-4 md:px-6 py-6">
                       <p className="text-sm text-red-800/90">{searchError}</p>
                     </div>
                   )}
 
                   {/* Typed — empty */}
                   {hasTypedQuery && !isSearchLoading && !searchError && searchResults.length === 0 && (
-                    <div className="px-5 md:px-6 py-10 text-center">
-                      <p className="font-serif text-lg text-brand-950 mb-1">Nic nie znaleziono</p>
-                      <p className="text-sm text-brand-900/55 mb-5">
-                        Żadnych produktów dla <span className="italic">„{q}"</span>.
+                    <div className="px-4 md:px-6 py-12 md:py-10 text-center">
+                      <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-brand-900/5 flex items-center justify-center">
+                        <Search className="w-5 h-5 text-brand-900/40" strokeWidth={1.5} />
+                      </div>
+                      <p className="font-serif text-lg md:text-xl text-brand-950 mb-1.5">Nic nie znaleziono</p>
+                      <p className="text-sm text-brand-900/55 mb-6 max-w-xs mx-auto">
+                        Żadnych produktów dla <span className="italic">„{q}"</span>. Spróbuj innego zapytania.
                       </p>
                       <button
                         type="button"
                         onClick={() => navigateFromSearch("/sklep")}
-                        className="inline-flex items-center gap-2 px-5 py-2 rounded-full border border-brand-900/20 text-brand-950 text-xs uppercase tracking-[0.2em] hover:bg-brand-900 hover:text-white hover:border-brand-900 transition-colors"
+                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-brand-900/20 text-brand-950 text-xs uppercase tracking-[0.2em] hover:bg-brand-900 hover:text-white hover:border-brand-900 transition-colors"
                       >
                         Zobacz cały sklep
                         <ChevronRight className="w-3.5 h-3.5" strokeWidth={1.75} />
@@ -1300,7 +1350,7 @@ export const Navbar = () => {
 
                   {/* Typed — results */}
                   {hasTypedQuery && !isSearchLoading && !searchError && searchResults.length > 0 && (
-                    <div className="px-5 md:px-6 py-4">
+                    <div className="px-4 md:px-6 py-4">
                       <p className="text-[10px] uppercase tracking-[0.28em] text-brand-900/45 mb-3">
                         Produkty · {searchResults.length}
                       </p>
@@ -1316,21 +1366,21 @@ export const Navbar = () => {
                               onMouseEnter={() => setSearchSelectedIndex(idx)}
                               onClick={() => navigateFromSearch(href)}
                               className={cn(
-                                "w-full text-left flex items-center gap-4 px-3 py-2.5 rounded-lg transition-colors",
+                                "w-full text-left flex items-center gap-3 md:gap-4 px-2.5 md:px-3 py-3 md:py-2.5 rounded-xl md:rounded-lg transition-colors active:bg-brand-900/10",
                                 active ? "bg-brand-900/5" : "hover:bg-brand-900/5"
                               )}
                             >
-                              <div className="relative w-12 h-12 rounded-md overflow-hidden bg-brand-900/5 flex-shrink-0 ring-1 ring-brand-900/5">
+                              <div className="relative w-14 h-14 md:w-12 md:h-12 rounded-lg md:rounded-md overflow-hidden bg-brand-900/5 flex-shrink-0 ring-1 ring-brand-900/5">
                                 <Image
                                   src={product.imageUrl || product.image || "https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=400&q=80"}
                                   alt={product.name}
                                   fill
                                   className="object-cover"
-                                  sizes="48px"
+                                  sizes="56px"
                                 />
                               </div>
                               <div className="min-w-0 flex-1">
-                                <p className="text-sm font-medium text-brand-950 truncate">{product.name}</p>
+                                <p className="text-[14px] md:text-sm font-medium text-brand-950 truncate">{product.name}</p>
                                 <div className="flex items-center gap-2 mt-0.5 text-[11px] text-brand-900/55">
                                   <span className="uppercase tracking-[0.14em]">{catLabel}</span>
                                   {product.origin && (
@@ -1341,11 +1391,11 @@ export const Navbar = () => {
                                   )}
                                 </div>
                               </div>
-                              <p className="text-sm font-serif text-brand-950 whitespace-nowrap tabular-nums">
+                              <p className="text-[14px] md:text-sm font-serif text-brand-950 whitespace-nowrap tabular-nums">
                                 {formatSearchPrice(product.price)}
                               </p>
                               <ChevronRight className={cn(
-                                "w-4 h-4 flex-shrink-0 transition-opacity",
+                                "hidden md:block w-4 h-4 flex-shrink-0 transition-opacity",
                                 active ? "opacity-100 text-brand-900" : "opacity-0"
                               )} strokeWidth={1.5} />
                             </button>
@@ -1356,8 +1406,8 @@ export const Navbar = () => {
                   )}
                 </div>
 
-                {/* Footer */}
-                <div className="flex items-center justify-between gap-4 px-5 md:px-6 py-3 border-t border-brand-900/10 bg-[#f1eadf]/60 text-[11px] text-brand-900/55">
+                {/* Footer — desktop only kbd hints, mobile shows nothing (Anuluj button in header) */}
+                <div className="hidden md:flex items-center justify-between gap-4 px-5 md:px-6 py-3 border-t border-brand-900/10 bg-[#f1eadf]/60 text-[11px] text-brand-900/55">
                   <div className="flex items-center gap-4">
                     <span className="flex items-center gap-1.5">
                       <kbd className="px-1.5 py-0.5 rounded border border-brand-900/15 bg-white font-sans text-[10px] text-brand-900/70">↑</kbd>
