@@ -18,11 +18,14 @@ jobs:
           node-version: "20"
           cache: "npm"
 
-      - name: Install dependencies
-        run: npm install --omit=dev
+      # Install only the apps/api workspace (+ its workspace deps) and the root.
+      # Skips apps/web's Next.js/React/OpenNext tree, which is irrelevant for the
+      # API deploy and was the main reason the previous full install took ~4m+.
+      - name: Install dependencies (api workspace only)
+        run: npm ci --workspace=apps/api --include-workspace-root --no-audit --no-fund --prefer-offline
 
       - name: Deploy API Worker
-        run: npx wrangler deploy
+        run: npx --no-install wrangler deploy
         working-directory: apps/api
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
@@ -40,11 +43,12 @@ jobs:
           node-version: "20"
           cache: "npm"
 
-      - name: Install dependencies
-        run: npm install --omit=dev
+      # Scope to apps/web (+ its workspace deps + root). Skips apps/api tree.
+      - name: Install dependencies (web workspace only)
+        run: npm ci --workspace=apps/web --include-workspace-root --no-audit --no-fund --prefer-offline
 
       - name: Install Linux native bindings
-        run: npm install --no-save @ast-grep/napi-linux-x64-gnu lightningcss-linux-x64-gnu @tailwindcss/oxide-linux-x64-gnu
+        run: npm install --no-save --no-audit --no-fund @ast-grep/napi-linux-x64-gnu lightningcss-linux-x64-gnu @tailwindcss/oxide-linux-x64-gnu
 
       - name: Copy pdfjs worker to public
         run: cp apps/web/node_modules/pdfjs-dist/build/pdf.worker.min.mjs apps/web/public/pdf.worker.min.mjs
