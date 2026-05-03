@@ -6,7 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion, useMotionValue, useSpring } from "motion/react";
-import { ShoppingBag, User, Menu, X, Search, ChevronRight, Store, Coffee, MapPin, BookOpenText } from "lucide-react";
+import { ShoppingBag, User, Menu, X, Search, ChevronRight, ArrowUpRight, Store, Coffee, MapPin, BookOpenText, Wine, Cookie, Package, Mail, Instagram } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { cn } from "@/lib/utils";
 import { SHOP_ENABLED, ACCOUNTS_ENABLED } from "@/config/launch";
@@ -874,78 +874,144 @@ export const Navbar = () => {
         </motion.nav>
       </header>
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu — full redesign */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.div
+            ref={mobileMenuRef}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="fixed inset-0 z-40 bg-brand-900 lg:hidden overflow-hidden"
+            transition={{ duration: 0.25 }}
+            className="fixed inset-0 z-40 lg:hidden overflow-hidden"
             id="mobile-menu"
             role="dialog"
             aria-modal="true"
             aria-label="Menu nawigacyjne"
           >
-            {/* Decorative elements */}
-            <div className="absolute inset-0 overflow-hidden">
-              <motion.div
-                className="absolute -top-1/4 -right-1/4 w-1/2 h-1/2 bg-brand-800 rounded-full blur-3xl opacity-50"
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.2, duration: 0.8 }}
-              />
-              <motion.div
-                className="absolute -bottom-1/4 -left-1/4 w-1/2 h-1/2 bg-brand-700 rounded-full blur-3xl opacity-30"
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.3, duration: 0.8 }}
-              />
-            </div>
+            {/* Layered background: deep coffee → near-black gradient with grain */}
+            <div
+              className="absolute inset-0"
+              style={{
+                background:
+                  "linear-gradient(165deg, #2A1D17 0%, #1A1108 55%, #0F0907 100%)",
+              }}
+            />
+            <motion.div
+              aria-hidden="true"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.55 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              className="absolute -top-32 -right-24 w-[420px] h-[420px] rounded-full blur-[120px]"
+              style={{ background: "radial-gradient(circle, rgba(166,139,91,0.35) 0%, transparent 70%)" }}
+            />
+            <motion.div
+              aria-hidden="true"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.4 }}
+              transition={{ duration: 0.7, delay: 0.15 }}
+              className="absolute -bottom-32 -left-24 w-[380px] h-[380px] rounded-full blur-[120px]"
+              style={{ background: "radial-gradient(circle, rgba(123,45,59,0.4) 0%, transparent 70%)" }}
+            />
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 opacity-[0.04] pointer-events-none mix-blend-overlay"
+              style={{
+                backgroundImage:
+                  'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22n%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.85%22 numOctaves=%222%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23n)%22/%3E%3C/svg%3E")',
+              }}
+            />
 
-            <div className="relative h-full flex flex-col pt-24 pb-8 px-6">
-              {/* Links */}
-              <nav className="flex-1">
-                <ul className="space-y-1">
+            {/* Content */}
+            <div className="relative h-full flex flex-col pt-24 pb-[max(1.5rem,env(safe-area-inset-bottom))] px-6 overflow-y-auto">
+
+              {/* Eyebrow label */}
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+                className="flex items-center justify-between mb-6"
+              >
+                <span className="text-[10px] uppercase tracking-[0.32em] text-amber-200/55 font-semibold">
+                  — Menu
+                </span>
+                <span className="text-[10px] uppercase tracking-[0.24em] text-white/35 font-medium">
+                  Est. 2003
+                </span>
+              </motion.div>
+
+              {/* Search pill */}
+              <motion.button
+                type="button"
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  setIsSearchOpen(true);
+                  setSearchQuery("");
+                  setSearchResults([]);
+                  setSearchError(null);
+                  setIsSearchLoading(false);
+                }}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.05 }}
+                className="w-full flex items-center gap-3 px-4 h-12 rounded-full border border-white/10 bg-white/[0.04] backdrop-blur-sm text-left mb-7 active:scale-[0.99] transition-transform"
+              >
+                <Search className="w-4 h-4 text-white/55" strokeWidth={1.75} />
+                <span className="flex-1 text-[13px] text-white/45 font-medium">
+                  Szukaj kawy, wina, regionu…
+                </span>
+                <span className="text-[10px] uppercase tracking-[0.2em] text-amber-200/55 font-semibold">
+                  Szukaj
+                </span>
+              </motion.button>
+
+              {/* Primary nav — numbered */}
+              <nav className="mb-8">
+                <ul className="divide-y divide-white/[0.07] border-y border-white/[0.07]">
                   {navLinks.map((link, index) => {
-                    const isActive = pathname === link.href;
+                    const isActive = pathname === link.href || (link.href !== "/" && pathname?.startsWith(link.href));
                     return (
                       <motion.li
                         key={link.href}
-                        initial={{ opacity: 0, x: -40 }}
+                        initial={{ opacity: 0, x: -24 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{
-                          delay: index * 0.08,
-                          duration: 0.4,
+                          delay: 0.08 + index * 0.06,
+                          duration: 0.45,
                           ease: [0.22, 1, 0.36, 1],
                         }}
                       >
                         <Link
                           href={link.href}
                           onClick={() => setIsMobileMenuOpen(false)}
+                          aria-current={isActive ? "page" : undefined}
                           className={cn(
-                            "flex items-center justify-between py-4 border-b border-white/10 transition-colors group",
-                            isActive
-                              ? "text-white border-brand-700"
-                              : "text-white/70 hover:text-white"
+                            "group flex items-center gap-4 py-4 transition-colors",
+                            isActive ? "text-white" : "text-white/85 hover:text-white"
                           )}
-                          aria-current={isActive ? 'page' : undefined}
                         >
-                          <span className="text-3xl font-serif">{link.name}</span>
-                          <div className="flex items-center gap-2">
-                            {isActive && (
-                              <span className="text-xs uppercase tracking-widest text-brand-400">
-                                Tu jesteś
-                              </span>
+                          <span
+                            className={cn(
+                              "font-serif text-[10px] tracking-[0.2em] tabular-nums shrink-0 w-7",
+                              isActive ? "text-amber-200/80" : "text-white/35"
                             )}
-                            <ChevronRight
-                              className={cn(
-                                "w-5 h-5 transition-transform group-hover:translate-x-1",
-                                isActive ? "text-brand-700" : "text-white/30"
-                              )}
+                          >
+                            {String(index + 1).padStart(2, "0")}
+                          </span>
+                          <span className="font-serif text-[2rem] leading-[1.1] tracking-tight flex-1">
+                            {link.name}
+                          </span>
+                          {isActive ? (
+                            <span className="flex items-center gap-2 text-[10px] uppercase tracking-[0.22em] text-amber-200/75">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-200/80 animate-pulse" />
+                              Tu jesteś
+                            </span>
+                          ) : (
+                            <ArrowUpRight
+                              className="w-5 h-5 text-white/30 transition-all duration-300 group-hover:text-white group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                              strokeWidth={1.5}
                             />
-                          </div>
+                          )}
                         </Link>
                       </motion.li>
                     );
@@ -953,41 +1019,134 @@ export const Navbar = () => {
                 </ul>
               </nav>
 
-              {/* Bottom */}
-              <motion.div
-                className="pt-6 border-t border-white/10"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-              >
-                <div className="flex items-center justify-between">
-                  <Link
-                    href={accountHref}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    title={accountLabel}
-                    className="flex items-center gap-3 text-white/70 hover:text-white transition-colors"
-                  >
-                    <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
-                      <User className="w-5 h-5" />
-                    </div>
-                    <span className="text-sm">{ACCOUNTS_ENABLED ? 'Moje konto' : 'Konto wkrótce'}</span>
-                  </Link>
+              {/* Quick categories grid */}
+              {SHOP_ENABLED && (
+                <motion.div
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.32 }}
+                  className="mb-8"
+                >
+                  <p className="text-[10px] uppercase tracking-[0.28em] text-white/40 font-semibold mb-3">
+                    — Kategorie
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { icon: Coffee, label: "Kawa", href: "/sklep/kawa" },
+                      { icon: Wine, label: "Wino", href: "/sklep/wino" },
+                      { icon: Cookie, label: "Słodycze", href: "/sklep/slodycze" },
+                      { icon: Package, label: "Spiżarnia", href: "/sklep/spizarnia" },
+                    ].map((cat, idx) => (
+                      <motion.div
+                        key={cat.label}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4, delay: 0.36 + idx * 0.05 }}
+                      >
+                        <Link
+                          href={cat.href}
+                          onClick={() => setIsMobileMenuOpen(false)}
+                          className="group flex items-center gap-3 px-4 py-3.5 rounded-2xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.07] hover:border-white/15 transition-all active:scale-[0.98]"
+                        >
+                          <span className="w-9 h-9 rounded-full flex items-center justify-center bg-amber-200/10 text-amber-100/85 group-hover:bg-amber-200/20 transition-colors shrink-0">
+                            <cat.icon className="w-4 h-4" strokeWidth={1.75} />
+                          </span>
+                          <span className="text-sm font-medium text-white/85 flex-1">{cat.label}</span>
+                          <ChevronRight className="w-3.5 h-3.5 text-white/35 group-hover:text-white/70 transition-colors" strokeWidth={2} />
+                        </Link>
+                      </motion.div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
 
-                  {SHOP_ENABLED && (
-                    <motion.button
-                      onClick={(e) => {
-                        handleOpenCart(e);
-                        setIsMobileMenuOpen(false);
-                      }}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="flex items-center gap-2 bg-white text-brand-900 px-5 py-2.5 rounded-full font-medium text-sm"
-                    >
-                      <ShoppingBag className="w-4 h-4" />
-                      Koszyk ({totalItems})
-                    </motion.button>
-                  )}
-                </div>
+              {/* Spacer */}
+              <div className="flex-1 min-h-4" />
+
+              {/* Footer: account + cart */}
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.45, duration: 0.45 }}
+                className="grid grid-cols-2 gap-2 mb-5"
+              >
+                <Link
+                  href={accountHref}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  title={accountLabel}
+                  className="flex items-center gap-3 px-4 h-14 rounded-2xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.07] transition-colors active:scale-[0.99]"
+                >
+                  <span className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+                    <User className="w-4 h-4 text-white/85" strokeWidth={1.75} />
+                  </span>
+                  <span className="flex flex-col leading-tight min-w-0">
+                    <span className="text-[10px] uppercase tracking-[0.22em] text-white/40 font-semibold">
+                      Konto
+                    </span>
+                    <span className="text-[13px] text-white/85 font-medium truncate">
+                      {ACCOUNTS_ENABLED ? "Moje konto" : "Wkrótce"}
+                    </span>
+                  </span>
+                </Link>
+
+                {SHOP_ENABLED && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      handleOpenCart(e);
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="flex items-center gap-3 px-4 h-14 rounded-2xl bg-amber-100 text-brand-950 hover:bg-white transition-colors active:scale-[0.99] shadow-[0_10px_24px_-12px_rgba(166,139,91,0.55)]"
+                  >
+                    <span className="w-9 h-9 rounded-full bg-brand-950/10 flex items-center justify-center shrink-0">
+                      <ShoppingBag className="w-4 h-4" strokeWidth={1.75} />
+                    </span>
+                    <span className="flex flex-col leading-tight min-w-0 text-left">
+                      <span className="text-[10px] uppercase tracking-[0.22em] text-brand-950/55 font-semibold">
+                        Koszyk
+                      </span>
+                      <span className="text-[13px] font-semibold truncate">
+                        {totalItems > 0 ? `${totalItems} ${totalItems === 1 ? "pozycja" : totalItems < 5 ? "pozycje" : "pozycji"}` : "Pusty"}
+                      </span>
+                    </span>
+                  </button>
+                )}
+              </motion.div>
+
+              {/* Contact strip */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.55, duration: 0.4 }}
+                className="flex items-center justify-between gap-3 pt-4 border-t border-white/[0.07] text-white/55"
+              >
+                <a
+                  href="https://www.instagram.com/ilbuoncaffe19"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-[12px] hover:text-white transition-colors"
+                  aria-label="Instagram"
+                >
+                  <Instagram className="w-3.5 h-3.5" strokeWidth={1.75} />
+                  <span>@ilbuoncaffe19</span>
+                </a>
+                <a
+                  href="mailto:ilbuoncaffe19@gmail.com"
+                  className="flex items-center gap-2 text-[12px] hover:text-white transition-colors"
+                  aria-label="Email"
+                >
+                  <Mail className="w-3.5 h-3.5" strokeWidth={1.75} />
+                  <span>Napisz</span>
+                </a>
+                <Link
+                  href="/kawiarnia"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-2 text-[12px] hover:text-white transition-colors"
+                  aria-label="Kawiarnia"
+                >
+                  <MapPin className="w-3.5 h-3.5" strokeWidth={1.75} />
+                  <span>Koszalin</span>
+                </Link>
               </motion.div>
             </div>
           </motion.div>
