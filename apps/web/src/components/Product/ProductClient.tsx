@@ -16,6 +16,7 @@ import type { ProducerContent, ProductRichContent } from '@repo/types';
 import { getProductBySku, getProductBySlug } from '@/actions/products';
 import { SHOP_ENABLED } from '@/config/launch';
 import { ComingSoonBanner } from '@/components/ui/ComingSoonBanner';
+import { isWineCategory, normalizeCategorySlug } from '@/lib/categories';
 
 const WineProductView = dynamic(
   () => import('./WineProductView').then((m) => m.WineProductView),
@@ -28,6 +29,7 @@ const WineProductView = dynamic(
 const CATEGORY_NAMES: Record<string, string> = {
   coffee: 'Kawa',
   alcohol: 'Wina',
+  wine: 'Wina',
   wino: 'Wina', // Add support for 'wino' key
   sweets: 'Słodycze',
   pantry: 'Delikatesy',
@@ -101,9 +103,10 @@ export const ProductClient = ({ initialProduct, initialProductRichContent, initi
   }
 
   // Check if product is wine
-  const isWine = product.category === 'wino' || product.category === 'alcohol' || product.sku.startsWith('WIN');
+  const normalizedCategory = normalizeCategorySlug(product.category);
+  const isWine = isWineCategory(product.category) || product.sku.startsWith('WIN');
 
-  const categoryName = product.category ? (CATEGORY_NAMES[product.category] || product.category) : '';
+  const categoryName = normalizedCategory ? (CATEGORY_NAMES[normalizedCategory] || normalizedCategory) : '';
 
   if (isWine) {
     return (
@@ -125,7 +128,7 @@ export const ProductClient = ({ initialProduct, initialProductRichContent, initi
           <ol className="flex items-center gap-2 list-none">
             <li><Link href="/sklep" className="hover:text-brand-900 transition-colors">Sklep</Link></li>
             <li aria-hidden="true"><ChevronRight size={14} /></li>
-            <li><Link href={`/sklep/${product.category || 'all'}`} className="hover:text-brand-900 transition-colors">{categoryName}</Link></li>
+            <li><Link href={`/sklep/${normalizedCategory || 'all'}`} className="hover:text-brand-900 transition-colors">{categoryName}</Link></li>
             <li aria-hidden="true"><ChevronRight size={14} /></li>
             <li aria-current="page" className="text-brand-900 font-medium truncate max-w-[200px]">{product.name}</li>
           </ol>
@@ -160,7 +163,7 @@ export const ProductClient = ({ initialProduct, initialProductRichContent, initi
           <div className="flex flex-col">
             
             <Link 
-              href={`/sklep/${product.category}`}
+              href={`/sklep/${normalizedCategory}`}
               className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-brand-700 hover:text-brand-900 transition-colors mb-4 self-start"
             >
               {categoryName}

@@ -7,6 +7,7 @@ import { Plus } from "lucide-react";
 import type { Product } from "@/types";
 import type { ViewMode } from "./constants";
 import { SHOP_ENABLED } from "@/config/launch";
+import { isWineCategory } from "@/lib/categories";
 
 export const ProductCard: React.FC<{
   product: Product;
@@ -18,7 +19,7 @@ export const ProductCard: React.FC<{
   const router = useRouter();
   const [isHovered, setIsHovered] = useState(false);
   // Check if product is restricted
-  const isRestricted = product.category === 'wino' && !isAdult;
+  const isRestricted = isWineCategory(product.category) && !isAdult;
 
   const handleRestrictedClick = (e: React.MouseEvent) => {
     e.stopPropagation();

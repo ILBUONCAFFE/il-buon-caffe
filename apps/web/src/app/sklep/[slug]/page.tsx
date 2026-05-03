@@ -6,21 +6,9 @@ import { getProducts, getFilteredProducts } from "@/actions/products";
 import { getProductBySlug } from "@/lib/productFetchers";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { KNOWN_CATEGORY_SLUGS, isWineCategory, normalizeCategorySlug } from "@/lib/categories";
 
 const BASE_URL = "https://ilbuoncaffe.pl";
-
-const KNOWN_CATEGORIES = new Set(["kawa", "wino", "slodycze", "spizarnia", "coffee", "alcohol", "sweets", "pantry"]);
-
-const categorySlugMap: Record<string, string> = {
-  coffee: "kawa",
-  alcohol: "wino",
-  sweets: "slodycze",
-  pantry: "spizarnia",
-  kawa: "kawa",
-  wino: "wino",
-  slodycze: "slodycze",
-  spizarnia: "spizarnia",
-};
 
 const categoryNameMap: Record<string, string> = {
   kawa: "Kawa",
@@ -35,8 +23,6 @@ const categoryDescriptionMap: Record<string, string> = {
   slodycze: "Tradycyjne włoskie słodycze — cantuccini, panettone, ciocolato i wiele więcej.",
   spizarnia: "Oliwy, sery, pasty i inne delikatesy prosto z włoskiej i hiszpańskiej spiżarni.",
 };
-
-const normalizeCategorySlug = (slug: string) => categorySlugMap[slug] || slug;
 
 const toAbsoluteUrl = (value?: unknown) => {
   if (typeof value !== "string") return undefined;
@@ -62,7 +48,7 @@ const getDetailValue = (details: Record<string, unknown> | null | undefined, key
 
 const isWineProduct = (product: Awaited<ReturnType<typeof getProductBySlug>>) => {
   if (!product) return false;
-  return product.category === "wino" || product.category === "alcohol" || product.sku?.startsWith("WIN");
+  return isWineCategory(product.category) || product.sku?.startsWith("WIN");
 };
 
 const getProductBrand = (product: Awaited<ReturnType<typeof getProductBySlug>>) => {
@@ -107,7 +93,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const normalizedSlug = normalizeCategorySlug(slug);
 
-  if (KNOWN_CATEGORIES.has(slug)) {
+  if (KNOWN_CATEGORY_SLUGS.has(slug)) {
     const title = categoryNameMap[normalizedSlug] || "Kategoria";
     const description = categoryDescriptionMap[normalizedSlug] || `Odkryj naszą ofertę w kategorii ${title}. Najwyższa jakość, prosto z Włoch i Hiszpanii.`;
     return {
@@ -192,7 +178,7 @@ export default async function ShopRoute({ params }: { params: Promise<{ slug: st
   const normalizedSlug = normalizeCategorySlug(slug);
 
   // Category page
-  if (KNOWN_CATEGORIES.has(slug)) {
+  if (KNOWN_CATEGORY_SLUGS.has(slug)) {
     const initialData = await getFilteredProducts({ category: normalizedSlug });
     return <ShopClient initialData={initialData} />;
   }

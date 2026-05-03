@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { getProducts } from "@/actions/products";
+import { normalizeCategorySlug } from "@/lib/categories";
 
 const BASE_URL = "https://ilbuoncaffe.pl";
 
@@ -24,22 +25,6 @@ const STATIC_ROUTES: Array<{
 ];
 
 const DEFAULT_CATEGORY_SLUGS = ["kawa", "wino", "slodycze", "spizarnia"];
-
-const categorySlugMap: Record<string, string> = {
-  coffee: "kawa",
-  alcohol: "wino",
-  sweets: "slodycze",
-  pantry: "spizarnia",
-  kawa: "kawa",
-  wino: "wino",
-  slodycze: "slodycze",
-  spizarnia: "spizarnia",
-};
-
-const normalizeCategorySlug = (category?: string) => {
-  if (!category) return "";
-  return categorySlugMap[category] || category;
-};
 
 const parseDateOrFallback = (value: unknown, fallback: Date): Date => {
   if (value instanceof Date && !Number.isNaN(value.getTime())) return value;

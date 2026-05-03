@@ -23,6 +23,7 @@ import { ProductCard } from "./ProductCard";
 import { SortDropdown } from "./SortDropdown";
 import { FilterContent } from "./FilterContent";
 import { ShopNotifyBanner } from "./ShopNotifyBanner";
+import { normalizeCategorySlug } from "@/lib/categories";
 
 // ============================================
 // MAIN COMPONENT
@@ -35,7 +36,7 @@ export interface ShopClientProps {
 export const ShopClient = ({ initialData }: ShopClientProps) => {
   const router = useRouter();
   const params = useParams();
-  const categorySlug = params.category as string | undefined;
+  const routeCategorySlug = (params.category || params.slug) as string | undefined;
 
   // ── Server data ──
   const [filteredResult, setFilteredResult] = useState<FilteredProductsResult>(
@@ -70,10 +71,11 @@ export const ShopClient = ({ initialData }: ShopClientProps) => {
 
   // ── Category from URL ──
   const initialCategory = useMemo(() => {
-    if (!categorySlug) return "all" as Category;
-    const found = CATEGORIES.find((c) => c.slug === categorySlug);
+    if (!routeCategorySlug) return "all" as Category;
+    const normalizedCategorySlug = normalizeCategorySlug(routeCategorySlug);
+    const found = CATEGORIES.find((c) => c.slug === normalizedCategorySlug);
     return (found?.id || "all") as Category;
-  }, [categorySlug]);
+  }, [routeCategorySlug]);
 
   const [selectedCategory, setSelectedCategory] = useState<Category>(initialCategory);
 

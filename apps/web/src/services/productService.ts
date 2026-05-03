@@ -3,6 +3,7 @@ import { products, categories, DbProduct } from '@/db/schema';
 import { eq, desc, asc, and, ilike, or, gte, lt, sql, SQL } from '@repo/db/orm';
 import type { Product } from '@/types';
 import type { SortOption, ProductFilters, FilteredProductsResult, WineFilterOptions, WineFilterOption } from '@/types/filters';
+import { categoryFilterSlugs, normalizeCategorySlug } from '@/lib/categories';
 
 // Re-export shared types for backwards compatibility
 export type { SortOption, PriceRange, ProductFilters, FilteredProductsResult, WineFilterOptions, WineFilterOption } from '@/types/filters';
@@ -76,13 +77,14 @@ function normalizeProductImageUrl(imageUrl?: string | null): string | undefined 
 
 function mapDbProductToProduct(dbProduct: DbProduct, categorySlug?: string): Product {
   const normalizedImageUrl = normalizeProductImageUrl(dbProduct.imageUrl);
+  const normalizedCategory = normalizeCategorySlug(categorySlug);
 
   return {
     sku: dbProduct.sku,
     name: dbProduct.name,
     description: dbProduct.description || undefined,
     price: parseFloat(dbProduct.price),
-    category: categorySlug || 'all',
+    category: normalizedCategory || 'all',
     imageUrl: normalizedImageUrl,
     image: normalizedImageUrl,
     stock: dbProduct.stock,
@@ -134,8 +136,10 @@ export const productService = {
 
       // Category filter — inline subquery avoids a serial round-trip before the parallel batch.
       // PostgreSQL resolves the subquery once and caches it within the query plan.
+      const categorySlugs = categoryFilterSlugs(category);
+      const categorySlugSql = sql.join(categorySlugs.map((slug) => sql`${slug}`), sql`, `);
       const categoryFilter = category && category !== 'all'
-        ? sql`${products.categoryId} = (SELECT id FROM categories WHERE slug = ${category} LIMIT 1)`
+        ? sql`${products.categoryId} IN (SELECT id FROM categories WHERE slug IN (${categorySlugSql}))`
         : undefined;
 
       if (categoryFilter) {
@@ -304,8 +308,10 @@ export const productService = {
   ): Promise<WineFilterOptions> {
     try {
       // Base condition: active products, optionally wine category (subquery, same pattern as getFiltered)
+      const categorySlugs = categoryFilterSlugs(categorySlug);
+      const categorySlugSql = sql.join(categorySlugs.map((slug) => sql`${slug}`), sql`, `);
       const categoryFilter = categorySlug
-        ? sql`${products.categoryId} = (SELECT id FROM categories WHERE slug = ${categorySlug} LIMIT 1)`
+        ? sql`${products.categoryId} IN (SELECT id FROM categories WHERE slug IN (${categorySlugSql}))`
         : undefined;
 
       const baseConds: SQL[] = [
@@ -353,7 +359,7 @@ export const productService = {
         sql`p.grape_variety IS NOT NULL AND p.grape_variety != ''`,
       ];
       if (categorySlug) {
-        grapeConds.push(sql`p.category_id = (SELECT id FROM categories WHERE slug = ${categorySlug} LIMIT 1)`);
+        grapeConds.push(sql`p.category_id IN (SELECT id FROM categories WHERE slug IN (${categorySlugSql}))`);
       }
       if (selectedCountry) {
         grapeConds.push(sql`p.origin_country = ${selectedCountry}`);
@@ -422,8 +428,10 @@ export const productService = {
       const conditions: SQL[] = [eq(products.isActive, true)];
 
       if (category && category !== 'all') {
+        const categorySlugs = categoryFilterSlugs(category);
+        const categorySlugSql = sql.join(categorySlugs.map((slug) => sql`${slug}`), sql`, `);
         conditions.push(
-          sql`${products.categoryId} = (SELECT id FROM categories WHERE slug = ${category} LIMIT 1)`
+          sql`${products.categoryId} IN (SELECT id FROM categories WHERE slug IN (${categorySlugSql}))`
         );
       }
 
