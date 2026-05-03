@@ -24,7 +24,6 @@ import { TerroirSection } from './wine/TerroirSection';
 import { ServingGuideSection } from './wine/ServingGuideSection';
 import { FoodPairingSection } from './wine/FoodPairingSection';
 import { AtGlanceBar, AtGlanceGrid } from './wine/AtGlanceBar';
-import { TastingNotesSection } from './wine/TastingNotesSection';
 import { FunFactSection } from './wine/FunFactSection';
 import { TrustStripSection } from './wine/TrustStripSection';
 import { ReviewsSection } from './wine/ReviewsSection';
@@ -447,9 +446,6 @@ export const WineProductView = ({ product, categoryName, wineContent, producerCo
       {/* AT-A-GLANCE BAR — sticky desktop, grid mobile */}
       <AtGlanceBar wineDetails={wineDetails} palette={palette} origin={product.origin} />
       <AtGlanceGrid wineDetails={wineDetails} palette={palette} origin={product.origin} />
-
-      {/* TASTING NOTES — primary storytelling */}
-      <TastingNotesSection wineDetails={wineDetails} palette={palette} />
 
       {/* WINE PROFILE — characteristic bars */}
       <WineProfileSection wineDetails={wineDetails} palette={palette} />
