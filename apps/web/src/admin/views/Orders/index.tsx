@@ -1,8 +1,11 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  ChevronLeft, ChevronRight, MoreHorizontal, Search, X, RefreshCw, Loader2,
+  Package, ShoppingBag, AlertTriangle, Filter,
+} from 'lucide-react'
 import { adminApi, type AdminOrder, type OrdersQueryParams } from '../../lib/adminApiClient'
-
 import { OrderContextMenu } from '../../components/OrderContextMenu'
 import { OrderDetailModal } from '../../components/OrderDetailModal'
 import { ShipmentModal } from '../../components/ShipmentModal'
@@ -11,35 +14,33 @@ import { BulkActionBar } from '../../components/BulkActionBar'
 import { Dropdown } from '../../components/ui/Dropdown'
 import { DateRangePicker } from '../../components/ui/DateRangePicker'
 import { resolveShipmentStatus } from '../../lib/shipmentStatus'
-import { MoreVertical, ChevronLeft, ChevronRight as ChevronRightIcon } from 'lucide-react'
+import { OrderStatusBadge } from '../../components/OrderStatusBadge'
+import { AllegroLogoBadge } from '../../components/AllegroLogoBadge'
 
-const DATE_FORMATTER = new Intl.DateTimeFormat('pl-PL', {
-  day: '2-digit',
-  month: '2-digit',
-  year: 'numeric',
-})
+// ── helpers ────────────────────────────────────────────────────────────────
 
-function formatDateShort(iso: string | null | undefined): string {
-  if (!iso) return '-'
-  return DATE_FORMATTER.format(new Date(iso))
+const dateFmt = new Intl.DateTimeFormat('pl-PL', { day: '2-digit', month: '2-digit', year: '2-digit' })
+const timeFmt = new Intl.DateTimeFormat('pl-PL', { hour: '2-digit', minute: '2-digit' })
+
+function fmtDate(iso?: string | null) { return iso ? dateFmt.format(new Date(iso)) : '—' }
+function fmtTime(iso?: string | null) { return iso ? timeFmt.format(new Date(iso)) : '' }
+
+const SYM: Record<string, string> = { PLN: 'zł', EUR: '€', CZK: 'Kč', HUF: 'Ft' }
+function fmtAmount(v?: number | null, c = 'PLN') {
+  if (v == null) return '—'
+  return `${Number(v).toFixed(2)} ${SYM[c] ?? c}`
 }
 
-function formatAmount(value: number | undefined | null, currency = 'PLN'): string {
-  if (value == null) return '-'
-  const symbol: Record<string, string> = { PLN: 'zł', EUR: 'EUR', CZK: 'CZK', HUF: 'HUF' }
-  return `${Number(value).toFixed(2)} ${symbol[currency] ?? currency}`
+function shipmentTone(step: number, isIssue: boolean, isCancelled: boolean) {
+  if (isCancelled) return 'bg-red-50 text-red-800 border-red-200'
+  if (isIssue) return 'bg-amber-50 text-amber-800 border-amber-200'
+  if (step >= 3) return 'bg-emerald-50 text-emerald-800 border-emerald-200'
+  if (step === 2) return 'bg-sky-50 text-sky-800 border-sky-200'
+  if (step === 1) return 'bg-indigo-50 text-indigo-800 border-indigo-200'
+  return 'bg-stone-100 text-stone-700 border-stone-200'
 }
 
-function getShipmentBadgeClass(step: number, isIssue: boolean, isCancelled: boolean): string {
-  if (isCancelled) return 'bg-red-50 text-red-700 border-red-200'
-  if (isIssue) return 'bg-amber-50 text-amber-700 border-amber-200'
-  if (step >= 3) return 'bg-emerald-50 text-emerald-700 border-emerald-200'
-  if (step === 2) return 'bg-sky-50 text-sky-700 border-sky-200'
-  if (step === 1) return 'bg-indigo-50 text-indigo-700 border-indigo-200'
-  return 'bg-[#F5F4F1] text-[#666] border-[#E5E4E1]'
-}
-
-const STATUS_TABS = [
+const STATUS_TABS: Array<{ key: string; label: string }> = [
   { key: 'all', label: 'Wszystkie' },
   { key: 'fulfillment', label: 'Do realizacji' },
   { key: 'awaiting_payment', label: 'Oczekuje wpłaty' },
@@ -54,116 +55,12 @@ const STATUS_TABS = [
 const LIMIT = 50
 const AUTO_REFRESH_MS = 2 * 60 * 1000
 
-// Mobile card for a single order
-function OrderCard({
-  order,
-  selected,
-  onSelect,
-  onClick,
-  onContextMenu,
-}: {
-  order: AdminOrder
-  selected: boolean
-  onSelect: () => void
-  onClick: () => void
-  onContextMenu: (e: React.MouseEvent) => void
-}) {
-  const firstItem = order.items?.[0]
-  const extraCount = (order.items?.length ?? 0) - 1
-  const shipment = resolveShipmentStatus({
-    status: order.status,
-    shipmentDisplayStatus: order.shipmentDisplayStatus,
-    allegroFulfillmentStatus: order.allegroFulfillmentStatus,
-  })
-  const shipmentBadgeClass = getShipmentBadgeClass(shipment.step, shipment.isIssue, shipment.isCancelled)
-  const showStaleHint = false
-
+function ChannelMark({ source }: { source: AdminOrder['source'] }) {
+  if (source === 'allegro') {
+    return <AllegroLogoBadge />
+  }
   return (
-    <div
-      className={`bg-white rounded-xl border transition-all duration-150 cursor-pointer active:scale-[0.99] ${
-        selected ? 'border-[#0066CC] ring-1 ring-[#0066CC]/20' : 'border-[#E5E4E1]'
-      }`}
-      onClick={onClick}
-    >
-      <div className="p-4">
-        {/* Top row: checkbox + order number + badges + amount */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3">
-            <div
-              className="mt-0.5 flex-shrink-0"
-              onClick={(e) => { e.stopPropagation(); onSelect() }}
-            >
-              <input
-                type="checkbox"
-                checked={selected}
-                onChange={onSelect}
-                className="rounded border-[#D4D3D0] focus:ring-1 focus:ring-[#1A1A1A] w-4 h-4"
-                onClick={(e) => e.stopPropagation()}
-              />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-semibold text-[#1A1A1A] text-sm">{order.orderNumber}</span>
-                {order.source === 'allegro' && (
-                  <span className="text-[10px] font-bold bg-[#FF5A00]/10 text-[#FF5A00] px-1.5 py-0.5 rounded-full leading-none">A</span>
-                )}
-                {order.invoiceRequired && (
-                  <span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full leading-none">FV</span>
-                )}
-              </div>
-              <div className="text-xs text-[#A3A3A3] mt-0.5">{formatDateShort(order.paidAt ?? order.createdAt)}</div>
-            </div>
-          </div>
-
-          <div className="flex items-start gap-2">
-            <div className="text-right">
-              <span className="font-semibold text-[#1A1A1A] text-sm">{formatAmount(order.total, order.currency)}</span>
-            </div>
-            <button
-              className="p-1.5 rounded-lg text-[#A3A3A3] hover:text-[#1A1A1A] hover:bg-[#E5E4E1] transition-colors"
-              onClick={(e) => { e.stopPropagation(); onContextMenu(e) }}
-            >
-              <MoreVertical size={16} />
-            </button>
-          </div>
-        </div>
-
-        {/* Divider */}
-        <div className="border-t border-[#F0EFEC] my-3" />
-
-        {/* Customer */}
-        <div className="flex items-center justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <div className="text-sm font-medium text-[#1A1A1A] truncate">{order.customerData?.name ?? '-'}</div>
-            <div className="text-xs text-[#A3A3A3] truncate">{order.customerData?.email ?? ''}</div>
-          </div>
-
-          {/* Shipment badge */}
-          <div className="flex flex-col items-end gap-1">
-            <span className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-medium ${shipmentBadgeClass}`}>
-              {shipment.label}
-            </span>
-                        {showStaleHint && (
-              <span className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">
-                nieaktualne
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Product */}
-        {firstItem && (
-          <div className="mt-2 flex items-center gap-2">
-            <span className="text-xs text-[#525252] truncate">{firstItem.productName}</span>
-            {extraCount > 0 && (
-              <span className="text-[11px] font-medium text-[#A3A3A3] bg-[#F5F4F1] px-2 py-0.5 rounded-full flex-shrink-0">
-                +{extraCount} więcej
-              </span>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
+    <span className="inline-flex items-center justify-center w-5 h-5 rounded-sm bg-stone-200 text-stone-700 text-[10px] font-bold flex-shrink-0" title="Sklep">S</span>
   )
 }
 
@@ -182,7 +79,6 @@ export const OrdersView = () => {
   const [page, setPage] = useState(1)
 
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
-
   const [contextMenu, setContextMenu] = useState<{ order: AdminOrder; x: number; y: number } | null>(null)
   const [detailOrder, setDetailOrder] = useState<AdminOrder | null>(null)
   const [shipmentOrder, setShipmentOrder] = useState<AdminOrder | null>(null)
@@ -193,7 +89,6 @@ export const OrdersView = () => {
   const fetchOrders = useCallback(async () => {
     setLoading(true)
     setError(null)
-
     try {
       const params: OrdersQueryParams = { page, limit: LIMIT }
       if (statusFilter === 'fulfillment' || statusFilter === 'awaiting_payment') {
@@ -216,12 +111,8 @@ export const OrdersView = () => {
     }
   }, [dateFrom, dateTo, page, search, sourceFilter, statusFilter])
 
-  useEffect(() => {
-    fetchOrders()
-  }, [fetchOrders])
+  useEffect(() => { fetchOrders() }, [fetchOrders])
 
-  // Auto-refresh orders list every 2 min so shipment statuses update without manual reload.
-  // Backend kicks off background Allegro fetch (KV-throttled 5min per order) on every GET /admin/orders.
   useEffect(() => {
     const timer = setInterval(() => {
       if (document.visibilityState !== 'visible') return
@@ -230,47 +121,29 @@ export const OrdersView = () => {
     return () => clearInterval(timer)
   }, [fetchOrders])
 
-  useEffect(() => {
-    return () => {
-      if (searchTimer.current) clearTimeout(searchTimer.current)
-    }
-  }, [])
+  useEffect(() => () => { if (searchTimer.current) clearTimeout(searchTimer.current) }, [])
 
   const handleSearch = (value: string) => {
     setSearchInput(value)
-
     if (searchTimer.current) clearTimeout(searchTimer.current)
-    searchTimer.current = setTimeout(() => {
-      setSearch(value)
-      setPage(1)
-    }, 400)
+    searchTimer.current = setTimeout(() => { setSearch(value); setPage(1) }, 400)
   }
 
   const handleStatusFilter = (key: string) => {
-    setStatusFilter(key)
-    setPage(1)
-    setSelectedIds(new Set())
+    setStatusFilter(key); setPage(1); setSelectedIds(new Set())
   }
 
   const handleStatusChange = async (order: AdminOrder, newStatus: string) => {
-    try {
-      await adminApi.updateOrderStatus(order.id, newStatus)
-      await fetchOrders()
-    } catch {
-      // Keep current UX minimal
-    }
+    try { await adminApi.updateOrderStatus(order.id, newStatus); await fetchOrders() } catch {}
   }
 
   const refreshOrderSnapshot = useCallback(async (orderId: number) => {
     try {
       const res = await adminApi.getOrder(orderId)
-      const freshOrder = res.data
-
-      setOrders((prev) => prev.map((order) => (order.id === orderId ? { ...order, ...freshOrder } : order)))
-      setDetailOrder((prev) => (prev?.id === orderId ? freshOrder : prev))
-    } catch {
-      // Silent fail: periodic refresh should not interrupt the UI.
-    }
+      const fresh = res.data
+      setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, ...fresh } : o)))
+      setDetailOrder((prev) => (prev?.id === orderId ? fresh : prev))
+    } catch {}
   }, [])
 
   const openOrderDetails = useCallback((order: AdminOrder) => {
@@ -285,273 +158,359 @@ export const OrdersView = () => {
 
   const handleToggleSelect = (id: number) => {
     setSelectedIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
+      const n = new Set(prev)
+      if (n.has(id)) n.delete(id); else n.add(id)
+      return n
     })
   }
 
   const handleSelectAll = () => {
-    if (selectedIds.size === orders.length) {
-      setSelectedIds(new Set())
-      return
-    }
-    setSelectedIds(new Set(orders.map((order) => order.id)))
+    if (selectedIds.size === orders.length) { setSelectedIds(new Set()); return }
+    setSelectedIds(new Set(orders.map((o) => o.id)))
   }
 
   const handleDownloadLabel = async (order: AdminOrder) => {
-    if (order.allShipments && order.allShipments.length > 1) {
-      setLabelPickerOrder(order)
-      return
-    }
+    if (order.allShipments && order.allShipments.length > 1) { setLabelPickerOrder(order); return }
     try {
       const blob = await adminApi.getShipmentLabel(order.id)
       const url = URL.createObjectURL(blob)
       window.open(url, '_blank')
       setTimeout(() => URL.revokeObjectURL(url), 30_000)
-    } catch {
-      // Keep current UX minimal
-    }
+    } catch {}
   }
 
   const handleBulkStatusChange = async (status: string) => {
-    const selected = orders.filter((order) => selectedIds.has(order.id))
-    await Promise.allSettled(selected.map((order) => adminApi.updateOrderStatus(order.id, status)))
+    const selected = orders.filter((o) => selectedIds.has(o.id))
+    await Promise.allSettled(selected.map((o) => adminApi.updateOrderStatus(o.id, status)))
     setSelectedIds(new Set())
     await fetchOrders()
   }
 
   const handleBulkDownloadLabels = async () => {
-    const selected = orders.filter((order) => selectedIds.has(order.id) && order.allegroShipmentId)
-    for (const order of selected) {
-      await handleDownloadLabel(order)
-    }
+    const selected = orders.filter((o) => selectedIds.has(o.id) && o.allegroShipmentId)
+    for (const o of selected) await handleDownloadLabel(o)
   }
 
-  const selectedOrders = orders.filter((order) => selectedIds.has(order.id))
-  const totalPages = Math.ceil(total / LIMIT)
+  const selectedOrders = orders.filter((o) => selectedIds.has(o.id))
+  const totalPages = Math.max(1, Math.ceil(total / LIMIT))
+
+  const stats = useMemo(() => {
+    const sumPln = orders.reduce((s, o) => s + Number(o.totalPln ?? o.total ?? 0), 0)
+    const allegro = orders.filter((o) => o.source === 'allegro').length
+    const shop = orders.filter((o) => o.source !== 'allegro').length
+    const unpaid = orders.filter((o) => !o.paidAt).length
+    return { sumPln, allegro, shop, unpaid }
+  }, [orders])
+
+  const hasFilters = !!(search || sourceFilter || dateFrom || dateTo || statusFilter !== 'all')
 
   return (
-    <div className="space-y-4">
-      {/* Title */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <h1 className="text-xl md:text-2xl font-semibold text-[#1A1A1A]">Zamówienia</h1>
-          <span className="text-sm text-[#A3A3A3] tabular-nums">{total}</span>
+    <div className="space-y-3">
+      {/* Title bar */}
+      <div className="flex items-end justify-between gap-3 flex-wrap">
+        <div className="flex items-baseline gap-3">
+          <h1 className="text-[22px] font-semibold tracking-tight text-stone-900 m-0">Zamówienia</h1>
+          <span className="text-[13px] text-stone-500 tabular-nums">{total.toLocaleString('pl-PL')} łącznie</span>
+        </div>
+        <button
+          type="button"
+          onClick={() => void fetchOrders()}
+          className="inline-flex items-center gap-1.5 px-2.5 h-8 text-[12.5px] font-medium border border-stone-300 bg-white text-stone-800 hover:bg-stone-100 rounded-sm transition disabled:opacity-60"
+          disabled={loading}
+        >
+          {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+          Odśwież
+        </button>
+      </div>
+
+      {/* KPI strip */}
+      <div className="bg-white border border-stone-200 rounded-sm">
+        <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-stone-200">
+          <Stat label="Suma na stronie" value={<>{stats.sumPln.toFixed(2)} <span className="text-stone-500 text-[12px] font-normal">PLN</span></>} />
+          <Stat label="Allegro" value={stats.allegro} sub={`z ${orders.length}`} />
+          <Stat label="Sklep" value={stats.shop} sub={`z ${orders.length}`} />
+          <Stat label="Nieopłacone" value={stats.unpaid} tone={stats.unpaid > 0 ? 'warn' : undefined} />
         </div>
       </div>
 
       {/* Status tabs */}
-      <div className="flex items-center gap-1 border-b border-[#F0EFEC] overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
-        {STATUS_TABS.map(({ key, label }) => (
-          <button
-            key={key}
-            className={`px-3 py-2 text-sm transition-colors border-b-2 -mb-px whitespace-nowrap ${
-              statusFilter === key
-                ? 'border-[#1A1A1A] text-[#1A1A1A] font-medium'
-                : 'border-transparent text-[#A3A3A3] hover:text-[#666]'
-            }`}
-            onClick={() => handleStatusFilter(key)}
-          >
-            {label}
-          </button>
-        ))}
+      <div className="bg-white border border-stone-200 rounded-sm">
+        <nav className="flex overflow-x-auto scrollbar-hide">
+          {STATUS_TABS.map(({ key, label }) => {
+            const isActive = statusFilter === key
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => handleStatusFilter(key)}
+                className={`relative px-3.5 h-9 text-[13px] inline-flex items-center transition whitespace-nowrap border-r border-stone-100 last:border-0 ${
+                  isActive ? 'text-stone-900 font-semibold bg-stone-50/60' : 'text-stone-600 hover:text-stone-900 hover:bg-stone-50/40'
+                }`}
+              >
+                {label}
+                {isActive && <span className="absolute left-0 right-0 -bottom-px h-[2px] bg-stone-900" />}
+              </button>
+            )
+          })}
+        </nav>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-3">
-        <input
-          type="text"
-          placeholder="Szukaj: nr, email, NIP, telefon..."
-          className="admin-input flex-1 min-w-0 sm:min-w-[260px]"
-          value={searchInput}
-          onChange={(e) => handleSearch(e.target.value)}
-        />
-
-        <div className="flex items-center gap-2 flex-wrap">
+      {/* Filter bar */}
+      <div className="bg-white border border-stone-200 rounded-sm p-2 flex items-center gap-2 flex-wrap">
+        <div className="relative flex-1 min-w-[240px]">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-stone-400" />
+          <input
+            type="text"
+            placeholder="Szukaj: numer, e-mail, NIP, telefon, login Allegro…"
+            className="w-full h-8 pl-8 pr-8 text-[13px] bg-stone-50 border border-stone-200 hover:border-stone-300 focus:border-stone-400 focus:bg-white rounded-sm outline-none transition"
+            value={searchInput}
+            onChange={(e) => handleSearch(e.target.value)}
+          />
+          {searchInput && (
+            <button
+              type="button"
+              onClick={() => handleSearch('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-stone-400 hover:text-stone-700"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5 flex-wrap">
           <Dropdown
             label="Źródło"
             value={sourceFilter}
-            onChange={(v) => {
-              setSourceFilter(v)
-              setPage(1)
-            }}
+            onChange={(v) => { setSourceFilter(v); setPage(1) }}
             options={[
               { value: '', label: 'Wszystkie' },
               { value: 'shop', label: 'Sklep' },
               { value: 'allegro', label: 'Allegro' },
             ]}
           />
-
           <DateRangePicker
             from={dateFrom}
             to={dateTo}
-            onChange={(newFrom, newTo) => {
-              setDateFrom(newFrom)
-              setDateTo(newTo)
-              setPage(1)
-            }}
+            onChange={(f, t) => { setDateFrom(f); setDateTo(t); setPage(1) }}
           />
+          {hasFilters && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchInput(''); setSearch(''); setSourceFilter(''); setDateFrom(''); setDateTo('')
+                setStatusFilter('all'); setPage(1)
+              }}
+              className="inline-flex items-center gap-1 px-2 h-8 text-[12px] text-stone-600 hover:text-stone-900 hover:bg-stone-100 rounded-sm transition"
+            >
+              <Filter className="w-3 h-3" /> Wyczyść filtry
+            </button>
+          )}
         </div>
       </div>
 
       {error ? (
-        <div className="text-center py-12">
-          <p className="text-red-600 mb-3">{error}</p>
-          <button className="btn-primary text-sm" onClick={fetchOrders}>Ponów</button>
+        <div className="bg-white border border-red-200 rounded-sm p-6 text-center">
+          <AlertTriangle className="w-6 h-6 text-red-600 mx-auto mb-2" />
+          <p className="text-[13px] text-red-700 mb-3">{error}</p>
+          <button className="inline-flex items-center gap-1.5 px-3 h-8 text-[12.5px] font-medium bg-stone-900 text-white hover:bg-black rounded-sm" onClick={fetchOrders}>Ponów</button>
         </div>
       ) : (
         <>
-          {/* ── Desktop table ── */}
-          <div className="hidden md:block bg-white rounded-xl border border-[#E5E4E1] overflow-hidden shadow-sm">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-[#FAFAF9] text-[#A3A3A3] text-[11px] uppercase tracking-wider border-b border-[#E5E4E1]">
-                  <th className="w-[48px] px-4 py-3 text-left">
-                    <input
-                      type="checkbox"
-                      checked={orders.length > 0 && selectedIds.size === orders.length}
-                      onChange={handleSelectAll}
-                      className="rounded border-[#D4D3D0] focus:ring-1 focus:ring-[#1A1A1A]"
-                    />
-                  </th>
-                  <th className="text-left px-4 py-3 font-medium">Zamówienie</th>
-                  <th className="text-left px-4 py-3 font-medium">Klient</th>
-                  <th className="text-left px-4 py-3 font-medium">Produkty</th>
-                  <th className="text-left px-4 py-3 font-medium">Przesyłka</th>
-                  <th className="text-right px-4 py-3 font-medium">Kwota</th>
-                  <th className="w-[48px] px-4 py-3" />
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  Array.from({ length: 8 }).map((_, i) => (
-                    <tr key={i} className="border-b border-[#F0EFEC] last:border-0">
-                      <td colSpan={7} className="px-4 py-4">
-                        <div className="h-4 bg-[#F5F4F1] rounded animate-pulse" />
-                      </td>
-                    </tr>
-                  ))
-                ) : orders.length === 0 ? (
-                  <tr className="border-b border-[#F0EFEC] last:border-0">
-                    <td colSpan={7} className="text-center py-12 text-[#A3A3A3]">
-                      Brak zamówień
-                    </td>
+          {/* Desktop table */}
+          <div className="hidden md:block bg-white border border-stone-200 rounded-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <colgroup>
+                  <col style={{ width: '36px' }} />
+                  <col style={{ width: '170px' }} />
+                  <col style={{ width: '24%' }} />
+                  <col />
+                  <col style={{ width: '160px' }} />
+                  <col style={{ width: '180px' }} />
+                  <col style={{ width: '130px' }} />
+                  <col style={{ width: '40px' }} />
+                </colgroup>
+                <thead>
+                  <tr className="bg-stone-50/70 border-b border-stone-200 text-[10.5px] uppercase tracking-[0.1em] text-stone-500 font-semibold">
+                    <th className="px-3 py-2 text-left">
+                      <input
+                        type="checkbox"
+                        checked={orders.length > 0 && selectedIds.size === orders.length}
+                        onChange={handleSelectAll}
+                        className="rounded-sm border-stone-300 focus:ring-1 focus:ring-stone-900 w-3.5 h-3.5"
+                      />
+                    </th>
+                    <th className="px-3 py-2 text-left">Numer</th>
+                    <th className="px-3 py-2 text-left">Klient</th>
+                    <th className="px-3 py-2 text-left">Pozycje</th>
+                    <th className="px-3 py-2 text-left">Status</th>
+                    <th className="px-3 py-2 text-left">Wysyłka</th>
+                    <th className="px-3 py-2 text-right">Kwota</th>
+                    <th className="px-2 py-2" />
                   </tr>
-                ) : (
-                  orders.map((order) => {
-                    const firstItem = order.items?.[0]
-                    const extraCount = (order.items?.length ?? 0) - 1
-                    const shipment = resolveShipmentStatus({
-                      status: order.status,
-                      shipmentDisplayStatus: order.shipmentDisplayStatus,
-                      allegroFulfillmentStatus: order.allegroFulfillmentStatus,
-                                    })
-                    const shipmentBadgeClass = getShipmentBadgeClass(
-                      shipment.step,
-                      shipment.isIssue,
-                      shipment.isCancelled,
-                    )
-                    const showStaleHint = false
-
-                    return (
-                      <tr
-                        key={order.id}
-                        className="border-b border-[#F0EFEC] last:border-0 py-3 hover:bg-[#FAFAF9] cursor-pointer group"
-                        onClick={() => openOrderDetails(order)}
-                        onContextMenu={(e) => handleContextMenu(e, order)}
-                      >
-                        <td className="px-4 py-3 align-middle" onClick={(e) => e.stopPropagation()}>
-                          <input
-                            type="checkbox"
-                            checked={selectedIds.has(order.id)}
-                            onChange={() => handleToggleSelect(order.id)}
-                            className="rounded border-[#D4D3D0] focus:ring-1 focus:ring-[#1A1A1A] opacity-0 group-hover:opacity-100 aria-checked:opacity-100 checked:opacity-100"
-                          />
-                        </td>
-
-                        <td className="px-4 py-3 align-middle">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-semibold text-[#1A1A1A]">{order.orderNumber}</span>
-                            {order.source === 'allegro' && (
-                              <span className="text-[10px] font-bold bg-[#FF5A00]/10 text-[#FF5A00] px-1.5 py-0.5 rounded-full leading-none">A</span>
-                            )}
-                            {order.invoiceRequired && (
-                              <span className="text-[10px] font-bold bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full leading-none">FV</span>
-                            )}
-                          </div>
-                          <div className="text-xs text-[#A3A3A3] mt-1">{formatDateShort(order.paidAt ?? order.createdAt)}</div>
-                        </td>
-
-                        <td className="px-4 py-3 align-middle">
-                          <div className="text-[#1A1A1A] font-medium">{order.customerData?.name ?? '-'}</div>
-                          <div className="text-xs text-[#A3A3A3] mt-0.5 truncate max-w-[200px]">{order.customerData?.email ?? ''}</div>
-                        </td>
-
-                        <td className="px-4 py-3 align-middle">
-                          <span className="text-[#1A1A1A] truncate block max-w-[250px]">{firstItem?.productName ?? '-'}</span>
-                          {extraCount > 0 && <span className="text-[11px] font-medium text-[#A3A3A3] mt-0.5 inline-block bg-[#F5F4F1] px-2 py-0.5 rounded-full">+{extraCount} więcej</span>}
-                        </td>
-
-                        <td className="px-4 py-3 align-middle">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[11px] font-medium ${shipmentBadgeClass}`}>
-                              {shipment.label}
-                            </span>
-                                                        {showStaleHint && (
-                              <span className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">
-                                nieaktualne
-                              </span>
-                            )}
-                          </div>
-                        </td>
-
-                        <td className="px-4 py-3 text-right align-middle">
-                          <span className="font-semibold text-[#1A1A1A]">{formatAmount(order.total, order.currency)}</span>
-                        </td>
-
-                        <td className="px-4 py-3 text-center align-middle" onClick={(e) => e.stopPropagation()}>
-                          <button
-                            className="p-1.5 rounded-lg text-[#A3A3A3] hover:text-[#1A1A1A] hover:bg-[#E5E4E1] opacity-0 group-hover:opacity-100"
-                            onClick={(e) => {
-                              const rect = e.currentTarget.getBoundingClientRect()
-                              setContextMenu({ order, x: rect.left, y: rect.bottom + 4 })
-                            }}
-                          >
-                            <MoreVertical size={16} />
-                          </button>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    Array.from({ length: 8 }).map((_, i) => (
+                      <tr key={i} className="border-b border-stone-100 last:border-0">
+                        <td colSpan={8} className="px-3 py-3">
+                          <div className="h-4 bg-stone-100 rounded-sm animate-pulse" />
                         </td>
                       </tr>
-                    )
-                  })
-                )}
-              </tbody>
-            </table>
+                    ))
+                  ) : orders.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="px-3 py-16 text-center">
+                        <ShoppingBag className="w-7 h-7 text-stone-300 mx-auto mb-2" />
+                        <div className="text-[13px] text-stone-700 font-medium">Brak zamówień</div>
+                        <div className="text-[11.5px] text-stone-500 mt-1">{hasFilters ? 'Spróbuj zmienić filtry.' : 'Nowe zamówienia pojawią się tutaj.'}</div>
+                      </td>
+                    </tr>
+                  ) : (
+                    orders.map((order) => {
+                      const items = order.items ?? []
+                      const firstItem = items[0]
+                      const extraCount = items.length - 1
+                      const totalQty = items.reduce((s, i) => s + Number(i.quantity || 0), 0)
+                      const shipment = resolveShipmentStatus({
+                        status: order.status,
+                        shipmentDisplayStatus: order.shipmentDisplayStatus,
+                        allegroFulfillmentStatus: order.allegroFulfillmentStatus,
+                      })
+                      const stale = order.shipmentFreshness === 'stale'
+                      const isSelected = selectedIds.has(order.id)
+
+                      return (
+                        <tr
+                          key={order.id}
+                          className={`border-b border-stone-100 last:border-0 cursor-pointer group transition-colors ${
+                            isSelected ? 'bg-sky-50/40' : 'hover:bg-stone-50/60'
+                          }`}
+                          onClick={() => openOrderDetails(order)}
+                          onContextMenu={(e) => handleContextMenu(e, order)}
+                        >
+                          <td className="px-3 py-2.5 align-middle" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => handleToggleSelect(order.id)}
+                              className={`rounded-sm border-stone-300 focus:ring-1 focus:ring-stone-900 w-3.5 h-3.5 transition ${
+                                isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                              }`}
+                            />
+                          </td>
+
+                          <td className="px-3 py-2.5 align-middle">
+                            <div className="flex items-center gap-2">
+                              <ChannelMark source={order.source} />
+                              <div className="min-w-0">
+                                <div className="font-mono tabular-nums text-[13px] font-semibold text-stone-900 truncate">
+                                  {order.orderNumber}
+                                </div>
+                                <div className="text-[11px] text-stone-500 tabular-nums flex items-center gap-1">
+                                  <span>{fmtDate(order.createdAt)}</span>
+                                  <span className="text-stone-300">·</span>
+                                  <span>{fmtTime(order.createdAt)}</span>
+                                  {order.invoiceRequired && (
+                                    <span className="ml-0.5 inline-flex items-center px-1 rounded-sm bg-sky-50 text-sky-800 border border-sky-200 text-[9.5px] font-bold leading-none py-px">FV</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="px-3 py-2.5 align-middle">
+                            <div className="text-[13px] text-stone-900 truncate font-medium">{order.customerData?.name ?? '—'}</div>
+                            <div className="text-[11.5px] text-stone-500 truncate">
+                              {order.customerData?.email ?? order.customerData?.allegroLogin ?? ''}
+                            </div>
+                          </td>
+
+                          <td className="px-3 py-2.5 align-middle">
+                            <div className="flex items-baseline gap-1.5 min-w-0">
+                              <span className="font-mono tabular-nums text-[11px] text-stone-500 flex-shrink-0">{totalQty}×</span>
+                              <span className="text-[13px] text-stone-800 truncate">{firstItem?.productName ?? '—'}</span>
+                              {extraCount > 0 && (
+                                <span className="ml-auto text-[10.5px] font-mono text-stone-500 bg-stone-100 px-1.5 py-px rounded-sm flex-shrink-0">
+                                  +{extraCount}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+
+                          <td className="px-3 py-2.5 align-middle">
+                            <OrderStatusBadge
+                              status={order.status}
+                              source={order.source}
+                              allegroFulfillmentStatus={order.allegroFulfillmentStatus}
+                              paymentMethod={order.paymentMethod}
+                              paidAt={order.paidAt}
+                            />
+                          </td>
+
+                          <td className="px-3 py-2.5 align-middle">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className={`inline-flex items-center px-1.5 py-0.5 rounded-sm border text-[11px] font-medium ${shipmentTone(shipment.step, shipment.isIssue, shipment.isCancelled)}`}>
+                                {shipment.label}
+                              </span>
+                              {stale && (
+                                <span title="Tracking nie był odświeżany niedawno" className="inline-flex items-center px-1.5 py-0.5 rounded-sm border border-amber-200 bg-amber-50 text-amber-800 text-[10px] font-medium">
+                                  stary
+                                </span>
+                              )}
+                            </div>
+                          </td>
+
+                          <td className="px-3 py-2.5 text-right align-middle">
+                            <div className="font-mono tabular-nums text-[13px] font-semibold text-stone-900">
+                              {fmtAmount(order.total, order.currency)}
+                            </div>
+                            {order.totalPln != null && order.currency !== 'PLN' && (
+                              <div className="text-[10.5px] text-stone-500 tabular-nums">≈ {Number(order.totalPln).toFixed(2)} PLN</div>
+                            )}
+                          </td>
+
+                          <td className="px-1 py-2.5 text-center align-middle" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              type="button"
+                              className="p-1 rounded-sm text-stone-400 hover:text-stone-900 hover:bg-stone-200/60 opacity-0 group-hover:opacity-100 transition"
+                              onClick={(e) => {
+                                const rect = e.currentTarget.getBoundingClientRect()
+                                setContextMenu({ order, x: rect.left, y: rect.bottom + 4 })
+                              }}
+                              title="Akcje"
+                            >
+                              <MoreHorizontal className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      )
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
 
-          {/* ── Mobile cards ── */}
-          <div className="md:hidden space-y-3">
+          {/* Mobile cards */}
+          <div className="md:hidden space-y-2">
             {loading ? (
               Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="bg-white rounded-xl border border-[#E5E4E1] p-4">
-                  <div className="space-y-3 animate-pulse">
-                    <div className="flex justify-between">
-                      <div className="h-4 bg-[#F5F4F1] rounded w-32" />
-                      <div className="h-4 bg-[#F5F4F1] rounded w-20" />
-                    </div>
-                    <div className="h-3 bg-[#F5F4F1] rounded w-full" />
-                    <div className="h-3 bg-[#F5F4F1] rounded w-3/4" />
+                <div key={i} className="bg-white border border-stone-200 rounded-sm p-3">
+                  <div className="space-y-2 animate-pulse">
+                    <div className="flex justify-between"><div className="h-4 bg-stone-100 w-32 rounded-sm" /><div className="h-4 bg-stone-100 w-20 rounded-sm" /></div>
+                    <div className="h-3 bg-stone-100 w-full rounded-sm" />
+                    <div className="h-3 bg-stone-100 w-3/4 rounded-sm" />
                   </div>
                 </div>
               ))
             ) : orders.length === 0 ? (
-              <div className="bg-white rounded-xl border border-[#E5E4E1] py-16 text-center text-[#A3A3A3]">
-                Brak zamówień
+              <div className="bg-white border border-stone-200 rounded-sm py-12 text-center">
+                <ShoppingBag className="w-7 h-7 text-stone-300 mx-auto mb-2" />
+                <div className="text-[13px] text-stone-700 font-medium">Brak zamówień</div>
               </div>
             ) : (
               orders.map((order) => (
-                <OrderCard
+                <MobileOrderCard
                   key={order.id}
                   order={order}
                   selected={selectedIds.has(order.id)}
@@ -570,25 +529,27 @@ export const OrdersView = () => {
       )}
 
       {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between pt-2">
-          <span className="text-sm text-[#A3A3A3]">Strona {page} z {totalPages}</span>
-          <div className="flex gap-2">
+      {(totalPages > 1 || page > 1) && (
+        <div className="flex items-center justify-between gap-3 bg-white border border-stone-200 rounded-sm px-3 py-2">
+          <div className="text-[12px] text-stone-600 tabular-nums">
+            Strona <span className="font-semibold text-stone-900">{page}</span> z <span className="font-semibold text-stone-900">{totalPages}</span>
+            <span className="text-stone-400 mx-1.5">·</span>
+            {orders.length > 0 ? `${(page - 1) * LIMIT + 1}–${(page - 1) * LIMIT + orders.length}` : '0'} z {total.toLocaleString('pl-PL')}
+          </div>
+          <div className="flex gap-1">
             <button
               disabled={page <= 1}
-              className="flex items-center gap-1 btn-secondary text-sm disabled:opacity-40"
-              onClick={() => setPage((prev) => prev - 1)}
+              className="inline-flex items-center gap-1 px-2.5 h-7 text-[12px] border border-stone-300 bg-white text-stone-800 hover:bg-stone-100 rounded-sm transition disabled:opacity-40 disabled:cursor-not-allowed"
+              onClick={() => setPage((p) => p - 1)}
             >
-              <ChevronLeft size={16} />
-              <span className="hidden sm:inline">Poprzednia</span>
+              <ChevronLeft className="w-3.5 h-3.5" /> Poprzednia
             </button>
             <button
               disabled={page >= totalPages}
-              className="flex items-center gap-1 btn-secondary text-sm disabled:opacity-40"
-              onClick={() => setPage((prev) => prev + 1)}
+              className="inline-flex items-center gap-1 px-2.5 h-7 text-[12px] border border-stone-300 bg-white text-stone-800 hover:bg-stone-100 rounded-sm transition disabled:opacity-40 disabled:cursor-not-allowed"
+              onClick={() => setPage((p) => p + 1)}
             >
-              <span className="hidden sm:inline">Następna</span>
-              <ChevronRightIcon size={16} />
+              Następna <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -610,10 +571,7 @@ export const OrdersView = () => {
         order={detailOrder}
         isOpen={!!detailOrder}
         onClose={() => setDetailOrder(null)}
-        onCreateShipment={(order) => {
-          setDetailOrder(null)
-          setShipmentOrder(order)
-        }}
+        onCreateShipment={(order) => { setDetailOrder(null); setShipmentOrder(order) }}
         onDownloadLabel={handleDownloadLabel}
         onShipmentRefreshed={(orderId) => { void refreshOrderSnapshot(orderId) }}
       />
@@ -623,10 +581,7 @@ export const OrdersView = () => {
           order={shipmentOrder}
           isOpen={!!shipmentOrder}
           onClose={() => setShipmentOrder(null)}
-          onSuccess={() => {
-            setShipmentOrder(null)
-            fetchOrders()
-          }}
+          onSuccess={() => { setShipmentOrder(null); fetchOrders() }}
         />
       )}
 
@@ -644,6 +599,91 @@ export const OrdersView = () => {
         onDownloadLabels={handleBulkDownloadLabels}
         onClearSelection={() => setSelectedIds(new Set())}
       />
+    </div>
+  )
+}
+
+function Stat({ label, value, sub, tone }: { label: string; value: React.ReactNode; sub?: React.ReactNode; tone?: 'warn' | 'ok' }) {
+  const toneCls = tone === 'warn' ? 'text-amber-700' : tone === 'ok' ? 'text-emerald-700' : 'text-stone-900'
+  return (
+    <div className="px-3.5 py-2.5 min-w-0">
+      <div className="text-[10px] uppercase tracking-[0.14em] text-stone-500 font-semibold mb-0.5">{label}</div>
+      <div className={`text-[15px] font-semibold tabular-nums truncate ${toneCls}`}>{value}</div>
+      {sub != null && <div className="text-[10.5px] text-stone-500 truncate mt-0.5">{sub}</div>}
+    </div>
+  )
+}
+
+function MobileOrderCard({
+  order, selected, onSelect, onClick, onContextMenu,
+}: {
+  order: AdminOrder
+  selected: boolean
+  onSelect: () => void
+  onClick: () => void
+  onContextMenu: (e: React.MouseEvent) => void
+}) {
+  const items = order.items ?? []
+  const firstItem = items[0]
+  const extra = items.length - 1
+  const shipment = resolveShipmentStatus({
+    status: order.status,
+    shipmentDisplayStatus: order.shipmentDisplayStatus,
+    allegroFulfillmentStatus: order.allegroFulfillmentStatus,
+  })
+  return (
+    <div
+      onClick={onClick}
+      className={`bg-white border rounded-sm transition active:bg-stone-50 ${
+        selected ? 'border-sky-400 ring-1 ring-sky-200' : 'border-stone-200'
+      }`}
+    >
+      <div className="p-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-2.5 min-w-0 flex-1">
+            <div className="pt-0.5" onClick={(e) => { e.stopPropagation(); onSelect() }}>
+              <input type="checkbox" checked={selected} onChange={onSelect} onClick={(e) => e.stopPropagation()}
+                     className="rounded-sm border-stone-300 focus:ring-1 focus:ring-stone-900 w-4 h-4" />
+            </div>
+            <ChannelMark source={order.source} />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <span className="font-mono tabular-nums text-[14px] font-semibold text-stone-900">{order.orderNumber}</span>
+                {order.invoiceRequired && <span className="px-1 rounded-sm bg-sky-50 text-sky-800 border border-sky-200 text-[10px] font-bold leading-none py-px">FV</span>}
+              </div>
+              <div className="text-[11.5px] text-stone-500 tabular-nums">{fmtDate(order.createdAt)} · {fmtTime(order.createdAt)}</div>
+            </div>
+          </div>
+          <div className="flex items-start gap-1">
+            <div className="text-right">
+              <div className="font-mono tabular-nums text-[14px] font-semibold text-stone-900">{fmtAmount(order.total, order.currency)}</div>
+            </div>
+            <button onClick={(e) => { e.stopPropagation(); onContextMenu(e) }} className="p-1.5 -mr-1 rounded-sm text-stone-400 hover:text-stone-900 hover:bg-stone-100">
+              <MoreHorizontal className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-2.5 pt-2.5 border-t border-stone-100">
+          <div className="text-[13px] text-stone-900 truncate font-medium">{order.customerData?.name ?? '—'}</div>
+          <div className="text-[11.5px] text-stone-500 truncate">{order.customerData?.email ?? order.customerData?.allegroLogin ?? ''}</div>
+        </div>
+
+        {firstItem && (
+          <div className="mt-2 flex items-center gap-2 text-[12px] text-stone-700">
+            <Package className="w-3.5 h-3.5 text-stone-400 flex-shrink-0" />
+            <span className="truncate">{firstItem.productName}</span>
+            {extra > 0 && <span className="ml-auto text-[10.5px] font-mono text-stone-500 bg-stone-100 px-1.5 py-px rounded-sm flex-shrink-0">+{extra}</span>}
+          </div>
+        )}
+
+        <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+          <OrderStatusBadge status={order.status} source={order.source} allegroFulfillmentStatus={order.allegroFulfillmentStatus} paymentMethod={order.paymentMethod} paidAt={order.paidAt} />
+          <span className={`inline-flex items-center px-1.5 py-0.5 rounded-sm border text-[11px] font-medium ${shipmentTone(shipment.step, shipment.isIssue, shipment.isCancelled)}`}>
+            {shipment.label}
+          </span>
+        </div>
+      </div>
     </div>
   )
 }

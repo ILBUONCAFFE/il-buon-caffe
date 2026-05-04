@@ -5,6 +5,7 @@ import { adminApi } from '../../lib/adminApiClient'
 import { ReturnStatusBadge } from '../../components/ReturnStatusBadge'
 import { ReturnContextMenu } from '../../components/ReturnContextMenu'
 import { ReturnDetailModal } from '../../components/ReturnDetailModal'
+import { AllegroLogoBadge } from '../../components/AllegroLogoBadge'
 import { DateRangePicker } from '../../components/ui/DateRangePicker'
 import { Dropdown } from '../../components/ui/Dropdown'
 import type { AdminReturn, ReturnStatus, ReturnsQueryParams } from '../../types/admin-api'
@@ -323,11 +324,11 @@ export const ReturnsView = () => {
                           <span className="font-semibold text-[#1A1A1A]">{ret.returnNumber}</span>
                           <div className="flex items-center gap-1.5 text-xs text-[#A3A3A3] mt-1">
                             <span>{formatDateShort(ret.createdAt)}</span>
-                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none ${
-                              ret.source === 'allegro' ? 'bg-[#FF5A00]/10 text-[#FF5A00]' : 'bg-[#F5F4F1] text-[#666]'
-                            }`}>
-                              {ret.source === 'allegro' ? 'A' : 'S'}
-                            </span>
+                            {ret.source === 'allegro' ? (
+                              <AllegroLogoBadge />
+                            ) : (
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none bg-[#F5F4F1] text-[#666]">S</span>
+                            )}
                           </div>
                         </td>
                         <td className="px-4 py-3 align-middle"><span className="text-[#1A1A1A]">{ret.orderNumber}</span></td>
@@ -384,7 +385,10 @@ export const ReturnsView = () => {
                         </div>
                         <div>
                           <span className="font-semibold text-sm text-[#1A1A1A]">{ret.returnNumber}</span>
-                          <div className="text-xs text-[#A3A3A3] mt-0.5">zam. {ret.orderNumber} · {formatDateShort(ret.createdAt)} · {ret.source === 'allegro' ? 'Allegro' : 'Sklep'}</div>
+                          <div className="flex items-center gap-1.5 text-xs text-[#A3A3A3] mt-0.5">
+                            <span>zam. {ret.orderNumber} · {formatDateShort(ret.createdAt)} ·</span>
+                            {ret.source === 'allegro' ? <AllegroLogoBadge /> : <span>Sklep</span>}
+                          </div>
                         </div>
                       </div>
                       <div className="flex items-start gap-2">

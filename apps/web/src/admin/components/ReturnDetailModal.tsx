@@ -3,6 +3,7 @@
 import { useEffect, type ReactNode } from 'react'
 import { X, RefreshCw } from 'lucide-react'
 import { ReturnStatusBadge } from './ReturnStatusBadge'
+import { AllegroLogoBadge } from './AllegroLogoBadge'
 import type { AdminReturn, ReturnStatus } from '../types/admin-api'
 
 interface ReturnDetailModalProps {
@@ -118,11 +119,11 @@ export function ReturnDetailModal({ ret, isOpen, onClose, onChangeStatus, onAppr
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#F0EFEC] shrink-0">
           <div className="flex items-center gap-3 flex-wrap">
             <h2 className="text-lg font-semibold text-[#1A1A1A] tabular-nums">{ret.returnNumber}</h2>
-            <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
-              isAllegro ? 'bg-[#FF5A00]/10 text-[#FF5A00]' : 'bg-[#F5F4F1] text-[#666]'
-            }`}>
-              {isAllegro ? 'Allegro' : 'Sklep'}
-            </span>
+            {isAllegro ? (
+              <AllegroLogoBadge size="md" />
+            ) : (
+              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-[#F5F4F1] text-[#666]">Sklep</span>
+            )}
             <ReturnStatusBadge status={ret.status} />
           </div>
           <div className="flex items-center gap-3">

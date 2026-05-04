@@ -6,6 +6,7 @@ import { X, RefreshCw, Package, Truck, CheckCircle2, AlertTriangle, XCircle, Clo
 import { resolveShipmentStatus } from '../lib/shipmentStatus'
 import { OrderStatusBadge } from './OrderStatusBadge'
 import { ShipmentLabelPickerModal } from './ShipmentLabelPickerModal'
+import { AllegroLogoBadge } from './AllegroLogoBadge'
 import { adminApi } from '../lib/adminApiClient'
 import type { AdminOrder, AllegroShipmentEntry, AllegroTrackingData, AllegroTrackingStatusEntry } from '../types/admin-api'
 
@@ -466,9 +467,7 @@ export function OrderDetailModal({
           <div className="flex items-center gap-3 flex-wrap">
             <h2 className="text-lg font-semibold text-[#1A1A1A] tabular-nums">{order.orderNumber}</h2>
             {order.source === 'allegro' && (
-              <span className="text-[10px] font-medium bg-[#FF5A00]/10 text-[#FF5A00] px-2 py-0.5 rounded-full">
-                Allegro
-              </span>
+              <AllegroLogoBadge size="md" />
             )}
             {order.invoiceRequired && (
               <span className="text-[10px] font-medium bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">FV</span>
