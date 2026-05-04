@@ -10,6 +10,7 @@ import { eq, and, desc, sql, gte, lte, inArray, or, ilike } from 'drizzle-orm'
 import { requireAdminOrProxy } from '../../middleware/auth'
 import { auditLogMiddleware } from '../../middleware/auditLog'
 import { recordStatusChange } from '../../lib/record-status-change'
+import { currentOrderStatusSql } from '../../lib/order-status'
 import { parsePagination, parseQueryDate, serverError } from '../../lib/request'
 import type { Env } from '../../index'
 import {
@@ -311,7 +312,7 @@ adminReturnsRouter.post('/', async (c) => {
 
     // Validate order exists and has appropriate status
     const orderRow = await db
-      .select({ id: orders.id, status: orders.status, customerData: orders.customerData })
+      .select({ id: orders.id, status: currentOrderStatusSql(orders.id), customerData: orders.customerData })
       .from(orders)
       .where(eq(orders.id, orderId))
       .limit(1)

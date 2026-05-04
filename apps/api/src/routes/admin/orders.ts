@@ -10,6 +10,7 @@ import { eq, and, desc, sql, gte, lte, inArray } from 'drizzle-orm'
 import { requireAdminOrProxy } from '../../middleware/auth'
 import { auditLogMiddleware } from '../../middleware/auditLog'
 import { recordStatusChange } from '../../lib/record-status-change'
+import { attachCurrentOrderStatuses, getCurrentOrderStatus, orderStatusEq, orderStatusIn } from '../../lib/order-status'
 import { refreshOrderShipments, type ShipmentSnapshotEntry } from '../../lib/allegro-shipments'
 import { getActiveAllegroToken } from '../../lib/allegro-tokens'
 import { containsLikePattern } from '@repo/db/orm'
@@ -17,6 +18,7 @@ import { allegroHeaders, buildCustomerData, fetchCheckoutForm } from '../../lib/
 import { reconcileOrder } from '../../lib/allegro-orders/handlers'
 import type { Env } from '../../index'
 import { checkContentLength, parsePagination, parseQueryDate, getClientIp, serverError } from '../../lib/request'
+import type { SQL } from 'drizzle-orm'
 
 export const adminOrdersRouter = new Hono<{ Bindings: Env }>()
 
@@ -356,7 +358,7 @@ adminOrdersRouter.get('/', auditLogMiddleware('view_order'), async (c) => {
     const to       = c.req.query('to')       || ''
     const search   = c.req.query('search')   || ''
 
-    const conditions: ReturnType<typeof eq>[] = []
+    const conditions: SQL[] = []
 
     const validSources  = ['shop', 'allegro']
     const validStatuses = ['pending', 'paid', 'processing', 'shipped', 'delivered', 'cancelled']
@@ -366,14 +368,14 @@ adminOrdersRouter.get('/', auditLogMiddleware('view_order'), async (c) => {
     if (queue && validQueues.includes(queue)) {
       if (queue === 'fulfillment') {
         // Ready to pack/fulfil: paid or processing orders only.
-        conditions.push(inArray(orders.status, ['paid', 'processing']))
+        conditions.push(orderStatusIn(orders.id, ['paid', 'processing']))
       } else if (queue === 'awaiting_payment') {
         // Allegro BOUGHT/FILLED_IN are persisted as pending until READY_FOR_PROCESSING arrives.
         conditions.push(eq(orders.source, 'allegro'))
-        conditions.push(eq(orders.status, 'pending'))
+        conditions.push(orderStatusEq(orders.id, 'pending'))
       }
     }
-    if (status  && validStatuses.includes(status))  conditions.push(eq(orders.status,  status  as any))
+    if (status  && validStatuses.includes(status))  conditions.push(orderStatusEq(orders.id, status))
     const fromDate = parseQueryDate(from)
     const toDate = parseQueryDate(to)
     if (fromDate) conditions.push(gte(orders.createdAt, fromDate))
@@ -441,7 +443,7 @@ adminOrdersRouter.get('/', auditLogMiddleware('view_order'), async (c) => {
       db.query.orders.findMany({
         columns: {
           id: true, orderNumber: true, source: true, externalId: true,
-          status: true, total: true, subtotal: true, shippingCost: true,
+          total: true, subtotal: true, shippingCost: true,
           currency: true, totalPln: true,
           customerData: true, paymentMethod: true, shippingMethod: true,
           trackingNumber: true,
@@ -464,10 +466,11 @@ adminOrdersRouter.get('/', auditLogMiddleware('view_order'), async (c) => {
       }),
     ])
 
+    const rowsWithStatus = await attachCurrentOrderStatuses(db, rows)
     const total      = Number(countResult[0]?.count ?? 0)
     const totalPages = Math.ceil(total / limit)
 
-    const data = rows.map(o => ({
+    const data = rowsWithStatus.map(o => ({
       ...o,
       total:        Number(o.total),
       subtotal:     Number(o.subtotal),
@@ -483,7 +486,7 @@ adminOrdersRouter.get('/', auditLogMiddleware('view_order'), async (c) => {
     }))
 
     // Background refresh of visible Allegro shipments (KV-throttled 5min per order — Neon-safe).
-    const refreshable = rows
+    const refreshable = rowsWithStatus
       .filter((o) => o.source === 'allegro' && ['paid', 'processing', 'shipped'].includes(o.status) && o.externalId)
       .map((o) => o.id)
     if (refreshable.length > 0) {
@@ -523,6 +526,7 @@ adminOrdersRouter.get('/:id', auditLogMiddleware('view_order'), async (c) => {
     })
 
     if (!order) return c.json({ error: 'Zamówienie nie znalezione' }, 404)
+    const [orderWithStatus] = await attachCurrentOrderStatuses(db, [order])
 
     const [historyRows, returnRows, issueRows, auditRows] = await Promise.all([
       db
@@ -623,49 +627,49 @@ adminOrdersRouter.get('/:id', auditLogMiddleware('view_order'), async (c) => {
       messagesByIssue.set(message.issueId, bucket)
     }
 
-    const allShipments = (order.allegroShipmentsSnapshot ?? []) as ShipmentSnapshotEntry[]
+    const allShipments = (orderWithStatus.allegroShipmentsSnapshot ?? []) as ShipmentSnapshotEntry[]
     const tracking = buildTrackingSnapshot({
-      id: order.id,
-      status: order.status,
-      trackingNumber: order.trackingNumber ?? null,
+      id: orderWithStatus.id,
+      status: orderWithStatus.status,
+      trackingNumber: orderWithStatus.trackingNumber ?? null,
       allegroShipmentsSnapshot: allShipments,
     })
     const warnings = buildOrderWarnings({
-      source: order.source,
-      status: order.status,
-      externalId: order.externalId ?? null,
-      allegroFulfillmentStatus: order.allegroFulfillmentStatus ?? null,
-      trackingNumber: order.trackingNumber ?? null,
+      source: orderWithStatus.source,
+      status: orderWithStatus.status,
+      externalId: orderWithStatus.externalId ?? null,
+      allegroFulfillmentStatus: orderWithStatus.allegroFulfillmentStatus ?? null,
+      trackingNumber: orderWithStatus.trackingNumber ?? null,
       allegroShipmentsSnapshot: allShipments,
     })
     const actions = buildActionAvailability({
-      source: order.source,
-      status: order.status,
-      externalId: order.externalId ?? null,
-      allegroShipmentId: order.allegroShipmentId ?? null,
-      trackingNumber: order.trackingNumber ?? null,
+      source: orderWithStatus.source,
+      status: orderWithStatus.status,
+      externalId: orderWithStatus.externalId ?? null,
+      allegroShipmentId: orderWithStatus.allegroShipmentId ?? null,
+      trackingNumber: orderWithStatus.trackingNumber ?? null,
       allegroShipmentsSnapshot: allShipments,
     })
 
     return c.json({
       success: true,
       data: {
-        ...order,
-        total:        Number(order.total),
-        subtotal:     Number(order.subtotal),
-        shippingCost: Number(order.shippingCost ?? 0),
-        taxAmount:    order.taxAmount    != null ? Number(order.taxAmount)    : null,
-        totalPln:     order.totalPln     != null ? Number(order.totalPln)     : null,
-        exchangeRate: order.exchangeRate != null ? Number(order.exchangeRate) : null,
-        rateDate:     order.rateDate     ?? null,
+        ...orderWithStatus,
+        total:        Number(orderWithStatus.total),
+        subtotal:     Number(orderWithStatus.subtotal),
+        shippingCost: Number(orderWithStatus.shippingCost ?? 0),
+        taxAmount:    orderWithStatus.taxAmount    != null ? Number(orderWithStatus.taxAmount)    : null,
+        totalPln:     orderWithStatus.totalPln     != null ? Number(orderWithStatus.totalPln)     : null,
+        exchangeRate: orderWithStatus.exchangeRate != null ? Number(orderWithStatus.exchangeRate) : null,
+        rateDate:     orderWithStatus.rateDate     ?? null,
         items: order.items.map((item) => ({
           ...item,
           unitPrice: Number(item.unitPrice),
           totalPrice: Number(item.totalPrice),
         })),
-        p24Status: order.p24Status ?? null,
-        p24SessionId: order.p24SessionId ?? null,
-        p24TransactionId: order.p24TransactionId ?? null,
+        p24Status: orderWithStatus.p24Status ?? null,
+        p24SessionId: orderWithStatus.p24SessionId ?? null,
+        p24TransactionId: orderWithStatus.p24TransactionId ?? null,
         ...tracking,
         statusHistory: historyRows.map((row) => ({
           id: row.id,
@@ -836,14 +840,14 @@ adminOrdersRouter.patch('/:id/status', async (c) => {
     }
 
     const order = await db.query.orders.findFirst({
-      columns: { id: true, orderNumber: true, status: true, userId: true },
+      columns: { id: true, orderNumber: true, userId: true },
       where: eq(orders.id, orderId),
     })
 
     if (!order) return c.json({ error: 'Zamówienie nie znalezione' }, 404)
 
     // Business rules: status flow
-    const previousStatus = order.status
+    const previousStatus = await getCurrentOrderStatus(db, order.id)
     const allowedTransitions: Record<string, string[]> = {
       pending:    ['paid', 'cancelled'],
       paid:       ['processing', 'cancelled'],

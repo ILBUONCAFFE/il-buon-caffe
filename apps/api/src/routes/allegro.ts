@@ -14,7 +14,7 @@ import type { AllegroSalesQuality } from '@repo/types'
 import { Hono } from 'hono'
 import { createDb, createDbHttp, type Database } from '@repo/db/client'
 import { allegroCredentials, allegroState, orders } from '@repo/db/schema'
-import { eq, desc, and, lt, ne, gte, count, sql } from 'drizzle-orm'
+import { eq, desc, and, lt, gte, count, sql } from 'drizzle-orm'
 import type { Env } from '../index'
 import { requireAdminOrProxy } from '../middleware/auth'
 import { dbMiddleware } from '../middleware/db'
@@ -31,6 +31,7 @@ import {
   type AllegroEnvironment,
   type AllegroConnectionStatus,
 } from '../lib/allegro'
+import { orderStatusNe } from '../lib/order-status'
 import { syncAllegroOrders, backfillAllegroOrders } from '../lib/allegro-orders'
 import { encryptText, decryptText } from '../lib/crypto'
 import { getActiveAllegroToken } from '../lib/allegro-tokens'
@@ -984,7 +985,7 @@ async function fetchAllegroQualityData(
       .from(orders)
       .where(and(
         eq(orders.source, 'allegro'),
-        ne(orders.status, 'cancelled'),
+        orderStatusNe(orders.id, 'cancelled'),
         gte(orders.createdAt, ninetyDaysAgo),
       ))
     ordersCount = Number(result[0]?.count ?? 0)

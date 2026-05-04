@@ -1,8 +1,7 @@
 /**
  * Append-only status change recorder. Atomic via data-modifying CTE —
  * neon-http driver does NOT support db.transaction(), so a single SQL
- * statement is the only way to guarantee consistency between orders update
- * and history insert.
+ * statement is the only way to keep order metadata and history consistent.
  *
  * Returns true when a transition was recorded, false when new value equals
  * current (no-op, caller can skip secondary updates).
@@ -42,14 +41,17 @@ export async function recordStatusChange(
   if (category === 'status') {
     result = await db.execute(sql`
       WITH prev AS (
-        SELECT status::text AS v FROM orders WHERE id = ${orderId}
+        SELECT new_value AS v
+        FROM   order_status_history
+        WHERE  order_id = ${orderId} AND category = 'status'
+        ORDER  BY occurred_at DESC, id DESC
+        LIMIT  1
       ),
       upd AS (
         UPDATE orders
-        SET    status     = ${newValue}::order_status,
-               updated_at = now()
+        SET    updated_at = now()
         WHERE  id             = ${orderId}
-          AND  status::text  IS DISTINCT FROM ${newValue}
+          AND  COALESCE((SELECT v FROM prev), '') IS DISTINCT FROM ${newValue}
         RETURNING 1
       ),
       ins AS (
@@ -57,12 +59,11 @@ export async function recordStatusChange(
                (order_id, category, previous_value, new_value, source, source_ref, metadata)
         SELECT ${orderId},
                'status',
-               prev.v,
+               (SELECT v FROM prev),
                ${newValue},
                ${source}::status_source,
                ${sourceRef},
                ${metadataJson}::jsonb
-        FROM   prev
         WHERE  EXISTS (SELECT 1 FROM upd)
         RETURNING 1
       )

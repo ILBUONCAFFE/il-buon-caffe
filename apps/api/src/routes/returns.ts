@@ -5,6 +5,7 @@ import { eq, and, desc, inArray, not } from 'drizzle-orm'
 import { requireAuth } from '../middleware/auth'
 import { recordStatusChange } from '../lib/record-status-change'
 import { checkContentLength, serverError } from '../lib/request'
+import { getCurrentOrderStatus } from '../lib/order-status'
 import type { Env } from '../index'
 
 export const returnsRouter = new Hono<{ Bindings: Env }>()
@@ -132,7 +133,6 @@ returnsRouter.post('/:orderId/return-request', requireAuth(), async (c) => {
         id: true,
         orderNumber: true,
         userId: true,
-        status: true,
         createdAt: true,
       },
       where: eq(orders.id, orderId),
@@ -148,7 +148,8 @@ returnsRouter.post('/:orderId/return-request', requireAuth(), async (c) => {
 
     // ── Status check ───────────────────────────────────────────────────────
     const allowedStatuses = ['delivered', 'shipped']
-    if (!allowedStatuses.includes(order.status)) {
+    const orderStatus = await getCurrentOrderStatus(db, order.id)
+    if (!allowedStatuses.includes(orderStatus)) {
       return c.json({
         error: {
           code: 'INVALID_ORDER_STATUS',

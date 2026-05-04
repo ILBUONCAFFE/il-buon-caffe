@@ -3,6 +3,7 @@ import { createDb } from '@repo/db/client'
 import { orders, orderItems, products, auditLog } from '@repo/db/schema'
 import { eq, and, sql } from 'drizzle-orm'
 import { recordStatusChange } from '../lib/record-status-change'
+import { getCurrentOrderStatus } from '../lib/order-status'
 import type { Env } from '../index'
 
 export interface WebhookEnv extends Env {
@@ -98,7 +99,7 @@ webhooksRouter.post('/przelewy24', async (c) => {
   // ── Step 2: Find the order by sessionId ────────────────────────────────
   const order = await db.query.orders.findFirst({
     columns: {
-      id: true, orderNumber: true, status: true, total: true,
+      id: true, orderNumber: true, total: true,
       p24SessionId: true, p24Status: true, userId: true,
     },
     where: eq(orders.p24SessionId, body.sessionId),
@@ -109,9 +110,10 @@ webhooksRouter.post('/przelewy24', async (c) => {
     // Return 200 to prevent P24 retrying for unknown sessions
     return c.json({ error: 'Order not found' }, 200)
   }
+  const orderStatus = await getCurrentOrderStatus(db, order.id)
 
   // Already processed — idempotent
-  if (order.status === 'paid' || order.status === 'delivered' || order.status === 'cancelled') {
+  if (orderStatus === 'paid' || orderStatus === 'delivered' || orderStatus === 'cancelled') {
     return c.json({ success: true, alreadyProcessed: true })
   }
 
@@ -219,9 +221,17 @@ webhooksRouter.post('/przelewy24', async (c) => {
         .where(eq(products.sku, item.productSku))
     }
 
+    await recordStatusChange(db, {
+      orderId: order.id,
+      category: 'status',
+      newValue: 'cancelled',
+      source: 'p24_webhook',
+      sourceRef: String(body.orderId),
+      metadata: { txStatus },
+    })
+
     await db.update(orders)
       .set({
-        status:    'cancelled',
         p24OrderId: String(body.orderId),
         p24Status:  txStatus,
         updatedAt:  new Date(),

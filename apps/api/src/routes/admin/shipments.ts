@@ -10,6 +10,7 @@ import { allegroHeaders, sleep } from '../../lib/allegro-orders/helpers'
 import { getActiveAllegroToken } from '../../lib/allegro-tokens'
 import { recordStatusChange } from '../../lib/record-status-change'
 import { refreshOrderShipments } from '../../lib/allegro-shipments'
+import { currentOrderStatusSql } from '../../lib/order-status'
 
 export const adminShipmentsRouter = new Hono<{ Bindings: Env }>()
 
@@ -125,7 +126,7 @@ adminShipmentsRouter.post('/orders/:id/shipment', async (c) => {
     const [order] = await db.select({
       id: orders.id,
       orderNumber: orders.orderNumber,
-      status: orders.status,
+      status: currentOrderStatusSql(orders.id),
       source: orders.source,
       externalId: orders.externalId,
       allegroShipmentId: orders.allegroShipmentId,
@@ -235,7 +236,6 @@ adminShipmentsRouter.post('/orders/:id/shipment', async (c) => {
 
     const now = new Date()
     await db.update(orders).set({
-      status: 'shipped',
       shippedAt: now,
       trackingNumber: trackingNumber || null,
       allegroShipmentId: shipmentId,
@@ -252,6 +252,15 @@ adminShipmentsRouter.post('/orders/:id/shipment', async (c) => {
       }),
       updatedAt: now,
     }).where(eq(orders.id, orderId))
+
+    await recordStatusChange(db, {
+      orderId,
+      category: 'status',
+      newValue: 'shipped',
+      source: 'admin',
+      sourceRef: order.externalId,
+      metadata: { shipmentId, trackingNumber: trackingNumber || null },
+    })
 
     const adminUser = c.get('user')
     await logAdminAction(db, {
@@ -368,7 +377,7 @@ adminShipmentsRouter.post('/orders/:id/fulfillment', async (c) => {
       orderNumber: orders.orderNumber,
       source: orders.source,
       externalId: orders.externalId,
-      status: orders.status,
+      status: currentOrderStatusSql(orders.id),
       allegroFulfillmentStatus: orders.allegroFulfillmentStatus,
     }).from(orders).where(eq(orders.id, orderId)).limit(1)
 

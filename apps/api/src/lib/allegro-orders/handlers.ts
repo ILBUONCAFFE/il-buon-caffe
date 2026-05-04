@@ -14,6 +14,7 @@ import { eq, and, or } from 'drizzle-orm'
 import type { AllegroCheckoutForm, AllegroOrderEvent } from './types'
 import { generateOrderNumber, buildShippingAddress, buildCustomerData, fetchCheckoutForm } from './helpers'
 import { recordStatusChange } from '../record-status-change'
+import { currentOrderStatusSql } from '../order-status'
 import { getRate, type ForeignCurrency } from '../nbp'
 
 // ── Extract real purchase date from Allegro checkout form ─────────────────
@@ -93,7 +94,6 @@ export async function handleBought(
   const inserted = await db.insert(orders).values({
     orderNumber:    generateOrderNumber(form.id),
     source:         'allegro',
-    status:         'pending',
     externalId:     form.id,
     idempotencyKey: `allegro-${form.id}`,
     customerData,
@@ -115,6 +115,7 @@ export async function handleBought(
   if (inserted.length === 0) return // already exists (race condition)
 
   const newOrder = inserted[0]
+  await recordStatusChange(db, { orderId: newOrder.id, category: 'status', newValue: 'pending', source: 'allegro_sync', sourceRef: form.id })
 
   // Save all line items immediately — use real SKU if mapped, else Allegro offer ID
   for (const item of form.lineItems) {
@@ -181,7 +182,7 @@ export async function handleReadyForProcessing(
   kv: KVNamespace,
 ): Promise<void> {
   const [existing] = await db
-    .select({ id: orders.id, status: orders.status })
+    .select({ id: orders.id, status: currentOrderStatusSql(orders.id) })
     .from(orders)
     .where(eq(orders.externalId, form.id))
     .limit(1)
@@ -219,7 +220,6 @@ export async function handleReadyForProcessing(
     const inserted = await db.insert(orders).values({
       orderNumber:    generateOrderNumber(form.id),
       source:         'allegro',
-      status:         readyStatus,
       externalId:     form.id,
       idempotencyKey: `allegro-${form.id}`,
       customerData,
@@ -241,10 +241,11 @@ export async function handleReadyForProcessing(
 
     if (inserted.length > 0) {
       orderId = inserted[0].id
+      await recordStatusChange(db, { orderId, category: 'status', newValue: readyStatus, source: 'allegro_sync', sourceRef: form.id })
     } else {
       // Conflict — order was created by a concurrent event, re-fetch it
       const [reFetched] = await db
-        .select({ id: orders.id, status: orders.status })
+        .select({ id: orders.id, status: currentOrderStatusSql(orders.id) })
         .from(orders)
         .where(eq(orders.externalId, form.id))
         .limit(1)
@@ -361,7 +362,7 @@ export async function handleCancelled(
   eventType: string,
 ): Promise<void> {
   const [existing] = await db
-    .select({ id: orders.id, status: orders.status })
+    .select({ id: orders.id, status: currentOrderStatusSql(orders.id) })
     .from(orders)
     .where(eq(orders.externalId, form.id))
     .limit(1)
@@ -454,7 +455,7 @@ export async function reconcileOrder(
   const [existing] = await db
     .select({
       id:                       orders.id,
-      status:                   orders.status,
+      status:                   currentOrderStatusSql(orders.id),
       trackingNumber:           orders.trackingNumber,
       allegroRevision:          orders.allegroRevision,
       allegroFulfillmentStatus: orders.allegroFulfillmentStatus,

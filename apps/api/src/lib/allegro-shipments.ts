@@ -16,6 +16,7 @@ import type { createDb } from '@repo/db/client'
 import { getActiveAllegroToken } from './allegro-tokens'
 import { allegroHeaders } from './allegro-orders/helpers'
 import { recordStatusChange } from './record-status-change'
+import { currentOrderStatusSql } from './order-status'
 import type { Env } from '../index'
 
 // Tylko stany "wyższe" niż 'nadane' (paczka istnieje, więc waybill = nadane).
@@ -442,7 +443,7 @@ export async function refreshOrderShipments(
       id: orders.id,
       externalId: orders.externalId,
       source: orders.source,
-      status: orders.status,
+      status: currentOrderStatusSql(orders.id),
       snapshot: orders.allegroShipmentsSnapshot,
       trackingNumber: orders.trackingNumber,
       allegroFulfillmentStatus: orders.allegroFulfillmentStatus,
@@ -526,8 +527,7 @@ export async function refreshOrderShipments(
   await db.update(orders).set(updateCols).where(eq(orders.id, orderId))
 
   if (promotedStatus) {
-    // recordStatusChange (category 'status') does the orders.status UPDATE atomically
-    // and appends to order_status_history.
+    // recordStatusChange (category 'status') appends to order_status_history.
     await recordStatusChange(db, {
       orderId,
       category: 'status',

@@ -458,8 +458,7 @@ export const orders = pgTable('orders', {
   userId: integer('user_id').references(() => users.id),
   customerData: jsonb('customer_data').$type<CustomerData>().notNull(),
 
-  // ===== Status & Source =====
-  status: orderStatusEnum('status').notNull().default('pending'),
+  // ===== Source =====
   source: orderSourceEnum('source').notNull().default('shop'),
   externalId: varchar('external_id', { length: 100 }),
 
@@ -524,7 +523,6 @@ export const orders = pgTable('orders', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({
   userIdx: index('orders_user_idx').on(table.userId),
-  statusIdx: index('orders_status_idx').on(table.status),
   sourceIdx: index('orders_source_idx').on(table.source),
   externalIdx: index('orders_external_idx').on(table.externalId),
   idempotencyIdx: uniqueIndex('orders_idempotency_idx').on(table.idempotencyKey),

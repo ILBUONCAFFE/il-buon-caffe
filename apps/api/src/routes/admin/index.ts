@@ -15,6 +15,7 @@ import { adminIssuesRouter } from './issues'
 import { adminAllegroProductsRouter } from './allegro-products'
 import { adminContentRouter } from './content'
 import type { Env } from '../../index'
+import { attachCurrentOrderStatuses, currentOrderStatusSql, orderStatusEq, orderStatusIn } from '../../lib/order-status'
 
 // ── Polish timezone helpers ───────────────────────────────────────────────────
 const PL_DAYS = ['Nd', 'Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob']
@@ -107,12 +108,12 @@ adminRouter.get('/dashboard', requireAdminOrProxy(), async (c) => {
       // Orders ready for fulfilment/packing
       db.select({ count: sql<number>`COUNT(*)` })
         .from(orders)
-        .where(sql`${orders.status} IN ('paid', 'processing')`),
+        .where(orderStatusIn(orders.id, ['paid', 'processing'])),
 
       // Processing orders
       db.select({ count: sql<number>`COUNT(*)` })
         .from(orders)
-        .where(eq(orders.status, 'processing')),
+        .where(orderStatusEq(orders.id, 'processing')),
 
       // Monthly revenue — PLN-normalised (uses total_pln when available)
       db.select({
@@ -121,7 +122,7 @@ adminRouter.get('/dashboard', requireAdminOrProxy(), async (c) => {
         .from(orders)
         .where(and(
           gte(orders.createdAt, thirtyDaysAgo),
-          sql`${orders.status} IN ('paid', 'processing', 'shipped', 'delivered')`,
+          orderStatusIn(orders.id, ['paid', 'processing', 'shipped', 'delivered']),
         )),
 
       // Total customers (non-anonymized)
@@ -138,7 +139,7 @@ adminRouter.get('/dashboard', requireAdminOrProxy(), async (c) => {
     // Recent orders
     const recentOrders = await db.query.orders.findMany({
       columns: {
-        id: true, orderNumber: true, status: true, source: true,
+        id: true, orderNumber: true, source: true,
         total: true, customerData: true, createdAt: true,
       },
       orderBy: desc(orders.createdAt),
@@ -156,7 +157,7 @@ adminRouter.get('/dashboard', requireAdminOrProxy(), async (c) => {
           totalCustomers:   Number(totalCustomers[0]?.count ?? 0),
           lowStockProducts: Number(lowStockProducts[0]?.count ?? 0),
         },
-        recentOrders: recentOrders.map(o => ({
+        recentOrders: (await attachCurrentOrderStatuses(db, recentOrders)).map(o => ({
           ...o,
           total: Number(o.total),
         })),
@@ -185,7 +186,7 @@ adminRouter.get('/stats/overview', requireAdminOrProxy(), async (c) => {
       const day30agoStart  = polishMidnightUTC(30)
       const day60agoStart  = polishMidnightUTC(60)
 
-      const PAID = sql`${orders.status} IN ('paid','processing','shipped','delivered')`
+      const PAID = orderStatusIn(orders.id, ['paid', 'processing', 'shipped', 'delivered'])
 
       // All revenue/count queries use paidAt so they reflect actual payment date in PL time
       const [todayRow, ydayRow, avg30Row, avgPrior30Row, todayCntRow, ydayCntRow] = await Promise.all([
@@ -273,7 +274,7 @@ adminRouter.get('/stats/weekly-revenue', requireAdminOrProxy(), async (c) => {
         .from(orders)
         .where(and(
           gte(orders.paidAt, weekAgoStart),
-          sql`${orders.status} IN ('paid','processing','shipped','delivered')`,
+          orderStatusIn(orders.id, ['paid', 'processing', 'shipped', 'delivered']),
         ))
         .groupBy(sql`DATE(${orders.paidAt} AT TIME ZONE 'Europe/Warsaw')`)
         .orderBy(sql`DATE(${orders.paidAt} AT TIME ZONE 'Europe/Warsaw')`)
@@ -315,7 +316,7 @@ adminRouter.get('/stats/weekly', requireAdminOrProxy(), async (c) => {
         .from(orders)
         .where(and(
           gte(orders.paidAt, weekAgoStart),
-          sql`${orders.status} IN ('paid','processing','shipped','delivered')`,
+          orderStatusIn(orders.id, ['paid', 'processing', 'shipped', 'delivered']),
         ))
         .groupBy(sql`DATE(${orders.paidAt} AT TIME ZONE 'Europe/Warsaw')`)
         .orderBy(sql`DATE(${orders.paidAt} AT TIME ZONE 'Europe/Warsaw')`)
@@ -347,7 +348,7 @@ adminRouter.get('/activity', requireAdminOrProxy(), async (c) => {
       .select({
         id: orders.id,
         orderNumber: orders.orderNumber,
-        status: orders.status,
+        status: currentOrderStatusSql(orders.id),
         source: orders.source,
         total: orders.total,
         currency: orders.currency,
@@ -404,7 +405,7 @@ adminRouter.get('/notifications', requireAdminOrProxy(), async (c) => {
       db.select({
         id:           orders.id,
         orderNumber:  orders.orderNumber,
-        status:       orders.status,
+        status:       currentOrderStatusSql(orders.id),
         total:        orders.total,
         totalPln:     orders.totalPln,
         currency:     orders.currency,

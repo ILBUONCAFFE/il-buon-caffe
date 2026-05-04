@@ -4,6 +4,7 @@ import { orders, auditLog } from '@repo/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { requireAuth } from '../middleware/auth'
 import type { Env } from '../index'
+import { getCurrentOrderStatus } from '../lib/order-status'
 
 // ── Przelewy24 helpers ─────────────────────────────────────────────────────
 
@@ -120,7 +121,8 @@ paymentsRouter.post('/p24/initiate', requireAuth(), async (c) => {
     if (!order) {
       return c.json({ error: 'Zamówienie nie znalezione' }, 404)
     }
-    if (order.status !== 'pending') {
+    const orderStatus = await getCurrentOrderStatus(db, order.id)
+    if (orderStatus !== 'pending') {
       return c.json({ error: 'Zamówienie nie jest w stanie oczekującym na płatność' }, 409)
     }
     if (order.p24SessionId) {
@@ -221,17 +223,18 @@ paymentsRouter.get('/p24/status/:orderId', requireAuth(), async (c) => {
     if (isNaN(orderId)) return c.json({ error: 'Nieprawidłowe ID zamówienia' }, 400)
 
     const order = await db.query.orders.findFirst({
-      columns: { id: true, userId: true, status: true, p24SessionId: true, p24Status: true, paidAt: true, total: true },
+      columns: { id: true, userId: true, p24SessionId: true, p24Status: true, paidAt: true, total: true },
       where: and(eq(orders.id, orderId), eq(orders.userId, userId)),
     })
 
     if (!order) return c.json({ error: 'Zamówienie nie znalezione' }, 404)
+    const orderStatus = await getCurrentOrderStatus(db, order.id)
 
     return c.json({
       success: true,
       data: {
         orderId:     order.id,
-        status:      order.status,
+        status:      orderStatus,
         p24Status:   order.p24Status,
         paidAt:      order.paidAt,
         total:       Number(order.total),

@@ -9,6 +9,7 @@ import { userExportRateLimiter } from '../middleware/rateLimit'
 import type { Env } from '../index'
 import { sanitize } from '../lib/sanitize'
 import { checkContentLength, getClientIp, serverError } from '../lib/request'
+import { attachCurrentOrderStatuses } from '../lib/order-status'
 
 const MAX_BODY = 10_000
 
@@ -256,7 +257,7 @@ userRouter.get('/export', requireAuth(), exportRateLimiter, async (c) => {
     // Fetch orders
     const orderRows = await db.query.orders.findMany({
       columns: {
-        id: true, orderNumber: true, status: true, source: true,
+        id: true, orderNumber: true, source: true,
         total: true, subtotal: true, shippingCost: true,
         paymentMethod: true, shippingMethod: true, trackingNumber: true,
         createdAt: true, paidAt: true, shippedAt: true,
@@ -270,6 +271,7 @@ userRouter.get('/export', requireAuth(), exportRateLimiter, async (c) => {
       where: eq(orders.userId, userId),
       orderBy: desc(orders.createdAt),
     })
+    const orderRowsWithStatus = await attachCurrentOrderStatuses(db, orderRows)
 
     // Log data export to audit
     await db.insert(auditLog).values({
@@ -285,7 +287,7 @@ userRouter.get('/export', requireAuth(), exportRateLimiter, async (c) => {
       data: {
         user,
         consents: consentRows,
-        orders:   orderRows,
+        orders:   orderRowsWithStatus,
         exportedAt: new Date().toISOString(),
         format:     'GDPR_EXPORT_V1',
       },

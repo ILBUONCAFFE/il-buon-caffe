@@ -9,6 +9,8 @@ import type { Env } from '../index'
 import type { CustomerData, ShippingAddress } from '@repo/db/schema'
 import { sanitize } from '../lib/sanitize'
 import { checkContentLength, parsePagination, errMsg } from '../lib/request'
+import { attachCurrentOrderStatuses, orderStatusEq } from '../lib/order-status'
+import { recordStatusChange } from '../lib/record-status-change'
 
 const MAX_REQUEST_BODY_SIZE = 20_000
 
@@ -55,7 +57,7 @@ ordersRouter.post('/', requireAuth(), async (c) => {
 
     // ── Idempotency check ────────────────────────────────────────────────
     const existingOrder = await db.query.orders.findFirst({
-      columns: { id: true, orderNumber: true, total: true, status: true, reservationExpiresAt: true },
+      columns: { id: true, orderNumber: true, total: true, reservationExpiresAt: true },
       where: eq(orders.idempotencyKey, idempotencyKey),
     })
     if (existingOrder) {
@@ -208,7 +210,6 @@ ordersRouter.post('/', requireAuth(), async (c) => {
       orderNumber,
       userId,
       customerData,
-      status:               'pending',
       source:               'shop',
       subtotal:             subtotal.toString(),
       shippingCost:         shippingCost.toString(),
@@ -222,8 +223,15 @@ ordersRouter.post('/', requireAuth(), async (c) => {
       id: orders.id,
       orderNumber: orders.orderNumber,
       total: orders.total,
-      status: orders.status,
       reservationExpiresAt: orders.reservationExpiresAt,
+    })
+
+    await recordStatusChange(db, {
+      orderId: newOrder.id,
+      category: 'status',
+      newValue: 'pending',
+      source: 'system',
+      sourceRef: 'order-created',
     })
 
     // ── Create order items ────────────────────────────────────────────────
@@ -244,7 +252,7 @@ ordersRouter.post('/', requireAuth(), async (c) => {
         orderId:              newOrder.id,
         orderNumber:          newOrder.orderNumber,
         total:                Number(newOrder.total),
-        status:               newOrder.status,
+        status:               'pending',
         reservationExpiresAt: newOrder.reservationExpiresAt,
       },
     }, 201)
@@ -272,14 +280,14 @@ ordersRouter.get('/', requireAuth(), async (c) => {
 
     const conditions = [eq(orders.userId, userId)]
     if (statusQ && validStatuses.includes(statusQ)) {
-      conditions.push(eq(orders.status, statusQ as typeof conditions[0] extends ReturnType<typeof eq> ? never : any))
+      conditions.push(orderStatusEq(orders.id, statusQ))
     }
 
     const [countResult, rows] = await Promise.all([
       db.select({ count: sql<number>`COUNT(*)` }).from(orders).where(and(...conditions)),
       db.query.orders.findMany({
         columns: {
-          id: true, orderNumber: true, status: true, source: true,
+          id: true, orderNumber: true, source: true,
           total: true, shippingCost: true, subtotal: true, paymentMethod: true,
           customerData: true, paidAt: true, shippedAt: true, createdAt: true,
           trackingNumber: true, shippingMethod: true,
@@ -296,12 +304,13 @@ ordersRouter.get('/', requireAuth(), async (c) => {
       }),
     ])
 
+    const rowsWithStatus = await attachCurrentOrderStatuses(db, rows)
     const total      = Number(countResult[0]?.count ?? 0)
     const totalPages = Math.ceil(total / limit)
 
     return c.json({
       success: true,
-      data: rows.map(o => ({
+      data: rowsWithStatus.map(o => ({
         ...o,
         total:        Number(o.total),
         subtotal:     Number(o.subtotal),
@@ -345,11 +354,12 @@ ordersRouter.get('/:id', requireAuth(), async (c) => {
     if (!order) {
       return c.json({ error: 'Zamówienie nie znalezione' }, 404)
     }
+    const [orderWithStatus] = await attachCurrentOrderStatuses(db, [order])
 
     return c.json({
       success: true,
       data: {
-        ...order,
+        ...orderWithStatus,
         total:        Number(order.total),
         subtotal:     Number(order.subtotal),
         shippingCost: Number(order.shippingCost ?? 0),
