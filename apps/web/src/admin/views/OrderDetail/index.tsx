@@ -45,11 +45,17 @@ function fmtDateShort(iso?: string | null) {
   return new Date(iso).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 function fmtMoney(amount?: number | null, currency = 'PLN') {
-  if (amount == null || Number.isNaN(amount)) return '—'
-  return `${amount.toFixed(2)} ${currency}`
+  const n = Number(amount)
+  if (amount == null || Number.isNaN(n)) return '—'
+  return `${n.toFixed(2)} ${currency}`
 }
 function copyToClipboard(text: string) {
   if (typeof navigator !== 'undefined') void navigator.clipboard?.writeText(text)
+}
+
+function moneyValue(amount: number | string | null | undefined) {
+  const n = Number(amount)
+  return Number.isFinite(n) ? n : 0
 }
 
 function Card({ children, className = '', noPad }: { children: React.ReactNode; className?: string; noPad?: boolean }) {
@@ -292,8 +298,8 @@ function ItemsCard({ order }: { order: AdminOrderDetail }) {
                   </td>
                   <td className="px-5 py-3 text-[12.5px]"><CopyChip value={item.productSku} /></td>
                   <td className="px-5 py-3 text-right text-[12.5px] font-mono tabular-nums">{item.quantity}</td>
-                  <td className="px-5 py-3 text-right text-[12.5px] font-mono tabular-nums">{item.unitPrice.toFixed(2)} <span className="text-[#9a9486] text-[0.85em]">{order.currency}</span></td>
-                  <td className="px-5 py-3 text-right text-[12.5px] font-mono tabular-nums text-[#1b1a17] font-medium">{item.totalPrice.toFixed(2)} <span className="text-[#9a9486] text-[0.85em]">{order.currency}</span></td>
+                  <td className="px-5 py-3 text-right text-[12.5px] font-mono tabular-nums">{moneyValue(item.unitPrice).toFixed(2)} <span className="text-[#9a9486] text-[0.85em]">{order.currency}</span></td>
+                  <td className="px-5 py-3 text-right text-[12.5px] font-mono tabular-nums text-[#1b1a17] font-medium">{moneyValue(item.totalPrice).toFixed(2)} <span className="text-[#9a9486] text-[0.85em]">{order.currency}</span></td>
                 </tr>
               )
             })}

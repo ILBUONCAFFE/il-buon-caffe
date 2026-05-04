@@ -552,6 +552,11 @@ adminOrdersRouter.get('/:id', auditLogMiddleware('view_order'), async (c) => {
         totalPln:     order.totalPln     != null ? Number(order.totalPln)     : null,
         exchangeRate: order.exchangeRate != null ? Number(order.exchangeRate) : null,
         rateDate:     order.rateDate     ?? null,
+        items: order.items.map((item) => ({
+          ...item,
+          unitPrice: Number(item.unitPrice),
+          totalPrice: Number(item.totalPrice),
+        })),
         p24Status: order.p24Status ?? null,
         p24SessionId: order.p24SessionId ?? null,
         p24TransactionId: order.p24TransactionId ?? null,
