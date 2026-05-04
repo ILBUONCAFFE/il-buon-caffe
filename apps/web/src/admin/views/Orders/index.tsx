@@ -320,7 +320,6 @@ export const OrdersView = () => {
                   <col style={{ width: '170px' }} />
                   <col style={{ width: '24%' }} />
                   <col />
-                  <col style={{ width: '160px' }} />
                   <col style={{ width: '180px' }} />
                   <col style={{ width: '130px' }} />
                   <col style={{ width: '40px' }} />
@@ -338,7 +337,6 @@ export const OrdersView = () => {
                     <th className="px-3 py-2 text-left">Numer</th>
                     <th className="px-3 py-2 text-left">Klient</th>
                     <th className="px-3 py-2 text-left">Pozycje</th>
-                    <th className="px-3 py-2 text-left">Status</th>
                     <th className="px-3 py-2 text-left">Wysyłka</th>
                     <th className="px-3 py-2 text-right">Kwota</th>
                     <th className="px-2 py-2" />
@@ -348,14 +346,14 @@ export const OrdersView = () => {
                   {loading ? (
                     Array.from({ length: 8 }).map((_, i) => (
                       <tr key={i} className="border-b border-stone-100 last:border-0">
-                        <td colSpan={8} className="px-3 py-3">
+                        <td colSpan={7} className="px-3 py-3">
                           <div className="h-4 bg-stone-100 rounded-sm animate-pulse" />
                         </td>
                       </tr>
                     ))
                   ) : orders.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="px-3 py-16 text-center">
+                      <td colSpan={7} className="px-3 py-16 text-center">
                         <ShoppingBag className="w-7 h-7 text-stone-300 mx-auto mb-2" />
                         <div className="text-[13px] text-stone-700 font-medium">Brak zamówień</div>
                         <div className="text-[11.5px] text-stone-500 mt-1">{hasFilters ? 'Spróbuj zmienić filtry.' : 'Nowe zamówienia pojawią się tutaj.'}</div>
@@ -431,16 +429,6 @@ export const OrdersView = () => {
                                 </span>
                               )}
                             </div>
-                          </td>
-
-                          <td className="px-3 py-2.5 align-middle">
-                            <OrderStatusBadge
-                              status={order.status}
-                              source={order.source}
-                              allegroFulfillmentStatus={order.allegroFulfillmentStatus}
-                              paymentMethod={order.paymentMethod}
-                              paidAt={order.paidAt}
-                            />
                           </td>
 
                           <td className="px-3 py-2.5 align-middle">
