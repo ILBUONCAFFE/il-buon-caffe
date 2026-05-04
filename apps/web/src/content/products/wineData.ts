@@ -89,8 +89,8 @@ export interface WineDetails {
    *  w sekcji "Serwowanie". */
   glassType?: GlassType;
 
-  /** Krótka ciekawostka o winie / producencie / regionie. Renderowana jako
-   *  narracyjny break między sekcjami Terroir i Serwowanie. ~200 znaków. */
+  /** Ciekawostka o winie / producencie / regionie. Renderowana jako
+   *  narracyjny break między sekcjami Terroir i Serwowanie. */
   funFact?: string;
 
   /** Ogólne kategorie żywności do których pasuje wino — bez konkretnych dań.

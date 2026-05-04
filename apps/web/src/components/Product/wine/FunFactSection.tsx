@@ -20,7 +20,7 @@ export const FunFactSection = ({ wineDetails, palette }: FunFactSectionProps) =>
       style={{ backgroundColor: palette.bgWarm }}
     >
       <div className="container mx-auto px-5 md:px-12 lg:px-20 relative z-10">
-        <Section className="max-w-3xl mx-auto">
+        <Section className="max-w-4xl mx-auto">
           <div className="flex items-center gap-4 mb-7 md:mb-10">
             <span
               className="uppercase tracking-[0.24em] text-[11px] font-semibold block"
@@ -31,7 +31,7 @@ export const FunFactSection = ({ wineDetails, palette }: FunFactSectionProps) =>
           </div>
 
           <blockquote
-            className="font-serif text-xl md:text-4xl leading-[1.35] md:leading-[1.3]"
+            className="font-serif text-lg md:text-2xl lg:text-3xl leading-[1.55] md:leading-[1.45] whitespace-pre-line"
             style={{ color: palette.text }}
           >
             <span

@@ -632,15 +632,14 @@ export function WineDetailsEditor({
 
       <SectionCard
         title="Ciekawostka"
-        description="Krótka anegdota o winie, producencie lub regionie. ~200 znaków. Wyświetlana jako narracyjny break między sekcjami Terroir i Serwowanie."
+        description="Anegdota o winie, producencie lub regionie. Pole obsługuje dłuższy tekst i zachowuje podział na akapity na stronie produktu."
       >
         <Field label="Tekst ciekawostki">
           <textarea
-            className="admin-input w-full min-h-[90px] resize-y"
+            className="admin-input w-full min-h-[160px] resize-y"
             value={form.funFact}
             onChange={(e) => setField('funFact', e.target.value)}
-            maxLength={280}
-            placeholder="Np. Winnica korzysta z 80-letnich krzewów Tempranillo zasadzonych jeszcze przez dziadka obecnego enologa."
+            placeholder="Np. Winnica korzysta z 80-letnich krzewów Tempranillo zasadzonych jeszcze przez dziadka obecnego enologa. Możesz dodać dłuższą historię lub drugi akapit."
           />
         </Field>
       </SectionCard>
