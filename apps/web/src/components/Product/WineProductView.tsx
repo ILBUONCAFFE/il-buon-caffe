@@ -175,8 +175,8 @@ export const WineProductView = ({ product, categoryName, wineContent, producerCo
             >
               <div className="relative z-10 flex items-center justify-center w-full h-full pb-8 lg:pb-0">
                 <motion.div
-                  initial={useStaticHero ? false : { opacity: 0, y: 80 }}
-                  animate={useStaticHero ? undefined : { opacity: 1, y: 0 }}
+                  initial={prefersReducedMotion ? false : { opacity: 0, y: 80 }}
+                  animate={prefersReducedMotion ? undefined : { opacity: 1, y: 0 }}
                   transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
                   className="relative flex justify-center h-full w-full"
                 >
