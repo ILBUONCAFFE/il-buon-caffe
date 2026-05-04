@@ -133,10 +133,6 @@ export const OrdersView = () => {
     setStatusFilter(key); setPage(1); setSelectedIds(new Set())
   }
 
-  const handleStatusChange = async (order: AdminOrder, newStatus: string) => {
-    try { await adminApi.updateOrderStatus(order.id, newStatus); await fetchOrders() } catch {}
-  }
-
   const refreshOrderSnapshot = useCallback(async (orderId: number) => {
     try {
       const res = await adminApi.getOrder(orderId)
@@ -561,7 +557,6 @@ export const OrdersView = () => {
           position={{ x: contextMenu.x, y: contextMenu.y }}
           onClose={() => setContextMenu(null)}
           onOpenDetails={openOrderDetails}
-          onChangeStatus={handleStatusChange}
           onCreateShipment={(order) => setShipmentOrder(order)}
           onDownloadLabel={handleDownloadLabel}
         />

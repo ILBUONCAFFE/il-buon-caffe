@@ -9,39 +9,15 @@ interface ContextMenuProps {
   position: { x: number; y: number }
   onClose: () => void
   onOpenDetails: (order: AdminOrder) => void
-  onChangeStatus: (order: AdminOrder, status: string) => void
   onCreateShipment: (order: AdminOrder) => void
   onDownloadLabel: (order: AdminOrder) => void
 }
-
-const STATUS_TRANSITIONS: Record<string, string[]> = {
-  pending: ['paid', 'cancelled'],
-  paid: ['processing', 'cancelled'],
-  processing: ['shipped', 'cancelled'],
-  shipped: ['delivered'],
-  delivered: [],
-  completed: [],
-  cancelled: [],
-  refunded: [],
-}
-
-const STATUS_LABELS: Record<string, string> = {
-  pending: 'Oczekujace',
-  paid: 'Oplacone',
-  processing: 'W realizacji',
-  shipped: 'Wyslane',
-  delivered: 'Dostarczone',
-  cancelled: 'Anulowane',
-}
-
-const ALL_STATUSES = ['pending', 'paid', 'processing', 'shipped', 'delivered', 'cancelled']
 
 export function OrderContextMenu({
   order,
   position,
   onClose,
   onOpenDetails,
-  onChangeStatus,
   onCreateShipment,
   onDownloadLabel,
 }: ContextMenuProps) {
@@ -74,7 +50,6 @@ export function OrderContextMenu({
     }
   }, [handleKeyDown, onClose])
 
-  const allowed = STATUS_TRANSITIONS[order.status] ?? []
   const canShip = ['paid', 'processing'].includes(order.status)
   const hasLabel = !!order.allegroShipmentId
 
@@ -101,44 +76,6 @@ export function OrderContextMenu({
         Otworz szczegoly
         <span className="text-xs text-[#A3A3A3]">Enter</span>
       </button>
-
-      <div className="h-px bg-[#F0EFEC] my-1" />
-
-      <div className="group relative">
-        <button className="w-full px-3 py-2 text-left hover:bg-[#F5F4F1] flex items-center justify-between">
-          Zmien status
-          <span className="text-xs text-[#A3A3A3]">&gt;</span>
-        </button>
-
-        <div className="hidden group-hover:block absolute left-full top-0 ml-1 min-w-[180px] bg-white rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-[#E5E4E1] py-1">
-          {ALL_STATUSES.map((status) => {
-            const isAllowed = allowed.includes(status)
-            const isCurrent = status === order.status
-            return (
-              <button
-                key={status}
-                disabled={!isAllowed}
-                className={`w-full px-3 py-1.5 text-left flex items-center gap-2 ${
-                  isCurrent
-                    ? 'text-[#1A1A1A] font-medium'
-                    : isAllowed
-                      ? 'hover:bg-[#F5F4F1] text-[#1A1A1A]'
-                      : 'text-[#D4D3D0] cursor-not-allowed'
-                }`}
-                onClick={() => {
-                  if (isAllowed) {
-                    onChangeStatus(order, status)
-                    onClose()
-                  }
-                }}
-              >
-                {isCurrent && <span className="text-xs">v</span>}
-                {STATUS_LABELS[status] ?? status}
-              </button>
-            )
-          })}
-        </div>
-      </div>
 
       <div className="h-px bg-[#F0EFEC] my-1" />
 
