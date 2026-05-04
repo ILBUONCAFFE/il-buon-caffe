@@ -8,6 +8,7 @@ import type {
   AdminOrder,
   AdminOrderDetailResponse,
   AdminOrderAllegroLiveResponse,
+  AdminOrderAllegroSyncResponse,
   DeliveryServicesResponse,
   CreateShipmentPayload,
   ShipmentCreatedResponse,
@@ -135,6 +136,11 @@ export const adminApi = {
 
   getOrderAllegroLive: (id: number) =>
     request<AdminOrderAllegroLiveResponse>(`/api/admin/orders/${id}/allegro-live`),
+
+  syncOrderAllegro: (id: number) =>
+    request<AdminOrderAllegroSyncResponse>(`/api/admin/orders/${id}/allegro-sync`, {
+      method: 'POST',
+    }),
 
   updateOrderStatus: (id: number, status: string) =>
     request<{ success: boolean }>(`/api/admin/orders/${id}/status`, {
@@ -533,6 +539,7 @@ export type {
   OrdersResponse,
   OrdersQueryParams,
   AdminOrder,
+  AdminOrderAllegroSyncResponse,
   ActivityFeedResponse,
   AdminNotification,
   NotificationsResponse,

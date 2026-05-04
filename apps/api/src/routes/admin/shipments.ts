@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { createDb } from '@repo/db/client'
-import { orders } from '@repo/db/schema'
+import { orders, orderStatusHistory } from '@repo/db/schema'
 import { eq } from 'drizzle-orm'
 import type { Env } from '../../index'
 import { requireAdminOrProxy } from '../../middleware/auth'
@@ -9,6 +9,7 @@ import { logAdminAction } from '../../lib/audit'
 import { allegroHeaders, sleep } from '../../lib/allegro-orders/helpers'
 import { getActiveAllegroToken } from '../../lib/allegro-tokens'
 import { recordStatusChange } from '../../lib/record-status-change'
+import { refreshOrderShipments } from '../../lib/allegro-shipments'
 
 export const adminShipmentsRouter = new Hono<{ Bindings: Env }>()
 
@@ -35,6 +36,16 @@ const ORDER_STATUSES_BLOCKING_DELIVERED = new Set([
 
 const ORDER_STATUSES_BLOCKING_SHIPPED = new Set([
   'shipped',
+  'delivered',
+  'cancelled',
+  'refunded',
+  'return_requested',
+  'return_in_transit',
+  'return_received',
+  'disputed',
+])
+
+const ORDER_STATUSES_BLOCKING_CANCELLED = new Set([
   'delivered',
   'cancelled',
   'refunded',
@@ -347,18 +358,21 @@ adminShipmentsRouter.post('/orders/:id/fulfillment', async (c) => {
     const orderId = parseInt(c.req.param('id') ?? '', 10)
     const body = await c.req.json<{ status: string }>()
 
-    const validStatuses = ['NEW', 'PROCESSING', 'READY_FOR_SHIPMENT', 'SENT', 'PICKED_UP', 'CANCELLED', 'SUSPENDED']
+    const validStatuses = ['NEW', 'PROCESSING', 'READY_FOR_SHIPMENT', 'SENT', 'READY_FOR_PICKUP', 'PICKED_UP', 'CANCELLED', 'SUSPENDED']
     if (!body.status || !validStatuses.includes(body.status)) {
       return c.json({ error: { code: 'VALIDATION_ERROR', message: `Nieprawidlowy status: ${body.status}` } }, 400)
     }
 
     const [order] = await db.select({
       id: orders.id,
+      orderNumber: orders.orderNumber,
+      source: orders.source,
       externalId: orders.externalId,
       status: orders.status,
+      allegroFulfillmentStatus: orders.allegroFulfillmentStatus,
     }).from(orders).where(eq(orders.id, orderId)).limit(1)
 
-    if (!order?.externalId) {
+    if (!order?.externalId || order.source !== 'allegro') {
       return c.json({ error: { code: 'NOT_ALLEGRO', message: 'Zamowienie nie pochodzi z Allegro' } }, 400)
     }
 
@@ -382,19 +396,36 @@ adminShipmentsRouter.post('/orders/:id/fulfillment', async (c) => {
     const nextStatus =
       body.status === 'PICKED_UP' && !ORDER_STATUSES_BLOCKING_DELIVERED.has(order.status)
         ? 'delivered'
-        : body.status === 'SENT' && !ORDER_STATUSES_BLOCKING_SHIPPED.has(order.status)
+        : (body.status === 'SENT' || body.status === 'READY_FOR_PICKUP') && !ORDER_STATUSES_BLOCKING_SHIPPED.has(order.status)
           ? 'shipped'
-          : null
+          : body.status === 'CANCELLED' && !ORDER_STATUSES_BLOCKING_CANCELLED.has(order.status)
+            ? 'cancelled'
+            : null
 
     await db.update(orders).set({
       allegroFulfillmentStatus: body.status,
-      ...(body.status === 'PICKED_UP'
+      ...(nextStatus === 'delivered'
         ? { deliveredAt: now }
-        : body.status === 'SENT' && nextStatus === 'shipped'
+        : nextStatus === 'shipped'
           ? { shippedAt: now }
           : {}),
       updatedAt: now,
     }).where(eq(orders.id, orderId))
+
+    if (order.allegroFulfillmentStatus !== body.status) {
+      await db.insert(orderStatusHistory).values({
+        orderId: order.id,
+        category: 'fulfillment',
+        previousValue: order.allegroFulfillmentStatus,
+        newValue: body.status,
+        source: 'admin',
+        sourceRef: order.externalId,
+        metadata: {
+          previousLocalStatus: order.status,
+          localStatus: nextStatus,
+        },
+      })
+    }
 
     if (nextStatus) {
       await recordStatusChange(db, {
@@ -410,7 +441,30 @@ adminShipmentsRouter.post('/orders/:id/fulfillment', async (c) => {
       })
     }
 
-    return c.json({ success: true })
+    const shipment = await refreshOrderShipments(db, c.env, orderId, { force: true }).catch((err) => {
+      console.warn('[Shipments] fulfillment shipment refresh failed', err)
+      return null
+    })
+
+    const adminUser = c.get('user')
+    await logAdminAction(db, {
+      adminSub: adminUser.sub,
+      action: 'admin_action',
+      targetOrderId: orderId,
+      ipAddress: getClientIp(c),
+      details: {
+        event: 'fulfillment_update',
+        orderNumber: order.orderNumber,
+        externalId: order.externalId,
+        previousFulfillmentStatus: order.allegroFulfillmentStatus,
+        fulfillmentStatus: body.status,
+        previousLocalStatus: order.status,
+        localStatus: nextStatus,
+        shipmentRefreshed: shipment?.refreshed ?? false,
+      },
+    })
+
+    return c.json({ success: true, data: { fulfillmentStatus: body.status, localStatus: nextStatus, shipment } })
   } catch (err) {
     return serverError(c, 'POST /admin/orders/:id/fulfillment', err)
   }

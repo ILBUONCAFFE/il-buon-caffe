@@ -13,7 +13,8 @@ import { recordStatusChange } from '../../lib/record-status-change'
 import { refreshOrderShipments, type ShipmentSnapshotEntry } from '../../lib/allegro-shipments'
 import { getActiveAllegroToken } from '../../lib/allegro-tokens'
 import { containsLikePattern } from '@repo/db/orm'
-import { allegroHeaders } from '../../lib/allegro-orders/helpers'
+import { allegroHeaders, buildCustomerData, fetchCheckoutForm } from '../../lib/allegro-orders/helpers'
+import { reconcileOrder } from '../../lib/allegro-orders/handlers'
 import type { Env } from '../../index'
 import { checkContentLength, parsePagination, parseQueryDate, getClientIp, serverError } from '../../lib/request'
 
@@ -167,7 +168,7 @@ function buildActionAvailability(order: {
     canRefreshShipment: isAllegro,
     canCreateShipment: isAllegro && ['paid', 'processing'].includes(order.status) && !order.allegroShipmentId,
     canDownloadLabel: isAllegro && !!order.allegroShipmentId,
-    canSyncFulfillment: isAllegro && !['cancelled', 'refunded'].includes(order.status),
+    canSyncFulfillment: isAllegro && ['paid', 'processing', 'shipped'].includes(order.status),
     canMarkShipped: isAllegro && !hasShipment && ['paid', 'processing'].includes(order.status),
   }
 }
@@ -198,6 +199,16 @@ async function fetchAllegroOrderLive(env: Env, externalId: string) {
   const form = await resp.json() as Record<string, any>
   const address = form.delivery?.address
   const buyerName = `${address?.firstName ?? form.buyer?.firstName ?? ''} ${address?.lastName ?? form.buyer?.lastName ?? ''}`.trim()
+  const totalToPay = form.summary?.totalToPay
+  const deliveryCost = form.delivery?.cost
+  const totalAmount = Number(totalToPay?.amount)
+  const shippingAmount = Number(deliveryCost?.amount ?? 0)
+  const subtotal = Number.isFinite(totalAmount)
+    ? {
+        amount: Math.max(0, totalAmount - (Number.isFinite(shippingAmount) ? shippingAmount : 0)).toFixed(2),
+        currency: totalToPay?.currency ?? deliveryCost?.currency ?? 'PLN',
+      }
+    : null
 
   return {
     connected: true,
@@ -212,6 +223,7 @@ async function fetchAllegroOrderLive(env: Env, externalId: string) {
       },
       delivery: {
         methodName: form.delivery?.method?.name ?? null,
+        waybill: form.delivery?.shipmentSummary?.waybill ?? form.delivery?.shipmentSummary?.trackingNumber ?? null,
         pickupPoint: form.delivery?.pickupPoint ?? null,
         address: address
           ? {
@@ -228,6 +240,100 @@ async function fetchAllegroOrderLive(env: Env, externalId: string) {
         status: form.fulfillment?.status ?? null,
         shipmentSummary: form.delivery?.shipmentSummary ?? null,
       },
+      payment: {
+        id: form.payment?.id ?? null,
+        type: form.payment?.type ?? null,
+        provider: form.payment?.provider ?? null,
+        finishedAt: form.payment?.finishedAt ?? null,
+        paidAmount: form.payment?.paidAmount ?? null,
+      },
+      totals: {
+        subtotal,
+        shipping: deliveryCost ?? null,
+        totalToPay: totalToPay ?? null,
+      },
+      invoice: {
+        required: form.invoice?.required === true,
+        address: form.invoice?.address ?? null,
+      },
+      messageToSeller: form.messageToSeller ?? null,
+      lineItems: Array.isArray(form.lineItems)
+        ? form.lineItems.map((item: Record<string, any>) => ({
+            id: item.id ?? null,
+            offerId: item.offer?.id ?? null,
+            name: item.offer?.name ?? null,
+            quantity: item.quantity ?? null,
+            price: item.price ?? null,
+            boughtAt: item.boughtAt ?? null,
+          }))
+        : [],
+    },
+  }
+}
+
+async function syncAllegroOrderSnapshot(
+  db: ReturnType<typeof createDb>,
+  env: Env,
+  orderId: number,
+) {
+  const [order] = await db
+    .select({
+      id: orders.id,
+      orderNumber: orders.orderNumber,
+      source: orders.source,
+      externalId: orders.externalId,
+      notes: orders.notes,
+      paymentMethod: orders.paymentMethod,
+      shippingMethod: orders.shippingMethod,
+    })
+    .from(orders)
+    .where(eq(orders.id, orderId))
+    .limit(1)
+
+  if (!order) {
+    return { ok: false as const, status: 404, error: { code: 'NOT_FOUND', message: 'Zamówienie nie znalezione' } }
+  }
+  if (order.source !== 'allegro' || !order.externalId) {
+    return { ok: false as const, status: 400, error: { code: 'NOT_ALLEGRO', message: 'Zamówienie nie pochodzi z Allegro' } }
+  }
+
+  const token = await getActiveAllegroToken(env)
+  if (!token) {
+    return { ok: false as const, status: 503, error: { code: 'ALLEGRO_NOT_CONNECTED', message: 'Allegro nie jest podłączone' } }
+  }
+
+  const form = await fetchCheckoutForm(token.apiBase, token.accessToken, order.externalId)
+  if (!form) {
+    return { ok: false as const, status: 502, error: { code: 'ALLEGRO_ORDER_FETCH_FAILED', message: 'Nie udało się pobrać zamówienia z Allegro' } }
+  }
+
+  await db
+    .update(orders)
+    .set({
+      customerData: buildCustomerData(form),
+      invoiceRequired: form.invoice?.required === true,
+      notes: form.messageToSeller ?? order.notes,
+      paymentMethod: form.payment?.type ?? order.paymentMethod,
+      shippingMethod: form.delivery?.method?.name ?? order.shippingMethod,
+      updatedAt: new Date(),
+    })
+    .where(eq(orders.id, orderId))
+
+  await reconcileOrder(db, form, env.ALLEGRO_KV, { force: true })
+  const shipment = await refreshOrderShipments(db, env, orderId, { force: true })
+
+  return {
+    ok: true as const,
+    data: {
+      synced: true,
+      orderId,
+      orderNumber: order.orderNumber,
+      externalId: order.externalId,
+      revision: form.revision ?? null,
+      status: form.status ?? null,
+      fulfillmentStatus: form.fulfillment?.status ?? null,
+      shipment,
+      fetchedAt: new Date().toISOString(),
     },
   }
 }
@@ -662,6 +768,44 @@ adminOrdersRouter.get('/:id/allegro-live', auditLogMiddleware('view_order'), asy
     return c.json({ success: true, data })
   } catch (err) {
     return serverError(c, 'GET /admin/orders/:id/allegro-live', err)
+  }
+})
+
+// ============================================
+// POST /admin/orders/:id/allegro-sync
+// Odświeża lokalny snapshot zamówienia, fulfillment i tracking z Allegro
+// ============================================
+adminOrdersRouter.post('/:id/allegro-sync', async (c) => {
+  try {
+    const db = createDb(c.env.DATABASE_URL)
+    const orderId = Number(c.req.param('id'))
+    if (!Number.isFinite(orderId)) {
+      return c.json({ error: { code: 'BAD_REQUEST', message: 'Nieprawidłowe ID zamówienia' } }, 400)
+    }
+
+    const result = await syncAllegroOrderSnapshot(db, c.env, orderId)
+    if (!result.ok) {
+      return c.json({ error: result.error }, result.status as 400 | 404 | 502 | 503)
+    }
+
+    const adminUser = c.get('user')
+    await logAdminAction(db, {
+      adminSub: adminUser.sub,
+      action: 'admin_action',
+      targetOrderId: orderId,
+      ipAddress: getClientIp(c),
+      details: {
+        event: 'allegro_order_sync',
+        externalId: result.data.externalId,
+        revision: result.data.revision,
+        fulfillmentStatus: result.data.fulfillmentStatus,
+        shipmentRefreshed: result.data.shipment.refreshed,
+      },
+    })
+
+    return c.json({ success: true, data: result.data })
+  } catch (err) {
+    return serverError(c, 'POST /admin/orders/:id/allegro-sync', err)
   }
 })
 

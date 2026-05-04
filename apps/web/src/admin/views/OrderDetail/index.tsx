@@ -1029,7 +1029,7 @@ export function OrderDetailView({ id }: { id: string }) {
               <InvoiceCard order={order} />
               <AllegroCard
                 order={order}
-                onRefresh={() => runAction('allegro-refresh', () => adminApi.refreshOrderShipment(order.id, { force: true }))}
+                onRefresh={() => runAction('allegro-refresh', () => adminApi.syncOrderAllegro(order.id))}
                 loading={actionLoading === 'allegro-refresh'}
               />
             </div>

@@ -260,6 +260,25 @@ export interface AdminOrderAllegroLiveResponse {
   }
 }
 
+export interface AdminOrderAllegroSyncResponse {
+  success: boolean
+  data: {
+    synced: boolean
+    orderId: number
+    orderNumber: string
+    externalId: string
+    revision: string | null
+    status: string | null
+    fulfillmentStatus: string | null
+    shipment: {
+      refreshed: boolean
+      cached: boolean
+      snapshot: AllegroShipmentEntry[] | null
+    }
+    fetchedAt: string
+  }
+}
+
 export interface OrdersQueryParams {
   page?: number
   limit?: number

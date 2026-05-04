@@ -520,6 +520,7 @@ export async function refreshOrderShipments(
   if (fulfillmentStatus && fulfillmentStatus !== order.allegroFulfillmentStatus) {
     updateCols.allegroFulfillmentStatus = fulfillmentStatus
   }
+  if (promotedStatus === 'shipped') updateCols.shippedAt = now
   if (promotedStatus === 'delivered') updateCols.deliveredAt = now
 
   await db.update(orders).set(updateCols).where(eq(orders.id, orderId))

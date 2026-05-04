@@ -449,6 +449,7 @@ export async function reconcileOrder(
   db: ReturnType<typeof createDb>,
   form: AllegroCheckoutForm,
   kv?: KVNamespace,
+  options: { force?: boolean } = {},
 ): Promise<void> {
   const [existing] = await db
     .select({
@@ -465,10 +466,10 @@ export async function reconcileOrder(
   if (!existing) return // not our order
 
   // Skip if nothing changed (revision is the same)
-  if (form.revision && form.revision === existing.allegroRevision) return
+  if (!options.force && form.revision && form.revision === existing.allegroRevision) return
 
   // When revision is absent, skip if fulfillment status is already in sync and no cancellation/shipment
-  if (!form.revision) {
+  if (!options.force && !form.revision) {
     const allegroStatusNow     = form.status
     const fulfillmentStatusNow = form.fulfillment?.status ?? null
     const noStatusChange =
