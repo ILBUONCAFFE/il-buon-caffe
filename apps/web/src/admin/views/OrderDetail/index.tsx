@@ -1,10 +1,10 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  AlertTriangle, Check, ChevronDown, ChevronRight, ClipboardList, Copy,
-  ExternalLink, FileText, History, Loader2, Package, RefreshCw,
-  ShieldAlert, Truck, Undo2, User as UserIcon, XCircle,
+  AlertTriangle, ArrowUpRight, Check, ChevronRight, ClipboardList, Copy,
+  ExternalLink, FileText, Flag, History, Loader2, MapPin, Package, Phone, Receipt,
+  RefreshCw, ShieldAlert, Truck, Undo2, User as UserIcon, XCircle, AtSign, CreditCard,
 } from 'lucide-react'
 import { OrderStatusBadge } from '@/admin/components/OrderStatusBadge'
 import { ShipmentLabelPickerModal } from '@/admin/components/ShipmentLabelPickerModal'
@@ -18,142 +18,133 @@ import type {
   AllegroShipmentEntry,
 } from '@/admin/types/admin-api'
 
-type TabId = 'details' | 'payment' | 'invoice' | 'shipping' | 'returns' | 'complaints' | 'notes' | 'audit'
+// ─── helpers ────────────────────────────────────────────────────────────────
 
-const TABS: Array<{ id: TabId; label: string; count?: (order: AdminOrderDetail) => number }> = [
-  { id: 'details', label: 'Szczegóły' },
-  { id: 'payment', label: 'Płatność' },
-  { id: 'invoice', label: 'Faktura' },
-  { id: 'shipping', label: 'Wysyłka' },
-  { id: 'returns', label: 'Zwroty', count: (o) => o.badgeCounts.returns },
-  { id: 'complaints', label: 'Dyskusje', count: (o) => o.badgeCounts.complaints },
-  { id: 'notes', label: 'Notatki' },
-  { id: 'audit', label: 'Audyt', count: (o) => o.badgeCounts.audit },
-]
+const fmtDate = (iso?: string | null) =>
+  iso ? new Date(iso).toLocaleString('pl-PL', { dateStyle: 'medium', timeStyle: 'short' }) : '—'
+const fmtDateShort = (iso?: string | null) =>
+  iso ? new Date(iso).toLocaleDateString('pl-PL', { day: '2-digit', month: 'short' }) : '—'
+const fmtTime = (iso?: string | null) =>
+  iso ? new Date(iso).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) : ''
+const fmtMoney = (n?: number | string | null, c = 'PLN') => {
+  const v = Number(n)
+  if (n == null || !Number.isFinite(v)) return '—'
+  return `${v.toFixed(2)} ${c}`
+}
+const num = (n?: number | string | null) => {
+  const v = Number(n)
+  return Number.isFinite(v) ? v : 0
+}
+const daysSince = (iso?: string | null) => {
+  if (!iso) return null
+  const ms = Date.now() - new Date(iso).getTime()
+  return Math.max(0, Math.floor(ms / 86_400_000))
+}
+const copy = (t: string) => { if (typeof navigator !== 'undefined') void navigator.clipboard?.writeText(t) }
 
-const STATUS_PROGRESS: Array<'placed' | 'paid' | 'shipped' | 'delivered'> = ['placed', 'paid', 'shipped', 'delivered']
-const STATUS_LABEL: Record<string, string> = {
-  placed: 'Złożone', paid: 'Opłacone', shipped: 'Wysłane', delivered: 'Doręczone',
-}
+// ─── primitives ─────────────────────────────────────────────────────────────
 
-function fmtDate(iso?: string | null) {
-  if (!iso) return '—'
-  return new Date(iso).toLocaleString('pl-PL', { dateStyle: 'medium', timeStyle: 'short' })
-}
-function fmtDateShort(iso?: string | null) {
-  if (!iso) return '—'
-  return new Date(iso).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' })
-}
-function fmtMoney(amount?: number | null, currency = 'PLN') {
-  const n = Number(amount)
-  if (amount == null || Number.isNaN(n)) return '—'
-  return `${n.toFixed(2)} ${currency}`
-}
-function copyToClipboard(text: string) {
-  if (typeof navigator !== 'undefined') void navigator.clipboard?.writeText(text)
-}
-
-function moneyValue(amount: number | string | null | undefined) {
-  const n = Number(amount)
-  return Number.isFinite(n) ? n : 0
-}
-
-function Card({ children, className = '', noPad }: { children: React.ReactNode; className?: string; noPad?: boolean }) {
-  return (
-    <section className={`bg-white border border-[#e1dccf] rounded-[10px] shadow-[0_1px_0_rgba(20,18,12,0.04),0_1px_2px_rgba(20,18,12,0.04)] ${noPad ? '' : 'p-5'} ${className}`}>
-      {children}
-    </section>
-  )
-}
-
-function SectionLabel({ children, count, action }: { children: React.ReactNode; count?: number | null; action?: React.ReactNode }) {
-  return (
-    <div className="flex items-center justify-between gap-2 mb-3">
-      <span className="text-[10.5px] uppercase tracking-[0.14em] text-[#6b665b] font-semibold">
-        {children}
-        {count != null && (
-          <span className="ml-1.5 inline-block bg-[#efece5] text-[#9a9486] font-mono text-[10px] px-1.5 py-px rounded-full font-normal">{count}</span>
-        )}
-      </span>
-      {action}
-    </div>
-  )
-}
-
-function CardHead({ children }: { children: React.ReactNode }) {
-  return <div className="flex items-center justify-between gap-3 px-5 py-3.5 border-b border-[#ece8dc]">{children}</div>
-}
-
-function LinkBtn({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) {
-  return (
-    <button type="button" onClick={onClick} className="text-[12.5px] text-[#6b665b] hover:text-[#1b1a17] hover:bg-[#efece5] rounded px-2 py-1 transition">
-      {children}
-    </button>
-  )
+function Mono({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return <span className={`font-mono tabular-nums ${className}`}>{children}</span>
 }
 
 function CopyChip({ value, label, mono = true }: { value?: string | number | null; label?: string; mono?: boolean }) {
   const text = value == null || value === '' ? '' : String(value)
   const [copied, setCopied] = useState(false)
-  if (!text) return <span className="text-[#9a9486]">—</span>
+  if (!text) return <span className="text-stone-400">—</span>
   return (
     <button
       type="button"
-      onClick={(e) => { e.stopPropagation(); copyToClipboard(text); setCopied(true); setTimeout(() => setCopied(false), 1200) }}
-      className={`inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded text-[#3a372f] transition ${copied ? 'bg-[#2f6f3e] text-white' : 'bg-[#efece5] hover:bg-[#1b1a17] hover:text-white'}`}
+      onClick={(e) => { e.stopPropagation(); copy(text); setCopied(true); setTimeout(() => setCopied(false), 1100) }}
+      className={`group inline-flex items-center gap-1 px-1 py-0.5 -mx-1 rounded-sm transition ${
+        copied ? 'bg-emerald-700 text-white' : 'hover:bg-stone-200/70 text-stone-800'
+      }`}
       title="Kopiuj"
     >
-      <span className={mono ? 'font-mono text-[12px] tracking-tight' : ''}>{label ?? text}</span>
-      {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3 opacity-60" />}
+      <span className={mono ? 'font-mono tabular-nums text-[12px]' : 'text-[12px]'}>{label ?? text}</span>
+      {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3 opacity-0 group-hover:opacity-50 transition" />}
     </button>
   )
 }
 
-function StatusPill({ status, size = 'md' }: { status: string; size?: 'md' | 'lg' }) {
-  const map: Record<string, { bg: string; fg: string; label: string }> = {
-    placed:    { bg: '#f0ece4', fg: '#5a5246', label: 'Złożone' },
-    pending:   { bg: '#f7ecd2', fg: '#7a5500', label: 'Oczekujące' },
-    paid:      { bg: '#e6efe5', fg: '#23552f', label: 'Opłacone' },
-    processing:{ bg: '#e3edf6', fg: '#1c4d7c', label: 'Realizacja' },
-    shipped:   { bg: '#e3edf6', fg: '#1c4d7c', label: 'Wysłane' },
-    delivered: { bg: '#dde9df', fg: '#0f3a26', label: 'Doręczone' },
-    cancelled: { bg: '#f6e1e1', fg: '#7a1a1a', label: 'Anulowane' },
-    refunded:  { bg: '#f6e1e1', fg: '#7a1a1a', label: 'Zwrócone' },
-  }
-  const m = map[status] ?? { bg: '#eee', fg: '#333', label: status }
+function Pill({ children, tone = 'neutral' }: { children: React.ReactNode; tone?: 'neutral' | 'ok' | 'warn' | 'err' | 'info' }) {
+  const tones = {
+    neutral: 'bg-stone-100 text-stone-700 border-stone-200',
+    ok: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+    warn: 'bg-amber-50 text-amber-800 border-amber-200',
+    err: 'bg-red-50 text-red-800 border-red-200',
+    info: 'bg-sky-50 text-sky-800 border-sky-200',
+  }[tone]
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full font-medium ${size === 'lg' ? 'text-[12.5px] px-3 py-1' : 'text-[11px] px-2 py-0.5'}`}
-      style={{ background: m.bg, color: m.fg }}
-    >
-      <span className="w-1.5 h-1.5 rounded-full" style={{ background: m.fg }} />
-      {m.label}
+    <span className={`inline-flex items-center gap-1 border rounded-sm px-1.5 py-0.5 text-[10.5px] font-medium uppercase tracking-[0.06em] ${tones}`}>
+      {children}
     </span>
   )
 }
 
-function KV({ k, children, mono, dim }: { k: string; children: React.ReactNode; mono?: boolean; dim?: boolean }) {
+function SectionHead({ id, title, count, action }: { id: string; title: string; count?: number | null; action?: React.ReactNode }) {
   return (
-    <div className="flex justify-between items-baseline gap-3 py-1.5 border-b border-dashed border-[#ece8dc] last:border-0 text-[12.5px]">
-      <div className="text-[#9a9486] text-[10.5px] uppercase tracking-[0.1em] flex-shrink-0">{k}</div>
-      <div className={`text-right break-all ${dim ? 'text-[#9a9486]' : 'text-[#1b1a17]'} ${mono ? 'font-mono' : ''}`}>{children}</div>
+    <div id={id} className="scroll-mt-[112px] flex items-center justify-between gap-3 mb-2 pt-1">
+      <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-stone-500">
+        {title}
+        {count != null && count > 0 && <span className="ml-2 font-mono text-[10px] text-stone-400">{count}</span>}
+      </h2>
+      {action}
     </div>
   )
 }
 
-function MetaRow({ k, v, href }: { k: string; v: React.ReactNode; href?: string }) {
-  const Cmp: any = href ? 'a' : 'div'
+function Panel({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <Cmp href={href} className="group flex justify-between items-baseline gap-3 py-1.5 border-b border-dashed border-[#ece8dc] last:border-0 text-[11px]">
-      <span className="uppercase tracking-[0.1em] text-[#9a9486] text-[10px]">{k}</span>
-      <span className="text-[#3a372f] group-hover:text-[#1f3a5f] truncate">{v}</span>
-    </Cmp>
+    <section className={`bg-white border border-stone-200 rounded-sm ${className}`}>
+      {children}
+    </section>
   )
 }
 
-function PageHeader({
+function Row({ label, children, mono, dim }: { label: string; children: React.ReactNode; mono?: boolean; dim?: boolean }) {
+  return (
+    <div className="flex items-baseline gap-3 px-3 py-1.5 border-b border-stone-100 last:border-0 text-[12.5px] hover:bg-stone-50/50">
+      <div className="text-[10.5px] uppercase tracking-[0.08em] text-stone-500 w-[110px] flex-shrink-0">{label}</div>
+      <div className={`flex-1 min-w-0 break-words ${dim ? 'text-stone-400' : 'text-stone-900'} ${mono ? 'font-mono tabular-nums text-[12px]' : ''}`}>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function Stat({ label, value, sub, tone }: { label: string; value: React.ReactNode; sub?: React.ReactNode; tone?: 'ok' | 'warn' | 'err' }) {
+  const toneCls = tone === 'ok' ? 'text-emerald-700' : tone === 'warn' ? 'text-amber-700' : tone === 'err' ? 'text-red-700' : 'text-stone-900'
+  return (
+    <div className="px-4 py-2.5 flex flex-col justify-center min-w-0 first:pl-0">
+      <div className="text-[10px] uppercase tracking-[0.14em] text-stone-500 font-medium mb-0.5">{label}</div>
+      <div className={`text-[15px] font-medium tabular-nums truncate ${toneCls}`}>{value}</div>
+      {sub != null && <div className="text-[10.5px] text-stone-500 truncate mt-0.5">{sub}</div>}
+    </div>
+  )
+}
+
+function Divider() {
+  return <div className="h-px bg-stone-200 my-5" />
+}
+
+// ─── top bar / KPI / sub-nav ────────────────────────────────────────────────
+
+const SECTIONS = [
+  { id: 'items', label: 'Pozycje' },
+  { id: 'payment', label: 'Płatność' },
+  { id: 'shipping', label: 'Wysyłka' },
+  { id: 'returns', label: 'Zwroty' },
+  { id: 'complaints', label: 'Dyskusje' },
+  { id: 'notes', label: 'Notatki' },
+  { id: 'timeline', label: 'Aktywność' },
+  { id: 'audit', label: 'Audyt' },
+] as const
+
+type SectionId = typeof SECTIONS[number]['id']
+
+function CommandBar({
   order, loadingKey, onRefresh, onRefreshShipment, onCreateShipment, onDownloadLabel, onFulfillment,
-  tab, setTab,
 }: {
   order: AdminOrderDetail
   loadingKey: string | null
@@ -161,609 +152,753 @@ function PageHeader({
   onRefreshShipment: () => void
   onCreateShipment: () => void
   onDownloadLabel: () => void
-  onFulfillment: (status: 'PROCESSING' | 'READY_FOR_SHIPMENT' | 'SENT' | 'PICKED_UP' | 'CANCELLED') => void
-  tab: TabId
-  setTab: (t: TabId) => void
+  onFulfillment: (s: 'PROCESSING' | 'READY_FOR_SHIPMENT' | 'SENT' | 'PICKED_UP' | 'CANCELLED') => void
 }) {
   const channel = order.source === 'allegro' ? 'Allegro' : 'Sklep'
+  const headlineId = order.externalId ?? order.orderNumber
   return (
-    <div className="border-b border-[#e1dccf] pb-5">
-      <div className="text-[12.5px] text-[#6b665b] flex items-center gap-2 mb-3.5">
-        <a className="hover:text-[#1b1a17]" href="/admin/orders">Zamówienia</a>
-        <span className="text-[#bdb6a6]">/</span>
-        <a className="hover:text-[#1b1a17]" href="/admin/orders">{channel}</a>
-        <span className="text-[#bdb6a6]">/</span>
-        <span className="font-mono">#{order.orderNumber}</span>
-      </div>
-
-      <div className="flex justify-between items-start gap-6 flex-wrap mb-4">
-        <div className="min-w-0">
-          <div className="flex items-center gap-3.5 flex-wrap">
-            <h1 className="text-[28px] font-medium tracking-[-0.02em] leading-[1.1] text-[#1b1a17] m-0">
-              Zamówienie {order.externalId
-                ? <span className="font-mono font-normal text-[#3a372f] text-[0.85em]">#{order.externalId}</span>
-                : <span className="font-mono font-normal text-[#3a372f] text-[0.85em]">#{order.orderNumber}</span>}
-            </h1>
-            <OrderStatusBadge status={order.status} source={order.source} allegroFulfillmentStatus={order.allegroFulfillmentStatus} paymentMethod={order.paymentMethod} paidAt={order.paidAt} />
-            {order.shipmentFreshness === 'stale' && <StatusPill status="pending" />}
-          </div>
-          <div className="mt-2 text-[12.5px] text-[#6b665b] flex gap-2 items-center flex-wrap">
-            <span><b className="text-[#3a372f] font-medium">{channel}</b> · {fmtDate(order.createdAt)}</span>
-            <span className="text-[#bdb6a6]">·</span>
-            <span>{order.items.length} {order.items.length === 1 ? 'pozycja' : 'pozycji'} · {fmtMoney(order.total, order.currency)}</span>
-            {order.deliveredAt && (<><span className="text-[#bdb6a6]">·</span><span>Doręczono {fmtDateShort(order.deliveredAt)}</span></>)}
-          </div>
+    <div className="bg-white border-b border-stone-200">
+      <div className="max-w-[1480px] mx-auto px-6 pt-3 pb-2.5">
+        <div className="flex items-center gap-2 text-[11px] text-stone-500 mb-2">
+          <a className="hover:text-stone-900" href="/admin/orders">Zamówienia</a>
+          <ChevronRight className="w-3 h-3 text-stone-300" />
+          <a className="hover:text-stone-900" href={`/admin/orders?source=${order.source}`}>{channel}</a>
+          <ChevronRight className="w-3 h-3 text-stone-300" />
+          <Mono className="text-stone-700">#{order.orderNumber}</Mono>
+          <span className="text-stone-300">·</span>
+          <span>{fmtDate(order.createdAt)}</span>
           {order.warnings.length > 0 && (
-            <div className="flex flex-wrap gap-2 pt-3">
-              {order.warnings.map((w) => (
-                <div key={w.code} className={`flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-md ${w.level === 'error' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'}`}>
-                  <AlertTriangle className="w-3.5 h-3.5" />{w.message}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="flex gap-2 flex-shrink-0 flex-wrap">
-          <ActionButton icon={RefreshCw} label="Odśwież" loading={loadingKey === 'refresh'} onClick={onRefresh} />
-          {order.actions.canRefreshShipment && <ActionButton icon={Truck} label="Tracking" loading={loadingKey === 'shipment-refresh'} onClick={onRefreshShipment} />}
-          {order.actions.canDownloadLabel && <ActionButton icon={FileText} label="Etykieta" loading={loadingKey === 'label'} onClick={onDownloadLabel} />}
-          {order.actions.canCreateShipment && <ActionButton icon={Package} label="Nadaj" onClick={onCreateShipment} primary />}
-          {order.actions.canSyncFulfillment && (
             <>
-              <ActionButton icon={Truck} label="SENT" loading={loadingKey === 'fulfillment-SENT'} onClick={() => onFulfillment('SENT')} />
-              <ActionButton icon={Check} label="PICKED_UP" loading={loadingKey === 'fulfillment-PICKED_UP'} onClick={() => onFulfillment('PICKED_UP')} />
-              <ActionButton icon={XCircle} label="Anuluj" loading={loadingKey === 'fulfillment-CANCELLED'} onClick={() => onFulfillment('CANCELLED')} />
+              <span className="text-stone-300">·</span>
+              <span className="inline-flex items-center gap-1 text-amber-700">
+                <AlertTriangle className="w-3 h-3" /> {order.warnings.length} {order.warnings.length === 1 ? 'ostrzeżenie' : 'ostrzeżeń'}
+              </span>
             </>
           )}
         </div>
-      </div>
 
-      <nav className="flex gap-0.5 -mb-[21px] flex-wrap">
-        {TABS.map((t) => {
-          const c = t.count?.(order) ?? 0
-          const active = tab === t.id
-          return (
-            <button
-              type="button"
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`px-3.5 py-2.5 text-[12.5px] border-b-2 inline-flex items-center gap-1.5 transition ${active ? 'text-[#1b1a17] border-[#1b1a17] font-medium' : 'text-[#6b665b] border-transparent hover:text-[#1b1a17]'}`}
-            >
-              {t.label}
-              {c > 0 && <span className="bg-[#efece5] text-[#6b665b] rounded-full font-mono text-[10px] px-1.5">{c}</span>}
-            </button>
-          )
-        })}
-      </nav>
+        <div className="flex items-start justify-between gap-6 flex-wrap">
+          <div className="flex items-center gap-3 flex-wrap min-w-0">
+            <h1 className="text-[20px] font-semibold tracking-tight text-stone-900 m-0 flex items-center gap-2">
+              <span>Zamówienie</span>
+              <Mono className="font-medium text-stone-900">#{headlineId}</Mono>
+            </h1>
+            <span className="h-5 w-px bg-stone-200" />
+            <OrderStatusBadge
+              status={order.status}
+              source={order.source}
+              allegroFulfillmentStatus={order.allegroFulfillmentStatus}
+              paymentMethod={order.paymentMethod}
+              paidAt={order.paidAt}
+            />
+            {order.shipmentFreshness === 'stale' && <Pill tone="warn">Stary tracking</Pill>}
+            {order.source === 'allegro' && <Pill tone="info">Allegro</Pill>}
+          </div>
+
+          <div className="flex items-center gap-1 flex-wrap">
+            <BtnGhost icon={RefreshCw} loading={loadingKey === 'refresh'} onClick={onRefresh}>Odśwież</BtnGhost>
+            {order.actions.canRefreshShipment && (
+              <BtnGhost icon={Truck} loading={loadingKey === 'shipment-refresh'} onClick={onRefreshShipment}>Tracking</BtnGhost>
+            )}
+            {order.actions.canDownloadLabel && (
+              <BtnGhost icon={FileText} loading={loadingKey === 'label'} onClick={onDownloadLabel}>Etykieta</BtnGhost>
+            )}
+            {order.actions.canSyncFulfillment && (
+              <>
+                <BtnGhost icon={Truck} loading={loadingKey === 'fulfillment-SENT'} onClick={() => onFulfillment('SENT')}>SENT</BtnGhost>
+                <BtnGhost icon={Check} loading={loadingKey === 'fulfillment-PICKED_UP'} onClick={() => onFulfillment('PICKED_UP')}>PICKED_UP</BtnGhost>
+                <BtnGhost icon={XCircle} loading={loadingKey === 'fulfillment-CANCELLED'} onClick={() => onFulfillment('CANCELLED')}>Anuluj</BtnGhost>
+              </>
+            )}
+            {order.actions.canCreateShipment && (
+              <BtnPrimary icon={Package} onClick={onCreateShipment}>Nadaj paczkę</BtnPrimary>
+            )}
+          </div>
+        </div>
+
+        {order.warnings.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-2.5">
+            {order.warnings.map((w) => (
+              <span
+                key={w.code}
+                className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-sm border ${
+                  w.level === 'error'
+                    ? 'bg-red-50 text-red-800 border-red-200'
+                    : 'bg-amber-50 text-amber-800 border-amber-200'
+                }`}
+              >
+                <AlertTriangle className="w-3 h-3" />{w.message}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
 
-function ActionButton({ icon: Icon, label, loading, onClick, primary }: { icon: React.ComponentType<{ className?: string }>; label: string; loading?: boolean; onClick: () => void; primary?: boolean }) {
+function BtnGhost({ icon: Icon, loading, onClick, children }: { icon?: React.ComponentType<{ className?: string }>; loading?: boolean; onClick?: () => void; children: React.ReactNode }) {
   return (
     <button
       type="button"
-      onClick={onClick}
       disabled={loading}
-      className={`inline-flex items-center gap-1.5 px-3.5 py-2 text-[12.5px] font-medium rounded-md border transition disabled:opacity-60 ${
-        primary
-          ? 'bg-[#1b1a17] text-white border-[#1b1a17] hover:bg-black'
-          : 'bg-transparent text-[#3a372f] border-[#e1dccf] hover:bg-[#efece5] hover:border-[#bdb6a6]'
-      }`}
+      onClick={onClick}
+      className="inline-flex items-center gap-1.5 px-2.5 h-7 text-[12px] font-medium border border-stone-300 bg-white text-stone-800 hover:bg-stone-100 hover:border-stone-400 rounded-sm transition disabled:opacity-60"
     >
-      {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Icon className="w-3.5 h-3.5" />}
-      {label}
+      {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : Icon ? <Icon className="w-3.5 h-3.5" /> : null}
+      {children}
     </button>
   )
 }
 
-function ItemsCard({ order }: { order: AdminOrderDetail }) {
+function BtnPrimary({ icon: Icon, loading, onClick, children }: { icon?: React.ComponentType<{ className?: string }>; loading?: boolean; onClick?: () => void; children: React.ReactNode }) {
   return (
-    <Card noPad>
-      <CardHead>
-        <SectionLabel count={order.items.length}>Pozycje</SectionLabel>
-        {order.source === 'allegro' && order.externalId && (
-          <a href={`https://allegro.pl/moje-allegro/sprzedaz/zamowienie/${order.externalId}`} target="_blank" rel="noreferrer" className="text-[12.5px] text-[#6b665b] hover:text-[#1b1a17] hover:bg-[#efece5] rounded px-2 py-1 inline-flex items-center gap-1">
-            Zobacz w Allegro <ExternalLink className="w-3 h-3" />
-          </a>
-        )}
-      </CardHead>
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr>
-              <th className="text-left text-[10.5px] uppercase tracking-[0.12em] text-[#9a9486] font-medium px-5 pt-3.5 pb-2.5 bg-white border-b border-[#ece8dc]">Produkt</th>
-              <th className="text-left text-[10.5px] uppercase tracking-[0.12em] text-[#9a9486] font-medium px-5 pt-3.5 pb-2.5 bg-white border-b border-[#ece8dc]">SKU</th>
-              <th className="text-right text-[10.5px] uppercase tracking-[0.12em] text-[#9a9486] font-medium px-5 pt-3.5 pb-2.5 bg-white border-b border-[#ece8dc]">Ilość</th>
-              <th className="text-right text-[10.5px] uppercase tracking-[0.12em] text-[#9a9486] font-medium px-5 pt-3.5 pb-2.5 bg-white border-b border-[#ece8dc]">Cena</th>
-              <th className="text-right text-[10.5px] uppercase tracking-[0.12em] text-[#9a9486] font-medium px-5 pt-3.5 pb-2.5 bg-white border-b border-[#ece8dc]">Razem</th>
-            </tr>
-          </thead>
-          <tbody>
-            {order.items.map((item) => {
-              const skuTail = (item.productSku || '').split('-').pop() || '—'
-              return (
-                <tr key={`${item.id ?? item.productSku}`} className="border-b border-[#ece8dc] last:border-0">
-                  <td className="px-5 py-3 align-middle">
-                    <div className="flex gap-3 items-center">
-                      <div className="relative w-11 h-11 rounded-md bg-[#efece5] border border-[#e1dccf] grid place-items-center overflow-hidden flex-shrink-0">
-                        <span className="font-mono text-[10px] text-[#6b665b] bg-[#efece5] px-1 relative z-10">{skuTail}</span>
-                        <span className="absolute inset-0" style={{ background: 'repeating-linear-gradient(135deg, transparent 0 6px, rgba(20,18,12,0.04) 6px 7px)' }} />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-[#1b1a17] font-medium text-[13px]">{item.productName}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-5 py-3 text-[12.5px]"><CopyChip value={item.productSku} /></td>
-                  <td className="px-5 py-3 text-right text-[12.5px] font-mono tabular-nums">{item.quantity}</td>
-                  <td className="px-5 py-3 text-right text-[12.5px] font-mono tabular-nums">{moneyValue(item.unitPrice).toFixed(2)} <span className="text-[#9a9486] text-[0.85em]">{order.currency}</span></td>
-                  <td className="px-5 py-3 text-right text-[12.5px] font-mono tabular-nums text-[#1b1a17] font-medium">{moneyValue(item.totalPrice).toFixed(2)} <span className="text-[#9a9486] text-[0.85em]">{order.currency}</span></td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-      </div>
-    </Card>
+    <button
+      type="button"
+      disabled={loading}
+      onClick={onClick}
+      className="inline-flex items-center gap-1.5 px-3 h-7 text-[12px] font-medium bg-stone-900 text-white hover:bg-black rounded-sm transition disabled:opacity-60"
+    >
+      {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : Icon ? <Icon className="w-3.5 h-3.5" /> : null}
+      {children}
+    </button>
   )
 }
 
-const TL_KIND_META: Record<string, { label: string; color: string }> = {
-  status:    { label: 'STATUS',    color: '#1c4d7c' },
-  payment:   { label: 'PŁATNOŚĆ',  color: '#7a5500' },
-  shipping:  { label: 'WYSYŁKA',   color: '#2f6f3e' },
-  tracking:  { label: 'TRACKING',  color: '#2f6f3e' },
-  fulfillment:{ label: 'REALIZACJA', color: '#1c4d7c' },
-  return:    { label: 'ZWROT',     color: '#a8431a' },
-  note:      { label: 'NOTATKA',   color: '#5a5246' },
-  audit:     { label: 'AUDYT',     color: '#5a5246' },
+function KpiStrip({ order }: { order: AdminOrderDetail }) {
+  const age = daysSince(order.createdAt)
+  const itemsCount = order.items.reduce((acc, i) => acc + Number(i.quantity || 0), 0)
+  const paidTone: 'ok' | 'warn' = order.paidAt ? 'ok' : 'warn'
+  const shipTone: 'ok' | 'warn' | undefined = order.shippedAt ? 'ok' : undefined
+  return (
+    <div className="bg-white border-b border-stone-200">
+      <div className="max-w-[1480px] mx-auto px-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 divide-x divide-stone-200">
+          <Stat label="Suma" value={<>{num(order.total).toFixed(2)} <span className="text-stone-500 text-[11px] font-normal">{order.currency}</span></>}
+                sub={order.totalPln && order.currency !== 'PLN' ? `≈ ${num(order.totalPln).toFixed(2)} PLN` : null} />
+          <Stat label="Pozycje" value={<>{itemsCount}<span className="text-stone-400 text-[11px] font-normal"> / {order.items.length} sku</span></>} />
+          <Stat label="Wysyłka" value={fmtMoney(order.shippingCost ?? 0, order.currency)} />
+          <Stat label="VAT" value={order.taxAmount == null ? '—' : fmtMoney(order.taxAmount, order.currency)} />
+          <Stat label="Opłacono" value={order.paidAt ? fmtDateShort(order.paidAt) : 'Nie'} sub={order.paidAt ? fmtTime(order.paidAt) : null} tone={paidTone} />
+          <Stat label="Wysłane" value={order.shippedAt ? fmtDateShort(order.shippedAt) : '—'} sub={order.shippedAt ? fmtTime(order.shippedAt) : null} tone={shipTone} />
+          <Stat label="Wiek" value={age == null ? '—' : <>{age}<span className="text-stone-500 text-[11px] font-normal"> dni</span></>} sub={order.deliveredAt ? `Dostarczono ${fmtDateShort(order.deliveredAt)}` : null} />
+        </div>
+      </div>
+    </div>
+  )
 }
 
-function TimelineCard({ entries }: { entries: AdminOrderTimelineEntry[] }) {
-  const [filter, setFilter] = useState<string>('all')
-  const [open, setOpen] = useState<Record<string, boolean>>({})
+function SubNav({ order, active, onPick }: { order: AdminOrderDetail; active: SectionId; onPick: (s: SectionId) => void }) {
+  const counts: Partial<Record<SectionId, number>> = {
+    items: order.items.length,
+    returns: order.badgeCounts.returns,
+    complaints: order.badgeCounts.complaints,
+    timeline: order.statusHistory.length,
+    audit: order.badgeCounts.audit,
+  }
+  return (
+    <div className="bg-stone-50/80 backdrop-blur supports-[backdrop-filter]:bg-stone-50/70 border-b border-stone-200 sticky top-0 z-30">
+      <div className="max-w-[1480px] mx-auto px-6">
+        <nav className="flex gap-0 overflow-x-auto -mx-1">
+          {SECTIONS.map((s) => {
+            const c = counts[s.id]
+            const isActive = active === s.id
+            return (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => onPick(s.id)}
+                className={`relative px-3 h-9 text-[12px] inline-flex items-center gap-1.5 transition whitespace-nowrap ${
+                  isActive ? 'text-stone-900 font-semibold' : 'text-stone-500 hover:text-stone-900'
+                }`}
+              >
+                {s.label}
+                {c != null && c > 0 && (
+                  <span className={`font-mono text-[10px] px-1 py-px rounded-sm ${isActive ? 'bg-stone-900 text-white' : 'bg-stone-200 text-stone-600'}`}>{c}</span>
+                )}
+                {isActive && <span className="absolute left-0 right-0 -bottom-px h-px bg-stone-900" />}
+              </button>
+            )
+          })}
+        </nav>
+      </div>
+    </div>
+  )
+}
 
+// ─── items ──────────────────────────────────────────────────────────────────
+
+function ItemsBlock({ order }: { order: AdminOrderDetail }) {
+  return (
+    <div>
+      <SectionHead id="items" title="Pozycje zamówienia" count={order.items.length}
+        action={order.source === 'allegro' && order.externalId
+          ? <a href={`https://allegro.pl/moje-allegro/sprzedaz/zamowienie/${order.externalId}`} target="_blank" rel="noreferrer"
+               className="text-[11.5px] text-stone-600 hover:text-stone-900 inline-flex items-center gap-1">
+              Otwórz w Allegro <ArrowUpRight className="w-3 h-3" />
+            </a>
+          : null} />
+      <Panel className="overflow-hidden">
+        <table className="w-full border-collapse">
+          <colgroup>
+            <col style={{ width: '50%' }} />
+            <col style={{ width: '180px' }} />
+            <col style={{ width: '70px' }} />
+            <col style={{ width: '120px' }} />
+            <col style={{ width: '130px' }} />
+          </colgroup>
+          <thead>
+            <tr className="bg-stone-50/70 border-b border-stone-200">
+              <th className="text-left text-[10px] uppercase tracking-[0.12em] text-stone-500 font-semibold px-3 py-2">Produkt</th>
+              <th className="text-left text-[10px] uppercase tracking-[0.12em] text-stone-500 font-semibold px-3 py-2">SKU</th>
+              <th className="text-right text-[10px] uppercase tracking-[0.12em] text-stone-500 font-semibold px-3 py-2">Ilość</th>
+              <th className="text-right text-[10px] uppercase tracking-[0.12em] text-stone-500 font-semibold px-3 py-2">Cena jedn.</th>
+              <th className="text-right text-[10px] uppercase tracking-[0.12em] text-stone-500 font-semibold px-3 py-2">Wartość</th>
+            </tr>
+          </thead>
+          <tbody>
+            {order.items.map((item, i) => (
+              <tr key={`${item.id ?? item.productSku}-${i}`} className="border-b border-stone-100 last:border-0 hover:bg-stone-50/60 group">
+                <td className="px-3 py-2 align-middle">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="font-mono text-[10px] text-stone-500 w-5 text-right tabular-nums">{String(i + 1).padStart(2, '0')}</span>
+                    <span className="text-[12.5px] text-stone-900 truncate" title={item.productName}>{item.productName}</span>
+                  </div>
+                </td>
+                <td className="px-3 py-2"><CopyChip value={item.productSku} /></td>
+                <td className="px-3 py-2 text-right"><Mono className="text-[12.5px]">{item.quantity}</Mono></td>
+                <td className="px-3 py-2 text-right"><Mono className="text-[12.5px] text-stone-700">{num(item.unitPrice).toFixed(2)}</Mono></td>
+                <td className="px-3 py-2 text-right"><Mono className="text-[12.5px] text-stone-900 font-medium">{num(item.totalPrice).toFixed(2)}</Mono></td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr className="bg-stone-50/70 border-t border-stone-200 text-[12px]">
+              <td className="px-3 py-1.5 text-stone-500 uppercase tracking-[0.08em] text-[10.5px]">Wartość pozycji</td>
+              <td colSpan={3} />
+              <td className="px-3 py-1.5 text-right"><Mono className="text-stone-700">{num(order.subtotal ?? 0).toFixed(2)}</Mono></td>
+            </tr>
+            <tr className="text-[12px] border-t border-stone-100">
+              <td className="px-3 py-1.5 text-stone-500 uppercase tracking-[0.08em] text-[10.5px]">Wysyłka</td>
+              <td colSpan={3} className="px-3 py-1.5 text-stone-500 text-[11px]">{order.shippingMethod ?? '—'}</td>
+              <td className="px-3 py-1.5 text-right"><Mono className="text-stone-700">{num(order.shippingCost ?? 0).toFixed(2)}</Mono></td>
+            </tr>
+            {order.taxAmount != null && (
+              <tr className="text-[12px] border-t border-stone-100">
+                <td className="px-3 py-1.5 text-stone-500 uppercase tracking-[0.08em] text-[10.5px]">VAT</td>
+                <td colSpan={3} />
+                <td className="px-3 py-1.5 text-right"><Mono className="text-stone-700">{num(order.taxAmount).toFixed(2)}</Mono></td>
+              </tr>
+            )}
+            <tr className="bg-stone-900 text-white">
+              <td className="px-3 py-2 uppercase tracking-[0.1em] text-[11px] font-semibold">Suma</td>
+              <td colSpan={3} />
+              <td className="px-3 py-2 text-right"><Mono className="text-[14px] font-semibold">{num(order.total).toFixed(2)} <span className="text-stone-300 text-[11px] font-normal">{order.currency}</span></Mono></td>
+            </tr>
+          </tfoot>
+        </table>
+      </Panel>
+    </div>
+  )
+}
+
+// ─── payment ────────────────────────────────────────────────────────────────
+
+function PaymentBlock({ order }: { order: AdminOrderDetail }) {
+  return (
+    <div>
+      <SectionHead id="payment" title="Płatność" />
+      <Panel>
+        <div className="grid grid-cols-1 md:grid-cols-2">
+          <div className="md:border-r border-stone-100">
+            <Row label="Metoda">{order.paymentMethod ?? '—'}</Row>
+            <Row label="P24 status">
+              {order.p24Status
+                ? <Pill tone={order.p24Status.toLowerCase().includes('success') ? 'ok' : 'neutral'}>{order.p24Status}</Pill>
+                : <span className="text-stone-400">—</span>}
+            </Row>
+            <Row label="Opłacono" dim={!order.paidAt}>{order.paidAt ? fmtDate(order.paidAt) : 'Nieopłacone'}</Row>
+            <Row label="Kwota" mono>{fmtMoney(order.total, order.currency)}</Row>
+          </div>
+          <div>
+            <Row label="Transakcja" mono>{order.p24TransactionId ? <CopyChip value={order.p24TransactionId} /> : <span className="text-stone-400">—</span>}</Row>
+            <Row label="Sesja P24" mono>{order.p24SessionId ? <CopyChip value={order.p24SessionId} /> : <span className="text-stone-400">—</span>}</Row>
+            <Row label="Waluta" mono>{order.currency}</Row>
+            {order.exchangeRate != null && (
+              <Row label="Kurs" mono>{order.exchangeRate} <span className="text-stone-400">({order.rateDate ?? '—'})</span></Row>
+            )}
+          </div>
+        </div>
+      </Panel>
+    </div>
+  )
+}
+
+// ─── shipping ───────────────────────────────────────────────────────────────
+
+function ShippingBlock({ order, onRefresh, loading }: { order: AdminOrderDetail; onRefresh: () => void; loading: boolean }) {
+  const parcels = order.allShipments ?? []
+  return (
+    <div>
+      <SectionHead
+        id="shipping"
+        title="Wysyłka"
+        count={parcels.length}
+        action={
+          <button type="button" onClick={onRefresh} disabled={loading}
+            className="text-[11.5px] text-stone-600 hover:text-stone-900 inline-flex items-center gap-1 disabled:opacity-60">
+            {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />} Odśwież tracking
+          </button>
+        }
+      />
+      <Panel className="mb-3">
+        <div className="grid grid-cols-1 md:grid-cols-2">
+          <div className="md:border-r border-stone-100">
+            <Row label="Metoda">{order.shippingMethod ?? '—'}</Row>
+            <Row label="Status">{order.trackingStatus ?? order.trackingStatusCode ?? '—'}</Row>
+            <Row label="Aktualizacja" dim={!order.trackingStatusUpdatedAt}>{fmtDate(order.trackingStatusUpdatedAt)}</Row>
+          </div>
+          <div>
+            <Row label="Numer paczki" mono>
+              {order.trackingNumber ? <CopyChip value={order.trackingNumber} /> : <span className="text-stone-400">—</span>}
+            </Row>
+            <Row label="Allegro shipment" mono>
+              {order.allegroShipmentId ? <CopyChip value={order.allegroShipmentId} /> : <span className="text-stone-400">—</span>}
+            </Row>
+            <Row label="Wysłano" dim={!order.shippedAt}>{fmtDate(order.shippedAt)}</Row>
+            <Row label="Doręczono" dim={!order.deliveredAt}>{fmtDate(order.deliveredAt)}</Row>
+          </div>
+        </div>
+      </Panel>
+
+      {parcels.length === 0 ? (
+        <Empty icon={Truck} title="Brak zapisanych paczek" hint="Po nadaniu paczki pojawi się tutaj historia tracking." />
+      ) : (
+        <div className="space-y-2">
+          {parcels.map((p) => <ParcelRow key={p.waybill} parcel={p} />)}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ParcelRow({ parcel }: { parcel: AllegroShipmentEntry }) {
+  const [open, setOpen] = useState(false)
+  const events = parcel.events ?? []
+  return (
+    <Panel className="overflow-hidden">
+      <button type="button" onClick={() => setOpen((v) => !v)} className="w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-stone-50">
+        <ChevronRight className={`w-3.5 h-3.5 text-stone-400 transition ${open ? 'rotate-90' : ''}`} />
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <Mono className="text-[12.5px] text-stone-900">{parcel.waybill}</Mono>
+          {parcel.isSelected && <Pill tone="info">aktywna</Pill>}
+        </div>
+        <span className="text-[11.5px] text-stone-500 truncate">{parcel.carrierName ?? parcel.carrierId}</span>
+        <Pill tone="neutral">{parcel.statusCode}</Pill>
+        <span className="text-[11px] text-stone-500 tabular-nums whitespace-nowrap">{fmtDate(parcel.occurredAt)}</span>
+      </button>
+      {open && events.length > 0 && (
+        <ol className="border-t border-stone-100 m-0 p-0 list-none">
+          {events.map((e, i) => (
+            <li key={`${e.code}-${e.occurredAt ?? i}`} className="flex items-center gap-3 px-3 py-1.5 border-b border-stone-100 last:border-0 text-[12px]">
+              <span className="w-1.5 h-1.5 rounded-full bg-sky-700 flex-shrink-0" />
+              <span className="font-mono text-[10.5px] text-stone-500">{e.code}</span>
+              <span className="text-stone-900 truncate flex-1">{e.label ?? e.code}</span>
+              <span className="text-[11px] text-stone-500 tabular-nums whitespace-nowrap">{fmtDate(e.occurredAt)}</span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </Panel>
+  )
+}
+
+// ─── returns / complaints / notes ───────────────────────────────────────────
+
+function ReturnsBlock({ returns, currency }: { returns: AdminReturn[]; currency: string }) {
+  return (
+    <div>
+      <SectionHead id="returns" title="Zwroty" count={returns.length} />
+      {returns.length === 0
+        ? <Empty icon={Undo2} title="Brak zwrotów" />
+        : (
+          <Panel>
+            {returns.map((r, i) => (
+              <div key={r.id} className={`px-3 py-2.5 ${i > 0 ? 'border-t border-stone-100' : ''}`}>
+                <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <CopyChip value={r.returnNumber} />
+                  <Pill tone="warn">{r.status}</Pill>
+                  <span className="ml-auto"><Mono className="text-[13px] font-semibold text-stone-900">{fmtMoney(r.totalRefundAmount, r.currency || currency)}</Mono></span>
+                </div>
+                <div className="text-[12.5px] text-stone-900">{r.reason}</div>
+                {r.reasonNote && <div className="text-[11.5px] text-stone-500 mt-0.5">{r.reasonNote}</div>}
+                <div className="text-[11px] text-stone-500 mt-1">{r.items.map((it) => `${it.quantity}× ${it.productName}`).join(' · ') || '—'}</div>
+              </div>
+            ))}
+          </Panel>
+        )}
+    </div>
+  )
+}
+
+function ComplaintsBlock({ complaints }: { complaints: AdminOrderDetailComplaint[] }) {
+  return (
+    <div>
+      <SectionHead id="complaints" title="Dyskusje i reklamacje" count={complaints.length} />
+      {complaints.length === 0
+        ? <Empty icon={ShieldAlert} title="Brak dyskusji ani reklamacji" />
+        : (
+          <div className="space-y-2">
+            {complaints.map((c) => (
+              <Panel key={c.id} className="overflow-hidden">
+                <div className="flex items-center gap-2 px-3 py-2 border-b border-stone-100 bg-stone-50/50">
+                  <CopyChip value={c.allegroIssueId} />
+                  <Pill tone="warn">{c.status}</Pill>
+                  <span className="text-[12px] text-stone-700 truncate">{c.subject ?? 'Dyskusja Allegro'}</span>
+                  <span className="ml-auto text-[11px] text-stone-500 tabular-nums whitespace-nowrap">{fmtDate(c.lastMessageAt)} · {c.messages.length} wiad.</span>
+                </div>
+                <div className="px-3 py-2 space-y-2">
+                  {c.messages.slice(-3).map((m) => (
+                    <div key={m.id} className="text-[12px]">
+                      <div className="flex items-center gap-2 text-[10.5px] text-stone-500 uppercase tracking-[0.06em] mb-0.5">
+                        <span className="font-medium text-stone-700">{m.authorRole}</span>
+                        <span className="text-stone-400">·</span>
+                        <span>{fmtDate(m.createdAt)}</span>
+                      </div>
+                      <div className="text-stone-900 whitespace-pre-wrap">{m.text ?? '—'}</div>
+                    </div>
+                  ))}
+                </div>
+              </Panel>
+            ))}
+          </div>
+        )}
+    </div>
+  )
+}
+
+function NotesBlock({ order }: { order: AdminOrderDetail }) {
+  return (
+    <div>
+      <SectionHead id="notes" title="Notatki" />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+        <Panel className="p-3">
+          <div className="text-[10px] uppercase tracking-[0.12em] text-stone-500 font-semibold mb-1.5">Publiczne (widoczne dla klienta)</div>
+          <div className="text-[12.5px] text-stone-900 whitespace-pre-wrap min-h-[3rem]">
+            {order.notes || <span className="text-stone-400">Brak notatek publicznych.</span>}
+          </div>
+        </Panel>
+        <Panel className="p-3 bg-amber-50/30">
+          <div className="text-[10px] uppercase tracking-[0.12em] text-amber-700 font-semibold mb-1.5 flex items-center gap-1">
+            <Flag className="w-3 h-3" /> Wewnętrzne (tylko admin)
+          </div>
+          <div className="text-[12.5px] text-stone-900 whitespace-pre-wrap min-h-[3rem]">
+            {order.internalNotes || <span className="text-stone-400">Brak notatek wewnętrznych.</span>}
+          </div>
+        </Panel>
+      </div>
+    </div>
+  )
+}
+
+// ─── timeline ───────────────────────────────────────────────────────────────
+
+const TL_META: Record<string, { label: string; color: string; tone: 'ok' | 'warn' | 'err' | 'info' | 'neutral' }> = {
+  status:      { label: 'STATUS',      color: '#1c4d7c', tone: 'info' },
+  payment:     { label: 'PŁATNOŚĆ',    color: '#7a5500', tone: 'warn' },
+  shipping:    { label: 'WYSYŁKA',     color: '#0f3a26', tone: 'ok' },
+  tracking:    { label: 'TRACKING',    color: '#0f3a26', tone: 'ok' },
+  fulfillment: { label: 'REALIZACJA',  color: '#1c4d7c', tone: 'info' },
+  return:      { label: 'ZWROT',       color: '#a8431a', tone: 'err' },
+  note:        { label: 'NOTATKA',     color: '#5a5246', tone: 'neutral' },
+  audit:       { label: 'AUDYT',       color: '#5a5246', tone: 'neutral' },
+}
+
+function TimelineBlock({ entries }: { entries: AdminOrderTimelineEntry[] }) {
+  const [filter, setFilter] = useState<string>('all')
+  const [openId, setOpenId] = useState<number | null>(null)
   const cats = useMemo(() => {
     const counts: Record<string, number> = {}
     for (const e of entries) counts[e.category] = (counts[e.category] ?? 0) + 1
     return counts
   }, [entries])
-
   const visible = entries.filter((e) => filter === 'all' || e.category === filter)
-
-  if (entries.length === 0) {
-    return (
-      <Card noPad>
-        <CardHead><SectionLabel>Oś czasu</SectionLabel><span /></CardHead>
-        <EmptyState icon={History} title="Brak wpisów na osi czasu" />
-      </Card>
-    )
-  }
-
   return (
-    <Card noPad>
-      <CardHead>
-        <SectionLabel count={entries.length}>Oś czasu</SectionLabel>
-        <div className="flex gap-0.5 flex-wrap">
-          {[{ id: 'all', label: 'Wszystko', n: entries.length }, ...Object.entries(cats).map(([id, n]) => ({ id, label: TL_KIND_META[id]?.label ?? id.toUpperCase(), n }))].map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              onClick={() => setFilter(f.id)}
-              className={`px-2.5 py-1 rounded text-[11px] tracking-[0.005em] transition ${filter === f.id ? 'bg-[#1b1a17] text-white' : 'text-[#6b665b] hover:bg-[#efece5] hover:text-[#1b1a17]'}`}
-            >
-              {f.label}
-              <span className={`ml-1 font-mono text-[10px] ${filter === f.id ? 'text-white/70' : 'text-[#9a9486]'}`}>{f.n}</span>
-            </button>
-          ))}
-        </div>
-      </CardHead>
-      <ul className="list-none p-5 m-0">
-        {visible.map((ev, i) => {
-          const meta = TL_KIND_META[ev.category] ?? TL_KIND_META.note
-          const isOpen = !!open[ev.id]
-          const isLast = i === visible.length - 1
-          return (
-            <li key={ev.id} className={`flex gap-3.5 relative ${isLast ? '' : 'pb-3.5'}`}>
-              <div className="relative w-3 flex-shrink-0 pt-3.5">
-                <div className="w-[11px] h-[11px] rounded-full bg-white border-2 relative z-10" style={{ borderColor: meta.color }} />
-                {!isLast && <div className="absolute left-[5px] top-6 -bottom-3.5 w-px bg-[#e1dccf]" />}
-              </div>
+    <div>
+      <SectionHead
+        id="timeline"
+        title="Aktywność"
+        count={entries.length}
+        action={
+          <div className="flex gap-0.5 flex-wrap">
+            {[
+              { id: 'all', label: 'Wszystko', n: entries.length },
+              ...Object.entries(cats).map(([id, n]) => ({ id, label: TL_META[id]?.label ?? id.toUpperCase(), n })),
+            ].map((f) => (
               <button
+                key={f.id}
                 type="button"
-                onClick={() => setOpen((o) => ({ ...o, [ev.id]: !o[ev.id] }))}
-                className={`flex-1 text-left border rounded-md px-3.5 py-3 bg-white transition min-w-0 ${isOpen ? 'border-[#6b665b] shadow-[0_1px_0_rgba(20,18,12,0.05),0_6px_18px_-10px_rgba(20,18,12,0.18)] bg-[#fdfcf8]' : 'border-[#e1dccf] hover:border-[#bdb6a6] hover:bg-[#fdfcf8]'}`}
+                onClick={() => setFilter(f.id)}
+                className={`px-2 h-6 text-[10.5px] rounded-sm font-medium uppercase tracking-[0.08em] transition ${
+                  filter === f.id ? 'bg-stone-900 text-white' : 'text-stone-600 hover:bg-stone-200/70'
+                }`}
               >
-                <div className="flex items-baseline gap-3 flex-wrap">
-                  <span className="text-[10px] font-bold tracking-[0.14em] flex-shrink-0 font-mono" style={{ color: meta.color }}>{meta.label}</span>
-                  <span className="inline-flex items-baseline gap-1.5 flex-wrap flex-1 min-w-0">
-                    {ev.previousValue && <span className="text-[#9a9486] font-mono text-[12px]">{ev.previousValue}</span>}
-                    {ev.previousValue && <span className="text-[#bdb6a6] text-[11px]">→</span>}
-                    <span className="text-[#1b1a17] font-medium font-mono text-[12px]">{ev.newValue}</span>
-                  </span>
-                  <span className="text-[11px] text-[#9a9486] tabular-nums whitespace-nowrap ml-auto">{fmtDate(ev.occurredAt)}</span>
-                </div>
-                <div className="mt-1.5 flex gap-3.5 items-center text-[11px] text-[#9a9486] flex-wrap">
-                  <span className="inline-flex items-baseline gap-1">źródło: <span className="font-mono text-[#6b665b]">{ev.source}</span></span>
-                  {ev.sourceRef && <span className="inline-flex items-baseline gap-1">ref: <span className="font-mono text-[#6b665b]">{ev.sourceRef}</span></span>}
-                  <span className={`ml-auto w-[18px] h-[18px] inline-grid place-items-center rounded text-sm leading-none border ${isOpen ? 'bg-[#1b1a17] text-white border-[#1b1a17]' : 'border-[#e1dccf] text-[#6b665b]'}`}>
-                    {isOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-                  </span>
-                </div>
-                {isOpen && (
-                  <div className="mt-3 pt-3 border-t border-[#ece8dc]" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex justify-between items-center text-[10.5px] text-[#9a9486] uppercase tracking-[0.1em] mb-1.5">
-                      <span className="font-mono">payload.json</span>
-                      <CopyChip value={JSON.stringify({ category: ev.category, from: ev.previousValue, to: ev.newValue, source: ev.source, ref: ev.sourceRef })} label="kopiuj" />
-                    </div>
-                    <pre className="bg-[#efece5] border border-[#e1dccf] rounded p-3 text-[11.5px] text-[#3a372f] m-0 whitespace-pre overflow-x-auto leading-[1.55] font-mono">{JSON.stringify({
-                      category: ev.category,
-                      from: ev.previousValue ?? null,
-                      to: ev.newValue,
-                      source: ev.source,
-                      ref: ev.sourceRef ?? null,
-                      occurred_at: ev.occurredAt,
-                    }, null, 2)}</pre>
-                  </div>
-                )}
+                {f.label} <span className={`font-mono ml-1 ${filter === f.id ? 'text-stone-300' : 'text-stone-400'}`}>{f.n}</span>
               </button>
+            ))}
+          </div>
+        }
+      />
+      {entries.length === 0 ? (
+        <Empty icon={History} title="Brak wpisów na osi czasu" />
+      ) : (
+        <Panel>
+          <ul className="m-0 p-0 list-none">
+            {visible.map((ev) => {
+              const meta = TL_META[ev.category] ?? TL_META.note
+              const isOpen = openId === ev.id
+              return (
+                <li key={ev.id} className="border-b border-stone-100 last:border-0">
+                  <button
+                    type="button"
+                    onClick={() => setOpenId((id) => (id === ev.id ? null : ev.id))}
+                    className="w-full flex items-center gap-3 px-3 py-1.5 text-left text-[12px] hover:bg-stone-50"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: meta.color }} />
+                    <span className="font-mono text-[10px] font-semibold tracking-[0.08em] w-[72px] flex-shrink-0" style={{ color: meta.color }}>
+                      {meta.label}
+                    </span>
+                    <span className="flex-1 min-w-0 inline-flex items-baseline gap-1.5 flex-wrap">
+                      {ev.previousValue && (
+                        <>
+                          <Mono className="text-stone-400 text-[11.5px]">{ev.previousValue}</Mono>
+                          <span className="text-stone-300">→</span>
+                        </>
+                      )}
+                      <Mono className="text-stone-900 font-medium text-[11.5px]">{ev.newValue}</Mono>
+                    </span>
+                    <span className="text-[10.5px] text-stone-500 truncate hidden md:inline-flex items-center gap-1">
+                      <span className="font-mono">{ev.source}</span>
+                      {ev.sourceRef && <span className="font-mono text-stone-400">· {ev.sourceRef}</span>}
+                    </span>
+                    <span className="text-[10.5px] text-stone-500 tabular-nums whitespace-nowrap w-[120px] text-right flex-shrink-0">
+                      {fmtDate(ev.occurredAt)}
+                    </span>
+                    <ChevronRight className={`w-3 h-3 text-stone-400 transition ${isOpen ? 'rotate-90' : ''}`} />
+                  </button>
+                  {isOpen && (
+                    <div className="px-3 pb-2 bg-stone-50">
+                      <pre className="m-0 p-2 text-[11px] font-mono text-stone-800 leading-snug bg-white border border-stone-200 rounded-sm overflow-x-auto">
+{JSON.stringify({
+  category: ev.category,
+  from: ev.previousValue ?? null,
+  to: ev.newValue,
+  source: ev.source,
+  ref: ev.sourceRef ?? null,
+  metadata: ev.metadata ?? null,
+  occurred_at: ev.occurredAt,
+}, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+        </Panel>
+      )}
+    </div>
+  )
+}
+
+// ─── audit ──────────────────────────────────────────────────────────────────
+
+function AuditBlock({ order }: { order: AdminOrderDetail }) {
+  return (
+    <div>
+      <SectionHead id="audit" title="Audyt admina" count={order.audit.length} />
+      {order.audit.length === 0
+        ? <Empty icon={ClipboardList} title="Brak wpisów audytu" />
+        : (
+          <Panel>
+            <ul className="m-0 p-0 list-none">
+              {order.audit.map((a) => (
+                <li key={a.id} className="flex items-center gap-3 px-3 py-1.5 border-b border-stone-100 last:border-0 text-[12px]">
+                  <UserIcon className="w-3.5 h-3.5 text-stone-400 flex-shrink-0" />
+                  <span className="font-medium text-stone-900 truncate w-[180px]">{a.adminName ?? a.adminEmail ?? `Admin ${a.adminId ?? '—'}`}</span>
+                  <Mono className="text-[11px] text-stone-700 px-1.5 py-px bg-stone-100 rounded-sm">{a.action}</Mono>
+                  <span className="text-[11px] text-stone-500 truncate flex-1">{JSON.stringify(a.details ?? {})}</span>
+                  {a.ipAddress && <Mono className="text-[10.5px] text-stone-400 hidden md:inline">{a.ipAddress}</Mono>}
+                  <span className="text-[10.5px] text-stone-500 tabular-nums whitespace-nowrap">{fmtDate(a.createdAt)}</span>
+                </li>
+              ))}
+            </ul>
+          </Panel>
+        )}
+    </div>
+  )
+}
+
+function Empty({ icon: Icon, title, hint }: { icon: React.ComponentType<{ className?: string }>; title: string; hint?: string }) {
+  return (
+    <Panel className="py-8 px-4 flex flex-col items-center text-center">
+      <Icon className="w-5 h-5 text-stone-400 mb-2" />
+      <div className="text-[12.5px] text-stone-700 font-medium">{title}</div>
+      {hint && <div className="text-[11.5px] text-stone-500 mt-1 max-w-[28rem]">{hint}</div>}
+    </Panel>
+  )
+}
+
+// ─── side column ────────────────────────────────────────────────────────────
+
+function ProgressRail({ order }: { order: AdminOrderDetail }) {
+  const steps = [
+    { k: 'Złożono',   v: order.createdAt,   icon: Receipt },
+    { k: 'Płatność',  v: order.paidAt,      icon: CreditCard },
+    { k: 'Wysłano',   v: order.shippedAt,   icon: Truck },
+    { k: 'Doręczono', v: order.deliveredAt, icon: Check },
+  ]
+  return (
+    <Panel>
+      <div className="px-3 py-2 border-b border-stone-100">
+        <div className="text-[10px] uppercase tracking-[0.14em] text-stone-500 font-semibold">Postęp</div>
+      </div>
+      <ol className="m-0 p-2 list-none relative">
+        <span className="absolute left-[18px] top-3 bottom-3 w-px bg-stone-200" />
+        {steps.map((s) => {
+          const done = !!s.v
+          const Icon = s.icon
+          return (
+            <li key={s.k} className="relative flex items-center gap-2.5 pl-7 py-1 text-[12px]">
+              <span className={`absolute left-[10px] w-4 h-4 grid place-items-center rounded-full border ${done ? 'bg-stone-900 border-stone-900 text-white' : 'bg-white border-stone-300 text-stone-400'}`}>
+                <Icon className="w-2.5 h-2.5" />
+              </span>
+              <span className={`flex-1 ${done ? 'text-stone-900 font-medium' : 'text-stone-500'}`}>{s.k}</span>
+              <span className="text-[10.5px] text-stone-500 tabular-nums">{s.v ? fmtDateShort(s.v) : '—'}</span>
             </li>
           )
         })}
-      </ul>
-    </Card>
-  )
-}
-
-function ProgressCard({ order }: { order: AdminOrderDetail }) {
-  const dates: Array<{ k: string; v: string | null | undefined; done: boolean }> = [
-    { k: 'Złożono', v: order.createdAt, done: !!order.createdAt },
-    { k: 'Płatność', v: order.paidAt, done: !!order.paidAt },
-    { k: 'Wysłano', v: order.shippedAt, done: !!order.shippedAt },
-    { k: 'Doręczono', v: order.deliveredAt, done: !!order.deliveredAt },
-  ]
-  return (
-    <Card>
-      <SectionLabel>Postęp</SectionLabel>
-      <ul className="list-none m-0 p-0 relative">
-        <span className="absolute left-1 top-3 bottom-3 w-px bg-[#e1dccf]" />
-        {dates.map((d) => (
-          <li key={d.k} className={`flex justify-between items-baseline pl-[18px] py-1.5 text-[12.5px] relative ${d.done ? 'text-[#1b1a17]' : 'text-[#6b665b]'}`}>
-            <span className={`absolute left-px top-3 w-[7px] h-[7px] rounded-full border ${d.done ? 'bg-[#1b1a17] border-[#1b1a17]' : 'bg-white border-[#bdb6a6]'}`} />
-            <span>{d.k}</span>
-            <span className={`tabular-nums text-[11px] ${d.done ? 'text-[#3a372f]' : 'text-[#6b665b]'}`}>{d.v ? fmtDate(d.v) : '—'}</span>
-          </li>
-        ))}
-      </ul>
-    </Card>
-  )
-}
-
-function AmountsCard({ order }: { order: AdminOrderDetail }) {
-  return (
-    <Card>
-      <SectionLabel>Kwoty</SectionLabel>
-      <ul className="list-none m-0 p-0">
-        <li className="flex justify-between items-baseline py-1.5 text-[12.5px] text-[#3a372f]"><span>Wartość</span><span className="tabular-nums">{fmtMoney(order.subtotal ?? 0, order.currency)}</span></li>
-        <li className="flex justify-between items-baseline py-1.5 text-[12.5px] text-[#3a372f]"><span>Wysyłka</span><span className="tabular-nums">{fmtMoney(order.shippingCost ?? 0, order.currency)}</span></li>
-        <li className="flex justify-between items-baseline py-1.5 text-[12.5px] text-[#3a372f]"><span>VAT</span><span className={`tabular-nums ${order.taxAmount == null ? 'text-[#9a9486]' : ''}`}>{order.taxAmount == null ? '—' : fmtMoney(order.taxAmount, order.currency)}</span></li>
-        <li className="mt-2 pt-3 border-t border-[#e1dccf] flex justify-between items-baseline text-[14px] text-[#1b1a17]">
-          <span>Suma</span>
-          <span className="tabular-nums font-semibold text-[18px]">{order.total.toFixed(2)} <span className="text-[#9a9486] text-[0.65em]">{order.currency}</span></span>
-        </li>
-        {order.totalPln != null && order.currency !== 'PLN' && (
-          <li className="flex justify-between items-baseline text-[#6b665b] text-[11px] py-1"><span>~ w PLN</span><span className="tabular-nums">{fmtMoney(order.totalPln, 'PLN')}</span></li>
-        )}
-      </ul>
-    </Card>
+      </ol>
+    </Panel>
   )
 }
 
 function CustomerCard({ order }: { order: AdminOrderDetail }) {
   const c = order.customerData
   const s = c.shippingAddress
-  const fullName = c.name || order.user?.name || '—'
-  const initials = fullName.split(' ').map((p) => p[0]).filter(Boolean).join('').slice(0, 2).toUpperCase() || '—'
+  const name = c.name || order.user?.name || '—'
+  const initials = name.split(' ').map((p) => p[0]).filter(Boolean).join('').slice(0, 2).toUpperCase() || '—'
   return (
-    <Card>
-      <SectionLabel action={order.user ? <LinkBtn>Profil ↗</LinkBtn> : undefined}>Klient</SectionLabel>
-      <div className="flex gap-3 items-center">
-        <div className="w-10 h-10 rounded-full bg-[#1b1a17] text-white grid place-items-center font-medium text-[13px] tracking-wider">{initials}</div>
-        <div className="min-w-0">
-          <div className="font-medium text-[#1b1a17] text-[13px] truncate">{fullName}</div>
-          {c.allegroLogin && <div className="text-[#6b665b] text-[11px] font-mono truncate">@{c.allegroLogin}</div>}
+    <Panel>
+      <div className="px-3 py-2 border-b border-stone-100 flex items-center justify-between">
+        <div className="text-[10px] uppercase tracking-[0.14em] text-stone-500 font-semibold">Klient</div>
+        {order.user && (
+          <a href={`/admin/users/${order.user.id}`} className="text-[11px] text-stone-600 hover:text-stone-900 inline-flex items-center gap-1">
+            Profil <ArrowUpRight className="w-3 h-3" />
+          </a>
+        )}
+      </div>
+      <div className="px-3 py-2.5 flex items-center gap-2.5 border-b border-stone-100">
+        <div className="w-8 h-8 rounded-sm bg-stone-900 text-white grid place-items-center font-semibold text-[11px] tracking-wider">{initials}</div>
+        <div className="min-w-0 flex-1">
+          <div className="text-[13px] text-stone-900 font-medium truncate">{name}</div>
+          {c.allegroLogin && <div className="text-[11px] text-stone-500 font-mono truncate flex items-center gap-1"><AtSign className="w-3 h-3" />{c.allegroLogin}</div>}
         </div>
       </div>
-      <div className="mt-3">
-        {c.email && <MetaRow k="Email" v={c.email} href={`mailto:${c.email}`} />}
-        {c.phone && <MetaRow k="Telefon" v={c.phone} href={`tel:${c.phone}`} />}
+      <div>
+        {c.email && <Row label="Email"><a href={`mailto:${c.email}`} className="text-stone-900 hover:underline">{c.email}</a></Row>}
+        {c.phone && (
+          <Row label="Telefon">
+            <a href={`tel:${c.phone}`} className="inline-flex items-center gap-1 text-stone-900 hover:underline">
+              <Phone className="w-3 h-3 text-stone-500" /> {c.phone}
+            </a>
+          </Row>
+        )}
+        <Row label="Numer zam." mono><CopyChip value={order.orderNumber} /></Row>
+        {order.externalId && <Row label="Allegro ID" mono><CopyChip value={order.externalId} /></Row>}
       </div>
-      {c.allegroLogin && (
-        <div className="flex flex-wrap gap-1 mt-2.5">
-          <span className="inline-block px-2 py-0.5 text-[10.5px] rounded-full bg-[#e3edf6] text-[#1f3a5f] font-medium">Allegro</span>
-        </div>
-      )}
       {s && (
-        <>
-          <div className="h-px bg-[#ece8dc] my-3.5" />
-          <div className="flex justify-between items-center mb-1.5">
-            <span className="text-[10.5px] uppercase tracking-[0.1em] text-[#9a9486] font-semibold">Adres dostawy</span>
+        <div className="border-t border-stone-100">
+          <div className="px-3 py-1.5 text-[10px] uppercase tracking-[0.1em] text-stone-500 font-semibold flex items-center gap-1">
+            <MapPin className="w-3 h-3" /> Adres dostawy
           </div>
-          <div className="text-[12.5px] text-[#3a372f] leading-[1.65]">
+          <div className="px-3 pb-2.5 text-[12.5px] text-stone-900 leading-[1.55]">
             <div>{s.name || c.name}</div>
-            <div>{s.street}</div>
-            <div>{s.postalCode} {s.city}</div>
-            <div className="text-[#9a9486] text-[11px] mt-0.5">{s.country}</div>
+            <div className="text-stone-700">{s.street}</div>
+            <div className="text-stone-700">{s.postalCode} {s.city}</div>
+            <div className="text-stone-500 text-[11px] mt-0.5">{s.country}</div>
           </div>
-        </>
+        </div>
       )}
-    </Card>
+    </Panel>
   )
 }
 
-function ShipmentCard({ order, onRefresh, loading }: { order: AdminOrderDetail; onRefresh: () => void; loading: boolean }) {
-  const idx = STATUS_PROGRESS.indexOf(order.status as typeof STATUS_PROGRESS[number])
-  const fillPct = idx >= 0 ? ((idx + 1) / STATUS_PROGRESS.length) * 100 : 25
+function InvoiceCard({ order }: { order: AdminOrderDetail }) {
+  const c = order.customerData
+  const billing = c.billingAddress
+  if (!order.invoiceRequired && !billing && !c.companyName && !c.taxId) return null
   return (
-    <Card>
-      <SectionLabel action={order.trackingNumber ? <LinkBtn>Śledź ↗</LinkBtn> : undefined}>Wysyłka</SectionLabel>
-      <KV k="Metoda">{order.shippingMethod ?? '—'}</KV>
-      <KV k="Numer paczki" mono>
-        {order.trackingNumber ? <CopyChip value={order.trackingNumber} /> : <span className="text-[#9a9486]">—</span>}
-      </KV>
-      <KV k="Status">{order.trackingStatus ?? order.trackingStatusCode ?? '—'}</KV>
-      <KV k="Aktualizacja" dim={!order.trackingStatusUpdatedAt}>
-        {order.trackingStatusUpdatedAt ? fmtDate(order.trackingStatusUpdatedAt) : '—'}
-      </KV>
-
-      <div className="mt-3.5">
-        <div className="h-1 bg-[#e8e3d8] rounded-full overflow-hidden mb-1.5">
-          <div className="h-full bg-[#1b1a17] rounded-full transition-all" style={{ width: `${fillPct}%` }} />
-        </div>
-        <div className="flex justify-between text-[10px] text-[#9a9486] tracking-wide uppercase">
-          {STATUS_PROGRESS.map((s, i) => (
-            <span key={s} className={i === idx ? 'text-[#1b1a17] font-semibold' : ''}>{STATUS_LABEL[s]}</span>
-          ))}
-        </div>
+    <Panel>
+      <div className="px-3 py-2 border-b border-stone-100 flex items-center justify-between">
+        <div className="text-[10px] uppercase tracking-[0.14em] text-stone-500 font-semibold">Faktura</div>
+        {order.invoiceRequired ? <Pill tone="info">Wymagana</Pill> : <Pill tone="neutral">Paragon</Pill>}
       </div>
-
-      {order.source === 'allegro' && (
-        <div className="mt-3 pt-3 border-t border-[#ece8dc] flex items-center justify-between">
-          <span className="text-[11px] text-[#6b665b]">Paczek: <span className="font-mono text-[#3a372f]">{order.allShipments?.length ?? 0}</span></span>
-          <button type="button" onClick={onRefresh} disabled={loading} className="text-[11px] text-[#6b665b] hover:text-[#1b1a17] inline-flex items-center gap-1 disabled:opacity-60">
-            {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />} Odśwież tracking
-          </button>
-        </div>
-      )}
-    </Card>
+      <div>
+        {c.companyName && <Row label="Firma">{c.companyName}</Row>}
+        {c.taxId && <Row label="NIP" mono><CopyChip value={c.taxId} /></Row>}
+        {billing && (
+          <div className="px-3 py-2 text-[12.5px] text-stone-900 leading-[1.55] border-t border-stone-100 bg-stone-50/40">
+            <div>{billing.name}</div>
+            <div className="text-stone-700">{billing.street}</div>
+            <div className="text-stone-700">{billing.postalCode} {billing.city}</div>
+          </div>
+        )}
+      </div>
+    </Panel>
   )
 }
 
 function AllegroCard({ order, onRefresh, loading }: { order: AdminOrderDetail; onRefresh: () => void; loading: boolean }) {
+  if (order.source !== 'allegro') return null
   return (
-    <Card>
-      <SectionLabel action={
-        <button type="button" onClick={onRefresh} disabled={loading} className="text-[12.5px] text-[#6b665b] hover:text-[#1b1a17] hover:bg-[#efece5] rounded px-2 py-1 transition inline-flex items-center gap-1 disabled:opacity-60">
-          {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />} Odśwież
+    <Panel>
+      <div className="px-3 py-2 border-b border-stone-100 flex items-center justify-between">
+        <div className="text-[10px] uppercase tracking-[0.14em] text-stone-500 font-semibold">Allegro</div>
+        <button type="button" onClick={onRefresh} disabled={loading}
+          className="text-[11px] text-stone-600 hover:text-stone-900 inline-flex items-center gap-1 disabled:opacity-60">
+          {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />} Sync
         </button>
-      }>Allegro</SectionLabel>
-      <KV k="Order ID" mono>{order.externalId ? <CopyChip value={order.externalId} /> : <span className="text-[#9a9486]">—</span>}</KV>
-      <KV k="Rewizja" mono>{order.allegroRevision ? <CopyChip value={order.allegroRevision} /> : <span className="text-[#9a9486]">—</span>}</KV>
-      <KV k="Shipment ID" mono dim={!order.allegroShipmentId}>{order.allegroShipmentId ? <CopyChip value={order.allegroShipmentId} /> : '—'}</KV>
-      <KV k="Paczki" mono>{order.allShipments?.length ?? 0}</KV>
-      {order.trackingStatusUpdatedAt && (
-        <div className="mt-3 pt-3 border-t border-[#ece8dc] flex items-center gap-2 text-[11px] text-[#6b665b]">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#2f6f3e]" style={{ boxShadow: '0 0 0 3px rgba(47,111,62,0.15)' }} />
-          <span>Zsynchronizowano <span className="font-mono">{fmtDate(order.trackingStatusUpdatedAt)}</span></span>
-        </div>
-      )}
-    </Card>
-  )
-}
-
-function PaymentSection({ order }: { order: AdminOrderDetail }) {
-  return (
-    <Card>
-      <SectionLabel>Płatność</SectionLabel>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
-        <KV k="Metoda">{order.paymentMethod ?? '—'}</KV>
-        <KV k="P24 status">{order.p24Status ?? '—'}</KV>
-        <KV k="Opłacono">{fmtDate(order.paidAt)}</KV>
-        <KV k="Suma" mono>{fmtMoney(order.total, order.currency)}</KV>
-        <KV k="Transakcja" mono>{order.p24TransactionId ? <CopyChip value={order.p24TransactionId} /> : '—'}</KV>
-        <KV k="Sesja" mono>{order.p24SessionId ? <CopyChip value={order.p24SessionId} /> : '—'}</KV>
       </div>
-    </Card>
-  )
-}
-
-function InvoiceSection({ order }: { order: AdminOrderDetail }) {
-  const billing = order.customerData.billingAddress
-  return (
-    <Card>
-      <SectionLabel>Faktura</SectionLabel>
-      <KV k="Wymagana">{order.invoiceRequired ? 'Tak' : 'Nie'}</KV>
-      {order.customerData.companyName && <KV k="Firma">{order.customerData.companyName}</KV>}
-      {order.customerData.taxId && <KV k="NIP" mono><CopyChip value={order.customerData.taxId} /></KV>}
-      {billing && (
-        <div className="mt-3 bg-[#efece5] rounded p-3.5 text-[12.5px] text-[#3a372f] leading-[1.65] border border-[#e1dccf]">
-          <div>{billing.name}</div>
-          <div>{billing.street}</div>
-          <div>{billing.postalCode} {billing.city}</div>
-        </div>
-      )}
-    </Card>
-  )
-}
-
-function ShippingSection({ order, onRefresh, loading }: { order: AdminOrderDetail; onRefresh: () => void; loading: boolean }) {
-  const parcels = order.allShipments ?? []
-  return (
-    <div className="space-y-4">
-      <Card>
-        <SectionLabel>Dostawa</SectionLabel>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
-          <KV k="Metoda">{order.shippingMethod ?? '—'}</KV>
-          <KV k="Status">{order.trackingStatus ?? order.trackingStatusCode ?? '—'}</KV>
-          <KV k="Numer przesyłki" mono>{order.trackingNumber ? <CopyChip value={order.trackingNumber} /> : '—'}</KV>
-          <KV k="Aktualizacja">{fmtDate(order.trackingStatusUpdatedAt)}</KV>
-        </div>
-      </Card>
-      <Card>
-        <SectionLabel
-          count={parcels.length}
-          action={<button type="button" onClick={onRefresh} disabled={loading} className="text-[12.5px] text-[#6b665b] hover:text-[#1b1a17] hover:bg-[#efece5] rounded px-2 py-1 inline-flex items-center gap-1 disabled:opacity-60">
-            {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />} Odśwież
-          </button>}
-        >Paczki</SectionLabel>
-        {parcels.length === 0
-          ? <EmptyState icon={Truck} title="Brak zapisanych paczek" />
-          : <div className="space-y-3">{parcels.map((p) => <ParcelCard key={p.waybill} parcel={p} />)}</div>}
-      </Card>
-    </div>
-  )
-}
-
-function ParcelCard({ parcel }: { parcel: AllegroShipmentEntry }) {
-  return (
-    <div className="border border-[#e1dccf] rounded-md overflow-hidden">
-      <div className="p-3 bg-[#efece5] flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="font-mono text-[13px] text-[#1b1a17] truncate">{parcel.waybill}</div>
-          <div className="text-[11px] text-[#6b665b]">{parcel.carrierName ?? parcel.carrierId} · {parcel.statusLabel ?? parcel.statusCode}</div>
-        </div>
-        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-medium bg-[#e3edf6] text-[#1f3a5f]">{parcel.statusCode}</span>
+      <div>
+        <Row label="Order ID" mono>{order.externalId ? <CopyChip value={order.externalId} /> : <span className="text-stone-400">—</span>}</Row>
+        <Row label="Rewizja" mono>{order.allegroRevision ? <CopyChip value={order.allegroRevision} /> : <span className="text-stone-400">—</span>}</Row>
+        <Row label="Shipment" mono dim={!order.allegroShipmentId}>{order.allegroShipmentId ? <CopyChip value={order.allegroShipmentId} /> : '—'}</Row>
+        <Row label="Fulfillment">{order.allegroFulfillmentStatus ?? <span className="text-stone-400">—</span>}</Row>
+        <Row label="Paczek" mono>{order.allShipments?.length ?? 0}</Row>
       </div>
-      {(parcel.events?.length ?? 0) > 0 && (
-        <ol className="p-3 space-y-2">
-          {parcel.events!.map((e, i) => (
-            <li key={`${e.code}-${e.occurredAt ?? i}`} className="flex items-center gap-3 text-[12.5px]">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#1f3a5f]" />
-              <span className="font-medium text-[#1b1a17]">{e.label ?? e.code}</span>
-              <span className="text-[11px] text-[#9a9486] ml-auto">{fmtDate(e.occurredAt)}</span>
-            </li>
-          ))}
-        </ol>
+      {order.externalId && (
+        <a href={`https://allegro.pl/moje-allegro/sprzedaz/zamowienie/${order.externalId}`} target="_blank" rel="noreferrer"
+           className="block px-3 py-2 border-t border-stone-100 text-[11.5px] text-stone-600 hover:text-stone-900 hover:bg-stone-50 inline-flex items-center gap-1">
+          Otwórz zamówienie w Allegro <ExternalLink className="w-3 h-3" />
+        </a>
       )}
-    </div>
+    </Panel>
   )
 }
 
-function ReturnsSection({ returns, currency }: { returns: AdminReturn[]; currency: string }) {
-  if (returns.length === 0) return <Card><EmptyState icon={Undo2} title="Brak zwrotów" /></Card>
-  return (
-    <div className="space-y-3">
-      {returns.map((r) => (
-        <Card key={r.id}>
-          <div className="flex items-start justify-between gap-3 flex-wrap">
-            <div>
-              <div className="flex items-center gap-2 mb-1.5">
-                <CopyChip value={r.returnNumber} />
-                <StatusPill status={r.status} />
-              </div>
-              <div className="text-[13px] text-[#1b1a17] font-medium">{r.reason}</div>
-              {r.reasonNote && <div className="text-[11px] text-[#6b665b] mt-1">{r.reasonNote}</div>}
-            </div>
-            <div className="text-right text-[14px] font-semibold text-[#1b1a17] tabular-nums">{fmtMoney(r.totalRefundAmount, r.currency || currency)}</div>
-          </div>
-          <div className="mt-3 text-[11px] text-[#6b665b]">Pozycje: {r.items.map((i) => `${i.quantity}× ${i.productName}`).join(', ') || '—'}</div>
-        </Card>
-      ))}
-    </div>
-  )
-}
-
-function ComplaintsSection({ complaints }: { complaints: AdminOrderDetailComplaint[] }) {
-  if (complaints.length === 0) return <Card><EmptyState icon={ShieldAlert} title="Brak dyskusji i reklamacji Allegro" /></Card>
-  return (
-    <div className="space-y-3">
-      {complaints.map((c) => (
-        <Card key={c.id}>
-          <div className="flex items-start justify-between gap-3 flex-wrap mb-2">
-            <div>
-              <div className="flex items-center gap-2 mb-1 flex-wrap">
-                <CopyChip value={c.allegroIssueId} />
-                <StatusPill status={c.status} />
-              </div>
-              <div className="text-[13px] text-[#1b1a17] font-medium">{c.subject ?? 'Dyskusja Allegro'}</div>
-              <div className="text-[11px] text-[#6b665b] mt-1">Ostatnia wiadomość: {fmtDate(c.lastMessageAt)}</div>
-            </div>
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10.5px] font-medium bg-[#efece5] text-[#3a372f]">{c.messages.length} wiad.</span>
-          </div>
-          {c.messages.slice(-3).map((m) => (
-            <div key={m.id} className="mt-2 rounded-md bg-[#efece5] border border-[#e1dccf] p-3 text-[12.5px]">
-              <div className="flex items-center justify-between gap-3 text-[10.5px] text-[#6b665b] uppercase tracking-[0.1em] mb-1.5">
-                <span>{m.authorRole}</span>
-                <span>{fmtDate(m.createdAt)}</span>
-              </div>
-              <div className="text-[#1b1a17] whitespace-pre-wrap">{m.text ?? '—'}</div>
-            </div>
-          ))}
-        </Card>
-      ))}
-    </div>
-  )
-}
-
-function NotesSection({ order }: { order: AdminOrderDetail }) {
-  return (
-    <Card>
-      <SectionLabel>Notatki</SectionLabel>
-      <div className="space-y-4">
-        <div>
-          <div className="text-[10.5px] uppercase tracking-[0.1em] text-[#9a9486] font-semibold mb-2">Publiczne</div>
-          <div className="min-h-20 rounded-md border border-[#e1dccf] bg-[#efece5] p-3 text-[12.5px] text-[#1b1a17] whitespace-pre-wrap">{order.notes || 'Brak notatek publicznych.'}</div>
-        </div>
-        <div>
-          <div className="text-[10.5px] uppercase tracking-[0.1em] text-[#9a9486] font-semibold mb-2">Wewnętrzne</div>
-          <div className="min-h-20 rounded-md border border-red-200 bg-red-50/40 p-3 text-[12.5px] text-[#1b1a17] whitespace-pre-wrap">{order.internalNotes || 'Brak notatek wewnętrznych.'}</div>
-        </div>
-      </div>
-    </Card>
-  )
-}
-
-function AuditSection({ order }: { order: AdminOrderDetail }) {
-  if (order.audit.length === 0) return <Card><EmptyState icon={ClipboardList} title="Brak wpisów audytu" /></Card>
-  return (
-    <Card noPad>
-      <CardHead><SectionLabel count={order.audit.length}>Audyt</SectionLabel><span /></CardHead>
-      <ul className="list-none p-0 m-0">
-        {order.audit.map((a) => (
-          <li key={a.id} className="flex items-center gap-3 px-5 py-3 border-b border-[#ece8dc] last:border-0 text-[12.5px]">
-            <UserIcon className="w-4 h-4 text-[#9a9486]" />
-            <div className="flex-1 min-w-0">
-              <div className="text-[#1b1a17]"><strong className="font-medium">{a.adminName ?? a.adminEmail ?? `Admin ${a.adminId ?? '—'}`}</strong> · {a.action}</div>
-              <div className="text-[11px] text-[#6b665b] truncate">{JSON.stringify(a.details ?? {})}</div>
-            </div>
-            <div className="text-[11px] text-[#9a9486] whitespace-nowrap tabular-nums">{fmtDate(a.createdAt)}</div>
-          </li>
-        ))}
-      </ul>
-    </Card>
-  )
-}
-
-function EmptyState({ icon: Icon, title }: { icon: React.ComponentType<{ className?: string }>; title: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-14 text-center">
-      <div className="w-14 h-14 rounded-full bg-[#efece5] flex items-center justify-center mb-3"><Icon className="w-6 h-6 text-[#9a9486]" /></div>
-      <div className="text-[13px] font-medium text-[#1b1a17]">{title}</div>
-    </div>
-  )
-}
+// ─── view ───────────────────────────────────────────────────────────────────
 
 export function OrderDetailView({ id }: { id: string }) {
   const orderId = Number(id)
   const [order, setOrder] = useState<AdminOrderDetail | null>(null)
-  const [tab, setTab] = useState<TabId>('details')
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [shipmentOpen, setShipmentOpen] = useState(false)
   const [labelOpen, setLabelOpen] = useState(false)
+  const [activeSection, setActiveSection] = useState<SectionId>('items')
+  const scrollerRef = useRef<HTMLDivElement | null>(null)
 
   const loadOrder = useCallback(async () => {
     if (!Number.isFinite(orderId)) {
@@ -783,6 +918,27 @@ export function OrderDetailView({ id }: { id: string }) {
       .finally(() => setLoading(false))
   }, [loadOrder])
 
+  // observe sections to update active sub-nav
+  useEffect(() => {
+    if (!order) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => (a.boundingClientRect.top ?? 0) - (b.boundingClientRect.top ?? 0))
+        if (visible[0]?.target?.id) {
+          setActiveSection(visible[0].target.id as SectionId)
+        }
+      },
+      { rootMargin: '-120px 0px -55% 0px', threshold: [0, 0.1, 0.5] },
+    )
+    SECTIONS.forEach((s) => {
+      const el = document.getElementById(s.id)
+      if (el) observer.observe(el)
+    })
+    return () => observer.disconnect()
+  }, [order])
+
   const runAction = async (key: string, action: () => Promise<unknown>) => {
     setActionLoading(key)
     setError(null)
@@ -796,87 +952,87 @@ export function OrderDetailView({ id }: { id: string }) {
     }
   }
 
+  const scrollTo = (id: SectionId) => {
+    const el = document.getElementById(id)
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#f6f4ef] flex items-center justify-center text-[#3a372f]">
-        <Loader2 className="w-5 h-5 animate-spin mr-2" /> Ładowanie zamówienia…
+      <div className="min-h-screen bg-stone-100 flex items-center justify-center text-stone-700 text-[13px]">
+        <Loader2 className="w-4 h-4 animate-spin mr-2" /> Ładowanie zamówienia…
       </div>
     )
   }
 
   if (!order) {
     return (
-      <div className="min-h-screen bg-[#f6f4ef] flex items-center justify-center">
-        <Card className="max-w-md text-center">
-          <AlertTriangle className="w-8 h-8 mx-auto mb-3 text-amber-600" />
-          <h1 className="font-semibold text-[#1b1a17]">Nie można wyświetlić zamówienia</h1>
-          <p className="text-sm text-[#6b665b] mt-2">{error ?? 'Brak danych.'}</p>
-        </Card>
+      <div className="min-h-screen bg-stone-100 flex items-center justify-center px-6">
+        <Panel className="max-w-md w-full p-5 text-center">
+          <AlertTriangle className="w-7 h-7 mx-auto mb-2.5 text-amber-600" />
+          <h1 className="text-[14px] font-semibold text-stone-900">Nie można wyświetlić zamówienia</h1>
+          <p className="text-[12px] text-stone-600 mt-1.5">{error ?? 'Brak danych.'}</p>
+        </Panel>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#f6f4ef] text-[#1b1a17]">
-      <div className="max-w-[1280px] mx-auto px-8 pt-7 pb-20">
-        <PageHeader
-          order={order}
-          loadingKey={actionLoading}
-          onRefresh={() => runAction('refresh', loadOrder)}
-          onRefreshShipment={() => runAction('shipment-refresh', () => adminApi.refreshOrderShipment(order.id, { force: true }))}
-          onCreateShipment={() => setShipmentOpen(true)}
-          onDownloadLabel={() => {
-            if ((order.allShipments?.length ?? 0) > 1) setLabelOpen(true)
-            else void runAction('label', async () => {
-              const blob = await adminApi.getShipmentLabel(order.id)
-              const url = URL.createObjectURL(blob)
-              window.open(url, '_blank')
-              setTimeout(() => URL.revokeObjectURL(url), 30_000)
-            })
-          }}
-          onFulfillment={(s) => runAction(`fulfillment-${s}`, () => adminApi.setOrderFulfillment(order.id, s))}
-          tab={tab}
-          setTab={setTab}
-        />
+    <div className="min-h-screen bg-stone-100 text-stone-900" ref={scrollerRef}>
+      <CommandBar
+        order={order}
+        loadingKey={actionLoading}
+        onRefresh={() => runAction('refresh', loadOrder)}
+        onRefreshShipment={() => runAction('shipment-refresh', () => adminApi.refreshOrderShipment(order.id, { force: true }))}
+        onCreateShipment={() => setShipmentOpen(true)}
+        onDownloadLabel={() => {
+          if ((order.allShipments?.length ?? 0) > 1) setLabelOpen(true)
+          else void runAction('label', async () => {
+            const blob = await adminApi.getShipmentLabel(order.id)
+            const url = URL.createObjectURL(blob)
+            window.open(url, '_blank')
+            setTimeout(() => URL.revokeObjectURL(url), 30_000)
+          })
+        }}
+        onFulfillment={(s) => runAction(`fulfillment-${s}`, () => adminApi.setOrderFulfillment(order.id, s))}
+      />
+      <KpiStrip order={order} />
+      <SubNav order={order} active={activeSection} onPick={scrollTo} />
 
-        {error && (
-          <div className="mt-5 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-[12.5px] text-red-700">{error}</div>
-        )}
+      {error && (
+        <div className="max-w-[1480px] mx-auto px-6 pt-3">
+          <div className="border border-red-200 bg-red-50 px-3 py-2 text-[12.5px] text-red-800 rounded-sm">{error}</div>
+        </div>
+      )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-6 mt-5">
-          <main className="flex flex-col gap-5 min-w-0">
-            {tab === 'details' && (<><ItemsCard order={order} /><TimelineCard entries={order.statusHistory} /></>)}
-            {tab === 'payment' && <PaymentSection order={order} />}
-            {tab === 'invoice' && <InvoiceSection order={order} />}
-            {tab === 'shipping' && (
-              <ShippingSection
-                order={order}
-                onRefresh={() => runAction('shipping-refresh', () => adminApi.refreshOrderShipment(order.id, { force: true }))}
-                loading={actionLoading === 'shipping-refresh'}
-              />
-            )}
-            {tab === 'returns' && <ReturnsSection returns={order.returns} currency={order.currency} />}
-            {tab === 'complaints' && <ComplaintsSection complaints={order.complaints} />}
-            {tab === 'notes' && <NotesSection order={order} />}
-            {tab === 'audit' && <AuditSection order={order} />}
+      <div className="max-w-[1480px] mx-auto px-6 py-5">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-5">
+          <main className="min-w-0 space-y-6">
+            <ItemsBlock order={order} />
+            <PaymentBlock order={order} />
+            <ShippingBlock
+              order={order}
+              onRefresh={() => runAction('shipping-refresh', () => adminApi.refreshOrderShipment(order.id, { force: true }))}
+              loading={actionLoading === 'shipping-refresh'}
+            />
+            <ReturnsBlock returns={order.returns} currency={order.currency} />
+            <ComplaintsBlock complaints={order.complaints} />
+            <NotesBlock order={order} />
+            <TimelineBlock entries={order.statusHistory} />
+            <AuditBlock order={order} />
           </main>
 
-          <aside className="flex flex-col gap-3.5 min-w-0">
-            <ProgressCard order={order} />
-            <AmountsCard order={order} />
-            <CustomerCard order={order} />
-            <ShipmentCard
-              order={order}
-              onRefresh={() => runAction('shipment-refresh-card', () => adminApi.refreshOrderShipment(order.id, { force: true }))}
-              loading={actionLoading === 'shipment-refresh-card'}
-            />
-            {order.source === 'allegro' && (
+          <aside className="min-w-0">
+            <div className="sticky top-[52px] space-y-2.5">
+              <ProgressRail order={order} />
+              <CustomerCard order={order} />
+              <InvoiceCard order={order} />
               <AllegroCard
                 order={order}
                 onRefresh={() => runAction('allegro-refresh', () => adminApi.refreshOrderShipment(order.id, { force: true }))}
                 loading={actionLoading === 'allegro-refresh'}
               />
-            )}
+            </div>
           </aside>
         </div>
       </div>
